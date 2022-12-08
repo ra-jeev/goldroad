@@ -1,0 +1,46 @@
+.toolbar {
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  color: goldenrod;
+}
+
+.logo {
+  font-size: 2rem;
+  font-weight: bolder;
+  line-height: 1;
+  user-select: none;
+  cursor: pointer;
+  transition: 0.2s all ease-in-out;
+}
+
+.logo:hover {
+  color: darkgoldenrod;
+}
+
+.game-number {
+  font-weight: 500;
+  font-size: 1.5rem;
+  margin-left: 0.5rem;
+}
+
+.toolbar-icons-container {
+  display: flex;
+  align-items: center;
+}
+
+.toolbar-icon {
+  color: goldenrod;
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: 0.2s all ease-in-out;
+}
+
+.toolbar-icon + .toolbar-icon {
+  margin-left: 1rem;
+}
+
+.toolbar-icon:hover {
+  color: darkgoldenrod;
+  transform: scale(1.05);
+}

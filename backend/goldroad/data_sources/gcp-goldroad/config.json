@@ -1,0 +1,10 @@
+{
+    "name": "gcp-goldroad",
+    "type": "mongodb-atlas",
+    "config": {
+        "clusterName": "gcp-goldroad",
+        "readPreference": "primary",
+        "wireProtocolEnabled": false
+    },
+    "version": 1
+}

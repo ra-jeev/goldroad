@@ -1,0 +1,15 @@
+{
+    "collection": "app",
+    "database": "goldroadDb",
+    "roles": [
+        {
+            "name": "denyAllAccess",
+            "apply_when": {},
+            "read": false,
+            "write": false,
+            "insert": false,
+            "delete": false,
+            "search": false
+        }
+    ]
+}

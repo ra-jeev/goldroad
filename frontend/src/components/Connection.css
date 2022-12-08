@@ -1,0 +1,14 @@
+.connection {
+  background-image: linear-gradient(
+    to left,
+    rgba(218, 165, 32, 0.5),
+    rgba(218, 165, 32, 0.5)
+  );
+  position: absolute;
+  z-index: 1;
+}
+
+.connection svg {
+  font-size: 1.5rem;
+  color: #230c0f;
+}

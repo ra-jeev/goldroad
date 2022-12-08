@@ -1,0 +1,15 @@
+{
+    "collection": "games",
+    "database": "goldroadDb",
+    "roles": [
+        {
+            "name": "read",
+            "apply_when": {
+                "active": true
+            },
+            "read": true,
+            "write": false,
+            "search": false
+        }
+    ]
+}

@@ -1,0 +1,22 @@
+{
+    "collection": "users",
+    "database": "goldroadDb",
+    "roles": [
+        {
+            "name": "user",
+            "apply_when": {
+                "_id": "%%user.id"
+            },
+            "fields": {
+                "data": {
+                    "write": true,
+                    "read": true
+                }
+            },
+            "additional_fields": {
+                "write": false,
+                "read": true
+            }
+        }
+    ]
+}

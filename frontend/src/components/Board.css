@@ -1,0 +1,46 @@
+.board {
+  display: flex;
+  flex-direction: column;
+  align-self: center;
+  position: relative;
+}
+
+.board-item {
+  display: flex;
+  justify-content: center;
+}
+
+.tiles-wrapper {
+  position: relative;
+}
+
+.status,
+.score {
+  color: goldenrod;
+  line-height: 1;
+}
+
+.score {
+  font-size: 2rem;
+  font-weight: bold;
+  margin-bottom: 1.5rem;
+}
+
+.status {
+  font-size: 1.5rem;
+  font-weight: medium;
+  margin-bottom: 1.5rem;
+}
+
+.redo {
+  margin-top: 1.5rem;
+  font-size: 2rem;
+  cursor: pointer;
+  color: goldenrod;
+  transition: 0.2s all ease-in-out;
+}
+
+.redo:hover {
+  color: darkgoldenrod;
+  transform: scale(1.05);
+}

@@ -1,0 +1,15 @@
+[
+    {
+        "name": "addUser",
+        "private": true
+    },
+    {
+        "name": "changeGame",
+        "private": true
+    },
+    {
+        "name": "createGame",
+        "private": true,
+        "run_as_system": true
+    }
+]
