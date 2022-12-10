@@ -43,12 +43,7 @@ function AppRoutes() {
         >
           <Route
             index
-            element={
-              <Game
-                sounds={gameSoundsSetting}
-                onGameNo={(val) => setGameNo(val)}
-              />
-            }
+            element={<Game sounds={gameSoundsSetting} onGameNo={setGameNo} />}
           />
           <Route path='/about' element={<About />} />
         </Route>

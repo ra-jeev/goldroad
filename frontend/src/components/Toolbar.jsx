@@ -9,7 +9,7 @@ export const Toolbar = ({ sounds, gameNo, onClick }) => {
         <span className='logo' onClick={() => onClick('logo')}>
           GoldRoad
         </span>
-        <span className='game-number'>#{gameNo}</span>
+        {gameNo && <span className='game-number'>#{gameNo}</span>}
       </div>
       <div className='toolbar-icons-container'>
         <FaQuestionCircle

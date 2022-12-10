@@ -42,10 +42,12 @@ export const Board = ({ tiles, connections, state, onClick }) => {
 
   return (
     <div className='board'>
-      <div className='board-item score'>
-        Collect {state.max - state.score} coins {state.score > 0 && 'more'}
+      <div className='board-item board-info'>
+        <span className='score'>
+          Collect {state.max - state.score} coins {state.score > 0 && 'more'}
+        </span>
+        <span className='status'>{state.status}</span>
       </div>
-      {state.status && <div className='board-item status'>{state.status}</div>}
 
       <div className='board-item'>
         <div className='tiles-wrapper'>
@@ -82,9 +84,13 @@ export const Board = ({ tiles, connections, state, onClick }) => {
         </div>
       </div>
 
-      <div className='board-item'>
-        <FaRedo className='redo' onClick={() => onClick('replay')} />
-      </div>
+      {state.moves ? (
+        <div className='board-item'>
+          <FaRedo className='redo' onClick={() => onClick('replay')} />
+        </div>
+      ) : (
+        <div className='board-item status'>Begin by tapping the green coin</div>
+      )}
     </div>
   );
 };

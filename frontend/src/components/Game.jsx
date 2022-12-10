@@ -8,11 +8,20 @@ import noMoves from '../assets/media/no-moves.mp3';
 import win from '../assets/media/win.mp3';
 import './Game.css';
 
+const gamePlayStatuses = [
+  'You can only move up down, or left right',
+  `Red dashed lines are walls you can't cross`,
+  'There might be multiple paths to the goal',
+  'Tap the button at the bottom to replay',
+  'Come back tomorrow for a new puzzle',
+];
+
 const DEFAULT_STATE = {
   moves: 0,
   score: 0,
   max: 0,
-  status: '',
+  status: 'Find your way to the red coin',
+  statusIndex: -1,
   lastMove: null,
 };
 
@@ -26,6 +35,7 @@ const gameSounds = {
 const player = new Audio();
 
 export const Game = ({ sounds, onGameNo }) => {
+  const [loading, setLoading] = useState(false);
   const [game, setGame] = useState(null);
   const [user, setUser] = useState(null);
   const [tiles, setTiles] = useState([]);
@@ -38,6 +48,7 @@ export const Game = ({ sounds, onGameNo }) => {
   useEffect(() => {
     const appDb = realmApp.client?.db('goldroadDb');
     const getGameData = async () => {
+      setLoading(true);
       const gameDoc = await appDb
         ?.collection('games')
         ?.findOne({ current: true });
@@ -69,6 +80,8 @@ export const Game = ({ sounds, onGameNo }) => {
         if (onGameNo) {
           onGameNo(gameDoc.gameNo);
         }
+
+        setLoading(false);
       }
     };
 
@@ -85,7 +98,7 @@ export const Game = ({ sounds, onGameNo }) => {
       getGameData();
       getUserData();
     }
-  }, [realmApp.client, realmApp.user]);
+  }, [realmApp.client, realmApp.user, onGameNo]);
 
   const playSound = (src) => {
     if (sounds === 'on') {
@@ -280,10 +293,17 @@ export const Game = ({ sounds, onGameNo }) => {
       currNode.active = false;
       currNode.done = true;
 
+      let statusIndex = gameState.statusIndex + 1;
+      if (statusIndex > 4) {
+        statusIndex = 0;
+      }
+
       const changes = {
         score: gameState.score + currNode.value,
         moves: gameState.moves + 1,
         lastMove: [row, col],
+        status: gamePlayStatuses[statusIndex],
+        statusIndex,
       };
 
       if (gameState.lastMove) {
@@ -365,12 +385,13 @@ export const Game = ({ sounds, onGameNo }) => {
         }
       } else {
         if (changes.score === game.maxScore) {
-          changes.status = '🎉 You got the gold :-)';
+          changes.status = "🏆 You've got the gold :-)";
         } else if (game.maxScore - changes.score <= 5) {
           changes.status = `👏 You're really close...`;
         } else {
-          changes.status = 'Try getting some more gold...';
+          changes.status = '👻 Try getting some more...';
         }
+
         playSound(gameSounds.win);
         updateUserEntry(true, changes.score, changes.moves);
       }
@@ -386,12 +407,16 @@ export const Game = ({ sounds, onGameNo }) => {
 
   return (
     <div className='board-container'>
-      <Board
-        tiles={tiles}
-        connections={connections}
-        onClick={onBoardClick}
-        state={gameState}
-      />
+      {loading ? (
+        `Loading today's game...`
+      ) : (
+        <Board
+          tiles={tiles}
+          connections={connections}
+          onClick={onBoardClick}
+          state={gameState}
+        />
+      )}
     </div>
   );
 };

@@ -2,4 +2,6 @@
   display: flex;
   height: calc(100vh - 64px);
   justify-content: center;
+  color: goldenrod;
+  align-items: center;
 }
