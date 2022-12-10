@@ -12,6 +12,11 @@ export const About = () => {
           gold.
         </p>
         <p>
+          You can only go <strong>up / down</strong>, or{' '}
+          <strong>left / right</strong>. Also, <strong>red dashed lines</strong>{' '}
+          represent <strong>walls</strong> that you can't cross.
+        </p>
+        <p>
           <strong>Play as many times as you want.</strong> You win, if you get
           as much gold as is displayed at the start of the game.
         </p>
