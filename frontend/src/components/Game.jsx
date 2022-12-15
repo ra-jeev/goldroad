@@ -380,6 +380,7 @@ export const Game = ({ sounds, onGameNo }) => {
           setActiveNodes(freshActiveNodes);
         } else {
           changes.status = 'Uh Oh! No further moves...';
+          changes.score = 0; // If no further moves possible, then reset the score to 0
           playSound(gameSounds.noMoves);
           updateUserEntry(false);
         }
