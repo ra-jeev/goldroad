@@ -1,5 +1,9 @@
 exports = async function () {
-  const mongoDb = context.services.get('gcp-goldroad').db('goldroadDb');
+  console.log(`context.environment: ${JSON.stringify(context.environment)}`);
+
+  const { serviceName, dbName } = context.environment.values;
+
+  const mongoDb = context.services.get(serviceName).db(dbName);
   const gamesCollection = mongoDb.collection('games');
   const currGame = await gamesCollection.findOne({ current: true });
   if (currGame) {

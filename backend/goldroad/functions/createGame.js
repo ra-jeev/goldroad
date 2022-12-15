@@ -168,7 +168,11 @@ exports = async function (req) {
     gameEntry.maxScoreMoves = bestMove.moves;
     gameEntry.hints = bestMove.path;
 
-    const mongoDb = context.services.get('gcp-goldroad').db('goldroadDb');
+    console.log(`context.environment: ${JSON.stringify(context.environment)}`);
+
+    const { serviceName, dbName } = context.environment.values;
+
+    const mongoDb = context.services.get(serviceName).db(dbName);
     const gamesCollection = mongoDb.collection('games');
     const appCollection = mongoDb.collection('app');
     const config = await appCollection.findOne({ type: 'config' });
