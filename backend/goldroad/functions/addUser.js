@@ -1,7 +1,11 @@
 exports = async function (authEvent) {
   const { user, time } = authEvent;
 
-  const mongoDb = context.services.get('gcp-goldroad').db('goldroadDb');
+  console.log(`context.environment: ${JSON.stringify(context.environment)}`);
+
+  const { serviceName, dbName } = context.environment.values;
+
+  const mongoDb = context.services.get(serviceName).db(dbName);
   const usersCollection = mongoDb.collection('users');
   const userData = { _id: user.id, ...user, createdAt: time, updatedAt: time };
   userData.data = {
