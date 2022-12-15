@@ -5,7 +5,7 @@
         "operation_types": [
             "UPDATE"
         ],
-        "database": "goldroadDb",
+        "database": "goldroadDb-dev",
         "collection": "games",
         "service_name": "gcp-goldroad",
         "match": {

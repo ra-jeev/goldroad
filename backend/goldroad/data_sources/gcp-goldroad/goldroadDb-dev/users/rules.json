@@ -1,6 +1,6 @@
 {
     "collection": "users",
-    "database": "goldroadDb",
+    "database": "goldroadDb-dev",
     "roles": [
         {
             "name": "user",

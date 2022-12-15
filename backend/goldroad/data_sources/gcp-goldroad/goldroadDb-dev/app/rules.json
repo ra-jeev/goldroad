@@ -1,6 +1,6 @@
 {
     "collection": "app",
-    "database": "goldroadDb",
+    "database": "goldroadDb-dev",
     "roles": [
         {
             "name": "denyAllAccess",

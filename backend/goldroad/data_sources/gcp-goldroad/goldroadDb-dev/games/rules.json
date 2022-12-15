@@ -1,6 +1,6 @@
 {
     "collection": "games",
-    "database": "goldroadDb",
+    "database": "goldroadDb-dev",
     "roles": [
         {
             "name": "read",
