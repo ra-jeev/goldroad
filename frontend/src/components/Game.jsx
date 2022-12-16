@@ -46,7 +46,7 @@ export const Game = ({ sounds, onGameNo }) => {
   const realmApp = useRealmApp();
 
   useEffect(() => {
-    const appDb = realmApp.client?.db('goldroadDb');
+    const appDb = realmApp.client?.db(process.env.REACT_APP_MONGO_DB_NAME);
     const getGameData = async () => {
       setLoading(true);
       const gameDoc = await appDb
@@ -135,7 +135,7 @@ export const Game = ({ sounds, onGameNo }) => {
             }
 
             const result = await realmApp.client
-              ?.db('goldroadDb')
+              ?.db(process.env.REACT_APP_MONGO_DB_NAME)
               .collection('users')
               ?.updateOne(
                 { _id: user._id },
@@ -196,7 +196,7 @@ export const Game = ({ sounds, onGameNo }) => {
           }
 
           const result = await realmApp.client
-            ?.db('goldroadDb')
+            ?.db(process.env.REACT_APP_MONGO_DB_NAME)
             .collection('users')
             ?.updateOne(
               { _id: user._id },
@@ -236,7 +236,7 @@ export const Game = ({ sounds, onGameNo }) => {
         }
 
         const result = await realmApp.client
-          ?.db('goldroadDb')
+          ?.db(process.env.REACT_APP_MONGO_DB_NAME)
           .collection('users')
           ?.updateOne(
             { _id: user._id },
