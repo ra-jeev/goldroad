@@ -11,8 +11,14 @@ export function Layout({ sounds, onSettingChange, gameNo }) {
       case 'logo':
         navigate('/');
         break;
+      case 'back':
+        navigate(-1);
+        break;
       case 'about':
         navigate('/about');
+        break;
+      case 'games':
+        navigate('/games');
         break;
       case 'sounds':
         onSettingChange();
