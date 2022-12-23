@@ -9,9 +9,17 @@ exports = async function () {
   if (currGame) {
     console.log('got the current game: ', JSON.stringify(currGame));
     const date = new Date();
-    const nextGameDate = new Date();
-    nextGameDate.setUTCHours(0, 0, 0, 0);
-    nextGameDate.setUTCDate(nextGameDate.getDate() + 1);
+    let nextGameDate;
+    if (currGame.nextGameAt) {
+      nextGameDate = new Date(currGame.nextGameAt);
+      nextGameDate.setUTCMinutes(nextGameDate.getDate() + 1);
+    } else {
+      nextGameDate = new Date(currGame.playableAt);
+      nextGameDate.setUTCMinutes(nextGameDate.getDate() + 2);
+    }
+
+    // nextGameDate.setUTCDate(nextGameDate.getDate() + 1);
+
     await gamesCollection.bulkWrite(
       [
         {
