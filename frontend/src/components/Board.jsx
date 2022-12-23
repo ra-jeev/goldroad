@@ -5,7 +5,14 @@ import './Board.css';
 import { Connection } from './Connection';
 import { Tile } from './Tile';
 
-export const Board = ({ tiles, connections, state, onClick }) => {
+export const Board = ({
+  tiles,
+  connections,
+  state,
+  onClick,
+  currGame,
+  lastGame,
+}) => {
   const [tileSize, setTileSize] = useState('64px');
 
   useEffect(() => {
@@ -38,6 +45,10 @@ export const Board = ({ tiles, connections, state, onClick }) => {
     }
 
     return pos;
+  };
+
+  const getOrdinal = (n) => {
+    return ['st', 'nd', 'rd'][((((n + 90) % 100) - 10) % 10) - 1] || 'th';
   };
 
   return (
@@ -89,7 +100,14 @@ export const Board = ({ tiles, connections, state, onClick }) => {
           <FaRedo className='redo' onClick={() => onClick('replay')} />
         </div>
       ) : (
-        <div className='board-item status'>Begin by tapping the green coin</div>
+        <div className='board-item status'>
+          {lastGame &&
+          lastGame.gameNo === currGame.gameNo &&
+          !lastGame.solved &&
+          lastGame.tries
+            ? `${lastGame.tries + 1}${getOrdinal(lastGame.tries + 1)} try`
+            : 'Begin by tapping the green coin'}
+        </div>
       )}
     </div>
   );

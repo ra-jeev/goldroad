@@ -24,11 +24,16 @@
   margin-left: 0.5rem;
 }
 
+.game-number-silver {
+  color: silver;
+}
+
 .toolbar-icons-container {
   display: flex;
   align-items: center;
 }
 
+.back-btn,
 .toolbar-icon {
   color: goldenrod;
   font-size: 1.5rem;
@@ -36,10 +41,15 @@
   transition: 0.2s all ease-in-out;
 }
 
+.back-btn {
+  margin-right: 1rem;
+}
+
 .toolbar-icon + .toolbar-icon {
   margin-left: 1rem;
 }
 
+.back-btn:hover,
 .toolbar-icon:hover {
   color: darkgoldenrod;
   transform: scale(1.05);

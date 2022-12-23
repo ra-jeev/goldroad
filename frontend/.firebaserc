@@ -1,5 +1,6 @@
 {
   "projects": {
-    "default": "goldroad"
+    "dev": "goldroad-dev",
+    "prod": "goldroad"
   }
 }

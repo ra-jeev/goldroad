@@ -4,4 +4,18 @@
   justify-content: center;
   color: goldenrod;
   align-items: center;
+  flex-direction: column;
+}
+
+.error {
+  font-size: 1.5rem;
+}
+
+.link {
+  color: goldenrod;
+  font-size: 1.5rem;
+}
+
+.link:hover {
+  color: darkgoldenrod;
 }

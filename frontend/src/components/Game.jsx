@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useLocation, Link } from 'react-router-dom';
 
 import { useRealmApp } from './RealmApp';
 import { Board } from './Board';
@@ -23,6 +24,8 @@ const DEFAULT_STATE = {
   status: 'Find your way to the red coin',
   statusIndex: -1,
   lastMove: null,
+  wrongMove: false,
+  ended: false,
 };
 
 const gameSounds = {
@@ -32,10 +35,11 @@ const gameSounds = {
   win,
 };
 
-const player = new Audio();
+const player = new Audio(gameSounds.coin);
 
 export const Game = ({ sounds, onGameNo }) => {
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [game, setGame] = useState(null);
   const [user, setUser] = useState(null);
   const [tiles, setTiles] = useState([]);
@@ -44,14 +48,85 @@ export const Game = ({ sounds, onGameNo }) => {
   const [gameState, setGameState] = useState(DEFAULT_STATE);
 
   const realmApp = useRealmApp();
+  const location = useLocation();
+
+  const isCurrentGame = location.pathname === '/';
+
+  useEffect(() => {
+    for (const gameSoundKey in gameSounds) {
+      if (gameSoundKey !== 'coin') {
+        new Audio(gameSounds[gameSoundKey]);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    const updateStreakOnNewGame = async (setChanges) => {
+      console.log('updateStreakOnNewGame called');
+      const result = await realmApp.client
+        ?.db(process.env.REACT_APP_MONGO_DB_NAME)
+        .collection('users')
+        .findOneAndUpdate(
+          { _id: user._id },
+          {
+            $set: {
+              ...setChanges,
+            },
+          },
+          {
+            returnNewDocument: true,
+          }
+        );
+
+      setUser(result);
+      console.log('result of updateStreakOnNewGame: ', JSON.stringify(result));
+    };
+
+    if (user && game && isCurrentGame) {
+      const lastGamePlayed = user.data.lastGamePlayed;
+      if (
+        lastGamePlayed &&
+        ![0, 1].includes(game.gameNo - lastGamePlayed.gameNo) &&
+        user.data.currStreak
+      ) {
+        const setChanges = {
+          'data.currStreak': 0,
+        };
+
+        if (user.data.isCurrLongestStreak) {
+          setChanges['data.isCurrLongestStreak'] = false;
+        }
+
+        updateStreakOnNewGame(setChanges);
+      }
+    }
+  }, [user, game, realmApp.client, isCurrentGame]);
 
   useEffect(() => {
     const appDb = realmApp.client?.db(process.env.REACT_APP_MONGO_DB_NAME);
     const getGameData = async () => {
       setLoading(true);
-      const gameDoc = await appDb
-        ?.collection('games')
-        ?.findOne({ current: true });
+      setError(null);
+      if (onGameNo) {
+        onGameNo('');
+      }
+
+      let url = process.env.REACT_APP_GAME_API_URL;
+      if (!isCurrentGame) {
+        const queryParts = location.pathname.split('/');
+        if (queryParts.length > 2 && queryParts[2]) {
+          url += `?num=${queryParts[2]}`;
+        }
+      }
+
+      const resp = await fetch(url);
+      if (!resp.ok) {
+        setError('The requested game was not found...');
+        setLoading(false);
+        return;
+      }
+
+      const gameDoc = await resp.json();
 
       if (gameDoc) {
         const conns = [];
@@ -59,9 +134,9 @@ export const Game = ({ sounds, onGameNo }) => {
 
         for (const coinsRow of coins) {
           conns.push([]);
-          for (const _ of coinsRow) {
+          coinsRow.forEach(() => {
             conns[conns.length - 1].push(null);
-          }
+          });
         }
 
         const startCoin =
@@ -80,9 +155,9 @@ export const Game = ({ sounds, onGameNo }) => {
         if (onGameNo) {
           onGameNo(gameDoc.gameNo);
         }
-
-        setLoading(false);
       }
+
+      setLoading(false);
     };
 
     const getUserData = async () => {
@@ -98,155 +173,102 @@ export const Game = ({ sounds, onGameNo }) => {
       getGameData();
       getUserData();
     }
-  }, [realmApp.client, realmApp.user, onGameNo]);
+  }, [
+    realmApp.client,
+    realmApp.user,
+    onGameNo,
+    isCurrentGame,
+    location.pathname,
+  ]);
 
   const playSound = (src) => {
     if (sounds === 'on') {
+      player.pause();
       player.src = src;
       player.play();
     }
   };
 
-  const updateUserEntry = async (solved, score, moves) => {
-    if (user) {
-      if (user.data.lastGamePlayed) {
-        const lastGamePlayed = user.data.lastGamePlayed;
-        if (lastGamePlayed.gameNo === game.gameNo) {
-          const incChanges = {};
-          const setChanges = {};
+  const getUserStatsChanges = (solved, score, moves) => {
+    const incChanges = {};
+    const setChanges = {};
 
-          if (!lastGamePlayed.solved) {
-            incChanges['data.lastGamePlayed.tries'] = 1;
-            if (solved && score === game.maxScore) {
-              setChanges['data.lastGamePlayed.solved'] = true;
-              incChanges['data.currStreak'] = 1;
-              incChanges['data.solves'] = 1;
-              if (user.data.isCurrLongestStreak) {
-                incChanges['data.longestStreak'] = 1;
-              } else if (user.data.currStreak === user.data.longestStreak) {
-                incChanges['data.longestStreak'] = 1;
-                setChanges['data.isCurrLongestStreak'] = true;
-              }
-            }
+    const lastGamePlayed = user.data.lastGamePlayed;
+    const isNewGame = !lastGamePlayed || lastGamePlayed.gameNo !== game.gameNo;
 
-            if (score > lastGamePlayed.score) {
-              setChanges['data.lastGamePlayed.score'] = score;
-              setChanges['data.lastGamePlayed.moves'] = moves;
-            }
+    if (isNewGame) {
+      const currGame = {
+        _id: game._id,
+        gameNo: game.gameNo,
+        solved: false,
+        score,
+        moves,
+        target: game.maxScore,
+        tries: 1,
+      };
 
-            const result = await realmApp.client
-              ?.db(process.env.REACT_APP_MONGO_DB_NAME)
-              .collection('users')
-              ?.updateOne(
-                { _id: user._id },
-                {
-                  $set: {
-                    ...setChanges,
-                  },
-                  $inc: {
-                    ...incChanges,
-                  },
-                }
-              );
+      setChanges['data.lastGamePlayed'] = currGame;
+      incChanges['data.played'] = 1;
+    } else {
+      // If the current game is already solved, return
+      if (lastGamePlayed.solved) {
+        return;
+      }
 
-            console.log('result of user data update: ', JSON.stringify(result));
-          }
-        } else {
-          // played
-          const incChanges = {};
-          const setChanges = {};
+      incChanges['data.lastGamePlayed.tries'] = 1;
+      if (solved && score > lastGamePlayed.score) {
+        setChanges['data.lastGamePlayed.score'] = score;
+        setChanges['data.lastGamePlayed.moves'] = moves;
+      }
+    }
 
-          const newLastGamePlayed = {
-            _id: game._id,
-            gameNo: game.gameNo,
-            solved: false,
-            score,
-            moves,
-            target: game.maxScore,
-            tries: 1,
-          };
-
-          if (solved && score === game.maxScore) {
-            newLastGamePlayed.solved = true;
-          }
-
-          setChanges['data.lastGamePlayed'] = newLastGamePlayed;
-          incChanges['data.played'] = 1;
-          if (lastGamePlayed.gameNo === game.gameNo - 1) {
-            if (solved && score === game.maxScore) {
-              incChanges['data.currStreak'] = 1;
-              incChanges['data.solves'] = 1;
-              if (user.data.isCurrLongestStreak) {
-                incChanges['data.longestStreak'] = 1;
-              } else if (user.data.currStreak === user.data.longestStreak) {
-                incChanges['data.longestStreak'] = 1;
-                setChanges['data.isCurrLongestStreak'] = true;
-              }
-            }
-          } else {
-            // Need to update the streak even if the game was not played
-            setChanges['data.currStreak'] =
-              solved && score === game.maxScore ? 1 : 0;
-            if (setChanges['data.currStreak'] < user.data.longestStreak) {
-              setChanges['data.isCurrLongestStreak'] = false;
-            } else {
-              incChanges['data.longestStreak'] = 1;
-              setChanges['data.isCurrLongestStreak'] = true;
-            }
-          }
-
-          const result = await realmApp.client
-            ?.db(process.env.REACT_APP_MONGO_DB_NAME)
-            .collection('users')
-            ?.updateOne(
-              { _id: user._id },
-              {
-                $set: {
-                  ...setChanges,
-                },
-                $inc: {
-                  ...incChanges,
-                },
-              }
-            );
-
-          console.log('result of user data update: ', JSON.stringify(result));
-        }
+    if (solved && score === game.maxScore) {
+      if (!isNewGame) {
+        setChanges['data.lastGamePlayed.solved'] = true;
       } else {
-        const setChanges = {};
-        const incChanges = {};
+        setChanges['data.lastGamePlayed'].solved = true;
+      }
 
-        setChanges['data.lastGamePlayed'] = {
-          _id: game._id,
-          gameNo: game.gameNo,
-          solved: false,
-          score,
-          moves,
-          target: game.maxScore,
-          tries: 1,
-        };
+      incChanges['data.solves'] = 1;
+      incChanges['data.currStreak'] = 1;
 
-        incChanges['data.played'] = 1;
-        if (solved && score === game.maxScore) {
-          setChanges['data.lastGamePlayed'].solved = true;
-          incChanges['data.currStreak'] = 1;
-          incChanges['data.longestStreak'] = 1;
-          incChanges['data.solves'] = 1;
-          setChanges['data.isCurrLongestStreak'] = true;
-        }
+      if (user.data.isCurrLongestStreak) {
+        incChanges['data.longestStreak'] = 1;
+      } else if (user.data.currStreak === user.data.longestStreak) {
+        incChanges['data.longestStreak'] = 1;
+        setChanges['data.isCurrLongestStreak'] = true;
+      } else if (user.data.currStreak === user.data.longestStreak - 1) {
+        setChanges['data.isCurrLongestStreak'] = true;
+      }
+    }
 
+    return { setChanges, incChanges };
+  };
+
+  const updateUserEntry = async (solved, score, moves) => {
+    if (user && isCurrentGame) {
+      const changes = getUserStatsChanges(solved, score, moves);
+      if (changes) {
+        const { incChanges, setChanges } = changes;
         const result = await realmApp.client
           ?.db(process.env.REACT_APP_MONGO_DB_NAME)
           .collection('users')
-          ?.updateOne(
+          .findOneAndUpdate(
             { _id: user._id },
             {
               $set: {
                 ...setChanges,
               },
+              $inc: {
+                ...incChanges,
+              },
+            },
+            {
+              returnNewDocument: true,
             }
           );
 
+        setUser(result);
         console.log('result of user data update: ', JSON.stringify(result));
       }
     }
@@ -256,8 +278,6 @@ export const Game = ({ sounds, onGameNo }) => {
     if (type === 'tile') {
       onTileClick(value);
     } else if (type === 'replay') {
-      setGameState({ ...DEFAULT_STATE, max: game.maxScore });
-
       for (const rowTiles of tiles) {
         for (const tile of rowTiles) {
           const row = parseInt(tile.id[0]);
@@ -281,6 +301,12 @@ export const Game = ({ sounds, onGameNo }) => {
           rowConnections[col] = null;
         }
       }
+
+      if (!gameState.ended) {
+        updateUserEntry(false);
+      }
+
+      setGameState({ ...DEFAULT_STATE, max: game.maxScore });
     }
   };
 
@@ -378,21 +404,31 @@ export const Game = ({ sounds, onGameNo }) => {
 
         if (freshActiveNodes.length) {
           setActiveNodes(freshActiveNodes);
+          // Need to show different score if it becomes more than the max score
+          if (changes.score >= game.maxScore || gameState.wrongMove) {
+            changes.score = 0;
+            changes.status = `This road feels unfamiliar...`;
+            if (!gameState.wrongMove) {
+              changes.wrongMove = true;
+            }
+          }
         } else {
           changes.status = 'Uh Oh! No further moves...';
           changes.score = 0; // If no further moves possible, then reset the score to 0
+          changes.ended = true;
           playSound(gameSounds.noMoves);
           updateUserEntry(false);
         }
       } else {
         if (changes.score === game.maxScore) {
           changes.status = "🏆 You've got the gold :-)";
-        } else if (game.maxScore - changes.score <= 5) {
+        } else if (game.maxScore - changes.score <= 3) {
           changes.status = `👏 You're really close...`;
         } else {
           changes.status = '👻 Try getting some more...';
         }
 
+        changes.ended = true;
         playSound(gameSounds.win);
         updateUserEntry(true, changes.score, changes.moves);
       }
@@ -409,13 +445,27 @@ export const Game = ({ sounds, onGameNo }) => {
   return (
     <div className='board-container'>
       {loading ? (
-        `Loading today's game...`
+        isCurrentGame ? (
+          `Loading today's game...`
+        ) : (
+          'Loading the requested game...'
+        )
+      ) : error ? (
+        <>
+          <div className='error'>{error}</div>
+          <br />
+          <Link className='link' to='/' replace={true}>
+            Play today's game
+          </Link>
+        </>
       ) : (
         <Board
           tiles={tiles}
           connections={connections}
           onClick={onBoardClick}
           state={gameState}
+          lastGame={user?.data.lastGamePlayed}
+          currGame={game}
         />
       )}
     </div>
