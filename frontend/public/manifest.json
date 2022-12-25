@@ -1,6 +1,7 @@
 {
   "short_name": "GoldRoad",
-  "name": "The GoldRoad Game",
+  "name": "GoldRoad - The Game",
+  "description": "GoldRoad is a free, daily puzzle game right in your browser. Work up your brain a bit, and find a path to the red coin which gives you the maximum gold.",
   "icons": [
     {
       "src": "favicon.ico",
@@ -16,6 +17,18 @@
       "src": "icon-512.png",
       "type": "image/png",
       "sizes": "512x512"
+    },
+    {
+      "src": "icon-192-maskable.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icon-512-maskable.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
     }
   ],
   "start_url": ".",
