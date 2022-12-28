@@ -102,7 +102,7 @@ export const Stats = () => {
                   <>
                     <div className='stats-congrats'>Yay! You did it 🎉</div>
                     <div className='stats-text'>
-                      https://goldroad.web.app
+                      @TheGoldRoad
                       <br />
                       <br />
                       GoldRoad #{gameData.gameNo}
@@ -115,6 +115,9 @@ export const Stats = () => {
                       }`}
                       <br />
                       #GoldRoad #GoldRoad{gameData.gameNo}
+                      <br />
+                      <br />
+                      https://goldroad.web.app
                     </div>
                     {message && (
                       <div>
@@ -150,22 +153,31 @@ export const Stats = () => {
                 <div className='stats-card-item'>
                   <div className='stats-item-key'>Current Streak:</div>
                   <div className='stats-item-val'>
-                    {user.data.currStreak} days
+                    {user.data.currStreak}{' '}
+                    {user.data.currStreak === 1 ? 'day' : 'days'}
                   </div>
                 </div>
                 <div className='stats-card-item'>
                   <div className='stats-item-key'>Longest Streak:</div>
                   <div className='stats-item-val'>
-                    {user.data.longestStreak} days
+                    {user.data.isCurrLongestStreak && '☝️ '}
+                    {user.data.longestStreak}{' '}
+                    {user.data.longestStreak === 1 ? 'day' : 'days'}
                   </div>
                 </div>
                 <div className='stats-card-item'>
                   <div className='stats-item-key'>Total Treads:</div>
-                  <div className='stats-item-val'>{user.data.played} roads</div>
+                  <div className='stats-item-val'>
+                    {user.data.played}{' '}
+                    {user.data.played === 1 ? 'road' : 'roads'}
+                  </div>
                 </div>
                 <div className='stats-card-item'>
                   <div className='stats-item-key'>Total Treasures:</div>
-                  <div className='stats-item-val'>{user.data.solves} hauls</div>
+                  <div className='stats-item-val'>
+                    {user.data.solves}{' '}
+                    {user.data.solves === 1 ? 'haul' : 'hauls'}
+                  </div>
                 </div>
               </div>
             </>
