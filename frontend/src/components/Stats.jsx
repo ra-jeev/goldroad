@@ -149,7 +149,7 @@ export const Stats = () => {
                 )}
               </div>
               <div className='stats-card'>
-                <div className='stats-card-title'>Your stats</div>
+                <div className='stats-card-title'>Your Stats</div>
                 <div className='stats-card-item'>
                   <div className='stats-item-key'>Current Streak:</div>
                   <div className='stats-item-val'>
