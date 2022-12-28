@@ -160,9 +160,11 @@ export const Stats = () => {
                 <div className='stats-card-item'>
                   <div className='stats-item-key'>Longest Streak:</div>
                   <div className='stats-item-val'>
-                    {user.data.isCurrLongestStreak && '☝️ '}
-                    {user.data.longestStreak}{' '}
-                    {user.data.longestStreak === 1 ? 'day' : 'days'}
+                    {user.data.isCurrLongestStreak
+                      ? '☝️'
+                      : `${user.data.longestStreak}${
+                          user.data.longestStreak === 1 ? ' day' : ' days'
+                        }`}
                   </div>
                 </div>
                 <div className='stats-card-item'>
