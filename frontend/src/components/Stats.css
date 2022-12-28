@@ -1,0 +1,95 @@
+.stats-container {
+  display: flex;
+  flex-direction: column;
+  color: goldenrod;
+  padding: 1rem;
+  align-items: center;
+}
+
+.stats-card {
+  background-color: rgba(192, 192, 192, 0.18);
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  width: 100%;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.stats-card-title {
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.gap-2 {
+  gap: 1.5rem;
+}
+
+@media screen and (min-width: 960px) {
+  .stats-card {
+    max-width: 32rem;
+  }
+}
+
+.stats-card + .stats-card {
+  margin-top: 2rem;
+}
+
+.stats-card-item {
+  display: flex;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.stats-item-key {
+  color: darkgoldenrod;
+  width: 50%;
+  text-align: end;
+}
+
+.stats-item-val {
+  font-weight: bold;
+  width: 50%;
+}
+
+.stats-congrats {
+  font-size: 1.25rem;
+}
+
+.stats-text {
+  background-color: gold;
+  color: #280c0f;
+  padding: 1rem 1.5rem;
+  border-radius: 1rem;
+}
+
+.stats-message {
+  text-align: center;
+}
+
+.stats-message + .stats-message {
+  margin-top: 0.5rem;
+}
+
+.btn {
+  background-color: goldenrod;
+  color: #280c0f;
+  font-size: 1rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  border: none;
+  border-radius: 1.5rem;
+  padding: 0.75rem 2rem;
+  transition: 0.2s all ease-in-out;
+  display: flex;
+  align-items: center;
+  line-height: 1;
+  gap: 0.75rem;
+}
+
+.btn:hover {
+  background-color: darkgoldenrod;
+  transform: scale(1.05);
+}

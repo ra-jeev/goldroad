@@ -14,6 +14,9 @@ export function Layout({ sounds, onSettingChange, gameNo }) {
       case 'back':
         navigate(-1);
         break;
+      case 'stats':
+        navigate('/stats');
+        break;
       case 'about':
         navigate('/about');
         break;
