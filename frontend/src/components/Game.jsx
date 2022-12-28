@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useLocation, Link } from 'react-router-dom';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
 
 import { useRealmApp } from './RealmApp';
 import { Board } from './Board';
@@ -21,7 +21,7 @@ const DEFAULT_STATE = {
   moves: 0,
   score: 0,
   max: 0,
-  status: 'Find your way to the red coin',
+  status: 'Begin by tapping the green coin',
   statusIndex: -1,
   lastMove: null,
   wrongMove: false,
@@ -49,6 +49,7 @@ export const Game = ({ sounds, onGameNo }) => {
 
   const realmApp = useRealmApp();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const isCurrentGame = location.pathname === '/';
 
@@ -270,6 +271,8 @@ export const Game = ({ sounds, onGameNo }) => {
 
         setUser(result);
         console.log('result of user data update: ', JSON.stringify(result));
+
+        navigate('/stats');
       }
     }
   };

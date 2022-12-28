@@ -6,7 +6,7 @@
 }
 
 .logo {
-  font-size: 2rem;
+  font-size: 1.5rem;
   font-weight: bolder;
   line-height: 1;
   user-select: none;
@@ -20,7 +20,7 @@
 
 .game-number {
   font-weight: 500;
-  font-size: 1.5rem;
+  font-size: 1.125rem;
   margin-left: 0.5rem;
 }
 
@@ -31,22 +31,16 @@
 .toolbar-icons-container {
   display: flex;
   align-items: center;
+  gap: 0.75rem;
 }
 
 .back-btn,
 .toolbar-icon {
   color: goldenrod;
-  font-size: 1.5rem;
+  font-size: 1.75rem;
+  padding: 0.25rem;
   cursor: pointer;
   transition: 0.2s all ease-in-out;
-}
-
-.back-btn {
-  margin-right: 1rem;
-}
-
-.toolbar-icon + .toolbar-icon {
-  margin-left: 1rem;
 }
 
 .back-btn:hover,
