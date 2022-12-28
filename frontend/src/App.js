@@ -7,6 +7,7 @@ import { About } from './components/About';
 import { Games } from './components/Games';
 import { RealmAppProvider } from './components/RealmApp';
 import './App.css';
+import { Stats } from './components/Stats';
 
 function AppRoutes() {
   const getSavedGameSoundsSetting = () => {
@@ -52,6 +53,7 @@ function AppRoutes() {
             path='/games/:gameId'
             element={<Game sounds={gameSoundsSetting} onGameNo={setGameNo} />}
           />
+          <Route path='/stats' element={<Stats />} />
         </Route>
       </Routes>
     </BrowserRouter>

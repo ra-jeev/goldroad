@@ -106,7 +106,7 @@ export const Board = ({
           !lastGame.solved &&
           lastGame.tries
             ? `${lastGame.tries + 1}${getOrdinal(lastGame.tries + 1)} try`
-            : 'Begin by tapping the green coin'}
+            : 'Find your way to the red coin'}
         </div>
       )}
     </div>
