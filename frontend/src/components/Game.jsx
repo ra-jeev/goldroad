@@ -272,7 +272,9 @@ export const Game = ({ sounds, onGameNo }) => {
         setUser(result);
         console.log('result of user data update: ', JSON.stringify(result));
 
-        navigate('/stats');
+        if (solved && score === game.maxScore) {
+          navigate('/stats');
+        }
       }
     }
   };
