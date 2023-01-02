@@ -12,10 +12,10 @@ exports = async function () {
     let nextGameDate;
     if (currGame.nextGameAt) {
       nextGameDate = new Date(currGame.nextGameAt);
-      nextGameDate.setUTCMinutes(nextGameDate.getDate() + 1);
+      nextGameDate.setUTCDate(nextGameDate.getDate() + 1);
     } else {
       nextGameDate = new Date(currGame.playableAt);
-      nextGameDate.setUTCMinutes(nextGameDate.getDate() + 2);
+      nextGameDate.setUTCDate(nextGameDate.getDate() + 2);
     }
 
     // nextGameDate.setUTCDate(nextGameDate.getDate() + 1);
