@@ -56,6 +56,44 @@ export const Stats = () => {
     getGameData();
   }, []);
 
+  const copyToClipboard = async (text) => {
+    if (window.navigator.clipboard) {
+      try {
+        await window.navigator.clipboard.writeText(text);
+        setMessage([
+          'Result text copied to your clipboard.',
+          'Share now with your friends :-)',
+        ]);
+
+        return;
+      } catch (error) {}
+    }
+
+    const textarea = document.createElement('textarea');
+    textarea.style.position = 'fixed';
+    textarea.style.width = '1px';
+    textarea.style.height = '1px';
+    textarea.style.padding = 0;
+    textarea.style.border = 'none';
+    textarea.style.outline = 'none';
+    textarea.style.boxShadow = 'none';
+    textarea.style.background = 'transparent';
+    document.body.appendChild(textarea);
+    textarea.textContent = text;
+    textarea.focus();
+    textarea.select();
+    const result = document.execCommand('copy');
+    textarea.remove();
+    if (!result) {
+      setMessage(['Failed to copy your result text.']);
+    } else {
+      setMessage([
+        'Result text copied to your clipboard.',
+        'Share now with your friends :-)',
+      ]);
+    }
+  };
+
   const shareStats = async () => {
     const text = `@TheGoldRoad\nGoldRoad #${gameData.gameNo}\n${
       emojis[user.data.lastGamePlayed.tries - 1] || '👏'
@@ -66,16 +104,16 @@ export const Stats = () => {
     }\n\nPlay now: https://goldroad.web.app`;
 
     if (window.navigator.share) {
-      await window.navigator.share({
-        text,
-      });
-    } else {
-      await window.navigator.clipboard.writeText(text);
-      setMessage([
-        'Result copied to your clipboard.',
-        'Paste & share with your friends :-)',
-      ]);
+      try {
+        await window.navigator.share({
+          text,
+        });
+      } catch (error) {}
+
+      return;
     }
+
+    await copyToClipboard(text);
   };
 
   useEffect(() => {
