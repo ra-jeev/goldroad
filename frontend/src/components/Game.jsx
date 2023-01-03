@@ -21,7 +21,7 @@ const DEFAULT_STATE = {
   moves: 0,
   score: 0,
   max: 0,
-  status: 'Begin by tapping the green coin',
+  status: 'Get to the red coin. To begin tap the green one',
   statusIndex: -1,
   lastMove: null,
   wrongMove: false,
@@ -84,7 +84,7 @@ export const Game = ({ sounds, onGameNo }) => {
     };
 
     if (user && game && isCurrentGame) {
-      const lastGamePlayed = user.data.lastGamePlayed;
+      const lastGamePlayed = user.data?.lastGamePlayed;
       if (
         lastGamePlayed &&
         ![0, 1].includes(game.gameNo - lastGamePlayed.gameNo) &&
@@ -166,7 +166,9 @@ export const Game = ({ sounds, onGameNo }) => {
         const user = await appDb
           ?.collection('users')
           ?.findOne({ _id: realmApp.user.id });
-        setUser({ ...user });
+        if (user) {
+          setUser({ ...user });
+        }
       }
     };
 
@@ -463,15 +465,17 @@ export const Game = ({ sounds, onGameNo }) => {
             Play today's game
           </Link>
         </>
-      ) : (
+      ) : tiles.length > 0 ? (
         <Board
           tiles={tiles}
           connections={connections}
           onClick={onBoardClick}
           state={gameState}
-          lastGame={user?.data.lastGamePlayed}
+          lastGame={user?.data?.lastGamePlayed}
           currGame={game}
         />
+      ) : (
+        'Welcome to GoldRoad, a daily puzzle game'
       )}
     </div>
   );
