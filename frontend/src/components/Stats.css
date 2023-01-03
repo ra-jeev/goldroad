@@ -27,12 +27,6 @@
   gap: 1.5rem;
 }
 
-@media screen and (min-width: 960px) {
-  .stats-card {
-    max-width: 32rem;
-  }
-}
-
 .stats-card + .stats-card {
   margin-top: 2rem;
 }
@@ -95,4 +89,25 @@
 .btn:hover {
   background-color: darkgoldenrod;
   transform: scale(1.05);
+}
+
+.stats-footer {
+  margin-top: 4rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.5;
+  width: 100%;
+}
+
+.stats-footer a {
+  color: goldenrod;
+  font-weight: bold;
+}
+
+@media screen and (min-width: 960px) {
+  .stats-footer,
+  .stats-card {
+    max-width: 32rem;
+  }
 }
