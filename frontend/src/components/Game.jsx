@@ -139,6 +139,11 @@ export const Game = ({ sounds, onGameNo }) => {
       const gameDoc = await resp.json();
 
       if (gameDoc) {
+        if (!isCurrentGame && gameDoc.current) {
+          navigate('/');
+          return;
+        }
+
         const conns = [];
         const coins = gameDoc.coins;
 
