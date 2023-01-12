@@ -7,6 +7,8 @@ import coin from '../assets/media/coin.mp3';
 import deny from '../assets/media/deny.mp3';
 import noMoves from '../assets/media/no-moves.mp3';
 import win from '../assets/media/win.mp3';
+import okay from '../assets/media/okay.mp3';
+import clapping from '../assets/media/clapping.mp3';
 import './Game.css';
 
 const gamePlayStatuses = [
@@ -29,13 +31,17 @@ const DEFAULT_STATE = {
 };
 
 const gameSounds = {
-  coin,
-  deny,
-  noMoves,
-  win,
+  coin: { src: coin, audio: null },
+  deny: { src: deny, audio: null },
+  noMoves: { src: noMoves, audio: null },
+  win: { src: win, audio: null },
+  okay: { src: okay, audio: null },
+  clapping: { src: clapping, audio: null },
 };
 
-const player = new Audio(gameSounds.coin);
+const player = new Audio();
+const playerCtx = new AudioContext();
+playerCtx.createMediaElementSource(player).connect(playerCtx.destination);
 
 export const Game = ({ sounds, onGameNo }) => {
   const [loading, setLoading] = useState(false);
@@ -55,8 +61,9 @@ export const Game = ({ sounds, onGameNo }) => {
 
   useEffect(() => {
     for (const gameSoundKey in gameSounds) {
-      if (gameSoundKey !== 'coin') {
-        new Audio(gameSounds[gameSoundKey]);
+      const gameSound = gameSounds[gameSoundKey];
+      if (!gameSound.audio) {
+        gameSound.audio = new Audio(gameSound.src);
       }
     }
   }, []);
@@ -87,6 +94,7 @@ export const Game = ({ sounds, onGameNo }) => {
       const lastGamePlayed = user.data?.lastGamePlayed;
       if (
         lastGamePlayed &&
+        game.current &&
         ![0, 1].includes(game.gameNo - lastGamePlayed.gameNo) &&
         user.data.currStreak
       ) {
@@ -108,6 +116,7 @@ export const Game = ({ sounds, onGameNo }) => {
     const getGameData = async () => {
       setLoading(true);
       setError(null);
+      setGame(null);
       if (onGameNo) {
         onGameNo('');
       }
@@ -184,10 +193,16 @@ export const Game = ({ sounds, onGameNo }) => {
     location.pathname,
   ]);
 
-  const playSound = (src) => {
+  const playSound = (sound) => {
     if (sounds === 'on') {
-      player.pause();
-      player.src = src;
+      if (!player.src || player.src !== sound.src) {
+        player.src = sound.src;
+      }
+
+      if (playerCtx.state === 'suspended') {
+        playerCtx.resume();
+      }
+
       player.play();
     }
   };
@@ -212,6 +227,9 @@ export const Game = ({ sounds, onGameNo }) => {
 
       setChanges['data.lastGamePlayed'] = currGame;
       incChanges['data.played'] = 1;
+      if (!lastGamePlayed) {
+        setChanges['data.firstGame'] = game.gameNo;
+      }
     } else {
       // If the current game is already solved, return
       if (lastGamePlayed.solved) {
@@ -228,6 +246,7 @@ export const Game = ({ sounds, onGameNo }) => {
     if (solved && score === game.maxScore) {
       if (!isNewGame) {
         setChanges['data.lastGamePlayed.solved'] = true;
+        setChanges['data.lastGamePlayed.gameId'] = game._id; //send a new field so that it will be included in the updatedFields
       } else {
         setChanges['data.lastGamePlayed'].solved = true;
       }
@@ -427,16 +446,19 @@ export const Game = ({ sounds, onGameNo }) => {
           updateUserEntry(false);
         }
       } else {
+        let winSound = gameSounds.win;
         if (changes.score === game.maxScore) {
           changes.status = "🏆 You've got the gold :-)";
         } else if (game.maxScore - changes.score <= 3) {
           changes.status = `👏 You're really close...`;
+          winSound = gameSounds.clapping;
         } else {
           changes.status = '👻 Try getting some more...';
+          winSound = gameSounds.okay;
         }
 
         changes.ended = true;
-        playSound(gameSounds.win);
+        playSound(winSound);
         updateUserEntry(true, changes.score, changes.moves);
       }
 
