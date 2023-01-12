@@ -1,0 +1,71 @@
+{
+    "name": "gameSolved",
+    "type": "DATABASE",
+    "config": {
+        "operation_types": [
+            "UPDATE"
+        ],
+        "database": "goldroadDb-dev",
+        "collection": "users",
+        "service_name": "gcp-goldroad",
+        "match": {
+            "$expr": {
+                "$let": {
+                    "vars": {
+                        "updated": "$updateDescription.updatedFields",
+                        "lastGamePlayed": {
+                            "$getField": {
+                                "field": "data.lastGamePlayed",
+                                "input": "$updateDescription.updatedFields"
+                            }
+                        }
+                    },
+                    "in": {
+                        "$or": [
+                            {
+                                "$gte": [
+                                    {
+                                        "$getField": {
+                                            "field": "data.currStreak",
+                                            "input": "$$updated"
+                                        }
+                                    },
+                                    {
+                                        "$numberInt": "1"
+                                    }
+                                ]
+                            },
+                            {
+                                "$gte": [
+                                    {
+                                        "$getField": {
+                                            "field": "gameNo",
+                                            "input": "$$lastGamePlayed"
+                                        }
+                                    },
+                                    {
+                                        "$numberInt": "1"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            }
+        },
+        "project": {},
+        "full_document": false,
+        "full_document_before_change": false,
+        "unordered": false,
+        "skip_catchup_events": false,
+        "tolerate_resume_errors": false
+    },
+    "disabled": false,
+    "event_processors": {
+        "FUNCTION": {
+            "config": {
+                "function_name": "onGameSolved"
+            }
+        }
+    }
+}
