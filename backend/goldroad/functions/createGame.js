@@ -1,6 +1,3 @@
-const ROWS = 6;
-const COLS = 6;
-
 // Generate a random number between min (included) & max (excluded)
 const randomInt = (min, max) => {
   return Math.floor(Math.random() * (max - min)) + min;
@@ -33,6 +30,9 @@ const handleJob = (jobs, job) => {
   const col = job.src[1];
   const srcNode = job.coins[row][col];
 
+  const maxRows = job.coins.length;
+  const maxCols = job.coins[0].length;
+
   srcNode.finished = true;
   if (row === job.dst[0] && col === job.dst[1]) {
     job.total += srcNode.value;
@@ -42,9 +42,9 @@ const handleJob = (jobs, job) => {
 
   const neighbors = {
     prevNode: col > 0 ? job.coins[row][col - 1] : null,
-    nextNode: col < COLS - 1 ? job.coins[row][col + 1] : null,
+    nextNode: col < maxCols - 1 ? job.coins[row][col + 1] : null,
     topNode: row > 0 ? job.coins[row - 1][col] : null,
-    bottomNode: row < ROWS - 1 ? job.coins[row + 1][col] : null,
+    bottomNode: row < maxRows - 1 ? job.coins[row + 1][col] : null,
   };
 
   job.total += srcNode.value;
@@ -104,22 +104,37 @@ const findBestRoute = (coins, start, end) => {
 };
 
 exports = async function (req) {
+  let maxRows = 6;
+  let maxCols = 6;
+  let walls = 2;
+
   let reqBody = null;
   if (req) {
     if (req.body) {
       console.log(`got a req body: ${req.body.text()}`);
       reqBody = JSON.parse(req.body.text());
+      if (reqBody.rows) {
+        maxRows = reqBody.rows;
+      }
+
+      if (reqBody.cols) {
+        maxCols = reqBody.cols;
+      }
+
+      if (reqBody.walls) {
+        walls = reqBody.walls;
+      }
     } else {
       console.log(`got a req without req body: ${JSON.stringify(req)}`);
     }
   }
 
   const coins = [];
-  for (let row = 0; row < ROWS; row++) {
+  for (let row = 0; row < maxRows; row++) {
     coins.push([]);
 
-    const blockages = getCoinsWithWalls(0, COLS, 2);
-    for (let col = 0; col < COLS; col++) {
+    const blockages = getCoinsWithWalls(0, maxCols, walls);
+    for (let col = 0; col < maxCols; col++) {
       const coin = {
         id: `${row}${col}`,
         value: randomInt(1, 7),
@@ -134,16 +149,29 @@ exports = async function (req) {
     }
   }
 
-  const start = `${randomInt(2, 4)}${randomInt(2, 4)}`;
+  const minStartRow = parseInt(maxRows / 2 - 1);
+  const maxStartRow = maxRows - minStartRow;
+
+  const minStartCol = parseInt(maxCols / 2 - 1);
+  const maxStartCol = maxCols - minStartCol;
+
+  console.log(
+    `min-max start rows: (${minStartRow}, ${maxStartRow}), cols: (${minStartCol}, ${maxStartCol})`
+  );
+
+  const start = `${randomInt(minStartRow, maxStartRow)}${randomInt(
+    minStartCol,
+    maxStartCol
+  )}`;
   let end = randomInt(1, 5);
   if (end === 1) {
     end = '00';
   } else if (end === 2) {
-    end = `0${COLS - 1}`;
+    end = `0${maxCols - 1}`;
   } else if (end === 3) {
-    end = `${ROWS - 1}0`;
+    end = `${maxRows - 1}0`;
   } else {
-    end = `${ROWS - 1}${COLS - 1}`;
+    end = `${maxRows - 1}${maxCols - 1}`;
   }
 
   const date = new Date();
@@ -184,15 +212,20 @@ exports = async function (req) {
       if (config.lastPlayableGame) {
         const lastPlayableDate = config.lastPlayableGame.playableAt;
         lastPlayableDate.setUTCDate(lastPlayableDate.getDate() + 1);
+
         gameEntry.playableAt = lastPlayableDate;
-        gameEntry.gameNo = config.lastPlayableGame.gameNo + 1;
+        gameEntry.gameNo =
+          reqBody?.gameNo || config.lastPlayableGame.gameNo + 1;
         if (reqBody) {
           if (reqBody.active) {
             gameEntry.active = true;
           }
 
           if (reqBody.current) {
+            const nextGameAt = new Date(config.lastPlayableGame.playableAt);
+            nextGameAt.setUTCDate(nextGameAt.getDate() + 2);
             gameEntry.current = true;
+            gameEntry.nextGameAt = nextGameAt;
           }
         }
       } else {
