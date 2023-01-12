@@ -1,5 +1,10 @@
 [
     {
+        "name": "onGameSolved",
+        "private": false,
+        "disable_arg_logs": true
+    },
+    {
         "name": "addUser",
         "private": true
     },
