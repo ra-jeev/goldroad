@@ -5,21 +5,12 @@
         "operation_types": [
             "UPDATE"
         ],
-        "database": "goldroadDb-dev",
+        "database": "goldroadDb",
         "collection": "users",
         "service_name": "gcp-goldroad",
         "match": {
             "$expr": {
                 "$let": {
-                    "vars": {
-                        "updated": "$updateDescription.updatedFields",
-                        "lastGamePlayed": {
-                            "$getField": {
-                                "field": "data.lastGamePlayed",
-                                "input": "$updateDescription.updatedFields"
-                            }
-                        }
-                    },
                     "in": {
                         "$or": [
                             {
@@ -49,6 +40,15 @@
                                 ]
                             }
                         ]
+                    },
+                    "vars": {
+                        "lastGamePlayed": {
+                            "$getField": {
+                                "field": "data.lastGamePlayed",
+                                "input": "$updateDescription.updatedFields"
+                            }
+                        },
+                        "updated": "$updateDescription.updatedFields"
                     }
                 }
             }
