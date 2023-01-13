@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
+import { FaRedo } from 'react-icons/fa';
 
 import { useRealmApp } from './RealmApp';
 import { Board } from './Board';
+import { NewGameTicker } from './NewGameTicker';
 import coin from '../assets/media/coin.mp3';
 import deny from '../assets/media/deny.mp3';
 import noMoves from '../assets/media/no-moves.mp3';
@@ -43,6 +45,41 @@ const player = new Audio();
 const playerCtx = new AudioContext();
 playerCtx.createMediaElementSource(player).connect(playerCtx.destination);
 
+const getOrdinal = (n) => {
+  return ['st', 'nd', 'rd'][((((n + 90) % 100) - 10) % 10) - 1] || 'th';
+};
+
+const GameFooter = ({ gameState, lastGame, game, onClick }) => {
+  if (gameState.moves) {
+    return (
+      <div className='game-item'>
+        <FaRedo className='redo' onClick={onClick} />
+      </div>
+    );
+  }
+
+  if (!lastGame || lastGame.gameNo !== game.gameNo) {
+    return (
+      <div className='game-item status'>Find your way to the red coin</div>
+    );
+  }
+
+  if (lastGame.solved) {
+    return (
+      <div className='game-item status'>
+        <NewGameTicker nextGameAt={game.nextGameAt} />
+      </div>
+    );
+  } else {
+    return (
+      <div className='game-item status'>
+        {lastGame.tries + 1}
+        {getOrdinal(lastGame.tries + 1)} try
+      </div>
+    );
+  }
+};
+
 export const Game = ({ sounds, onGameNo }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -58,6 +95,7 @@ export const Game = ({ sounds, onGameNo }) => {
   const navigate = useNavigate();
 
   const isCurrentGame = location.pathname === '/';
+  const lastGame = user?.data?.lastGamePlayed;
 
   useEffect(() => {
     for (const gameSoundKey in gameSounds) {
@@ -196,6 +234,7 @@ export const Game = ({ sounds, onGameNo }) => {
     onGameNo,
     isCurrentGame,
     location.pathname,
+    navigate,
   ]);
 
   const playSound = (sound) => {
@@ -309,40 +348,36 @@ export const Game = ({ sounds, onGameNo }) => {
     }
   };
 
-  const onBoardClick = (type, value) => {
-    if (type === 'tile') {
-      onTileClick(value);
-    } else if (type === 'replay') {
-      for (const rowTiles of tiles) {
-        for (const tile of rowTiles) {
-          const row = parseInt(tile.id[0]);
-          const col = parseInt(tile.id[1]);
-          if (
-            row === parseInt(game.start[0]) &&
-            col === parseInt(game.start[1])
-          ) {
-            tile.active = true;
-            setActiveNodes([tile.id]);
-          } else {
-            tile.active = false;
-          }
-
-          tile.done = false;
+  const replayGame = () => {
+    for (const rowTiles of tiles) {
+      for (const tile of rowTiles) {
+        const row = parseInt(tile.id[0]);
+        const col = parseInt(tile.id[1]);
+        if (
+          row === parseInt(game.start[0]) &&
+          col === parseInt(game.start[1])
+        ) {
+          tile.active = true;
+          setActiveNodes([tile.id]);
+        } else {
+          tile.active = false;
         }
-      }
 
-      for (const rowConnections of connections) {
-        for (let col = 0; col < rowConnections.length; col++) {
-          rowConnections[col] = null;
-        }
+        tile.done = false;
       }
-
-      if (!gameState.ended) {
-        updateUserEntry(false);
-      }
-
-      setGameState({ ...DEFAULT_STATE, max: game.maxScore });
     }
+
+    for (const rowConnections of connections) {
+      for (let col = 0; col < rowConnections.length; col++) {
+        rowConnections[col] = null;
+      }
+    }
+
+    if (!gameState.ended) {
+      updateUserEntry(false);
+    }
+
+    setGameState({ ...DEFAULT_STATE, max: game.maxScore });
   };
 
   const onTileClick = (id) => {
@@ -497,14 +532,26 @@ export const Game = ({ sounds, onGameNo }) => {
           </Link>
         </>
       ) : tiles.length > 0 ? (
-        <Board
-          tiles={tiles}
-          connections={connections}
-          onClick={onBoardClick}
-          state={gameState}
-          lastGame={user?.data?.lastGamePlayed}
-          currGame={game}
-        />
+        <>
+          <div className='game-item game-info'>
+            <span className='score'>
+              Collect {gameState.max - gameState.score} coins{' '}
+              {gameState.score > 0 && 'more'}
+            </span>
+            <span className='status'>{gameState.status}</span>
+          </div>
+          <Board
+            tiles={tiles}
+            connections={connections}
+            onClick={onTileClick}
+          />
+          <GameFooter
+            gameState={gameState}
+            lastGame={lastGame}
+            game={game}
+            onClick={replayGame}
+          />
+        </>
       ) : (
         'Welcome to GoldRoad, a daily puzzle game'
       )}
