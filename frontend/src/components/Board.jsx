@@ -1,18 +1,10 @@
 import { useEffect, useState } from 'react';
-import { FaRedo } from 'react-icons/fa';
 
 import './Board.css';
 import { Connection } from './Connection';
 import { Tile } from './Tile';
 
-export const Board = ({
-  tiles,
-  connections,
-  state,
-  onClick,
-  currGame,
-  lastGame,
-}) => {
+export const Board = ({ tiles, connections, onClick }) => {
   const [tileSize, setTileSize] = useState('64px');
 
   useEffect(() => {
@@ -47,19 +39,8 @@ export const Board = ({
     return pos;
   };
 
-  const getOrdinal = (n) => {
-    return ['st', 'nd', 'rd'][((((n + 90) % 100) - 10) % 10) - 1] || 'th';
-  };
-
   return (
     <div className='board'>
-      <div className='board-item board-info'>
-        <span className='score'>
-          Collect {state.max - state.score} coins {state.score > 0 && 'more'}
-        </span>
-        <span className='status'>{state.status}</span>
-      </div>
-
       <div className='board-item'>
         <div className='tiles-wrapper'>
           {tiles.map((tilesRow, index) => {
@@ -71,7 +52,7 @@ export const Board = ({
                       key={tile.id}
                       data={tile}
                       size={tileSize}
-                      onClick={(id) => onClick('tile', id)}
+                      onClick={(id) => onClick(id)}
                     />
                   );
                 })}
@@ -94,21 +75,6 @@ export const Board = ({
           })}
         </div>
       </div>
-
-      {state.moves ? (
-        <div className='board-item'>
-          <FaRedo className='redo' onClick={() => onClick('replay')} />
-        </div>
-      ) : (
-        <div className='board-item status'>
-          {lastGame &&
-          lastGame.gameNo === currGame.gameNo &&
-          !lastGame.solved &&
-          lastGame.tries
-            ? `${lastGame.tries + 1}${getOrdinal(lastGame.tries + 1)} try`
-            : 'Find your way to the red coin'}
-        </div>
-      )}
     </div>
   );
 };

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { FaShare, FaPlayCircle } from 'react-icons/fa';
 
 import { useRealmApp } from './RealmApp';
+import { NewGameTicker } from './NewGameTicker';
 import './Stats.css';
 
 const emojis = ['🥇', '🥈', '🥉'];
@@ -29,7 +30,9 @@ export const Stats = () => {
         ?.db(process.env.REACT_APP_MONGO_DB_NAME)
         ?.collection('users')
         ?.findOne({ _id: realmApp.user.id });
-      setUser({ ...user });
+      if (user) {
+        setUser({ ...user });
+      }
       setUserDataLoading(false);
     };
 
@@ -129,11 +132,16 @@ export const Stats = () => {
   }, [message]);
 
   return (
-    <div className='stats-container'>
+    <div className='stats-container gap-2'>
       {userDataLoading || gameDataLoading
         ? 'Loading...'
         : user && (
             <>
+              {gameData && (
+                <div className='stats-ticker'>
+                  <NewGameTicker nextGameAt={gameData.nextGameAt} bordered />
+                </div>
+              )}
               <div className='stats-card gap-2'>
                 <div className='stats-card-title'>Today's Puzzle</div>
                 {solvedTodaysGame ? (
@@ -183,6 +191,13 @@ export const Stats = () => {
                         <FaPlayCircle /> Play now
                       </button>
                     </Link>
+                    {/* <a
+                      style={{ color: 'gold' }}
+                      href='https://twitter.com/intent/tweet?text=Hello%20world'
+                      target='_blank'
+                    >
+                      Tweet now
+                    </a> */}
                   </>
                 )}
               </div>
