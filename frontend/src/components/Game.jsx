@@ -249,12 +249,16 @@ export const Game = ({ sounds, onGameNo }) => {
     }
 
     if (solved && score === game.maxScore) {
+      let finalTries = 1;
       if (!isNewGame) {
         setChanges['data.lastGamePlayed.solved'] = true;
         setChanges['data.lastGamePlayed.gameId'] = game._id; //send a new field so that it will be included in the updatedFields
+        finalTries = lastGamePlayed.tries + 1;
       } else {
         setChanges['data.lastGamePlayed'].solved = true;
       }
+
+      incChanges[`data.solveStats.${finalTries}`] = 1;
 
       incChanges['data.solves'] = 1;
       incChanges['data.currStreak'] = 1;
