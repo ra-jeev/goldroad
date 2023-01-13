@@ -13,34 +13,6 @@
   justify-content: center;
 }
 
-.board-info {
-  flex-direction: column;
-  align-items: center;
-}
-
 .tiles-wrapper {
   position: relative;
-}
-
-.score {
-  font-size: 1.625rem;
-  font-weight: bold;
-  margin-bottom: 0.5rem;
-}
-
-.status {
-  font-size: 1rem;
-  font-weight: 500;
-  padding: 0.5rem;
-}
-
-.redo {
-  font-size: 2rem;
-  cursor: pointer;
-  transition: 0.2s all ease-in-out;
-}
-
-.redo:hover {
-  color: darkgoldenrod;
-  transform: scale(1.05);
 }
