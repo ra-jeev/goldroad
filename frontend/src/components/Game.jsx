@@ -5,12 +5,8 @@ import { FaRedo } from 'react-icons/fa';
 import { useRealmApp } from './RealmApp';
 import { Board } from './Board';
 import { NewGameTicker } from './NewGameTicker';
-import coin from '../assets/media/coin.mp3';
-import deny from '../assets/media/deny.mp3';
-import noMoves from '../assets/media/no-moves.mp3';
-import win from '../assets/media/win.mp3';
-import okay from '../assets/media/okay.mp3';
-import clapping from '../assets/media/clapping.mp3';
+import { GAME_SOUNDS, useGameSounds } from './useGameSounds';
+
 import './Game.css';
 
 const gamePlayStatuses = [
@@ -31,19 +27,6 @@ const DEFAULT_STATE = {
   wrongMove: false,
   ended: false,
 };
-
-const gameSounds = {
-  coin: { src: coin, audio: null },
-  deny: { src: deny, audio: null },
-  noMoves: { src: noMoves, audio: null },
-  win: { src: win, audio: null },
-  okay: { src: okay, audio: null },
-  clapping: { src: clapping, audio: null },
-};
-
-const player = new Audio();
-const playerCtx = new AudioContext();
-playerCtx.createMediaElementSource(player).connect(playerCtx.destination);
 
 const getOrdinal = (n) => {
   return ['st', 'nd', 'rd'][((((n + 90) % 100) - 10) % 10) - 1] || 'th';
@@ -93,18 +76,10 @@ export const Game = ({ sounds, onGameNo }) => {
   const realmApp = useRealmApp();
   const location = useLocation();
   const navigate = useNavigate();
+  const { playSound } = useGameSounds();
 
   const isCurrentGame = location.pathname === '/';
   const lastGame = user?.data?.lastGamePlayed;
-
-  useEffect(() => {
-    for (const gameSoundKey in gameSounds) {
-      const gameSound = gameSounds[gameSoundKey];
-      if (!gameSound.audio) {
-        gameSound.audio = new Audio(gameSound.src);
-      }
-    }
-  }, []);
 
   useEffect(() => {
     const updateStreakOnNewGame = async (setChanges) => {
@@ -215,17 +190,22 @@ export const Game = ({ sounds, onGameNo }) => {
 
     const getUserData = async () => {
       if (realmApp.user && realmApp.user.id) {
-        const user = await appDb
-          ?.collection('users')
-          ?.findOne({ _id: realmApp.user.id });
-        if (user) {
-          setUser({ ...user });
+        try {
+          const user = await appDb
+            ?.collection('users')
+            ?.findOne({ _id: realmApp.user.id });
+          if (user) {
+            console.log(`got some userData: ${Date.now()}`);
+            setUser({ ...user });
+          }
+        } catch (error) {
+          console.log(`getUserData failed ${Date.now()}`, error);
         }
       }
     };
 
+    getGameData();
     if (realmApp.client) {
-      getGameData();
       getUserData();
     }
   }, [
@@ -237,17 +217,9 @@ export const Game = ({ sounds, onGameNo }) => {
     navigate,
   ]);
 
-  const playSound = (sound) => {
+  const playGameSound = (sound) => {
     if (sounds === 'on') {
-      if (!player.src || player.src !== sound.src) {
-        player.src = sound.src;
-      }
-
-      if (playerCtx.state === 'suspended') {
-        playerCtx.resume();
-      }
-
-      player.play();
+      playSound(sound);
     }
   };
 
@@ -414,7 +386,7 @@ export const Game = ({ sounds, onGameNo }) => {
         connections[lastRow][lastCol] = dir;
       }
 
-      playSound(gameSounds.coin);
+      playGameSound(GAME_SOUNDS.COIN);
 
       for (const nodeId of activeNodes) {
         if (nodeId !== currNode.id) {
@@ -486,23 +458,23 @@ export const Game = ({ sounds, onGameNo }) => {
           changes.status = 'Uh Oh! No further moves...';
           changes.score = 0; // If no further moves possible, then reset the score to 0
           changes.ended = true;
-          playSound(gameSounds.noMoves);
+          playGameSound(GAME_SOUNDS.NO_MOVES);
           updateUserEntry(false);
         }
       } else {
-        let winSound = gameSounds.win;
+        let winSound = GAME_SOUNDS.WIN;
         if (changes.score === game.maxScore) {
           changes.status = "🏆 You've got the gold :-)";
         } else if (game.maxScore - changes.score <= 3) {
           changes.status = `👏 You're really close...`;
-          winSound = gameSounds.clapping;
+          winSound = GAME_SOUNDS.CLAPPING;
         } else {
           changes.status = '👻 Try getting some more...';
-          winSound = gameSounds.okay;
+          winSound = GAME_SOUNDS.OKAY;
         }
 
         changes.ended = true;
-        playSound(winSound);
+        playGameSound(winSound);
         updateUserEntry(true, changes.score, changes.moves);
       }
 
@@ -511,7 +483,7 @@ export const Game = ({ sounds, onGameNo }) => {
         ...changes,
       });
     } else {
-      playSound(gameSounds.deny);
+      playGameSound(GAME_SOUNDS.DENY);
     }
   };
 
