@@ -259,6 +259,7 @@ export const Game = ({ sounds, onGameNo }) => {
       }
     }
 
+    incChanges[`data.games.${game.gameNo}.tries`] = 1;
     if (solved && score === game.maxScore) {
       let finalTries = 1;
       if (!isNewGame) {
@@ -270,6 +271,7 @@ export const Game = ({ sounds, onGameNo }) => {
       }
 
       incChanges[`data.solveStats.${finalTries}`] = 1;
+      setChanges[`data.games.${game.gameNo}.solved`] = true;
 
       incChanges['data.solves'] = 1;
       incChanges['data.currStreak'] = 1;
