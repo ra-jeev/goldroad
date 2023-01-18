@@ -10,5 +10,5 @@
 
 .connection svg {
   font-size: 1.5rem;
-  color: #230c0f;
+  color: var(--app-brown);
 }

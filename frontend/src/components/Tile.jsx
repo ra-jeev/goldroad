@@ -50,13 +50,19 @@ export const Tile = ({ data, size, onClick }) => {
     }
   }, [wall, active, start, end, done, tileClasses]);
 
+  const onTileClick = (event) => {
+    event.preventDefault();
+    onClick(id);
+  };
+
   return (
     <button
       className={tileClasses}
-      onClick={() => onClick(id)}
+      onClick={onTileClick}
       style={{ width: size, height: size }}
     >
-      {value}
+      <div className='border-div' />
+      <span>{value}</span>
     </button>
   );
 };

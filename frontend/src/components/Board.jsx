@@ -4,36 +4,40 @@ import './Board.css';
 import { Connection } from './Connection';
 import { Tile } from './Tile';
 
+const TILE_SIZE = 64;
+const TILE_GAP = 8;
+const CONN_OFFSET = parseInt((3 * TILE_GAP) / 2);
+
 export const Board = ({ tiles, connections, onClick }) => {
-  const [tileSize, setTileSize] = useState('64px');
+  const [tileSize, setTileSize] = useState(TILE_SIZE);
 
   useEffect(() => {
     if (tiles.length) {
       const windowWidth = window.innerWidth;
-      const totalGap = (tiles.length - 1) * 8 + 2 * 16;
+      const totalGap = (tiles.length - 1) * TILE_GAP + 2 * (2 * TILE_GAP);
 
-      if (windowWidth < tiles.length * 64 + totalGap) {
+      if (windowWidth < tiles.length * TILE_SIZE + totalGap) {
         const tSize = (windowWidth - totalGap) / tiles.length;
-        setTileSize(`${tSize}px`);
+        setTileSize(tSize);
       }
     }
-  }, [tiles, tileSize]);
+  }, [tiles]);
 
   const connectionPos = (row, col, dir) => {
     const divisor = 100 / tiles.length;
     const pos = {};
     if (dir === 'left') {
-      pos.left = `calc(${col * divisor}% - 12px)`;
-      pos.top = `calc(${(row + 0.5) * divisor}% - 12px)`;
+      pos.left = `calc(${col * divisor}% - ${CONN_OFFSET}px)`;
+      pos.top = `calc(${(row + 0.5) * divisor}% - ${CONN_OFFSET}px)`;
     } else if (dir === 'right') {
-      pos.left = `calc(${(col + 1) * divisor}% - 12px)`;
-      pos.top = `calc(${(row + 0.5) * divisor}% - 12px)`;
+      pos.left = `calc(${(col + 1) * divisor}% - ${CONN_OFFSET}px)`;
+      pos.top = `calc(${(row + 0.5) * divisor}% - ${CONN_OFFSET}px)`;
     } else if (dir === 'top') {
-      pos.left = `calc(${(col + 0.5) * divisor}% - 12px)`;
-      pos.top = `calc(${row * divisor}% - 12px)`;
+      pos.left = `calc(${(col + 0.5) * divisor}% - ${CONN_OFFSET}px)`;
+      pos.top = `calc(${row * divisor}% - ${CONN_OFFSET}px)`;
     } else if (dir === 'bottom') {
-      pos.left = `calc(${(col + 0.5) * divisor}% - 12px)`;
-      pos.top = `calc(${(row + 1) * divisor}% - 12px)`;
+      pos.left = `calc(${(col + 0.5) * divisor}% - ${CONN_OFFSET}px)`;
+      pos.top = `calc(${(row + 1) * divisor}% - ${CONN_OFFSET}px)`;
     }
 
     return pos;
@@ -51,7 +55,7 @@ export const Board = ({ tiles, connections, onClick }) => {
                     <Tile
                       key={tile.id}
                       data={tile}
-                      size={tileSize}
+                      size={`${tileSize}px`}
                       onClick={(id) => onClick(id)}
                     />
                   );
