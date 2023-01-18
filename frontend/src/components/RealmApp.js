@@ -13,20 +13,17 @@ export function RealmAppProvider({ children }) {
   useEffect(() => {
     const init = async () => {
       if (!user) {
-        setUser(
-          app.currentUser
-            ? app.currentUser
-            : await app.logIn(Realm.Credentials.anonymous())
-        );
-      }
-
-      if (!client) {
-        setClient(app.currentUser.mongoClient('gcp-goldroad'));
+        if (app.currentUser) {
+          setUser(app.currentUser);
+          setClient(app.currentUser.mongoClient('gcp-goldroad'));
+        } else {
+          await app.logIn(Realm.Credentials.anonymous());
+        }
       }
     };
 
     init();
-  }, [app, client, user]);
+  }, [app, user]);
 
   return (
     <RealmContext.Provider value={{ ...app, user, client }}>
