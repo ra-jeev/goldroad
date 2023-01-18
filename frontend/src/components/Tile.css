@@ -1,7 +1,7 @@
 .tile {
   background-color: transparent;
   margin: 4px;
-  border: 4px solid goldenrod;
+  border: 4px dotted #fc2f00;
   color: goldenrod;
   font-size: 1.75rem;
   font-weight: 900;
@@ -10,6 +10,27 @@
   user-select: none;
   transition: all 0.2s ease-in-out;
   position: relative;
+}
+
+.border-div {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  box-sizing: content-box;
+  border: 4px solid goldenrod;
+  left: -4px;
+  top: -4px;
+  border-radius: 50%;
+}
+
+.tile span {
+  width: 100%;
+  height: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background-color: transparent;
 }
 
 .flag--start {
@@ -21,18 +42,24 @@
 }
 
 .tile--done {
-  color: #230c0f;
+  color: var(--app-brown);
+  box-shadow: 0px 0px 12px 4px rgba(218, 165, 32, 0.54);
+}
+
+.tile--done .border-div {
+  border-color: darkgoldenrod;
+}
+
+.tile--done span {
   background-image: linear-gradient(
     to left,
     rgb(212, 175, 55),
     rgb(212, 175, 55)
   ) !important;
-  border-color: darkgoldenrod;
-  box-shadow: 0px 0px 12px 4px rgba(218, 165, 32, 0.54);
 }
 
-.tile--active,
-.tile--tapped {
+.tile--active span,
+.tile--tapped span {
   background-image: linear-gradient(
     to left,
     rgba(144, 227, 154, 0.48),
@@ -53,7 +80,7 @@
   transform: scale(0.95);
 }
 
-.tile--end {
+.tile--end span {
   background-image: linear-gradient(
     to left,
     rgba(255, 0, 0, 0.48),
@@ -61,18 +88,18 @@
   );
 }
 
-.wall-left {
-  border-left: 4px dashed #fc2f00;
+.wall-left .border-div {
+  border-left-color: transparent;
 }
 
-.wall-right {
-  border-right: 4px dashed #fc2f00;
+.wall-right .border-div {
+  border-right-color: transparent;
 }
 
-.wall-bottom {
-  border-bottom: 4px dashed #fc2f00;
+.wall-bottom .border-div {
+  border-bottom-color: transparent;
 }
 
-.wall-top {
-  border-top: 4px dashed #fc2f00;
+.wall-top .border-div {
+  border-top-color: transparent;
 }

@@ -13,3 +13,7 @@ body {
 *:after {
   box-sizing: inherit;
 }
+
+:root {
+  --app-brown: #230c0f;
+}
