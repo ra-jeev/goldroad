@@ -63,7 +63,9 @@ export const Stats = () => {
       const personalStats = statData.solveStats || {};
       let totalTries = 0;
       let totalSolves =
-        personalStats[1] || 0 + personalStats[2] || 0 + personalStats[3] || 0;
+        (personalStats[1] || 0) +
+        (personalStats[2] || 0) +
+        (personalStats[3] || 0);
 
       const stats = [
         [
@@ -91,7 +93,7 @@ export const Stats = () => {
       let twentyPlus = 0;
 
       Object.keys(personalStats).forEach((tries) => {
-        totalTries += tries * personalStats[tries];
+        totalTries += parseInt(tries) * personalStats[tries];
         if (tries >= 4 && tries < 10) {
           fourPlus += personalStats[tries];
         } else if (tries >= 10 && tries < 20) {
