@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
+import { RealmAppProvider } from './components/RealmApp';
+import { AppDataProvider } from './components/AppData';
 import { Layout } from './components/Layout';
 import { Game } from './components/Game';
 import { About } from './components/About';
 import { Games } from './components/Games';
-import { RealmAppProvider } from './components/RealmApp';
-import './App.css';
 import { Stats } from './components/Stats';
+import './App.css';
 
 function AppRoutes() {
   const getSavedGameSoundsSetting = () => {
@@ -22,8 +23,6 @@ function AppRoutes() {
     getSavedGameSoundsSetting()
   );
 
-  const [gameNo, setGameNo] = useState(null);
-
   const onGameSoundsSettingChange = () => {
     const newValue = gameSoundsSetting === 'on' ? 'off' : 'on';
     saveGameSoundsSetting(newValue);
@@ -37,21 +36,17 @@ function AppRoutes() {
           path='/'
           element={
             <Layout
-              gameNo={gameNo}
               sounds={gameSoundsSetting}
               onSettingChange={onGameSoundsSettingChange}
             />
           }
         >
-          <Route
-            index
-            element={<Game sounds={gameSoundsSetting} onGameNo={setGameNo} />}
-          />
+          <Route index element={<Game sounds={gameSoundsSetting} />} />
           <Route path='/about' element={<About />} />
           <Route path='/games' element={<Games />} />
           <Route
             path='/games/:gameId'
-            element={<Game sounds={gameSoundsSetting} onGameNo={setGameNo} />}
+            element={<Game sounds={gameSoundsSetting} />}
           />
           <Route path='/stats' element={<Stats />} />
         </Route>
@@ -63,7 +58,9 @@ function AppRoutes() {
 function App() {
   return (
     <RealmAppProvider>
-      <AppRoutes />
+      <AppDataProvider>
+        <AppRoutes />
+      </AppDataProvider>
     </RealmAppProvider>
   );
 }

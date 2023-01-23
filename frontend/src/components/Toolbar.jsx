@@ -8,12 +8,14 @@ import {
   FaChartBar,
 } from 'react-icons/fa';
 
+import { useAppData } from './AppData';
 import './Toolbar.css';
 
-export const Toolbar = ({ sounds, gameNo, onClick }) => {
+export const Toolbar = ({ sounds, onClick }) => {
   const location = useLocation();
   const showBack = location.pathname !== '/';
   const { gameId } = useParams();
+  const { currGameNo } = useAppData();
 
   return (
     <div className='toolbar'>
@@ -25,11 +27,11 @@ export const Toolbar = ({ sounds, gameNo, onClick }) => {
           <span className='logo' onClick={() => onClick('logo')}>
             GoldRoad
           </span>
-          {gameNo && (gameId || !showBack) && (
+          {currGameNo && (gameId || !showBack) && (
             <span
               className={`game-number${gameId ? ' game-number-silver' : ''}`}
             >
-              #{gameNo}
+              #{currGameNo}
             </span>
           )}
         </div>
