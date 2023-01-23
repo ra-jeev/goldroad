@@ -43,7 +43,7 @@ p {
   font-weight: bold;
 }
 
-@media screen and (min-width: 960px) {
+@media screen and (min-width: 768px) {
   .about-footer,
   .about-section {
     max-width: 32rem;

@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 
-import coin from '../assets/media/coin.mp3';
-import deny from '../assets/media/deny.mp3';
-import noMoves from '../assets/media/no-moves.mp3';
-import win from '../assets/media/win.mp3';
-import okay from '../assets/media/okay.mp3';
-import clapping from '../assets/media/clapping.mp3';
+import coin from '../assets/audio/coin.mp3';
+import deny from '../assets/audio/deny.mp3';
+import noMoves from '../assets/audio/no-moves.mp3';
+import win from '../assets/audio/win.mp3';
+import okay from '../assets/audio/okay.mp3';
+import clapping from '../assets/audio/clapping.mp3';
 
 const gameSounds = {
   coin: { src: coin, buffer: null },
