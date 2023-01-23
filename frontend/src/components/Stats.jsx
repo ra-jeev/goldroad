@@ -62,6 +62,8 @@ export const Stats = () => {
       const statData = userData.data;
       const personalStats = statData.solveStats || {};
       let totalTries = 0;
+      let totalSolves =
+        personalStats[1] || 0 + personalStats[2] || 0 + personalStats[3] || 0;
 
       const stats = [
         [
@@ -115,6 +117,8 @@ export const Stats = () => {
         tries: '20+ tries',
       });
 
+      totalSolves += fourPlus + tenPlus + twentyPlus;
+
       setSolveStats(stats);
 
       const personalOverallStats = [
@@ -148,7 +152,7 @@ export const Stats = () => {
         {
           key: 'Average # of Tries',
           value: getPlural(
-            getFixedFractional(totalTries, statData.solves, 1),
+            getFixedFractional(totalTries, totalSolves, 1),
             'try'
           ),
         },
@@ -420,7 +424,13 @@ export const Stats = () => {
                               <span className='emoji-icon-big'>
                                 {stat.icon}
                               </span>
-                              <span className='multiply'>x</span>
+                              <span
+                                className={`multiply${
+                                  row ? ' multiply-margin' : ''
+                                }`}
+                              >
+                                x
+                              </span>
                               <span className='solve-count'>{stat.count}</span>
                             </div>
                             <div className='solve-tries'>{stat.tries}</div>
