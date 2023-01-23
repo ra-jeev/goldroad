@@ -82,10 +82,11 @@ export const Game = ({ sounds }) => {
     if (
       userData &&
       lastGame &&
+      userData.data.currStreak &&
       game &&
       game.current &&
-      ![0, 1].includes(game.gameNo - lastGame.gameNo) &&
-      userData.data.currStreak
+      (![0, 1].includes(game.gameNo - lastGame.gameNo) ||
+        (game.gameNo - lastGame.gameNo === 1 && !lastGame.solved))
     ) {
       const setChanges = {
         'data.currStreak': 0,
