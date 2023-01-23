@@ -3,7 +3,7 @@ import { useNavigate, Outlet } from 'react-router-dom';
 import { Toolbar } from './Toolbar';
 import './Layout.css';
 
-export function Layout({ sounds, onSettingChange, gameNo }) {
+export const Layout = ({ sounds, onSettingChange }) => {
   const navigate = useNavigate();
 
   const handleClick = (action) => {
@@ -33,9 +33,9 @@ export function Layout({ sounds, onSettingChange, gameNo }) {
 
   return (
     <div className='main'>
-      <Toolbar gameNo={gameNo} sounds={sounds} onClick={handleClick} />
+      <Toolbar sounds={sounds} onClick={handleClick} />
 
       <Outlet />
     </div>
   );
-}
+};

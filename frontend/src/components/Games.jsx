@@ -5,7 +5,7 @@ import { FaPlayCircle } from 'react-icons/fa';
 import { useRealmApp } from './RealmApp';
 import './Games.css';
 
-export function Games() {
+export const Games = () => {
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(false);
   const realmApp = useRealmApp();
@@ -73,4 +73,4 @@ export function Games() {
       )}
     </div>
   );
-}
+};

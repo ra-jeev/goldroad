@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { useLocation, useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useParams } from 'react-router-dom';
 import { FaRedo } from 'react-icons/fa';
 
-import { useRealmApp } from './RealmApp';
+import { useAppData } from './AppData';
 import { Board } from './Board';
 import { NewGameTicker } from './NewGameTicker';
 import { GAME_SOUNDS, useGameSounds } from './useGameSounds';
@@ -20,12 +20,15 @@ const gamePlayStatuses = [
 const DEFAULT_STATE = {
   moves: 0,
   score: 0,
-  max: 0,
   status: 'Get to the red coin. To begin tap the green one',
   statusIndex: -1,
   lastMove: null,
   wrongMove: false,
   ended: false,
+  tiles: [],
+  connections: [],
+  activeNodes: [],
+  error: null,
 };
 
 const getOrdinal = (n) => {
@@ -63,96 +66,49 @@ const GameFooter = ({ gameState, lastGame, game, onClick }) => {
   }
 };
 
-export const Game = ({ sounds, onGameNo }) => {
+export const Game = ({ sounds }) => {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
   const [game, setGame] = useState(null);
-  const [user, setUser] = useState(null);
-  const [tiles, setTiles] = useState([]);
-  const [connections, setConnections] = useState([]);
-  const [activeNodes, setActiveNodes] = useState([]);
   const [gameState, setGameState] = useState(DEFAULT_STATE);
 
-  const realmApp = useRealmApp();
-  const location = useLocation();
   const navigate = useNavigate();
   const { playSound } = useGameSounds();
 
-  const isCurrentGame = location.pathname === '/';
-  const lastGame = user?.data?.lastGamePlayed;
+  const { getGame, userData, updateUserData } = useAppData();
+  const { gameId } = useParams();
 
   useEffect(() => {
-    const updateStreakOnNewGame = async (setChanges) => {
-      console.log('updateStreakOnNewGame called');
-      const result = await realmApp.client
-        ?.db(process.env.REACT_APP_MONGO_DB_NAME)
-        .collection('users')
-        .findOneAndUpdate(
-          { _id: user._id },
-          {
-            $set: {
-              ...setChanges,
-            },
-          },
-          {
-            returnNewDocument: true,
-          }
-        );
+    const lastGame = userData?.data?.lastGamePlayed;
+    if (
+      userData &&
+      lastGame &&
+      game &&
+      game.current &&
+      ![0, 1].includes(game.gameNo - lastGame.gameNo) &&
+      userData.data.currStreak
+    ) {
+      const setChanges = {
+        'data.currStreak': 0,
+      };
 
-      setUser(result);
-      console.log('result of updateStreakOnNewGame: ', JSON.stringify(result));
-    };
-
-    if (user && game && isCurrentGame) {
-      const lastGamePlayed = user.data?.lastGamePlayed;
-      if (
-        lastGamePlayed &&
-        game.current &&
-        ![0, 1].includes(game.gameNo - lastGamePlayed.gameNo) &&
-        user.data.currStreak
-      ) {
-        const setChanges = {
-          'data.currStreak': 0,
-        };
-
-        if (user.data.isCurrLongestStreak) {
-          setChanges['data.isCurrLongestStreak'] = false;
-        }
-
-        updateStreakOnNewGame(setChanges);
+      if (userData.data.isCurrLongestStreak) {
+        setChanges['data.isCurrLongestStreak'] = false;
       }
+
+      updateUserData({ $set: setChanges });
     }
-  }, [user, game, realmApp.client, isCurrentGame]);
+  }, [userData, game, updateUserData]);
 
   useEffect(() => {
-    const appDb = realmApp.client?.db(process.env.REACT_APP_MONGO_DB_NAME);
     const getGameData = async () => {
       setLoading(true);
-      setError(null);
+      setGameState({ ...DEFAULT_STATE });
       setGame(null);
-      if (onGameNo) {
-        onGameNo('');
-      }
 
-      let url = process.env.REACT_APP_GAME_API_URL;
-      if (!isCurrentGame) {
-        const queryParts = location.pathname.split('/');
-        if (queryParts.length > 2 && queryParts[2]) {
-          url += `?num=${queryParts[2]}`;
-        }
-      }
-
-      const resp = await fetch(url);
-      if (!resp.ok) {
-        setError('The requested game was not found...');
-        setLoading(false);
-        return;
-      }
-
-      const gameDoc = await resp.json();
+      const gameDoc = await getGame(gameId);
 
       if (gameDoc) {
-        if (!isCurrentGame && gameDoc.current) {
+        if (gameId && gameDoc.current) {
           navigate('/');
           return;
         }
@@ -171,51 +127,30 @@ export const Game = ({ sounds, onGameNo }) => {
           coins[parseInt(gameDoc.start[0])][parseInt(gameDoc.start[1])];
         startCoin.start = true;
         startCoin.active = true;
-        setActiveNodes([startCoin.id]);
+
         const endCoin =
           coins[parseInt(gameDoc.end[0])][parseInt(gameDoc.end[1])];
         endCoin.end = true;
 
-        setConnections(conns);
-        setTiles(coins);
         setGame(gameDoc);
-        setGameState({ ...DEFAULT_STATE, max: gameDoc.maxScore });
-        if (onGameNo) {
-          onGameNo(gameDoc.gameNo);
-        }
+        setGameState({
+          ...DEFAULT_STATE,
+          tiles: coins,
+          connections: conns,
+          activeNodes: [startCoin.id],
+        });
+      } else {
+        setGameState({
+          ...DEFAULT_STATE,
+          error: 'The requested game was not found...',
+        });
       }
 
       setLoading(false);
     };
 
-    const getUserData = async () => {
-      if (realmApp.user && realmApp.user.id) {
-        try {
-          const user = await appDb
-            ?.collection('users')
-            ?.findOne({ _id: realmApp.user.id });
-          if (user) {
-            console.log(`got some userData: ${Date.now()}`);
-            setUser({ ...user });
-          }
-        } catch (error) {
-          console.log(`getUserData failed ${Date.now()}`, error);
-        }
-      }
-    };
-
     getGameData();
-    if (realmApp.client) {
-      getUserData();
-    }
-  }, [
-    realmApp.client,
-    realmApp.user,
-    onGameNo,
-    isCurrentGame,
-    location.pathname,
-    navigate,
-  ]);
+  }, [gameId, getGame, navigate]);
 
   const playGameSound = (sound) => {
     if (sounds === 'on') {
@@ -227,7 +162,7 @@ export const Game = ({ sounds, onGameNo }) => {
     const incChanges = {};
     const setChanges = {};
 
-    const lastGamePlayed = user.data.lastGamePlayed;
+    const lastGamePlayed = userData.data.lastGamePlayed;
     const isNewGame = !lastGamePlayed || lastGamePlayed.gameNo !== game.gameNo;
 
     if (isNewGame) {
@@ -276,12 +211,12 @@ export const Game = ({ sounds, onGameNo }) => {
       incChanges['data.solves'] = 1;
       incChanges['data.currStreak'] = 1;
 
-      if (user.data.isCurrLongestStreak) {
+      if (userData.data.isCurrLongestStreak) {
         incChanges['data.longestStreak'] = 1;
-      } else if (user.data.currStreak === user.data.longestStreak) {
+      } else if (userData.data.currStreak === userData.data.longestStreak) {
         incChanges['data.longestStreak'] = 1;
         setChanges['data.isCurrLongestStreak'] = true;
-      } else if (user.data.currStreak === user.data.longestStreak - 1) {
+      } else if (userData.data.currStreak === userData.data.longestStreak - 1) {
         setChanges['data.isCurrLongestStreak'] = true;
       }
     }
@@ -290,30 +225,11 @@ export const Game = ({ sounds, onGameNo }) => {
   };
 
   const updateUserEntry = async (solved, score, moves) => {
-    if (user && isCurrentGame) {
+    if (userData && !gameId) {
       const changes = getUserStatsChanges(solved, score, moves);
       if (changes) {
         const { incChanges, setChanges } = changes;
-        const result = await realmApp.client
-          ?.db(process.env.REACT_APP_MONGO_DB_NAME)
-          .collection('users')
-          .findOneAndUpdate(
-            { _id: user._id },
-            {
-              $set: {
-                ...setChanges,
-              },
-              $inc: {
-                ...incChanges,
-              },
-            },
-            {
-              returnNewDocument: true,
-            }
-          );
-
-        setUser(result);
-        console.log('result of user data update: ', JSON.stringify(result));
+        await updateUserData({ $set: setChanges, $inc: incChanges });
 
         if (solved && score === game.maxScore) {
           navigate('/stats');
@@ -323,7 +239,8 @@ export const Game = ({ sounds, onGameNo }) => {
   };
 
   const replayGame = () => {
-    for (const rowTiles of tiles) {
+    const activeNodes = [];
+    for (const rowTiles of gameState.tiles) {
       for (const tile of rowTiles) {
         const row = parseInt(tile.id[0]);
         const col = parseInt(tile.id[1]);
@@ -332,7 +249,7 @@ export const Game = ({ sounds, onGameNo }) => {
           col === parseInt(game.start[1])
         ) {
           tile.active = true;
-          setActiveNodes([tile.id]);
+          activeNodes.push(tile.id);
         } else {
           tile.active = false;
         }
@@ -341,7 +258,7 @@ export const Game = ({ sounds, onGameNo }) => {
       }
     }
 
-    for (const rowConnections of connections) {
+    for (const rowConnections of gameState.connections) {
       for (let col = 0; col < rowConnections.length; col++) {
         rowConnections[col] = null;
       }
@@ -351,11 +268,19 @@ export const Game = ({ sounds, onGameNo }) => {
       updateUserEntry(false);
     }
 
-    setGameState({ ...DEFAULT_STATE, max: game.maxScore });
+    setGameState({
+      ...DEFAULT_STATE,
+      tiles: gameState.tiles,
+      connections: gameState.connections,
+      activeNodes,
+    });
   };
 
   const onTileClick = (id) => {
-    if (activeNodes.includes(id)) {
+    const connections = gameState.connections;
+    const tiles = gameState.tiles;
+
+    if (gameState.activeNodes.includes(id)) {
       const row = parseInt(id[0]);
       const col = parseInt(id[1]);
 
@@ -363,10 +288,10 @@ export const Game = ({ sounds, onGameNo }) => {
       currNode.active = false;
       currNode.done = true;
 
-      let statusIndex = gameState.statusIndex + 1;
-      if (statusIndex > 4) {
-        statusIndex = 0;
-      }
+      let statusIndex =
+        gameState.statusIndex < gamePlayStatuses.length - 1
+          ? gameState.statusIndex + 1
+          : gameState.statusIndex;
 
       const changes = {
         score: gameState.score + currNode.value,
@@ -374,6 +299,7 @@ export const Game = ({ sounds, onGameNo }) => {
         lastMove: [row, col],
         status: gamePlayStatuses[statusIndex],
         statusIndex,
+        activeNodes: [],
       };
 
       if (gameState.lastMove) {
@@ -390,17 +316,14 @@ export const Game = ({ sounds, onGameNo }) => {
 
       playGameSound(GAME_SOUNDS.COIN);
 
-      for (const nodeId of activeNodes) {
+      for (const nodeId of gameState.activeNodes) {
         if (nodeId !== currNode.id) {
           const node = tiles[parseInt(nodeId[0])][parseInt(nodeId[1])];
           node.active = false;
         }
       }
 
-      setActiveNodes([]);
-
       if (!currNode.end) {
-        const freshActiveNodes = [];
         const prevNode = col > 0 ? tiles[row][col - 1] : null;
         const nextNode = col < tiles[0].length - 1 ? tiles[row][col + 1] : null;
         const topNode = row > 0 ? tiles[row - 1][col] : null;
@@ -413,7 +336,7 @@ export const Game = ({ sounds, onGameNo }) => {
           currNode.wall !== 4
         ) {
           prevNode.active = true;
-          freshActiveNodes.push(prevNode.id);
+          changes.activeNodes.push(prevNode.id);
         }
 
         if (
@@ -423,7 +346,7 @@ export const Game = ({ sounds, onGameNo }) => {
           currNode.wall !== 2
         ) {
           nextNode.active = true;
-          freshActiveNodes.push(nextNode.id);
+          changes.activeNodes.push(nextNode.id);
         }
 
         if (
@@ -433,7 +356,7 @@ export const Game = ({ sounds, onGameNo }) => {
           currNode.wall !== 1
         ) {
           topNode.active = true;
-          freshActiveNodes.push(topNode.id);
+          changes.activeNodes.push(topNode.id);
         }
 
         if (
@@ -443,11 +366,10 @@ export const Game = ({ sounds, onGameNo }) => {
           currNode.wall !== 3
         ) {
           bottomNode.active = true;
-          freshActiveNodes.push(bottomNode.id);
+          changes.activeNodes.push(bottomNode.id);
         }
 
-        if (freshActiveNodes.length) {
-          setActiveNodes(freshActiveNodes);
+        if (changes.activeNodes.length) {
           // Need to show different score if it becomes more than the max score
           if (changes.score >= game.maxScore || gameState.wrongMove) {
             changes.score = 0;
@@ -492,36 +414,36 @@ export const Game = ({ sounds, onGameNo }) => {
   return (
     <div className='board-container'>
       {loading ? (
-        isCurrentGame ? (
-          `Loading today's game...`
-        ) : (
+        gameId ? (
           'Loading the requested game...'
+        ) : (
+          `Loading today's game...`
         )
-      ) : error ? (
+      ) : gameState.error ? (
         <>
-          <div className='error'>{error}</div>
+          <div className='error'>{gameState.error}</div>
           <br />
           <Link className='link' to='/' replace={true}>
             Play today's game
           </Link>
         </>
-      ) : tiles.length > 0 ? (
+      ) : gameState.tiles.length > 0 ? (
         <>
           <div className='game-item game-info'>
             <span className='score'>
-              Collect {gameState.max - gameState.score} coins{' '}
+              Collect {game.maxScore - gameState.score} coins{' '}
               {gameState.score > 0 && 'more'}
             </span>
             <span className='status'>{gameState.status}</span>
           </div>
           <Board
-            tiles={tiles}
-            connections={connections}
+            tiles={gameState.tiles}
+            connections={gameState.connections}
             onClick={onTileClick}
           />
           <GameFooter
             gameState={gameState}
-            lastGame={lastGame}
+            lastGame={userData?.data?.lastGamePlayed}
             game={game}
             onClick={replayGame}
           />
