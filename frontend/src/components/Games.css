@@ -4,11 +4,23 @@
   color: goldenrod;
   padding: 1rem;
   align-items: center;
+  gap: 1rem;
 }
 
-.title {
+.solved-icon {
+  color: rgb(51, 176, 16);
+  margin-right: 0.25rem;
+}
+
+.unsolved-icon {
+  color: rgb(198, 8, 30);
+  margin-right: 0.25rem;
+}
+
+.games-title {
   font-size: 1.75rem;
   font-weight: bold;
+  padding: 0 1rem 0.5rem;
 }
 
 .game-card {
@@ -22,17 +34,21 @@
 }
 
 @media screen and (min-width: 768px) {
-  .game-card {
+  .game-card,
+  .trophy-container {
     max-width: 32rem;
   }
 }
 
-.game-card + .game-card {
-  margin-top: 1rem;
+.game-card__details {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  gap: 0.5rem;
 }
 
 .game-card__title {
-  font-size: 1.25rem;
+  font-size: 1.125rem;
   font-weight: bold;
   cursor: pointer;
   transition: 0.2s all ease-in-out;
@@ -42,21 +58,110 @@
   color: darkgoldenrod;
 }
 
-.game-card__description {
-  font-size: 1rem;
-  margin-top: 0.75rem;
-  font-weight: 500;
-}
-
 .game-card__button {
   color: goldenrod;
   font-size: 3rem;
   cursor: pointer;
   transition: 0.2s all ease-in-out;
-  flex-shrink: 0;
 }
 
+.trophy {
+  font-size: 2rem;
+}
+
+.certificate {
+  color: whitesmoke;
+}
+
+.trophy-gold {
+  color: gold;
+}
+
+.trophy-silver {
+  color: silver;
+}
+
+.trophy-bronze {
+  color: #cd7f32;
+}
+
+.trophy-iron {
+  color: #8a8781;
+}
+
+.load-button {
+  color: goldenrod;
+  background-color: transparent;
+  border: 2px solid;
+  font-weight: 500;
+  border-radius: 0.25rem;
+  padding: 0.5rem 1.5rem;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: 0.2s all ease-in-out;
+  margin-top: 1rem;
+}
+
+.games-loading {
+  margin-top: 1rem;
+  height: 36px;
+}
+
+.details-expand {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-left: 14px;
+  margin-top: 0.5rem;
+}
+
+.play-info {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+summary {
+  user-select: none;
+  cursor: pointer;
+}
+
+.btn-expand {
+  font-size: 1.5rem;
+  padding: 0.25rem;
+  cursor: pointer;
+}
+
+.btn-expand:hover,
+.load-button:hover,
 .game-card__button:hover {
   color: darkgoldenrod;
   transform: scale(1.05);
+}
+
+.trophy-container {
+  display: flex;
+  gap: 1rem;
+  width: 100%;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.trophy-card {
+  padding: 0.5rem 1rem;
+  display: flex;
+  background-color: rgba(192, 192, 192, 0.18);
+  justify-content: center;
+  align-items: center;
+  border-radius: 0.75rem;
+  gap: 0.5rem;
+}
+
+.trophy-card .trophy {
+  font-size: 1.5rem;
+}
+
+.trophy-description {
+  font-size: 0.75rem;
+  color: darkgoldenrod;
 }
