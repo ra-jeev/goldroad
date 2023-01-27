@@ -1,5 +1,15 @@
 [
     {
+        "name": "createGame",
+        "private": true,
+        "run_as_system": true
+    },
+    {
+        "name": "getGame",
+        "private": true,
+        "run_as_system": true
+    },
+    {
         "name": "onGameSolved",
         "private": false,
         "disable_arg_logs": true
@@ -11,15 +21,5 @@
     {
         "name": "changeGame",
         "private": true
-    },
-    {
-        "name": "createGame",
-        "private": true,
-        "run_as_system": true
-    },
-    {
-        "name": "getGame",
-        "private": true,
-        "run_as_system": true
     }
 ]

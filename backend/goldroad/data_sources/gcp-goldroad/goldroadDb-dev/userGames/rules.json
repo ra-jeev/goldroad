@@ -1,0 +1,16 @@
+{
+    "collection": "userGames",
+    "database": "goldroadDb-dev",
+    "roles": [
+        {
+            "name": "ownerAccess",
+            "apply_when": {
+                "owner_id": "%%user.id"
+            },
+            "read": true,
+            "write": true,
+            "insert": true,
+            "search": false
+        }
+    ]
+}
