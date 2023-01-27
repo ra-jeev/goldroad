@@ -5,7 +5,6 @@ import deny from '../assets/audio/deny.mp3';
 import noMoves from '../assets/audio/no-moves.mp3';
 import win from '../assets/audio/win.mp3';
 import okay from '../assets/audio/okay.mp3';
-import clapping from '../assets/audio/clapping.mp3';
 
 const gameSounds = {
   coin: { src: coin, buffer: null },
@@ -13,7 +12,6 @@ const gameSounds = {
   noMoves: { src: noMoves, buffer: null },
   win: { src: win, buffer: null },
   okay: { src: okay, buffer: null },
-  clapping: { src: clapping, buffer: null },
 };
 
 export const GAME_SOUNDS = {
@@ -22,7 +20,6 @@ export const GAME_SOUNDS = {
   NO_MOVES: 'noMoves',
   WIN: 'win',
   OKAY: 'okay',
-  CLAPPING: 'clapping',
 };
 
 let audioCache = null;

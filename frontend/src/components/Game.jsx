@@ -10,7 +10,7 @@ import { GAME_SOUNDS, useGameSounds } from './useGameSounds';
 import './Game.css';
 
 const gamePlayStatuses = [
-  'You can only move up down, or left right',
+  'You can only move up/down, or left/right',
   `Red dashed lines are walls you can't cross`,
   'There might be multiple paths to the goal',
   'Tap the button at the bottom to replay',
@@ -20,7 +20,7 @@ const gamePlayStatuses = [
 const DEFAULT_STATE = {
   moves: 0,
   score: 0,
-  status: 'Get to the red coin. To begin tap the green one',
+  status: 'Get to the red coin. Tap the green one to begin.',
   statusIndex: -1,
   lastMove: null,
   wrongMove: false,
@@ -35,7 +35,20 @@ const getOrdinal = (n) => {
   return ['st', 'nd', 'rd'][((((n + 90) % 100) - 10) % 10) - 1] || 'th';
 };
 
+const datesEqual = (date1, date2) => {
+  return (
+    date1.getDate() === date2.getDate() &&
+    date1.getMonth() === date2.getMonth() &&
+    date1.getFullYear() === date2.getFullYear()
+  );
+};
+
 const GameFooter = ({ gameState, lastGame, game, onClick }) => {
+  const lastAttempt = lastGame?.attempts
+    ? lastGame.attempts[lastGame.attempts.length - 1]
+    : null;
+  const date = new Date();
+
   if (gameState.moves) {
     return (
       <div className='game-item'>
@@ -44,7 +57,12 @@ const GameFooter = ({ gameState, lastGame, game, onClick }) => {
     );
   }
 
-  if (!lastGame || lastGame.gameNo !== game.gameNo) {
+  if (
+    !lastGame ||
+    lastGame.gameNo !== game.gameNo ||
+    (lastAttempt &&
+      (!datesEqual(date, lastAttempt.playedAt) || lastAttempt.solved))
+  ) {
     return (
       <div className='game-item status'>Find your way to the red coin</div>
     );
@@ -57,10 +75,11 @@ const GameFooter = ({ gameState, lastGame, game, onClick }) => {
       </div>
     );
   } else {
+    const tries = lastGame.tries || lastAttempt.tries;
     return (
       <div className='game-item status'>
-        {lastGame.tries + 1}
-        {getOrdinal(lastGame.tries + 1)} try
+        {tries + 1}
+        {getOrdinal(tries + 1)} try
       </div>
     );
   }
@@ -70,11 +89,19 @@ export const Game = ({ sounds }) => {
   const [loading, setLoading] = useState(false);
   const [game, setGame] = useState(null);
   const [gameState, setGameState] = useState(DEFAULT_STATE);
+  const [userHistory, setUserHistory] = useState(null);
 
   const navigate = useNavigate();
   const { playSound } = useGameSounds();
 
-  const { getGame, userData, updateUserData } = useAppData();
+  //TODO: Check if we can remove the states for game & useHistory
+  const {
+    getGame,
+    userData,
+    updateUserData,
+    getUserHistoryForGame,
+    updateUserGameHistory,
+  } = useAppData();
   const { gameId } = useParams();
 
   useEffect(() => {
@@ -153,10 +180,108 @@ export const Game = ({ sounds }) => {
     getGameData();
   }, [gameId, getGame, navigate]);
 
+  useEffect(() => {
+    const getUserHistory = async () => {
+      const history = await getUserHistoryForGame(game.gameNo);
+      if (history) {
+        setUserHistory({ ...history });
+      }
+    };
+
+    if (game) {
+      getUserHistory();
+    }
+  }, [game, getUserHistoryForGame]);
+
   const playGameSound = (sound) => {
     if (sounds === 'on') {
       playSound(sound);
     }
+  };
+
+  const getUserGamesChanges = async (solved, score) => {
+    let incChanges, setChanges, pushChanges;
+    const date = new Date();
+    const isNewGame = !userHistory;
+    const isGameSolved = solved && score === game.maxScore;
+
+    if (isNewGame) {
+      setChanges = {
+        gameNo: game.gameNo,
+        owner_id: userData._id,
+        attempts: [
+          {
+            tries: 1,
+            solved: isGameSolved,
+            current: game.current,
+            playedAt: date,
+          },
+        ],
+        createdAt: date,
+        updatedAt: date,
+      };
+
+      if (isGameSolved) {
+        setChanges.firstSolved = 0;
+      }
+    } else {
+      const lastAttemptIndex = userHistory.attempts.length - 1;
+      const lastAttemptAt = userHistory.attempts[lastAttemptIndex].playedAt;
+
+      if (datesEqual(date, lastAttemptAt)) {
+        if (userHistory.attempts[lastAttemptIndex].solved) {
+          // Going to track only once for a given day
+          return;
+        }
+
+        incChanges = {
+          [`attempts.${lastAttemptIndex}.tries`]: 1,
+        };
+
+        setChanges = {
+          updatedAt: date,
+        };
+
+        if (isGameSolved) {
+          setChanges[`attempts.${lastAttemptIndex}.solved`] = true;
+          if (userHistory.firstSolved === undefined) {
+            setChanges.firstSolved = lastAttemptIndex;
+          }
+        }
+      } else {
+        pushChanges = {
+          attempts: {
+            tries: 1,
+            solved: isGameSolved,
+            playedAt: date,
+          },
+        };
+
+        setChanges = {
+          updatedAt: date,
+        };
+
+        if (isGameSolved && userHistory.firstSolved === undefined) {
+          setChanges = {
+            firstSolved: userHistory.attempts.length,
+          };
+        }
+      }
+    }
+
+    const changes = {
+      $set: setChanges,
+    };
+
+    if (incChanges) {
+      changes.$inc = incChanges;
+    }
+
+    if (pushChanges) {
+      changes.$push = pushChanges;
+    }
+
+    await updateUserGameHistory(game.gameNo, changes);
   };
 
   const getUserStatsChanges = (solved, score, moves) => {
@@ -226,15 +351,19 @@ export const Game = ({ sounds }) => {
   };
 
   const updateUserEntry = async (solved, score, moves) => {
-    if (userData && !gameId) {
-      const changes = getUserStatsChanges(solved, score, moves);
-      if (changes) {
-        const { incChanges, setChanges } = changes;
-        await updateUserData({ $set: setChanges, $inc: incChanges });
-
-        if (solved && score === game.maxScore) {
-          navigate('/stats');
+    if (userData) {
+      if (!gameId) {
+        const changes = getUserStatsChanges(solved, score, moves);
+        if (changes) {
+          const { incChanges, setChanges } = changes;
+          await updateUserData({ $set: setChanges, $inc: incChanges });
+          await getUserGamesChanges(solved, score);
+          if (solved && score === game.maxScore) {
+            navigate('/stats');
+          }
         }
+      } else {
+        await getUserGamesChanges(solved, score);
       }
     }
   };
@@ -392,7 +521,7 @@ export const Game = ({ sounds }) => {
           changes.status = "🏆 You've got the gold :-)";
         } else if (game.maxScore - changes.score <= 3) {
           changes.status = `👏 You're really close...`;
-          winSound = GAME_SOUNDS.CLAPPING;
+          winSound = GAME_SOUNDS.OKAY;
         } else {
           changes.status = '👻 Try getting some more...';
           winSound = GAME_SOUNDS.OKAY;
@@ -432,8 +561,8 @@ export const Game = ({ sounds }) => {
         <>
           <div className='game-item game-info'>
             <span className='score'>
-              Collect {game.maxScore - gameState.score} coins{' '}
-              {gameState.score > 0 && 'more'}
+              Collect {game.maxScore - gameState.score} coins
+              {gameState.score > 0 ? ' more' : ' in your path'}
             </span>
             <span className='status'>{gameState.status}</span>
           </div>
@@ -444,7 +573,7 @@ export const Game = ({ sounds }) => {
           />
           <GameFooter
             gameState={gameState}
-            lastGame={userData?.data?.lastGamePlayed}
+            lastGame={gameId ? userHistory : userData?.data?.lastGamePlayed}
             game={game}
             onClick={replayGame}
           />
