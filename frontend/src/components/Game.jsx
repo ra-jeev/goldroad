@@ -9,12 +9,18 @@ import { GAME_SOUNDS, useGameSounds } from './useGameSounds';
 
 import './Game.css';
 
+const TILE_SIZE = 56;
+const MIN_TILE_SIZE = 48;
+const TILE_GAP = 8;
+const OTHER_ELEMENTS_HEIGHT = 52 + 62 + 28 + 2 * 24 + 2 * 16;
+
 const gamePlayStatuses = [
   'You can only move up/down, or left/right',
   `Red dashed lines are walls you can't cross`,
   'There might be multiple paths to the goal',
   'Tap the button at the bottom to replay',
   'Come back tomorrow for a new puzzle',
+  ' ', // Empty status
 ];
 
 const DEFAULT_STATE = {
@@ -26,6 +32,7 @@ const DEFAULT_STATE = {
   wrongMove: false,
   ended: false,
   tiles: [],
+  tileSize: undefined,
   connections: [],
   activeNodes: [],
   error: null,
@@ -90,6 +97,7 @@ export const Game = ({ sounds }) => {
   const [game, setGame] = useState(null);
   const [gameState, setGameState] = useState(DEFAULT_STATE);
   const [userHistory, setUserHistory] = useState(null);
+  const [useAlternateLayout, setUseAlternateLayout] = useState(false);
 
   const navigate = useNavigate();
   const { playSound } = useGameSounds();
@@ -127,6 +135,29 @@ export const Game = ({ sounds }) => {
     }
   }, [userData, game, updateUserData]);
 
+  const getTileSize = (numTiles) => {
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+    const totalGap = numTiles * TILE_GAP; // Don't care about the gap at the edges
+    const boardSize = numTiles * TILE_SIZE + totalGap;
+    let tSize;
+
+    if (windowWidth < boardSize) {
+      tSize = (windowWidth - totalGap) / numTiles;
+    } else if (windowHeight < boardSize + OTHER_ELEMENTS_HEIGHT) {
+      const alternateBoardSize = numTiles * MIN_TILE_SIZE + totalGap;
+
+      tSize = MIN_TILE_SIZE;
+      if (windowHeight > alternateBoardSize + OTHER_ELEMENTS_HEIGHT) {
+        tSize = (windowHeight - totalGap - OTHER_ELEMENTS_HEIGHT) / numTiles;
+      } else {
+        setUseAlternateLayout(true);
+      }
+    }
+
+    return tSize;
+  };
+
   useEffect(() => {
     const getGameData = async () => {
       setLoading(true);
@@ -160,10 +191,13 @@ export const Game = ({ sounds }) => {
           coins[parseInt(gameDoc.end[0])][parseInt(gameDoc.end[1])];
         endCoin.end = true;
 
+        const tileSize = getTileSize(coins.length);
+
         setGame(gameDoc);
         setGameState({
           ...DEFAULT_STATE,
           tiles: coins,
+          tileSize,
           connections: conns,
           activeNodes: [startCoin.id],
         });
@@ -398,9 +432,11 @@ export const Game = ({ sounds }) => {
       updateUserEntry(false);
     }
 
+    const tileSize = getTileSize(gameState.tiles.length);
     setGameState({
       ...DEFAULT_STATE,
       tiles: gameState.tiles,
+      tileSize,
       connections: gameState.connections,
       activeNodes,
     });
@@ -558,26 +594,53 @@ export const Game = ({ sounds }) => {
           </Link>
         </>
       ) : gameState.tiles.length > 0 ? (
-        <>
-          <div className='game-item game-info'>
-            <span className='score'>
-              Collect {game.maxScore - gameState.score} coins
-              {gameState.score > 0 ? ' more' : ' in your path'}
-            </span>
-            <span className='status'>{gameState.status}</span>
+        useAlternateLayout ? (
+          <div className='alternate-layout'>
+            <Board
+              tiles={gameState.tiles}
+              tileSize={gameState.tileSize}
+              connections={gameState.connections}
+              onClick={onTileClick}
+            />
+            <div className='alternate-layout-info'>
+              <div className='game-item game-info'>
+                <span className='score'>
+                  Collect {game.maxScore - gameState.score} coins
+                  {gameState.score > 0 ? ' more' : ' in your path'}
+                </span>
+                <span className='status'>{gameState.status}</span>
+              </div>
+              <GameFooter
+                gameState={gameState}
+                lastGame={gameId ? userHistory : userData?.data?.lastGamePlayed}
+                game={game}
+                onClick={replayGame}
+              />
+            </div>
           </div>
-          <Board
-            tiles={gameState.tiles}
-            connections={gameState.connections}
-            onClick={onTileClick}
-          />
-          <GameFooter
-            gameState={gameState}
-            lastGame={gameId ? userHistory : userData?.data?.lastGamePlayed}
-            game={game}
-            onClick={replayGame}
-          />
-        </>
+        ) : (
+          <>
+            <div className='game-item game-info'>
+              <span className='score'>
+                Collect {game.maxScore - gameState.score} coins
+                {gameState.score > 0 ? ' more' : ' in your path'}
+              </span>
+              <span className='status'>{gameState.status}</span>
+            </div>
+            <Board
+              tiles={gameState.tiles}
+              tileSize={gameState.tileSize}
+              connections={gameState.connections}
+              onClick={onTileClick}
+            />
+            <GameFooter
+              gameState={gameState}
+              lastGame={gameId ? userHistory : userData?.data?.lastGamePlayed}
+              game={game}
+              onClick={replayGame}
+            />
+          </>
+        )
       ) : (
         'Welcome to GoldRoad, a daily puzzle game'
       )}
