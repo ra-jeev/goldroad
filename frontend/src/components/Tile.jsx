@@ -59,7 +59,7 @@ export const Tile = ({ data, size, onClick }) => {
     <button
       className={tileClasses}
       onClick={onTileClick}
-      style={{ width: size, height: size }}
+      style={size && { width: size, height: size }}
     >
       <div className='border-div' />
       <span>{value}</span>
