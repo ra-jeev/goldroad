@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { FaShare, FaPlayCircle } from 'react-icons/fa';
+import { Link, useLocation } from 'react-router-dom';
+import { FaShare, FaPlayCircle, FaSignInAlt } from 'react-icons/fa';
 import { HiOutlineArrowNarrowRight } from 'react-icons/hi';
 
-import { useAppData } from './AppData';
+import { useFirebase } from '../providers/Firebase';
+import { useAppData } from '../providers/AppData';
 import { NewGameTicker } from './NewGameTicker';
 import './Stats.css';
 
@@ -31,7 +32,9 @@ export const Stats = () => {
   const [overallStats, setOverallStats] = useState([]);
   const [globalStats, setGlobalStats] = useState(null);
 
-  const { userData, getGame } = useAppData();
+  const location = useLocation();
+  const { getGame } = useAppData();
+  const { currentUser: userData, currentUserAuthInfo } = useFirebase();
 
   const solvedTodaysGame =
     gameData &&
@@ -73,16 +76,19 @@ export const Stats = () => {
             icon: emojis[1],
             count: personalStats[1] || 0,
             tries: '1 try',
+            increment: location.state?.tries === 1,
           },
           {
             icon: emojis[2],
             count: personalStats[2] || 0,
             tries: '2 tries',
+            increment: location.state?.tries === 2,
           },
           {
             icon: emojis[3],
             count: personalStats[3] || 0,
             tries: '3 tries',
+            increment: location.state?.tries === 3,
           },
         ],
         [],
@@ -107,16 +113,19 @@ export const Stats = () => {
         icon: emojis['4+'],
         count: fourPlus,
         tries: '4+ tries',
+        increment: location.state?.tries >= 4 && location.state?.tries < 10,
       });
       stats[1].push({
         icon: emojis['10+'],
         count: tenPlus,
         tries: '10+ tries',
+        increment: location.state?.tries >= 10 && location.state?.tries < 20,
       });
       stats[1].push({
         icon: emojis['20+'],
         count: twentyPlus,
         tries: '20+ tries',
+        increment: location.state?.tries >= 20,
       });
 
       totalSolves += fourPlus + tenPlus + twentyPlus;
@@ -162,7 +171,7 @@ export const Stats = () => {
 
       setOverallStats(personalOverallStats);
     }
-  }, [userData]);
+  }, [userData, location.state]);
 
   const getEmoji = (tries) => {
     let emoji = emojis['20+'];
@@ -288,18 +297,13 @@ export const Stats = () => {
   useEffect(() => {
     if (prevGameData && userData) {
       const stats = prevGameData?.stats;
-      // const stats = {
-      //   played: 63,
-      //   solved: 40,
-      //   tries: { 1: 6, 8: 3, 12: 5, 2: 7, 5: 1, 22: 3, 24: 5, 25: 6, 30: 4 },
-      // };
 
       if (stats?.tries) {
         let remainingPlayers = 0;
         const playerSolveInfo = userData.data?.games
           ? userData.data.games[prevGameData.gameNo]
           : null;
-        // const playerSolveInfo = { tries: 5, solved: true };
+
         let topPlayers = 0;
         let allTries = 0;
 
@@ -393,25 +397,44 @@ export const Stats = () => {
 
         gStats.averageTries = getFixedFractional(allTries, stats.solved, 1);
 
-        // console.log('gStats:', gStats);
-
         setGlobalStats(gStats);
       }
     }
   }, [prevGameData, userData]);
 
   return (
-    <div className='stats-container gap-1_5'>
+    <div className='stats-container gap-1_25'>
       {!userData || !gameData
         ? 'Loading...'
         : userData && (
             <>
               {gameData && (
-                <div className='stats-ticker'>
-                  <NewGameTicker nextGameAt={gameData.nextGameAt} bordered />
+                <div className='ticker-card text--medium'>
+                  <NewGameTicker nextGameAt={gameData.nextGameAt} />
                 </div>
               )}
-
+              {currentUserAuthInfo &&
+                (currentUserAuthInfo.email ? (
+                  <div className='stats-card'>
+                    <div className='text--dark text--center'>
+                      Currently signed in with:
+                    </div>
+                    <div className='text--bold text--center'>
+                      {currentUserAuthInfo.email}
+                    </div>
+                  </div>
+                ) : (
+                  <div className='stats-card gap-1_5'>
+                    <div className='text--dark text--center text--bold'>
+                      To save your playing history
+                    </div>
+                    <Link className='link' to='/sign-in'>
+                      <button type='button' className='btn'>
+                        <FaSignInAlt /> Sign in now
+                      </button>
+                    </Link>
+                  </div>
+                ))}
               <div className='solves-stats-container'>
                 {solveStats.map((statsRow, row) => {
                   return (
@@ -436,6 +459,9 @@ export const Stats = () => {
                               <span className='solve-count'>{stat.count}</span>
                             </div>
                             <div className='solve-tries'>{stat.tries}</div>
+                            {stat.increment && (
+                              <span className='solve-increment'>+1</span>
+                            )}
                           </div>
                         );
                       })}
@@ -443,7 +469,6 @@ export const Stats = () => {
                   );
                 })}
               </div>
-
               <div className='stats-card gap-1_5'>
                 <div className='stats-card-title'>Today's Road</div>
                 {solvedTodaysGame ? (
@@ -482,7 +507,7 @@ export const Stats = () => {
                         })}
                       </div>
                     )}
-                    <button className='btn' onClick={shareStats}>
+                    <button type='button' className='btn' onClick={shareStats}>
                       <FaShare /> Share now
                     </button>
                   </>
@@ -490,7 +515,7 @@ export const Stats = () => {
                   <>
                     <div>Umm...you haven't solved it yet!</div>
                     <Link className='link' to='/' replace={true}>
-                      <button className='btn'>
+                      <button type='button' className='btn'>
                         <FaPlayCircle /> Play now
                       </button>
                     </Link>
@@ -504,7 +529,6 @@ export const Stats = () => {
                   </>
                 )}
               </div>
-
               <div className='stats-card'>
                 <div className='stats-card-title'>
                   Yesterday's Road{prevGameData && `: #${prevGameData.gameNo}`}
@@ -566,7 +590,6 @@ export const Stats = () => {
                   </>
                 )}
               </div>
-
               <div className='stats-card'>
                 <div className='stats-card-title'>Your Stats</div>
                 {overallStats.map((statItem, index) => {
@@ -581,7 +604,6 @@ export const Stats = () => {
                   );
                 })}
               </div>
-
               <div className='stats-footer'>
                 <div style={{ marginBottom: '1rem' }}>
                   Follow GoldRoad on Twitter{' '}

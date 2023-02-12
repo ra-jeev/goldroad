@@ -49,10 +49,24 @@
   padding: 0 1rem;
 }
 
+.link-normal,
 .link {
   color: goldenrod;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
+.link-normal {
+  font-size: 1.125rem;
+  font-weight: bold;
+}
+
+.link-normal svg {
+  font-size: 1.375rem;
+}
+
+.link-normal:hover,
 .link:hover {
   color: darkgoldenrod;
 }

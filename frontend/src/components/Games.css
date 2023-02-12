@@ -8,12 +8,12 @@
 }
 
 .solved-icon {
-  color: rgb(51, 176, 16);
+  color: var(--app-green);
   margin-right: 0.25rem;
 }
 
 .unsolved-icon {
-  color: rgb(198, 8, 30);
+  color: var(--app-red);
   margin-right: 0.25rem;
 }
 
@@ -93,13 +93,14 @@
   color: goldenrod;
   background-color: transparent;
   border: 2px solid;
+  line-height: 1;
   font-weight: 500;
-  border-radius: 0.25rem;
-  padding: 0.5rem 1.5rem;
+  border-radius: 1.5rem;
+  padding: 0.75rem 1.5rem;
   text-transform: uppercase;
   cursor: pointer;
   transition: 0.2s all ease-in-out;
-  margin-top: 1rem;
+  margin: 0.5rem;
 }
 
 .games-loading {
@@ -126,13 +127,6 @@ summary {
   cursor: pointer;
 }
 
-.btn-expand {
-  font-size: 1.5rem;
-  padding: 0.25rem;
-  cursor: pointer;
-}
-
-.btn-expand:hover,
 .load-button:hover,
 .game-card__button:hover {
   color: darkgoldenrod;

@@ -16,4 +16,6 @@ body {
 
 :root {
   --app-brown: #230c0f;
+  --app-red: #fc2f00;
+  --app-green: rgb(68, 221, 25);
 }

@@ -23,6 +23,9 @@ export const Layout = ({ sounds, onSettingChange }) => {
       case 'games':
         navigate('/games');
         break;
+      case 'sign-in':
+        navigate('/sign-in');
+        break;
       case 'sounds':
         onSettingChange();
         break;
