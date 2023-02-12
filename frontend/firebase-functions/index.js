@@ -3,6 +3,11 @@ const { defineString } = require('firebase-functions/params');
 const { createHmac } = require('crypto');
 const cors = require('cors');
 
+const users = require('./users');
+const userGames = require('./userGames');
+const games = require('./games');
+const triggers = require('./triggers');
+
 const endpointUrl = defineString('ENDPOINT_URL');
 const endpointSecret = defineString('ENDPOINT_SECRET');
 const accessControlOrigin = defineString('ACCESS_CONTROL_ORIGIN');
@@ -91,3 +96,8 @@ exports.getRequestedGame = functions
       }
     );
   });
+
+exports.users = users;
+exports.userGames = userGames;
+exports.games = games;
+exports.triggers = triggers;
