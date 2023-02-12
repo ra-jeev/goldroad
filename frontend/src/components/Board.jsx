@@ -1,8 +1,6 @@
-import { useEffect, useState } from 'react';
-
-import './Board.css';
 import { Connection } from './Connection';
 import { Tile } from './Tile';
+import './Board.css';
 
 const TILE_GAP = 8;
 const CONN_OFFSET = parseInt((3 * TILE_GAP) / 2);
