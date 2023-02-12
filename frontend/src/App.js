@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
-import { RealmAppProvider } from './components/RealmApp';
-import { AppDataProvider } from './components/AppData';
+import { FirebaseProvider } from './providers/Firebase';
+import { AppDataProvider } from './providers/AppData';
 import { Layout } from './components/Layout';
 import { Game } from './components/Game';
 import { About } from './components/About';
 import { Games } from './components/Games';
 import { Stats } from './components/Stats';
+import { SignIn } from './components/SignIn';
 import './App.css';
 
 function AppRoutes() {
@@ -49,6 +50,7 @@ function AppRoutes() {
             element={<Game sounds={gameSoundsSetting} />}
           />
           <Route path='/stats' element={<Stats />} />
+          <Route path='/sign-in' element={<SignIn />} />
         </Route>
       </Routes>
     </BrowserRouter>
@@ -57,11 +59,11 @@ function AppRoutes() {
 
 function App() {
   return (
-    <RealmAppProvider>
+    <FirebaseProvider>
       <AppDataProvider>
         <AppRoutes />
       </AppDataProvider>
-    </RealmAppProvider>
+    </FirebaseProvider>
   );
 }
 

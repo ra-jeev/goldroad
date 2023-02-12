@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Link, useParams } from 'react-router-dom';
-import { FaRedo } from 'react-icons/fa';
+import { FaQuestionCircle, FaRedo } from 'react-icons/fa';
 
-import { useAppData } from './AppData';
+import { useFirebase } from '../providers/Firebase';
+import { useAppData } from '../providers/AppData';
 import { Board } from './Board';
 import { NewGameTicker } from './NewGameTicker';
-import { GAME_SOUNDS, useGameSounds } from './useGameSounds';
+import { GAME_SOUNDS, useGameSounds } from '../hooks/useGameSounds';
 
 import './Game.css';
 
@@ -42,15 +43,29 @@ const getOrdinal = (n) => {
   return ['st', 'nd', 'rd'][((((n + 90) % 100) - 10) % 10) - 1] || 'th';
 };
 
-const datesEqual = (date1, date2) => {
-  return (
-    date1.getDate() === date2.getDate() &&
-    date1.getMonth() === date2.getMonth() &&
-    date1.getFullYear() === date2.getFullYear()
-  );
+const datesEqual = (date1, date2, checkUTC = false) => {
+  if (typeof date1 !== 'object' && typeof date1.getMonth !== 'function') {
+    date1 = new Date(date1);
+  }
+
+  if (typeof date2 !== 'object' && typeof date2.getMonth !== 'function') {
+    date2 = new Date(date2);
+  }
+
+  return checkUTC
+    ? date1.getUTCDate() === date2.getUTCDate() &&
+        date1.getUTCMonth() === date2.getUTCMonth() &&
+        date1.getUTCFullYear() === date2.getUTCFullYear()
+    : date1.getDate() === date2.getDate() &&
+        date1.getMonth() === date2.getMonth() &&
+        date1.getFullYear() === date2.getFullYear();
 };
 
-const GameFooter = ({ gameState, lastGame, game, onClick }) => {
+const GameFooter = ({ userData, gameState, lastGame, game, onClick }) => {
+  if (!userData) {
+    return '';
+  }
+
   const lastAttempt = lastGame?.attempts
     ? lastGame.attempts[lastGame.attempts.length - 1]
     : null;
@@ -64,8 +79,13 @@ const GameFooter = ({ gameState, lastGame, game, onClick }) => {
     );
   }
 
-  if (
-    !lastGame ||
+  if (!lastGame) {
+    return (
+      <Link className='link-normal' to='/about'>
+        How to play <FaQuestionCircle />
+      </Link>
+    );
+  } else if (
     lastGame.gameNo !== game.gameNo ||
     (lastAttempt &&
       (!datesEqual(date, lastAttempt.playedAt) || lastAttempt.solved))
@@ -105,11 +125,11 @@ export const Game = ({ sounds }) => {
   //TODO: Check if we can remove the states for game & useHistory
   const {
     getGame,
-    userData,
     updateUserData,
     getUserHistoryForGame,
     updateUserGameHistory,
   } = useAppData();
+  const { currentUser: userData } = useFirebase();
   const { gameId } = useParams();
 
   useEffect(() => {
@@ -223,6 +243,7 @@ export const Game = ({ sounds }) => {
     };
 
     if (game) {
+      // console.log('calling getUserHistory from the game page');
       getUserHistory();
     }
   }, [game, getUserHistoryForGame]);
@@ -239,6 +260,9 @@ export const Game = ({ sounds }) => {
     const isNewGame = !userHistory;
     const isGameSolved = solved && score === game.maxScore;
 
+    let userDataChanges;
+    let userTries;
+
     if (isNewGame) {
       setChanges = {
         gameNo: game.gameNo,
@@ -247,7 +271,7 @@ export const Game = ({ sounds }) => {
           {
             tries: 1,
             solved: isGameSolved,
-            current: game.current,
+            current: datesEqual(game.playedAt, date, true),
             playedAt: date,
           },
         ],
@@ -257,6 +281,21 @@ export const Game = ({ sounds }) => {
 
       if (isGameSolved) {
         setChanges.firstSolved = 0;
+        userTries = 1;
+      }
+
+      if (gameId) {
+        userDataChanges = {
+          $inc: {
+            'data.played': 1,
+          },
+        };
+
+        if (isGameSolved) {
+          userDataChanges.$inc['data.solves'] = 1;
+          userDataChanges.$inc['data.solveStats.1'] = 1;
+          userTries = 1;
+        }
       }
     } else {
       const lastAttemptIndex = userHistory.attempts.length - 1;
@@ -279,7 +318,24 @@ export const Game = ({ sounds }) => {
         if (isGameSolved) {
           setChanges[`attempts.${lastAttemptIndex}.solved`] = true;
           if (userHistory.firstSolved === undefined) {
+            if (userHistory.attempts[lastAttemptIndex].current) {
+              setChanges[`attempts.${lastAttemptIndex}.current`] = datesEqual(
+                game.playedAt,
+                date,
+                true
+              );
+            }
+
             setChanges.firstSolved = lastAttemptIndex;
+            userTries = userHistory.attempts[lastAttemptIndex].tries + 1;
+            if (gameId) {
+              userDataChanges = {
+                $inc: {
+                  'data.solves': 1,
+                  [`data.solveStats.${userTries}`]: 1,
+                },
+              };
+            }
           }
         }
       } else {
@@ -299,6 +355,16 @@ export const Game = ({ sounds }) => {
           setChanges = {
             firstSolved: userHistory.attempts.length,
           };
+
+          userTries = 1;
+          if (gameId) {
+            userDataChanges = {
+              $inc: {
+                'data.solves': 1,
+                'data.solveStats.1': 1,
+              },
+            };
+          }
         }
       }
     }
@@ -316,6 +382,11 @@ export const Game = ({ sounds }) => {
     }
 
     await updateUserGameHistory(game.gameNo, changes);
+    // console.log('returning from userGamesChanges: ', {
+    //   userDataChanges,
+    //   userTries,
+    // });
+    return { userDataChanges, userTries };
   };
 
   const getUserStatsChanges = (solved, score, moves) => {
@@ -391,13 +462,23 @@ export const Game = ({ sounds }) => {
         if (changes) {
           const { incChanges, setChanges } = changes;
           await updateUserData({ $set: setChanges, $inc: incChanges });
-          await getUserGamesChanges(solved, score);
+          const { userTries } = await getUserGamesChanges(solved, score);
           if (solved && score === game.maxScore) {
-            navigate('/stats');
+            navigate('/stats', { state: { tries: userTries } });
           }
         }
       } else {
-        await getUserGamesChanges(solved, score);
+        const { userDataChanges, userTries } = await getUserGamesChanges(
+          solved,
+          score
+        );
+        if (userDataChanges) {
+          await updateUserData(userDataChanges);
+        }
+
+        if (solved && score === game.maxScore) {
+          navigate('/stats', { state: { tries: userTries } });
+        }
       }
     }
   };
@@ -610,8 +691,10 @@ export const Game = ({ sounds }) => {
                 </span>
                 <span className='status'>{gameState.status}</span>
               </div>
+
               <GameFooter
                 gameState={gameState}
+                userData={userData}
                 lastGame={gameId ? userHistory : userData?.data?.lastGamePlayed}
                 game={game}
                 onClick={replayGame}
@@ -633,8 +716,10 @@ export const Game = ({ sounds }) => {
               connections={gameState.connections}
               onClick={onTileClick}
             />
+
             <GameFooter
               gameState={gameState}
+              userData={userData}
               lastGame={gameId ? userHistory : userData?.data?.lastGamePlayed}
               game={game}
               onClick={replayGame}
