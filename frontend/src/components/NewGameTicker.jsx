@@ -1,7 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
 
-import './NewGameTicker.css';
-
 export const NewGameTicker = ({ nextGameAt }) => {
   const [timeStr, setTimeStr] = useState('');
   const timer = useRef(null);
@@ -48,9 +46,10 @@ export const NewGameTicker = ({ nextGameAt }) => {
       }
     }
   }, [nextGameAt]);
+
   return (
-    <div>
-      New Puzzle In: <span className='ticker'>{timeStr}</span>
-    </div>
+    <span>
+      New Puzzle In: <strong>{timeStr}</strong>
+    </span>
   );
 };
