@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+
 import step1 from '../assets/images/step-1.gif';
 import step2 from '../assets/images/step-2.gif';
 import step3 from '../assets/images/step-3.gif';
@@ -20,7 +22,8 @@ export const About = () => {
         <figure>
           <figcaption>
             2. Your goal is to <strong>reach the red coin</strong> by collecting
-            the maximum possible coins (running counter shown above the game).
+            the maximum possible coins (running counter shown above the game
+            board).
           </figcaption>
           <img src={step2} alt='final coin animation' width={172} />
         </figure>
@@ -42,8 +45,8 @@ export const About = () => {
         <figure>
           <figcaption>
             5. Some paths may lead to dead ends.{' '}
-            <strong>Replay as many times you want</strong> by tapping the{' '}
-            <strong>replay button</strong>.
+            <strong>You can replay as many times you want</strong> by tapping
+            the <strong>replay button</strong>.
           </figcaption>
           <img src={step5} alt='intermediate game board 3' width={172} />
         </figure>
@@ -56,23 +59,65 @@ export const About = () => {
         </figure>
         <figure>
           <figcaption>
-            7. <strong>Comeback tomorrow for a new puzzle.</strong> The game
-            refreshes everyday at <strong>12:00 AM GMT</strong>.
+            7. <strong>Comeback tomorrow for a new puzzle.</strong> There is a
+            new road available to walk on everyday at{' '}
+            <strong>12:00 AM GMT</strong>.
           </figcaption>
         </figure>
+        <div className='play-game-link'>
+          <Link className='about-link ' to='/'>
+            Walk down today's road
+          </Link>
+          <br />
+          <br />
+          <Link className='about-link ' to='/games'>
+            Looking for past roads?
+          </Link>
+        </div>
       </div>
+
       <div className='about-section'>
         <div className='title'>About</div>
         <p>
           I created this little puzzle game as part of a hackathon. The half
           formed idea was there in mind for quite some time, the hackathon
-          provided the urgency it needed :-)
+          provided the urgency it needed :-).
+        </p>
+        <p>
+          I was mainly inspired by the Figure game (by{' '}
+          <a
+            className='about-link'
+            href='https://twitter.com/sumul'
+            target='_blank'
+            rel='noreferrer'
+          >
+            @sumul
+          </a>
+          ) which I'm still a regular player of.
+        </p>
+        <p>
+          I hope that you've as much fun playing this game as I had creating it.
+          If you've any feedback, or want to get in touch with me, please use
+          the links at the bottom of this page.
+        </p>
+      </div>
+      <div className='about-section'>
+        <div className='title'>Privacy Policy</div>
+        <p>
+          The game's privacy policy is very simple. I use a privacy first
+          analytics tool Umami for keeping track of general game performance and
+          any issues. No private information is collected from you.
+        </p>
+        <p>
+          Your email address (should you choose to sign in) is used to merge
+          your playing history across different browsers on your phone / laptop.
         </p>
       </div>
       <div className='about-footer'>
         <div style={{ marginBottom: '1rem' }}>
           Follow GoldRoad on Twitter{' '}
           <a
+            className='about-link'
             href='https://twitter.com/thegoldroad'
             target='_blank'
             rel='noreferrer'
@@ -84,6 +129,7 @@ export const About = () => {
         <div>
           Made with ❤️ & coffee, by{' '}
           <a
+            className='about-link'
             href='https://twitter.com/ra_jeeves'
             target='_blank'
             rel='noreferrer'
@@ -93,7 +139,12 @@ export const About = () => {
         </div>
         <div>
           For feedback, or anything else{' '}
-          <a href='mailto:i.rarsh@gmail.com?subject=[GoldRoad]'>Contact me</a>
+          <a
+            className='about-link'
+            href='mailto:i.rarsh@gmail.com?subject=[GoldRoad]'
+          >
+            Contact me
+          </a>
         </div>
       </div>
     </div>
