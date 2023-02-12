@@ -1,7 +1,7 @@
 .tile {
   background-color: transparent;
   margin: 4px;
-  border: 4px dotted #fc2f00;
+  border: 4px dotted var(--app-red);
   color: goldenrod;
   font-size: 1.625rem;
   font-weight: 700;
