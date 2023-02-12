@@ -57,6 +57,7 @@ export const Tile = ({ data, size, onClick }) => {
 
   return (
     <button
+      type='button'
       className={tileClasses}
       onClick={onTileClick}
       style={size && { width: size, height: size }}
