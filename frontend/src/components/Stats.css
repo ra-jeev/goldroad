@@ -6,10 +6,20 @@
   align-items: center;
 }
 
-.stats-ticker {
-  padding: 0.5rem 2rem;
-  border: 2px solid goldenrod;
-  border-radius: 0.25rem;
+.text--medium {
+  font-size: 1.125rem;
+}
+
+.text--dark {
+  color: darkgoldenrod;
+}
+
+.text--bold {
+  font-weight: bold;
+}
+
+.text--center {
+  text-align: center;
 }
 
 .solves-stats-container {
@@ -27,7 +37,9 @@
   width: 100%;
 }
 
-.solves-card {
+.solves-card,
+.stats-card,
+.ticker-card {
   padding: 1rem;
   display: flex;
   flex-direction: column;
@@ -35,7 +47,11 @@
   justify-content: center;
   align-items: center;
   border-radius: 0.75rem;
+}
+
+.solves-card {
   width: 33%;
+  position: relative;
 }
 
 .solve-stat {
@@ -70,6 +86,15 @@
   margin-top: 0.5rem;
   font-size: 0.75rem;
   color: darkgoldenrod;
+}
+
+.solve-increment {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  font-size: 0.75rem;
+  color: gold;
+  font-weight: 700;
 }
 
 .graph-container {
@@ -135,21 +160,23 @@
   top: -16px;
 }
 
-.stats-card {
-  background-color: rgba(192, 192, 192, 0.18);
-  padding: 1.5rem;
-  border-radius: 0.75rem;
-  display: flex;
+.stats-card,
+.ticker-card {
   gap: 0.75rem;
-  align-items: center;
   width: 100%;
-  flex-direction: column;
-  justify-content: center;
+}
+
+.stats-card {
+  padding: 1.5rem;
 }
 
 .stats-card-title {
   font-size: 1.5rem;
   font-weight: bold;
+}
+
+.gap-1_25 {
+  gap: 1.25rem;
 }
 
 .gap-1_5 {
@@ -208,6 +235,7 @@
   align-items: center;
   line-height: 1;
   gap: 0.75rem;
+  cursor: pointer;
 }
 
 .btn:hover {
@@ -232,6 +260,7 @@
 @media screen and (min-width: 768px) {
   .stats-footer,
   .stats-card,
+  .ticker-card,
   .solves-stats-container {
     max-width: 32rem;
   }

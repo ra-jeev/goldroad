@@ -3,13 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import { FaAward, FaPlayCircle, FaTrophy } from 'react-icons/fa';
 import { FiCheckSquare, FiXSquare } from 'react-icons/fi';
 
-import { useAppData } from './AppData';
+import { useAppData } from '../providers/AppData';
 import './Games.css';
 
 let dateFormatter;
 const formatDate = (date) => {
   if (!date) {
     return '';
+  }
+
+  if (typeof date !== 'object' && typeof date.getMonth !== 'function') {
+    date = new Date(date);
   }
 
   if (!dateFormatter) {
@@ -152,37 +156,39 @@ export const Games = () => {
         </div>
       </div>
       <div className='trophy-description'>* D-day = Game of the day</div>
-      {pastGames.map((game) => {
-        return (
-          <div className='game-card' key={game._id}>
-            <FaPlayCircle
-              className='game-card__button'
-              onClick={() => navigate(`/games/${game.gameNo}`)}
-            />
-            <div className='game-card__details'>
-              <div
-                className='game-card__title'
+      {pastGames.length > 0 &&
+        pastGames.map((game) => {
+          return (
+            <div className='game-card' key={game._id}>
+              <FaPlayCircle
+                className='game-card__button'
                 onClick={() => navigate(`/games/${game.gameNo}`)}
-              >
-                GoldRoad #{game.gameNo}
+              />
+              <div className='game-card__details'>
+                <div
+                  className='game-card__title'
+                  onClick={() => navigate(`/games/${game.gameNo}`)}
+                >
+                  GoldRoad #{game.gameNo}
+                </div>
+                <div className='game-card__description'>
+                  Collect <strong>{game.maxScore} coins</strong> in your path
+                </div>
+                {getPlayHistory(game.gameNo)}
               </div>
-              <div className='game-card__description'>
-                Collect <strong>{game.maxScore} coins</strong> in your path
-              </div>
-              {getPlayHistory(game.gameNo)}
-            </div>
 
-            {getTrophy(game.gameNo)}
-          </div>
-        );
-      })}
+              {getTrophy(game.gameNo)}
+            </div>
+          );
+        })}
 
       {loading ? (
         <div className='games-loading'>Loading...</div>
       ) : (
-        pastGames.length &&
+        pastGames.length > 0 &&
         pastGames[pastGames.length - 1].gameNo !== 1 && (
           <button
+            type='button'
             className='load-button'
             onClick={() => setFetchOffset(pastGames.length)}
           >
