@@ -267,7 +267,7 @@ export const Stats = () => {
       'try'
     )}\n#GoldRoad #GoldRoad${
       gameData.gameNo
-    }\n\nPlay now: https://goldroad.web.app`;
+    }\n\nPlay now: https://playgoldroad.com`;
 
     if (window.navigator.share) {
       try {
@@ -491,7 +491,7 @@ export const Stats = () => {
                       #GoldRoad #GoldRoad{gameData.gameNo}
                       <br />
                       <br />
-                      https://goldroad.web.app
+                      https://playgoldroad.com
                     </div>
                     {message && (
                       <div>
