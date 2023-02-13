@@ -42,6 +42,7 @@ exports.create = functions
   .region('asia-south1')
   .https.onCall(async (data, context) => {
     const userId = context.auth?.uid;
+    console.log(`incoming userId: ${userId}`);
     if (userId) {
       const time = Date.now();
       const user = {
@@ -90,6 +91,7 @@ exports.get = functions
   .region('asia-south1')
   .https.onCall(async (data, context) => {
     const userId = context.auth?.uid;
+    console.log(`incoming userId: ${userId}`);
     if (userId) {
       const userDoc = await makeApiCall('/action/findOne', {
         filter: {

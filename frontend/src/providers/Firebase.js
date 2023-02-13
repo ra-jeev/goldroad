@@ -139,10 +139,10 @@ export function FirebaseProvider({ children }) {
           OAuthProvider.credentialFromError(credentialError)
         );
 
-        // console.log(
-        //   `After signInWithCredential: ${Date.now()}, credentials.user`,
-        //   credentials.user
-        // );
+        console.log(
+          `After signInWithCredential: ${Date.now()}, credentials.user`,
+          credentials.user
+        );
         await migrateCurrentUser({
           firebaseUserId: currentUserId,
         });
@@ -220,6 +220,7 @@ export function FirebaseProvider({ children }) {
             creatingUser.current = false;
           }
         } else {
+          console.log('currentUserAuthInfo', user);
           setCurrentUserAuthInfo(user);
           if (!creatingUser.current) {
             await getCurrentUserData();
@@ -235,16 +236,22 @@ export function FirebaseProvider({ children }) {
     const checkSignInResult = async () => {
       // console.log(`Inside checkSignInResult: ${Date.now()}`);
       try {
-        await getRedirectResult(auth);
-        // console.log(
-        //   '+++++++++++++++ got some result from getRedirectResult',
-        //   result
-        // );
+        const result = await getRedirectResult(auth);
+        console.log(
+          '+++++++++++++++ got some result from getRedirectResult',
+          result
+        );
+
+        if (result && result.user) {
+          setAuthState({ state: AUTH_STATE.SIGNED_IN });
+        } else {
+          setAuthState({ state: AUTH_STATE.ERROR });
+        }
       } catch (error) {
-        // console.log(
-        //   `checkSignInResult: account link failed: ${Date.now()} with error: `,
-        //   error
-        // );
+        console.log(
+          `checkSignInResult: account link failed: ${Date.now()} with error: `,
+          error
+        );
         if (error.code === 'auth/credential-already-in-use') {
           await handleCredentialInUseError(error);
         } else if (
@@ -295,16 +302,22 @@ export function FirebaseProvider({ children }) {
   const handleSignInWithPopup = useCallback(
     async (provider) => {
       try {
+        let userCredential;
         if (auth.currentUser) {
-          await linkWithPopup(auth.currentUser, provider);
+          userCredential = await linkWithPopup(auth.currentUser, provider);
         } else {
-          await signInWithPopup(auth, provider);
+          userCredential = await signInWithPopup(auth, provider);
+        }
+
+        if (userCredential) {
+          console.log('got some user credentials', userCredential);
+          setAuthState({ state: AUTH_STATE.SIGNED_IN });
         }
       } catch (error) {
-        // console.log(
-        //   `handleSignInWithPopup: account link failed: ${Date.now()} with error: `,
-        //   error
-        // );
+        console.log(
+          `handleSignInWithPopup: account link failed: ${Date.now()} with error: `,
+          error
+        );
 
         if (error.code === 'auth/credential-already-in-use') {
           // console.log('trying to handle CredentialInUse');
@@ -331,6 +344,8 @@ export function FirebaseProvider({ children }) {
           break;
         case AUTH_PROVIDER.FACEBOOK:
           provider = new FacebookAuthProvider();
+          provider.addScope('email');
+          provider.addScope('public_profile');
           break;
         default:
           console.log('invalid auth provider: ', authProvider);
