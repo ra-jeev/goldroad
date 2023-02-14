@@ -6,11 +6,11 @@ const dataApiKey = defineString('DATA_API_KEY');
 const dataSource = defineString('DATA_SOURCE');
 const dbName = defineString('DB_NAME');
 
-const makeApiCall = async (action, data) => {
+const makeApiCall = async (action, data, collection) => {
   const body = {
     dataSource: dataSource.value(),
     database: dbName.value(),
-    collection: 'userGames',
+    collection: collection || 'userGames',
     ...data,
   };
 
@@ -109,8 +109,59 @@ exports.update = functions
     functions.logger.debug('Incoming data', data, 'context', context);
     const userId = context.auth?.uid;
     if (userId) {
+      const retVal = {};
+
+      if (
+        data.userChanges &&
+        (data.userChanges.$set || data.userChanges.$inc)
+      ) {
+        const userUpdate = {
+          ...data.userChanges,
+        };
+
+        if (!userUpdate.$set) {
+          userUpdate.$set = {};
+        }
+
+        userUpdate.$set.updatedAt = {
+          $date: { $numberLong: `${Date.now()}` },
+        };
+
+        const userUpdateRes = await makeApiCall(
+          '/action/updateOne',
+          {
+            filter: {
+              _id: userId,
+            },
+            update: userUpdate,
+          },
+          'users'
+        );
+
+        functions.logger.info(
+          `Updated user data: ${JSON.stringify(userUpdateRes)}`
+        );
+
+        if (userUpdateRes && typeof userUpdateRes !== 'string') {
+          const userDoc = await makeApiCall(
+            '/action/findOne',
+            {
+              filter: {
+                _id: userId,
+              },
+            },
+            'users'
+          );
+
+          functions.logger.info(`Got user data: ${JSON.stringify(userDoc)}`);
+          if (userDoc && typeof userDoc !== 'string') {
+            retVal.user = userDoc.document;
+          }
+        }
+      }
+
       const update = {
-        ...data.changes,
+        ...data.userGameChanges,
       };
 
       if (update.$set) {
@@ -162,7 +213,7 @@ exports.update = functions
         `Updated user game data: ${JSON.stringify(updateRes)}`
       );
 
-      if (updateRes && typeof userDoc !== 'string') {
+      if (updateRes && typeof updateRes !== 'string') {
         const userGameDoc = await makeApiCall('/action/findOne', {
           filter: {
             owner_id: userId,
@@ -175,7 +226,8 @@ exports.update = functions
         );
 
         if (userGameDoc && typeof userGameDoc !== 'string') {
-          return userGameDoc.document;
+          retVal.userGame = userGameDoc.document;
+          return retVal;
         }
       }
 
