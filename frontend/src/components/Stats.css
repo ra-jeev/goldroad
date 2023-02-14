@@ -90,8 +90,8 @@
 
 .solve-increment {
   position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
+  top: 0.25rem;
+  right: 0.25rem;
   font-size: 0.75rem;
   color: gold;
   font-weight: 700;
