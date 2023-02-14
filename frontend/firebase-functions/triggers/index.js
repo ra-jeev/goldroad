@@ -485,7 +485,7 @@ exports.onNewMigration = functions
             );
           }
 
-          if (!oldGames.length) {
+          if (!oldGames.length && newUser.data.played) {
             console.log(`no old gamesToUpdate to new user id`);
             updateOldGames = false;
           }
