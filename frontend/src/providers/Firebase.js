@@ -73,11 +73,10 @@ export function FirebaseProvider({ children }) {
   const migrateCurrentUser = useCallback(
     async (data) => {
       const migrateUser = httpsCallable(functions, 'users-migrate');
-      // console.log(`migrateCurrentUser called with data:`, data);
       if (migrateUser) {
         try {
           const resp = await migrateUser(data);
-          // console.log(`got resp from migrateUser:`, resp);
+
           if (resp?.data?.user) {
             setCurrentUser(resp.data.user);
             return true;
@@ -93,10 +92,6 @@ export function FirebaseProvider({ children }) {
   const handleAccountExistsWithCredential = useCallback(
     async (credentialError) => {
       const emailFromError = credentialError.customData?.email;
-      // console.log('handleCredentialInUseError: ', emailFromError);
-
-      // const userCreds = OAuthProvider.credentialFromError(credentialError);
-      // console.log('userCreds: ', userCreds);
 
       if (emailFromError) {
         try {
@@ -111,14 +106,9 @@ export function FirebaseProvider({ children }) {
               provider: methods[0].split('.')[0],
             });
           }
-          // console.log('found the sign in methods: ', methods);
+
           return;
-        } catch (error) {
-          // console.log(
-          //   'failed to fetch the sign in methods for the email',
-          //   error
-          // );
-        }
+        } catch (error) {}
       } else {
         console.log('no email found in the credentialError:');
       }
@@ -132,27 +122,19 @@ export function FirebaseProvider({ children }) {
     async (credentialError) => {
       setAuthState({ state: AUTH_STATE.MERGING_ACCOUNTS });
       const currentUserId = auth.currentUser.uid;
-      // console.log(`currentUserId: ${currentUserId}`);
       try {
         const credentials = await signInWithCredential(
           auth,
           OAuthProvider.credentialFromError(credentialError)
         );
 
-        console.log(
-          `After signInWithCredential: ${Date.now()}, credentials.user`,
-          credentials.user
-        );
         await migrateCurrentUser({
           firebaseUserId: currentUserId,
         });
 
-        // console.log(`After migrateCurrentUser: ${Date.now()}`);
-
         setDocumentListener(credentials);
         setAuthState({ state: AUTH_STATE.SIGNED_IN });
       } catch (error) {
-        // console.log('signInWithCredential failed with ', error);
         if (error.code === 'auth/account-exists-with-different-credential') {
           await handleAccountExistsWithCredential(error);
         } else {
@@ -169,11 +151,6 @@ export function FirebaseProvider({ children }) {
       if (getUser) {
         const userDoc = await getUser();
         if (userDoc?.data) {
-          // console.log(
-          //   '^^^^^^^^^^^^^^^^^^^ got the result from the data API: ',
-          //   userDoc.data
-          // );
-
           setCurrentUser(userDoc.data);
         } else {
           console.log('No user doc found;');
@@ -183,15 +160,12 @@ export function FirebaseProvider({ children }) {
 
     if (auth) {
       const unsubscribe = onAuthStateChanged(auth, async (user) => {
-        // console.log('got the user in onAuthStateChanged: ', user);
         if (!user) {
           if (!creatingUser.current) {
-            // console.log('will be creating a new anonymous user');
             creatingUser.current = true;
             await signInAnonymously(auth);
             const realmApp = getApp(process.env.REACT_APP_REALM_APP_ID);
             if (realmApp.currentUser) {
-              // console.log('Have a realm user with me: ', realmApp.currentUser);
               const success = await migrateCurrentUser({
                 realmUserId: realmApp.currentUser.id,
               });
@@ -204,11 +178,6 @@ export function FirebaseProvider({ children }) {
               if (createUser) {
                 const userDoc = await createUser();
                 if (userDoc?.data) {
-                  // console.log(
-                  //   '^^^^^^^^^^^^^^^^^^^ created a new user with the data API: ',
-                  //   userDoc.data
-                  // );
-
                   setCurrentUser(userDoc.data);
                 } else {
                   console.log('No user doc found;');
@@ -216,11 +185,9 @@ export function FirebaseProvider({ children }) {
               }
             }
 
-            // console.log('setting creatingUser.current to false: ');
             creatingUser.current = false;
           }
         } else {
-          console.log('currentUserAuthInfo', user);
           setCurrentUserAuthInfo(user);
           if (!creatingUser.current) {
             await getCurrentUserData();
@@ -234,24 +201,14 @@ export function FirebaseProvider({ children }) {
 
   useEffect(() => {
     const checkSignInResult = async () => {
-      // console.log(`Inside checkSignInResult: ${Date.now()}`);
       try {
         const result = await getRedirectResult(auth);
-        console.log(
-          '+++++++++++++++ got some result from getRedirectResult',
-          result
-        );
-
         if (result && result.user) {
           setAuthState({ state: AUTH_STATE.SIGNED_IN });
         } else {
           setAuthState({ state: AUTH_STATE.ERROR });
         }
       } catch (error) {
-        console.log(
-          `checkSignInResult: account link failed: ${Date.now()} with error: `,
-          error
-        );
         if (error.code === 'auth/credential-already-in-use') {
           await handleCredentialInUseError(error);
         } else if (
@@ -277,10 +234,8 @@ export function FirebaseProvider({ children }) {
         doc(fireDb, 'migratedUsers', documentListener.user.uid),
         async (userDoc) => {
           const userDocData = userDoc.data();
-          // console.log('Current data: ', userDocData);
           if (userDocData) {
             unsubscribe();
-            // console.log('deleting the migrated user');
             await deleteDoc(
               doc(fireDb, 'migratedUsers', documentListener.user.uid)
             );
@@ -310,17 +265,10 @@ export function FirebaseProvider({ children }) {
         }
 
         if (userCredential) {
-          console.log('got some user credentials', userCredential);
           setAuthState({ state: AUTH_STATE.SIGNED_IN });
         }
       } catch (error) {
-        console.log(
-          `handleSignInWithPopup: account link failed: ${Date.now()} with error: `,
-          error
-        );
-
         if (error.code === 'auth/credential-already-in-use') {
-          // console.log('trying to handle CredentialInUse');
           await handleCredentialInUseError(error);
         } else if (
           error.code === 'auth/account-exists-with-different-credential' ||
@@ -352,14 +300,17 @@ export function FirebaseProvider({ children }) {
           return;
       }
 
-      // console.log('google authenticate: has existing user:', auth.currentUser);
       setAuthState({ state: AUTH_STATE.SIGNING_IN });
       if (window.location.hostname.includes('playgoldroad')) {
         localStorage.setItem('isRedirecting', 'true');
-        if (auth.currentUser) {
-          await linkWithRedirect(auth.currentUser, provider);
-        } else {
-          await signInWithRedirect(auth, provider);
+        try {
+          if (auth.currentUser) {
+            await linkWithRedirect(auth.currentUser, provider);
+          } else {
+            await signInWithRedirect(auth, provider);
+          }
+        } catch (error) {
+          console.log(`signInWithRedirect failed: `, error);
         }
       } else {
         await handleSignInWithPopup(provider);
@@ -396,12 +347,19 @@ export function FirebaseProvider({ children }) {
     }
   }, []);
 
+  const resetAuthState = useCallback(() => {
+    if (authState?.state !== AUTH_STATE.SIGNED_IN) {
+      setAuthState(null);
+    }
+  }, [authState]);
+
   return (
     <FirebaseContext.Provider
       value={{
         currentUserAuthInfo,
         currentUser,
         authState,
+        resetAuthState,
         setCurrentUser,
         authenticate,
         signOutUser,
