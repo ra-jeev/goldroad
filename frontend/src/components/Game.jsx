@@ -188,7 +188,7 @@ export const Game = ({ sounds }) => {
 
       if (gameDoc) {
         if (gameId && gameDoc.current) {
-          navigate('/');
+          navigate('/', { replace: true });
           return;
         }
 
@@ -254,7 +254,73 @@ export const Game = ({ sounds }) => {
     }
   };
 
-  const getUserGamesChanges = async (solved, score) => {
+  const getUserStatsChanges = (solved, score, moves) => {
+    const incChanges = {};
+    const setChanges = {};
+
+    const lastGamePlayed = userData.data.lastGamePlayed;
+    const isNewGame = !lastGamePlayed || lastGamePlayed.gameNo !== game.gameNo;
+
+    if (isNewGame) {
+      const currGame = {
+        _id: game._id,
+        gameNo: game.gameNo,
+        solved: false,
+        score,
+        moves,
+        target: game.maxScore,
+        tries: 1,
+      };
+
+      setChanges['data.lastGamePlayed'] = currGame;
+      incChanges['data.played'] = 1;
+      if (!lastGamePlayed) {
+        setChanges['data.firstGame'] = game.gameNo;
+      }
+    } else {
+      // If the current game is already solved, return
+      if (lastGamePlayed.solved) {
+        return;
+      }
+
+      incChanges['data.lastGamePlayed.tries'] = 1;
+      if (solved && score > lastGamePlayed.score) {
+        setChanges['data.lastGamePlayed.score'] = score;
+        setChanges['data.lastGamePlayed.moves'] = moves;
+      }
+    }
+
+    incChanges[`data.games.${game.gameNo}.tries`] = 1;
+    if (solved && score === game.maxScore) {
+      let finalTries = 1;
+      if (!isNewGame) {
+        setChanges['data.lastGamePlayed.solved'] = true;
+        setChanges['data.lastGamePlayed.gameId'] = game._id; //send a new field so that it will be included in the updatedFields
+        finalTries = lastGamePlayed.tries + 1;
+      } else {
+        setChanges['data.lastGamePlayed'].solved = true;
+      }
+
+      incChanges[`data.solveStats.${finalTries}`] = 1;
+      setChanges[`data.games.${game.gameNo}.solved`] = true;
+
+      incChanges['data.solves'] = 1;
+      incChanges['data.currStreak'] = 1;
+
+      if (userData.data.isCurrLongestStreak) {
+        incChanges['data.longestStreak'] = 1;
+      } else if (userData.data.currStreak === userData.data.longestStreak) {
+        incChanges['data.longestStreak'] = 1;
+        setChanges['data.isCurrLongestStreak'] = true;
+      } else if (userData.data.currStreak === userData.data.longestStreak - 1) {
+        setChanges['data.isCurrLongestStreak'] = true;
+      }
+    }
+
+    return { $set: setChanges, $inc: incChanges };
+  };
+
+  const getUserGamesChanges = (solved, score, moves) => {
     let incChanges, setChanges, pushChanges;
     const date = new Date();
     const isNewGame = !userHistory;
@@ -381,105 +447,57 @@ export const Game = ({ sounds }) => {
       changes.$push = pushChanges;
     }
 
-    await updateUserGameHistory(game.gameNo, changes);
-    // console.log('returning from userGamesChanges: ', {
-    //   userDataChanges,
-    //   userTries,
-    // });
-    return { userDataChanges, userTries };
-  };
+    // await updateUserGameHistory(game.gameNo, changes);
 
-  const getUserStatsChanges = (solved, score, moves) => {
-    const incChanges = {};
-    const setChanges = {};
-
-    const lastGamePlayed = userData.data.lastGamePlayed;
-    const isNewGame = !lastGamePlayed || lastGamePlayed.gameNo !== game.gameNo;
-
-    if (isNewGame) {
-      const currGame = {
-        _id: game._id,
-        gameNo: game.gameNo,
-        solved: false,
-        score,
-        moves,
-        target: game.maxScore,
-        tries: 1,
-      };
-
-      setChanges['data.lastGamePlayed'] = currGame;
-      incChanges['data.played'] = 1;
-      if (!lastGamePlayed) {
-        setChanges['data.firstGame'] = game.gameNo;
-      }
-    } else {
-      // If the current game is already solved, return
-      if (lastGamePlayed.solved) {
-        return;
-      }
-
-      incChanges['data.lastGamePlayed.tries'] = 1;
-      if (solved && score > lastGamePlayed.score) {
-        setChanges['data.lastGamePlayed.score'] = score;
-        setChanges['data.lastGamePlayed.moves'] = moves;
-      }
+    if (!gameId) {
+      userDataChanges = getUserStatsChanges(solved, score, moves);
     }
 
-    incChanges[`data.games.${game.gameNo}.tries`] = 1;
-    if (solved && score === game.maxScore) {
-      let finalTries = 1;
-      if (!isNewGame) {
-        setChanges['data.lastGamePlayed.solved'] = true;
-        setChanges['data.lastGamePlayed.gameId'] = game._id; //send a new field so that it will be included in the updatedFields
-        finalTries = lastGamePlayed.tries + 1;
-      } else {
-        setChanges['data.lastGamePlayed'].solved = true;
-      }
-
-      incChanges[`data.solveStats.${finalTries}`] = 1;
-      setChanges[`data.games.${game.gameNo}.solved`] = true;
-
-      incChanges['data.solves'] = 1;
-      incChanges['data.currStreak'] = 1;
-
-      if (userData.data.isCurrLongestStreak) {
-        incChanges['data.longestStreak'] = 1;
-      } else if (userData.data.currStreak === userData.data.longestStreak) {
-        incChanges['data.longestStreak'] = 1;
-        setChanges['data.isCurrLongestStreak'] = true;
-      } else if (userData.data.currStreak === userData.data.longestStreak - 1) {
-        setChanges['data.isCurrLongestStreak'] = true;
-      }
-    }
-
-    return { setChanges, incChanges };
+    return {
+      userGameChanges: changes,
+      userChanges: userDataChanges,
+      userTries,
+    };
   };
 
   const updateUserEntry = async (solved, score, moves) => {
     if (userData) {
-      if (!gameId) {
-        const changes = getUserStatsChanges(solved, score, moves);
-        if (changes) {
-          const { incChanges, setChanges } = changes;
-          await updateUserData({ $set: setChanges, $inc: incChanges });
-          const { userTries } = await getUserGamesChanges(solved, score);
-          if (solved && score === game.maxScore) {
-            navigate('/stats', { state: { tries: userTries } });
-          }
-        }
-      } else {
-        const { userDataChanges, userTries } = await getUserGamesChanges(
-          solved,
-          score
-        );
-        if (userDataChanges) {
-          await updateUserData(userDataChanges);
-        }
-
-        if (solved && score === game.maxScore) {
-          navigate('/stats', { state: { tries: userTries } });
-        }
+      const finalChanges = getUserGamesChanges(solved, score, moves);
+      console.log('got result from getUserGamesChanges: ', finalChanges);
+      if (finalChanges?.userGameChanges || finalChanges?.userChanges) {
+        await updateUserGameHistory(game.gameNo, {
+          userChanges: finalChanges.userChanges,
+          userGameChanges: finalChanges.userGameChanges,
+        });
       }
+
+      if (solved && score === game.maxScore) {
+        navigate('/stats', { state: { tries: finalChanges?.userTries } });
+      }
+
+      // if (!gameId) {
+      //   const changes = getUserStatsChanges(solved, score, moves);
+      //   if (changes) {
+      //     const { incChanges, setChanges } = changes;
+      //     await updateUserData({ $set: setChanges, $inc: incChanges });
+      //     const { userTries } = await getUserGamesChanges(solved, score);
+      //     if (solved && score === game.maxScore) {
+      //       navigate('/stats', { state: { tries: userTries } });
+      //     }
+      //   }
+      // } else {
+      //   const { userDataChanges, userTries } = await getUserGamesChanges(
+      //     solved,
+      //     score
+      //   );
+      //   if (userDataChanges) {
+      //     await updateUserData(userDataChanges);
+      //   }
+
+      //   if (solved && score === game.maxScore) {
+      //     navigate('/stats', { state: { tries: userTries } });
+      //   }
+      // }
     }
   };
 
