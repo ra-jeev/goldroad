@@ -144,7 +144,7 @@ exports.update = functions
 
       functions.logger.info(`Updated user data: ${JSON.stringify(updateRes)}`);
 
-      if (updateRes && typeof userDoc !== 'string') {
+      if (updateRes && typeof updateRes !== 'string') {
         const userDoc = await makeApiCall('/action/findOne', {
           filter: {
             _id: userId,
