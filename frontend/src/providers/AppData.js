@@ -188,17 +188,25 @@ export function AppDataProvider({ children }) {
         const updateUserGames = getCallableFunction('userGames-update');
         // console.log(`calling updateUserGames for ${gameNo}: changes:`, changes);
         if (updateUserGames) {
-          const result = await updateUserGames({ gameNo, changes });
-          // console.log('updateUserGames returned: ', result);
+          const result = await updateUserGames({ gameNo, ...changes });
+          console.log('updateUserGames returned: ', result);
           if (result?.data) {
-            setUserGames((uGames) => {
-              return { ...uGames, [gameNo]: result.data };
-            });
+            const userGamesData = result.data.userGame;
+            const userUpdate = result.data.user;
+            if (userGamesData) {
+              setUserGames((uGames) => {
+                return { ...uGames, [gameNo]: userGamesData };
+              });
+            }
+
+            if (userUpdate) {
+              setCurrentUser(userUpdate);
+            }
           }
         }
       }
     },
-    [currentUser, getCallableFunction]
+    [currentUser, setCurrentUser, getCallableFunction]
   );
 
   return (
