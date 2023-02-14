@@ -402,6 +402,51 @@ export const Stats = () => {
     }
   }, [prevGameData, userData]);
 
+  const getSignedInInfo = () => {
+    if (currentUserAuthInfo.isAnonymous) {
+      return (
+        <div className='stats-card gap-1_5'>
+          <div className='text--dark text--center text--bold'>
+            To save your playing history
+          </div>
+          <Link className='link' to='/sign-in'>
+            <button type='button' className='btn'>
+              <FaSignInAlt /> Sign in now
+            </button>
+          </Link>
+        </div>
+      );
+    }
+
+    const providerData = currentUserAuthInfo.providerData[0];
+    const providerId = providerData.providerId.split('.')[0];
+    const providerName = providerId[0].toUpperCase() + providerId.slice(1);
+
+    return (
+      <div className='stats-card'>
+        <div className='text--dark text--center'>
+          Currently signed in using {providerName}:
+        </div>
+        <div>
+          {providerData.displayName && (
+            <div className='text--bold text--center'>
+              {providerData.displayName}
+            </div>
+          )}
+          {providerData.email && (
+            <div
+              className={`text--center${
+                providerData.displayName ? ' text--dark' : ' text--bold'
+              }`}
+            >
+              {providerData.email}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className='stats-container gap-1_25'>
       {!userData || !gameData
@@ -413,28 +458,7 @@ export const Stats = () => {
                   <NewGameTicker nextGameAt={gameData.nextGameAt} />
                 </div>
               )}
-              {currentUserAuthInfo &&
-                (currentUserAuthInfo.email ? (
-                  <div className='stats-card'>
-                    <div className='text--dark text--center'>
-                      Currently signed in with:
-                    </div>
-                    <div className='text--bold text--center'>
-                      {currentUserAuthInfo.email}
-                    </div>
-                  </div>
-                ) : (
-                  <div className='stats-card gap-1_5'>
-                    <div className='text--dark text--center text--bold'>
-                      To save your playing history
-                    </div>
-                    <Link className='link' to='/sign-in'>
-                      <button type='button' className='btn'>
-                        <FaSignInAlt /> Sign in now
-                      </button>
-                    </Link>
-                  </div>
-                ))}
+              {currentUserAuthInfo && getSignedInInfo()}
               <div className='solves-stats-container'>
                 {solveStats.map((statsRow, row) => {
                   return (
