@@ -8,19 +8,22 @@ import './SignIn.css';
 export const SignIn = () => {
   const [showError, setShowError] = useState(false);
   const [signingStatus, setSigningStatus] = useState(null);
-  const { authenticate, authState } = useFirebase();
+  const { authenticate, authState, resetAuthState } = useFirebase();
 
   const navigate = useNavigate();
 
   useEffect(() => {
+    return () => resetAuthState();
+  }, [resetAuthState]);
+
+  useEffect(() => {
     if (authState && authState.state === AUTH_STATE.SIGNED_IN) {
-      navigate('/');
+      navigate('/', { replace: true });
     }
   }, [authState, navigate]);
 
   useEffect(() => {
     if (authState) {
-      console.log(`current authState.state: ${authState.state}`);
       switch (authState.state) {
         case AUTH_STATE.SIGNING_IN:
           setSigningStatus('Signing in...');
