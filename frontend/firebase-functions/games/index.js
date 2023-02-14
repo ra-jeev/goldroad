@@ -1,6 +1,8 @@
 const functions = require('firebase-functions');
+const cors = require('cors');
 const { defineString } = require('firebase-functions/params');
 
+const accessControlOrigin = defineString('ACCESS_CONTROL_ORIGIN');
 const dataApiUrl = defineString('DATA_API_URL');
 const dataApiKey = defineString('DATA_API_KEY');
 const dataSource = defineString('DATA_SOURCE');
@@ -32,6 +34,78 @@ const makeApiCall = async (action, data) => {
 
   return await resp.json();
 };
+
+exports.get = functions
+  .region('asia-south1')
+  .https.onRequest((request, response) => {
+    functions.logger.info('getRequestedGame: Entered...!');
+
+    if (request.method !== 'GET') {
+      return response
+        .status(400)
+        .send('Bad request, this endpoint only accepts GET requests');
+    }
+
+    cors({ origin: accessControlOrigin.value().split(',') })(
+      request,
+      response,
+      async () => {
+        console.log('request.query:', request.query);
+        const filter = request.query.num
+          ? {
+              active: true,
+              gameNo: parseInt(request.query.num),
+            }
+          : { current: true };
+
+        const gameDoc = await makeApiCall('/action/findOne', {
+          filter,
+        });
+
+        if (gameDoc && typeof gameDoc !== 'string') {
+          const game = gameDoc.document;
+          let cacheTime = 300; // 5 mins local cache time
+          let serverCacheTime = 3600;
+          if (game.nextGameAt && !request.query.num) {
+            const nextGameAtInMs = new Date(game.nextGameAt).getTime();
+            console.log(
+              `nextGameAtInMs: ${nextGameAtInMs}, gapInMins: ${
+                (nextGameAtInMs - Date.now()) / 60000
+              }`
+            );
+
+            // Server Cache time, minus the local cache time
+            serverCacheTime =
+              parseInt((nextGameAtInMs - Date.now()) / 1000) - cacheTime;
+            if (serverCacheTime < 0) {
+              serverCacheTime = 0;
+            }
+
+            if (serverCacheTime < cacheTime) {
+              cacheTime = serverCacheTime;
+            }
+          }
+
+          console.log(
+            `cacheTime: ${cacheTime}, serverCacheTime: ${serverCacheTime}`
+          );
+
+          response.set(
+            'Cache-Control',
+            `public, max-age=${cacheTime}, s-maxage=${serverCacheTime}`
+          );
+
+          delete game.hints;
+          delete game.maxScoreMoves;
+          response.status(200).send(game);
+        } else {
+          response
+            .status(404)
+            .send("Couldn't find the requested game. Please try again later.");
+        }
+      }
+    );
+  });
 
 exports.getRange = functions
   .region('asia-south1')
