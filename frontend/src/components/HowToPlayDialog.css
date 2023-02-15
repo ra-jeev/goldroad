@@ -1,0 +1,71 @@
+.how-to-overlay {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 1000;
+  background-color: rgba(192, 192, 192, 0.24);
+  align-items: center;
+  justify-content: center;
+}
+
+.how-to-container {
+  background-color: var(--app-brown);
+  overflow: hidden;
+  width: 90%;
+  height: 80%;
+  position: relative;
+  box-shadow: 4px 4px 12px 0px rgba(218, 165, 32, 0.18),
+    -4px -4px 12px 0 rgba(218, 165, 32, 0.18);
+}
+
+.how-to-play {
+  padding: 0.25rem 1rem;
+  height: calc(100% - 1.5rem - 2rem);
+  overflow: auto;
+}
+
+.how-to-title {
+  font-size: 1.5rem;
+  line-height: 1;
+  font-weight: bold;
+  padding: 1rem;
+}
+
+.how-to-close {
+  position: absolute;
+  right: 1rem;
+  top: 1rem;
+  font-size: 1.75rem;
+  cursor: pointer;
+  transition: 0.2s all ease-in-out;
+}
+
+.how-to-close:hover {
+  color: darkgoldenrod;
+  transform: scale(1.05);
+}
+
+@media screen and (min-width: 768px) {
+  .how-to-title {
+    font-size: 2rem;
+  }
+
+  .how-to-play {
+    height: calc(100% - 2rem - 2rem);
+  }
+}
+
+@media screen and (min-width: 576px) {
+  .how-to-container {
+    width: 80%;
+  }
+}
+
+@media screen and (min-width: 992px) {
+  .how-to-container {
+    width: 60%;
+  }
+}
