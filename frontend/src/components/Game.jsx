@@ -5,6 +5,7 @@ import { FaQuestionCircle, FaRedo } from 'react-icons/fa';
 import { useFirebase } from '../providers/Firebase';
 import { useAppData } from '../providers/AppData';
 import { Board } from './Board';
+import { HowToPlayDialog } from './HowToPlayDialog';
 import { NewGameTicker } from './NewGameTicker';
 import { GAME_SOUNDS, useGameSounds } from '../hooks/useGameSounds';
 
@@ -118,6 +119,7 @@ export const Game = ({ sounds }) => {
   const [gameState, setGameState] = useState(DEFAULT_STATE);
   const [userHistory, setUserHistory] = useState(null);
   const [useAlternateLayout, setUseAlternateLayout] = useState(false);
+  const [howToPlayShown, setHowToPlayShown] = useState(false);
 
   const navigate = useNavigate();
   const { playSound } = useGameSounds();
@@ -746,6 +748,10 @@ export const Game = ({ sounds }) => {
         )
       ) : (
         'Welcome to GoldRoad, a daily puzzle game'
+      )}
+
+      {userData && !userData.data.lastGamePlayed && !howToPlayShown && (
+        <HowToPlayDialog onClose={() => setHowToPlayShown(true)} />
       )}
     </div>
   );
