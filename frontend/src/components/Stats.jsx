@@ -26,7 +26,6 @@ const plurals = {
 
 export const Stats = () => {
   const [gameData, setGameData] = useState(null);
-  const [prevGameData, setPrevGameData] = useState(null);
   const [message, setMessage] = useState(false);
   const [solveStats, setSolveStats] = useState([]);
   const [overallStats, setOverallStats] = useState([]);
@@ -207,20 +206,6 @@ export const Stats = () => {
     getGameData();
   }, [getGame]);
 
-  useEffect(() => {
-    const getPrevGameData = async (gameNo) => {
-      const gameDoc = await getGame(gameNo);
-
-      if (gameDoc) {
-        setPrevGameData(gameDoc);
-      }
-    };
-
-    if (gameData) {
-      getPrevGameData(gameData.gameNo - 1);
-    }
-  }, [gameData, getGame]);
-
   const copyToClipboard = async (text) => {
     if (window.navigator.clipboard) {
       try {
@@ -295,13 +280,13 @@ export const Stats = () => {
   }, [message]);
 
   useEffect(() => {
-    if (prevGameData && userData) {
-      const stats = prevGameData?.stats;
+    if (userData && gameData) {
+      const stats = gameData.prevGameStats?.stats;
 
       if (stats?.tries) {
         let remainingPlayers = 0;
         const playerSolveInfo = userData.data?.games
-          ? userData.data.games[prevGameData.gameNo]
+          ? userData.data.games[gameData.prevGameStats.gameNo]
           : null;
 
         let topPlayers = 0;
@@ -400,7 +385,7 @@ export const Stats = () => {
         setGlobalStats(gStats);
       }
     }
-  }, [prevGameData, userData]);
+  }, [userData, gameData]);
 
   const getSignedInInfo = () => {
     if (currentUserAuthInfo.isAnonymous) {
@@ -555,7 +540,8 @@ export const Stats = () => {
               </div>
               <div className='stats-card'>
                 <div className='stats-card-title'>
-                  Yesterday's Road{prevGameData && `: #${prevGameData.gameNo}`}
+                  Yesterday's Road
+                  {gameData && `: #${gameData.prevGameStats.gameNo}`}
                 </div>
                 <div className='stats-congrats'>Global Stats</div>
                 {globalStats && (
@@ -589,7 +575,9 @@ export const Stats = () => {
                       <div className='global-stats-text'>
                         <strong>{globalStats.solvePercent}%</strong> of the
                         people who walked down{' '}
-                        <strong>GoldRoad #{prevGameData.gameNo}</strong>{' '}
+                        <strong>
+                          GoldRoad #{gameData.prevGameStats.gameNo}
+                        </strong>{' '}
                         finished it. On an average it took them{' '}
                         <strong>
                           {getPlural(globalStats.averageTries, 'try')}
@@ -627,6 +615,17 @@ export const Stats = () => {
                     </div>
                   );
                 })}
+              </div>
+              <div className='stats-card gap-1_5'>
+                <div className='text--medium text--dark text--center text--bold'>
+                  Keep walking & improving
+                </div>
+
+                <Link className='link' to='/games'>
+                  <button type='button' className='btn'>
+                    <FaPlayCircle /> Play past games
+                  </button>
+                </Link>
               </div>
               <div className='stats-footer'>
                 <div style={{ marginBottom: '1rem' }}>
