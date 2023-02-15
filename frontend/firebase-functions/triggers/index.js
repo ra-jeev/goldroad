@@ -193,10 +193,27 @@ exports.onNewMigration = functions
             let newGamesSolves = newUser.data.solves + oldUser.data.solves;
 
             const solveStats = newUser.data.solveStats || {};
+            const gamesObj = newUser.data.games || {};
             if (oldUser.data.solveStats) {
               Object.keys(oldUser.data.solveStats).forEach((tries) => {
                 solveStats[tries] =
                   oldUser.data.solveStats[tries] + (solveStats[tries] || 0);
+              });
+            }
+
+            if (oldUser.data.games) {
+              Object.keys(oldUser.data.games).forEach((gameNo) => {
+                if (gamesObj[gameNo]) {
+                  gamesObj[gameNo] = {
+                    solved:
+                      gamesObj[gameNo].solved ||
+                      oldUser.data.games[gameNo].solved,
+                    tries:
+                      gamesObj[gameNo].tries + oldUser.data.games[gameNo].tries,
+                  };
+                } else {
+                  gamesObj[gameNo] = oldUser.data.games[gameNo];
+                }
               });
             }
 
@@ -390,6 +407,10 @@ exports.onNewMigration = functions
               }
 
               userChanges[`data.solveStats`] = solveStats;
+            }
+
+            if (Object.keys(gamesObj).length) {
+              userChanges[`data.games`] = gamesObj;
             }
           } else {
             userChanges.data = { ...oldUser.data };
