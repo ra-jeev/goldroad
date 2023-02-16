@@ -4,6 +4,7 @@ import step3 from '../assets/images/step-3.gif';
 import step4 from '../assets/images/step-4.gif';
 import step5 from '../assets/images/step-5.gif';
 import step6 from '../assets/images/step-6.gif';
+import './HowToPlay.css';
 
 export const HowToPlay = () => {
   return (

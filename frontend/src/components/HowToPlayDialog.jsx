@@ -4,12 +4,15 @@ import { FaTimes } from 'react-icons/fa';
 import { HowToPlay } from './HowToPlay';
 import './HowToPlayDialog.css';
 
-export const HowToPlayDialog = ({ onClose }) => {
+export const HowToPlayDialog = ({ show, onClose }) => {
   const dialogRef = useRef();
+  const containerRef = useRef();
 
   const handleClickOutside = (e) => {
-    if (!dialogRef.current.contains(e.target)) {
-      onClose();
+    if (containerRef.current.contains(e.target)) {
+      if (!dialogRef.current.contains(e.target)) {
+        onClose();
+      }
     }
   };
 
@@ -19,7 +22,10 @@ export const HowToPlayDialog = ({ onClose }) => {
   });
 
   return (
-    <div className='how-to-overlay'>
+    <div
+      ref={containerRef}
+      className={`how-to-overlay${show ? ' animated-modal' : ''}`}
+    >
       <div ref={dialogRef} className='how-to-container'>
         <div className='how-to-title'>How to play?</div>
         <FaTimes className='how-to-close' onClick={onClose} />
