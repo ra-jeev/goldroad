@@ -1,4 +1,4 @@
-const functions = require('firebase-functions');
+const { region, https } = require('firebase-functions');
 const { defineString } = require('firebase-functions/params');
 
 const dataApiUrl = defineString('DATA_API_URL');
@@ -33,101 +33,86 @@ const makeApiCall = async (action, data, collection) => {
   return await resp.json();
 };
 
-exports.get = functions
-  .region('asia-south1')
-  .https.onCall(async (data, context) => {
-    const userId = context.auth?.uid;
-    if (userId) {
-      const gameDoc = await makeApiCall('/action/findOne', {
-        filter: {
-          owner_id: userId,
-          gameNo: data.gameNo,
-        },
-      });
+exports.get = region('asia-south1').https.onCall(async (data, context) => {
+  const userId = context.auth?.uid;
+  if (userId) {
+    const gameDoc = await makeApiCall('/action/findOne', {
+      filter: {
+        owner_id: userId,
+        gameNo: data.gameNo,
+      },
+    });
 
-      functions.logger.info(
-        `Fetched user game data: ${JSON.stringify(gameDoc)}`
-      );
+    console.info(`Fetched user game data: ${JSON.stringify(gameDoc)}`);
 
-      if (gameDoc && typeof gameDoc !== 'string') {
-        return gameDoc.document;
-      }
-
-      throw new functions.https.HttpsError(
-        'not-found',
-        gameDoc || 'failed to find the game with given no'
-      );
+    if (gameDoc && typeof gameDoc !== 'string') {
+      return gameDoc.document;
     }
 
-    throw new functions.https.HttpsError(
-      'unauthenticated',
-      'No user id provided'
+    throw new https.HttpsError(
+      'not-found',
+      gameDoc || 'failed to find the game with given no'
     );
-  });
+  }
 
-exports.getRange = functions
-  .region('asia-south1')
-  .https.onCall(async (data, context) => {
-    const userId = context.auth?.uid;
-    if (userId) {
-      const gameDocs = await makeApiCall('/action/find', {
-        filter: {
-          owner_id: userId,
-          gameNo: {
-            $lte: data.gameNo.startAt,
-            $gte: data.gameNo.endAt,
-          },
+  throw new https.HttpsError('unauthenticated', 'No user id provided');
+});
+
+exports.getRange = region('asia-south1').https.onCall(async (data, context) => {
+  const userId = context.auth?.uid;
+  if (userId) {
+    const gameDocs = await makeApiCall('/action/find', {
+      filter: {
+        owner_id: userId,
+        gameNo: {
+          $lte: data.gameNo.startAt,
+          $gte: data.gameNo.endAt,
         },
-        sort: {
-          gameNo: -1,
-        },
-      });
+      },
+      sort: {
+        gameNo: -1,
+      },
+    });
 
-      functions.logger.info(
-        `Fetched user games data: ${JSON.stringify(gameDocs)}`
-      );
+    console.info(`Fetched user games data: ${JSON.stringify(gameDocs)}`);
 
-      if (gameDocs && typeof gameDocs !== 'string') {
-        return gameDocs.documents;
-      }
-
-      throw new functions.https.HttpsError(
-        'not-found',
-        gameDocs || 'failed to find the user games with given criteria'
-      );
+    if (gameDocs && typeof gameDocs !== 'string') {
+      return gameDocs.documents;
     }
 
-    throw new functions.https.HttpsError(
-      'unauthenticated',
-      'No user id provided'
+    throw new https.HttpsError(
+      'not-found',
+      gameDocs || 'failed to find the user games with given criteria'
     );
-  });
+  }
 
-exports.update = functions
-  .region('asia-south1')
-  .https.onCall(async (data, context) => {
-    functions.logger.debug('Incoming data', data, 'context', context);
-    const userId = context.auth?.uid;
-    if (userId) {
-      const retVal = {};
+  throw new https.HttpsError('unauthenticated', 'No user id provided');
+});
 
-      if (
-        data.userChanges &&
-        (data.userChanges.$set || data.userChanges.$inc)
-      ) {
-        const userUpdate = {
-          ...data.userChanges,
-        };
+exports.update = region('asia-south1').https.onCall(async (data, context) => {
+  const startTime = Date.now();
+  console.debug('Incoming data', data, 'context', context);
+  const userId = context.auth?.uid;
+  if (userId) {
+    const retVal = {};
+    const updatePromises = [];
+    const getPromises = [];
 
-        if (!userUpdate.$set) {
-          userUpdate.$set = {};
-        }
+    if (data.userChanges && (data.userChanges.$set || data.userChanges.$inc)) {
+      const userUpdate = {
+        ...data.userChanges,
+      };
 
-        userUpdate.$set.updatedAt = {
-          $date: { $numberLong: `${Date.now()}` },
-        };
+      if (!userUpdate.$set) {
+        userUpdate.$set = {};
+      }
 
-        const userUpdateRes = await makeApiCall(
+      userUpdate.$set.updatedAt = {
+        $date: { $numberLong: `${Date.now()}` },
+      };
+
+      updatePromises.push(
+        makeApiCall(
           '/action/updateOne',
           {
             filter: {
@@ -136,109 +121,133 @@ exports.update = functions
             update: userUpdate,
           },
           'users'
-        );
+        )
+      );
 
-        functions.logger.info(
-          `Updated user data: ${JSON.stringify(userUpdateRes)}`
-        );
+      // const userUpdateRes = await ;
 
-        if (userUpdateRes && typeof userUpdateRes !== 'string') {
-          const userDoc = await makeApiCall(
-            '/action/findOne',
-            {
-              filter: {
-                _id: userId,
-              },
-            },
-            'users'
-          );
+      // functions.logger.info(
+      //   `Updated user data: ${JSON.stringify(userUpdateRes)}`
+      // );
 
-          functions.logger.info(`Got user data: ${JSON.stringify(userDoc)}`);
-          if (userDoc && typeof userDoc !== 'string') {
-            retVal.user = userDoc.document;
-          }
-        }
-      }
+      // if (userUpdateRes && typeof userUpdateRes !== 'string') {
+      //   const userDoc = await makeApiCall(
+      //     '/action/findOne',
+      //     {
+      //       filter: {
+      //         _id: userId,
+      //       },
+      //     },
+      //     'users'
+      //   );
 
-      const update = {
-        ...data.userGameChanges,
-      };
+      //   functions.logger.info(`Got user data: ${JSON.stringify(userDoc)}`);
+      //   if (userDoc && typeof userDoc !== 'string') {
+      //     retVal.user = userDoc.document;
+      //   }
+      // }
+    }
 
-      if (update.$set) {
-        if (update.$set.createdAt) {
-          update.$set.createdAt = {
-            $date: {
-              $numberLong: `${new Date(update.$set.createdAt).getTime()}`,
-            },
-          };
-        }
+    const update = {
+      ...data.userGameChanges,
+    };
 
-        if (update.$set.updatedAt) {
-          update.$set.updatedAt = {
-            $date: {
-              $numberLong: `${new Date(update.$set.updatedAt).getTime()}`,
-            },
-          };
-        }
-
-        if (update.$set.attempts) {
-          update.$set.attempts.forEach((attempt) => {
-            attempt.playedAt = {
-              $date: { $numberLong: `${new Date(attempt.playedAt).getTime()}` },
-            };
-          });
-        }
-      }
-
-      if (update.$push) {
-        update.$push.attempts.playedAt = {
+    if (update.$set) {
+      if (update.$set.createdAt) {
+        update.$set.createdAt = {
           $date: {
-            $numberLong: `${new Date(
-              update.$push.attempts.playedAt
-            ).getTime()}`,
+            $numberLong: `${new Date(update.$set.createdAt).getTime()}`,
           },
         };
       }
 
-      const updateRes = await makeApiCall('/action/updateOne', {
+      if (update.$set.updatedAt) {
+        update.$set.updatedAt = {
+          $date: {
+            $numberLong: `${new Date(update.$set.updatedAt).getTime()}`,
+          },
+        };
+      }
+
+      if (update.$set.attempts) {
+        update.$set.attempts.forEach((attempt) => {
+          attempt.playedAt = {
+            $date: { $numberLong: `${new Date(attempt.playedAt).getTime()}` },
+          };
+        });
+      }
+    }
+
+    if (update.$push) {
+      update.$push.attempts.playedAt = {
+        $date: {
+          $numberLong: `${new Date(update.$push.attempts.playedAt).getTime()}`,
+        },
+      };
+    }
+
+    updatePromises.push(
+      makeApiCall('/action/updateOne', {
         filter: {
           owner_id: userId,
           gameNo: data.gameNo,
         },
         update,
         upsert: true,
-      });
+      })
+    );
 
-      functions.logger.info(
-        `Updated user game data: ${JSON.stringify(updateRes)}`
-      );
+    const updateRes = await Promise.allSettled(updatePromises);
+    const startTime1 = Date.now();
+    console.log(
+      `updated the user & userGame entries in ${
+        startTime1 - startTime
+      }ms: ${JSON.stringify(updateRes)}`
+    );
 
-      if (updateRes && typeof updateRes !== 'string') {
-        const userGameDoc = await makeApiCall('/action/findOne', {
+    getPromises.push(
+      makeApiCall(
+        '/action/findOne',
+        {
           filter: {
-            owner_id: userId,
-            gameNo: data.gameNo,
+            _id: userId,
           },
-        });
+        },
+        'users'
+      ),
+      makeApiCall('/action/findOne', {
+        filter: {
+          owner_id: userId,
+          gameNo: data.gameNo,
+        },
+      })
+    );
 
-        functions.logger.info(
-          `Got user game data: ${JSON.stringify(userGameDoc)}`
-        );
+    const getRes = await Promise.allSettled(getPromises);
+    console.log(`get request fulfilled in ${Date.now() - startTime1}ms`);
+    console.log(`Got user data res: ${JSON.stringify(getRes[0])}`);
+    console.log(`Got user game res: ${JSON.stringify(getRes[1])}`);
 
-        if (userGameDoc && typeof userGameDoc !== 'string') {
-          retVal.userGame = userGameDoc.document;
-          return retVal;
-        }
-      }
-
-      throw new functions.https.HttpsError(
-        'not-found',
-        updateRes || 'failed to find the user with given id'
-      );
+    if (
+      getRes[0].status === 'fulfilled' &&
+      typeof getRes[0].value !== 'string'
+    ) {
+      retVal.user = getRes[0].value.document;
     }
 
-    throw new functions.https.HttpsError(
-      'unauthenticated',
-      'No user id provided'
+    if (
+      getRes[1].status === 'fulfilled' &&
+      typeof getRes[1].value !== 'string'
+    ) {
+      retVal.userGame = getRes[1].value.document;
+      return retVal;
+    }
+
+    throw new https.HttpsError(
+      'not-found',
+      updateRes || 'failed to find the user with given id'
     );
-  });
+  }
+
+  throw new https.HttpsError('unauthenticated', 'No user id provided');
+});
