@@ -143,22 +143,14 @@ export function AppDataProvider({ children }) {
   const getUserHistoryForGame = useCallback(
     async (gameNo) => {
       if (currentUser && getCallableFunction) {
-        if (userGames[gameNo]) {
-          // console.log(`already have user play history for ${gameNo}, return`);
+        if (Object.hasOwnProperty.call(userGames, gameNo)) {
           return userGames[gameNo];
         }
 
         const getUserGame = getCallableFunction('userGames-get');
         if (getUserGame) {
           const userGameDoc = await getUserGame({ gameNo: parseInt(gameNo) });
-          if (userGameDoc?.data) {
-            // console.log(
-            //   'got user game data result from the data API: ',
-            //   userGameDoc.data
-            // );
-
-            setUserGames({ ...userGames, [gameNo]: userGameDoc.data });
-          }
+          setUserGames({ ...userGames, [gameNo]: userGameDoc.data });
         }
       }
     },
