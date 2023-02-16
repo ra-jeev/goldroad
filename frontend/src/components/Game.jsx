@@ -80,13 +80,16 @@ const GameFooter = ({ userData, gameState, lastGame, game, onClick }) => {
     );
   }
 
-  if (!lastGame) {
+  if (!userData.data.played) {
     return (
-      <Link className='link-normal' to='/about'>
-        How to play <FaQuestionCircle />
-      </Link>
+      <div className='game-item status'>
+        <Link className='link-normal' to='/about'>
+          How to play <FaQuestionCircle />
+        </Link>
+      </div>
     );
   } else if (
+    !lastGame ||
     lastGame.gameNo !== game.gameNo ||
     (lastAttempt &&
       (!datesEqual(date, lastAttempt.playedAt) || lastAttempt.solved))
@@ -475,7 +478,6 @@ export const Game = ({ sounds }) => {
   const updateUserEntry = async (solved, score, moves) => {
     if (userData) {
       const finalChanges = getUserGamesChanges(solved, score, moves);
-      console.log('got result from getUserGamesChanges: ', finalChanges);
       if (finalChanges?.userGameChanges || finalChanges?.userChanges) {
         await updateUserGameHistory(game.gameNo, {
           userChanges: finalChanges.userChanges,
