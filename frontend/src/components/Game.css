@@ -12,6 +12,7 @@
 .game-item {
   display: flex;
   justify-content: center;
+  min-height: 1.75rem;
 }
 
 .game-info {

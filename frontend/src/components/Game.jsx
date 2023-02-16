@@ -64,7 +64,7 @@ const datesEqual = (date1, date2, checkUTC = false) => {
 
 const GameFooter = ({ userData, gameState, lastGame, game, onClick }) => {
   if (!userData) {
-    return '';
+    return <div className='game-item'></div>;
   }
 
   const lastAttempt = lastGame?.attempts
@@ -119,7 +119,12 @@ export const Game = ({ sounds }) => {
   const [gameState, setGameState] = useState(DEFAULT_STATE);
   const [userHistory, setUserHistory] = useState(null);
   const [useAlternateLayout, setUseAlternateLayout] = useState(false);
-  const [howToPlayShown, setHowToPlayShown] = useState(false);
+
+  const getHowToPlayShown = () => {
+    return sessionStorage.getItem('howToPlayShown');
+  };
+
+  const [howToPlayShown, setHowToPlayShown] = useState(getHowToPlayShown());
 
   const navigate = useNavigate();
   const { playSound } = useGameSounds();
@@ -131,8 +136,13 @@ export const Game = ({ sounds }) => {
     getUserHistoryForGame,
     updateUserGameHistory,
   } = useAppData();
-  const { currentUser: userData } = useFirebase();
+  const { currentUser: userData, isNewUser } = useFirebase();
   const { gameId } = useParams();
+
+  const markHowToPlayShown = () => {
+    sessionStorage.setItem('howToPlayShown', 'yes');
+    setHowToPlayShown(true);
+  };
 
   useEffect(() => {
     const lastGame = userData?.data?.lastGamePlayed;
@@ -476,30 +486,6 @@ export const Game = ({ sounds }) => {
       if (solved && score === game.maxScore) {
         navigate('/stats', { state: { tries: finalChanges?.userTries } });
       }
-
-      // if (!gameId) {
-      //   const changes = getUserStatsChanges(solved, score, moves);
-      //   if (changes) {
-      //     const { incChanges, setChanges } = changes;
-      //     await updateUserData({ $set: setChanges, $inc: incChanges });
-      //     const { userTries } = await getUserGamesChanges(solved, score);
-      //     if (solved && score === game.maxScore) {
-      //       navigate('/stats', { state: { tries: userTries } });
-      //     }
-      //   }
-      // } else {
-      //   const { userDataChanges, userTries } = await getUserGamesChanges(
-      //     solved,
-      //     score
-      //   );
-      //   if (userDataChanges) {
-      //     await updateUserData(userDataChanges);
-      //   }
-
-      //   if (solved && score === game.maxScore) {
-      //     navigate('/stats', { state: { tries: userTries } });
-      //   }
-      // }
     }
   };
 
@@ -750,9 +736,13 @@ export const Game = ({ sounds }) => {
         'Welcome to GoldRoad, a daily puzzle game'
       )}
 
-      {userData && !userData.data.lastGamePlayed && !howToPlayShown && (
-        <HowToPlayDialog onClose={() => setHowToPlayShown(true)} />
-      )}
+      <HowToPlayDialog
+        show={
+          (isNewUser() || (userData && !userData.data.lastGamePlayed)) &&
+          !howToPlayShown
+        }
+        onClose={markHowToPlayShown}
+      />
     </div>
   );
 };

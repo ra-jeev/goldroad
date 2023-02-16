@@ -54,6 +54,7 @@ const FirebaseContext = createContext(null);
 
 export function FirebaseProvider({ children }) {
   const creatingUser = useRef();
+  const [newUser, setNewUser] = useState(false);
   const [auth, setAuth] = useState(null);
   const [functions, setFunctions] = useState(null);
   const [fireDb, setFireDb] = useState(null);
@@ -163,6 +164,7 @@ export function FirebaseProvider({ children }) {
         if (!user) {
           if (!creatingUser.current) {
             creatingUser.current = true;
+            setNewUser(true);
             await signInAnonymously(auth);
             const realmApp = getApp(process.env.REACT_APP_REALM_APP_ID);
             if (realmApp.currentUser) {
@@ -186,6 +188,7 @@ export function FirebaseProvider({ children }) {
             }
 
             creatingUser.current = false;
+            setNewUser(false);
           }
         } else {
           setCurrentUserAuthInfo(user);
@@ -347,6 +350,10 @@ export function FirebaseProvider({ children }) {
     }
   }, []);
 
+  const isNewUser = useCallback(() => {
+    return newUser;
+  }, [newUser]);
+
   const resetAuthState = useCallback(() => {
     if (authState?.state !== AUTH_STATE.SIGNED_IN) {
       setAuthState(null);
@@ -357,6 +364,7 @@ export function FirebaseProvider({ children }) {
     <FirebaseContext.Provider
       value={{
         currentUserAuthInfo,
+        isNewUser,
         currentUser,
         authState,
         resetAuthState,

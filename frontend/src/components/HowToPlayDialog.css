@@ -6,19 +6,31 @@
   left: 0;
   top: 0;
   z-index: 1000;
-  background-color: rgba(192, 192, 192, 0.24);
-  align-items: center;
+  background-color: rgba(0, 0, 0, 0);
+  align-items: flex-end;
   justify-content: center;
+  transition: 0.2s all ease-in-out;
+  visibility: hidden;
+}
+
+.animated-modal {
+  background-color: rgba(35, 12, 15, 0.64);
+  visibility: visible;
 }
 
 .how-to-container {
   background-color: var(--app-brown);
   overflow: hidden;
-  width: 90%;
-  height: 80%;
+  width: 100%;
+  height: 0;
   position: relative;
-  box-shadow: 4px 4px 12px 0px rgba(218, 165, 32, 0.18),
-    -4px -4px 12px 0 rgba(218, 165, 32, 0.18);
+  box-shadow: 4px 4px 12px 4px rgba(218, 165, 32, 0.18),
+    -4px -4px 12px 4px rgba(218, 165, 32, 0.18);
+  transition: 0.3s all cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.how-to-overlay.animated-modal .how-to-container {
+  height: 90%;
 }
 
 .how-to-play {
@@ -67,5 +79,11 @@
 @media screen and (min-width: 992px) {
   .how-to-container {
     width: 60%;
+  }
+}
+
+@media screen and (min-width: 1200px) {
+  .how-to-container {
+    width: 50%;
   }
 }
