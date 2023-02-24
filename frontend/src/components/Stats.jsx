@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { FaShare, FaPlayCircle, FaSignInAlt } from 'react-icons/fa';
+import { FaShare, FaPlayCircle, FaSignInAlt, FaBell } from 'react-icons/fa';
 import { HiOutlineArrowNarrowRight } from 'react-icons/hi';
 
 import { useFirebase } from '../providers/Firebase';
@@ -33,7 +33,12 @@ export const Stats = () => {
 
   const location = useLocation();
   const { getGame } = useAppData();
-  const { currentUser: userData, currentUserAuthInfo } = useFirebase();
+  const {
+    currentUser: userData,
+    currentUserAuthInfo,
+    showMessaging,
+    RequestNotificationAccess,
+  } = useFirebase();
 
   const solvedTodaysGame =
     gameData &&
@@ -390,9 +395,9 @@ export const Stats = () => {
   const getSignedInInfo = () => {
     if (currentUserAuthInfo.isAnonymous) {
       return (
-        <div className='stats-card gap-1_5'>
+        <div className='stats-card gap-1_25'>
           <div className='text--dark text--center text--bold'>
-            To save your playing history
+            Save your playing history
           </div>
           <Link className='link' to='/sign-in'>
             <button type='button' className='btn'>
@@ -478,29 +483,29 @@ export const Stats = () => {
                   );
                 })}
               </div>
-              <div className='stats-card gap-1_5'>
+              <div className='stats-card gap-1_25'>
                 <div className='stats-card-title'>Today's Road</div>
                 {solvedTodaysGame ? (
                   <>
                     <div className='stats-congrats'>
-                      Yay! You did it{' '}
+                      Yay! You got to the finish line{' '}
                       <span className='emoji-icon-medium'>🎉</span>
                     </div>
                     <div className='stats-text'>
-                      @TheGoldRoad
-                      <br />
-                      <br />
-                      GoldRoad #{gameData.gameNo}
-                      <br />
-                      <span className='emoji-icon-medium'>
-                        {getEmoji(userData.data.lastGamePlayed.tries)}
-                      </span>{' '}
-                      {getPlural(userData.data.lastGamePlayed.tries, 'try')}
-                      <br />
-                      #GoldRoad #GoldRoad{gameData.gameNo}
-                      <br />
-                      <br />
-                      https://playgoldroad.com
+                      <span>@TheGoldRoad</span>
+
+                      <div className='stats-text-content'>
+                        GoldRoad #{gameData.gameNo}
+                        <br />
+                        <span className='emoji-icon-medium'>
+                          {getEmoji(userData.data.lastGamePlayed.tries)}
+                        </span>{' '}
+                        {getPlural(userData.data.lastGamePlayed.tries, 'try')}
+                        <br />
+                        #GoldRoad #GoldRoad{gameData.gameNo}
+                      </div>
+
+                      <span>https://playgoldroad.com</span>
                     </div>
                     {message && (
                       <div>
@@ -528,13 +533,6 @@ export const Stats = () => {
                         <FaPlayCircle /> Play now
                       </button>
                     </Link>
-                    {/* <a
-                      style={{ color: 'gold' }}
-                      href='https://twitter.com/intent/tweet?text=Hello%20world'
-                      target='_blank'
-                    >
-                      Tweet now
-                    </a> */}
                   </>
                 )}
               </div>
@@ -602,6 +600,20 @@ export const Stats = () => {
                   </>
                 )}
               </div>
+              {showMessaging && (
+                <div className='stats-card gap-1_25'>
+                  <div className='text--dark text--center text--bold'>
+                    Get new roads notifications
+                  </div>
+                  <button
+                    type='button'
+                    className='btn'
+                    onClick={RequestNotificationAccess}
+                  >
+                    <FaBell /> Allow access
+                  </button>
+                </div>
+              )}
               <div className='stats-card'>
                 <div className='stats-card-title'>Your Stats</div>
                 {overallStats.map((statItem, index) => {
@@ -616,7 +628,7 @@ export const Stats = () => {
                   );
                 })}
               </div>
-              <div className='stats-card gap-1_5'>
+              <div className='stats-card gap-1_25'>
                 <div className='text--medium text--dark text--center text--bold'>
                   Keep walking & improving
                 </div>

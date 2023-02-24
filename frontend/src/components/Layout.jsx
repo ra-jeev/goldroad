@@ -1,10 +1,14 @@
 import { useNavigate, Outlet } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import { FaTimes } from 'react-icons/fa';
 
+import { useFirebase } from '../providers/Firebase';
 import { Toolbar } from './Toolbar';
 import './Layout.css';
 
 export const Layout = ({ sounds, onSettingChange }) => {
   const navigate = useNavigate();
+  const { notification, setNotification } = useFirebase();
 
   const handleClick = (action) => {
     switch (action) {
@@ -36,6 +40,18 @@ export const Layout = ({ sounds, onSettingChange }) => {
 
   return (
     <div className='main'>
+      {notification && (
+        <div className='notification'>
+          {notification.title}
+          <Link to='/' reloadDocument>
+            Play now
+          </Link>
+          <FaTimes
+            className='notification-close'
+            onClick={() => setNotification(null)}
+          />
+        </div>
+      )}
       <Toolbar sounds={sounds} onClick={handleClick} />
 
       <Outlet />
