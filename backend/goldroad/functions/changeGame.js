@@ -32,6 +32,10 @@ exports = async function () {
                 updatedAt: date,
                 playedAt: date,
                 nextGameAt: nextGameDate,
+                prevGameStats: {
+                  gameNo: currGame.gameNo,
+                  stats: currGame.stats,
+                },
               },
             },
           },
