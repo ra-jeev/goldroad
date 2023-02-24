@@ -27,6 +27,12 @@ import {
 } from 'firebase/auth';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { getFirestore, doc, onSnapshot, deleteDoc } from 'firebase/firestore';
+import {
+  getMessaging,
+  getToken,
+  isSupported,
+  onMessage,
+} from 'firebase/messaging';
 
 const firebaseConfig = {
   apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
@@ -58,6 +64,9 @@ export function FirebaseProvider({ children }) {
   const [auth, setAuth] = useState(null);
   const [functions, setFunctions] = useState(null);
   const [fireDb, setFireDb] = useState(null);
+  const [messaging, setMessaging] = useState(null);
+  const [showMessaging, setShowMessaging] = useState(false);
+  const [notification, setNotification] = useState(null);
   const [currentUserAuthInfo, setCurrentUserAuthInfo] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [authState, setAuthState] = useState(null);
@@ -69,6 +78,7 @@ export function FirebaseProvider({ children }) {
     setAuth(getAuth(firebaseApp));
     setFunctions(getFunctions(firebaseApp, 'asia-south1'));
     setFireDb(getFirestore(firebaseApp));
+    setMessaging(getMessaging(firebaseApp));
   }, []);
 
   const migrateCurrentUser = useCallback(
@@ -360,6 +370,78 @@ export function FirebaseProvider({ children }) {
     }
   }, [authState]);
 
+  const handleRegistrationTokenSending = useCallback(async () => {
+    try {
+      const token = await getToken(messaging, {
+        vapidKey: process.env.REACT_APP_FIREBASE_MESSAGING_KEY,
+      });
+
+      const savedToken = localStorage.getItem('registration-token');
+
+      const registerToken = httpsCallable(functions, 'messaging-registerToken');
+
+      if (
+        registerToken &&
+        (localStorage.getItem('registration-token-sent') !== '1' ||
+          savedToken !== token)
+      ) {
+        await registerToken({
+          token,
+        });
+
+        localStorage.setItem('registration-token', token);
+        localStorage.setItem('registration-token-sent', '1');
+      }
+    } catch (error) {
+      console.log('error saving the registration token', error);
+    }
+  }, [functions, messaging]);
+
+  useEffect(() => {
+    const checkIfSupported = async () => {
+      try {
+        const supported = await isSupported();
+        if (supported) {
+          if (Notification.permission !== 'granted') {
+            setShowMessaging(supported);
+            return;
+          }
+
+          handleRegistrationTokenSending();
+        }
+      } catch (error) {
+        console.log('got error', error);
+      }
+    };
+
+    if (messaging) {
+      checkIfSupported();
+    }
+  }, [messaging, handleRegistrationTokenSending]);
+
+  const RequestNotificationAccess = useCallback(async () => {
+    const result = await Notification.requestPermission();
+    if (result === 'granted') {
+      setShowMessaging(false);
+      handleRegistrationTokenSending();
+    } else {
+      setShowMessaging(true);
+      localStorage.removeItem('registration-token-sent');
+    }
+  }, [handleRegistrationTokenSending]);
+
+  useEffect(() => {
+    if (messaging) {
+      const unsubscribe = onMessage(messaging, (payload) => {
+        setNotification(payload.notification);
+      });
+
+      return () => {
+        unsubscribe();
+      };
+    }
+  }, [messaging]);
+
   return (
     <FirebaseContext.Provider
       value={{
@@ -373,6 +455,10 @@ export function FirebaseProvider({ children }) {
         signOutUser,
         getCallableFunction,
         addSignOutListener,
+        showMessaging,
+        RequestNotificationAccess,
+        notification,
+        setNotification,
       }}
     >
       {children}

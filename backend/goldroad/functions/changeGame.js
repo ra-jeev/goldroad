@@ -2,12 +2,15 @@ exports = async function () {
   console.log(`context.environment: ${JSON.stringify(context.environment)}`);
 
   const { serviceName, dbName } = context.environment.values;
+  const notificationUrl = context.values.get('firebaseNotificationUrl');
 
   const mongoDb = context.services.get(serviceName).db(dbName);
   const gamesCollection = mongoDb.collection('games');
   const currGame = await gamesCollection.findOne({ current: true });
   if (currGame) {
-    console.log('got the current game: ', JSON.stringify(currGame));
+    console.log(
+      `got the current game: ${currGame.gameNo}, nextGameAt: ${currGame.nextGameAt}`
+    );
     const date = new Date();
     let nextGameDate;
     if (currGame.nextGameAt) {
@@ -17,8 +20,6 @@ exports = async function () {
       nextGameDate = new Date(currGame.playableAt);
       nextGameDate.setUTCDate(nextGameDate.getDate() + 2);
     }
-
-    // nextGameDate.setUTCDate(nextGameDate.getDate() + 1);
 
     await gamesCollection.bulkWrite(
       [
@@ -51,6 +52,16 @@ exports = async function () {
     );
 
     console.log('after the bulkWrite Op');
+
+    const response = await context.http.post({
+      url: notificationUrl,
+      body: { gameNo: `${currGame.gameNo + 1}` },
+      encodeBodyAsJSON: true,
+    });
+
+    console.log(
+      `got response from notification endpoint: ${response.body.text()}`
+    );
   } else {
     console.log('Error! No current game found.');
   }

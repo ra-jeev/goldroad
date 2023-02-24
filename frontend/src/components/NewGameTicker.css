@@ -1,0 +1,22 @@
+.ticker {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.ticker .ticker-dot {
+  border-radius: 50%;
+  background-color: var(--app-red);
+  width: 0.5rem;
+  height: 0.5rem;
+}
+
+.ticker a {
+  color: goldenrod;
+  font-weight: bold;
+  transition: 0.2s all ease-in-out;
+}
+
+.ticker a:hover {
+  color: darkgoldenrod;
+}
