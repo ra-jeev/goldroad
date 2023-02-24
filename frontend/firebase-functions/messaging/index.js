@@ -29,7 +29,7 @@ exports.registerToken = functions
     try {
       await messaging.subscribeToTopic(token, TOPIC_NAME);
 
-      await fireStore.collection('tokens').add({
+      await fireStore.collection('tokens').doc(userId).set({
         id: userId,
         token,
       });
