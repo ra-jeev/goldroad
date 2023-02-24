@@ -99,7 +99,7 @@ const GameFooter = ({ userData, gameState, lastGame, game, onClick }) => {
     );
   }
 
-  if (lastGame.solved) {
+  if (lastGame.solved || game.nextGameAt < date.toISOString()) {
     return (
       <div className='game-item status'>
         <NewGameTicker nextGameAt={game.nextGameAt} />

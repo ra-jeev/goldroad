@@ -1,4 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
+import { Link } from 'react-router-dom';
+
+import './NewGameTicker.css';
 
 export const NewGameTicker = ({ nextGameAt }) => {
   const [timeStr, setTimeStr] = useState('');
@@ -47,9 +50,17 @@ export const NewGameTicker = ({ nextGameAt }) => {
     }
   }, [nextGameAt]);
 
-  return (
+  return timeStr === '00:00:00' ? (
+    <div className='ticker'>
+      <span>New Puzzle Ready</span>
+      <span className='ticker-dot'></span>
+      <Link to='/' reloadDocument>
+        Play now
+      </Link>
+    </div>
+  ) : (
     <span>
-      New Puzzle In: <strong>{timeStr}</strong>
+      New Puzzle In <strong>{timeStr}</strong>
     </span>
   );
 };
