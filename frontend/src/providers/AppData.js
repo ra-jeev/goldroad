@@ -181,7 +181,7 @@ export function AppDataProvider({ children }) {
         // console.log(`calling updateUserGames for ${gameNo}: changes:`, changes);
         if (updateUserGames) {
           const result = await updateUserGames({ gameNo, ...changes });
-          console.log('updateUserGames returned: ', result);
+          // console.log('updateUserGames returned: ', result);
           if (result?.data) {
             const userGamesData = result.data.userGame;
             const userUpdate = result.data.user;
