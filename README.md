@@ -4,5 +4,5 @@ The repo for the goldroad puzzle game. This game was created as part of the Mong
 ## Frontend
 Frontend is using ReactJs with Vanilla CSS. 
 
-## Backkend
+## Backend
 Backend is Mongo Atlas App Services with MongoDB.
