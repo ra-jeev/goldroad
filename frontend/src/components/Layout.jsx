@@ -30,9 +30,6 @@ export const Layout = ({ sounds, onSettingChange }) => {
       case 'sign-in':
         navigate('/sign-in');
         break;
-      case 'sounds':
-        onSettingChange();
-        break;
       default:
         navigate('/');
     }
@@ -52,7 +49,12 @@ export const Layout = ({ sounds, onSettingChange }) => {
           />
         </div>
       )}
-      <Toolbar sounds={sounds} onClick={handleClick} />
+
+      <Toolbar
+        onClick={handleClick}
+        sounds={sounds}
+        toggleSound={onSettingChange}
+      />
 
       <Outlet />
     </div>

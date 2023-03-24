@@ -16,16 +16,38 @@ import { useFirebase } from '../providers/Firebase';
 import { useAppData } from '../providers/AppData';
 import './Toolbar.css';
 
-export const Toolbar = ({ sounds, onClick }) => {
+const LAST_UPDATE = 'game-update-240323';
+
+export const Toolbar = ({ onClick, sounds, toggleSound }) => {
   const menuListRef = useRef();
   const menuBtnRef = useRef();
   const [showMenu, setShowMenu] = useState(false);
+  const [showDot, setShowDot] = useState(false);
   const location = useLocation();
   const showBack = location.pathname !== '/';
   const { gameId } = useParams();
   const { currGameNo } = useAppData();
 
   const { currentUserAuthInfo, signOutUser } = useFirebase();
+
+  const changeSoundSetting = () => {
+    const newValue = sounds === 'on' ? 'off' : 'on';
+    toggleSound(newValue);
+  };
+
+  useEffect(() => {
+    const updateShown = localStorage.getItem(LAST_UPDATE) || 'no';
+    if (updateShown === 'no') {
+      setShowDot(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (location.pathname === '/about' && showDot) {
+      setShowDot(false);
+      localStorage.setItem(LAST_UPDATE, 'yes');
+    }
+  }, [location.pathname, showDot]);
 
   const onMenuItemClick = (item) => {
     setShowMenu(false);
@@ -74,27 +96,24 @@ export const Toolbar = ({ sounds, onClick }) => {
           )}
         </div>
         {sounds === 'on' ? (
-          <FaVolumeUp
-            className='toolbar-icon'
-            onClick={() => onClick('sounds')}
-          />
+          <FaVolumeUp className='toolbar-icon' onClick={changeSoundSetting} />
         ) : (
-          <FaVolumeMute
-            className='toolbar-icon'
-            onClick={() => onClick('sounds')}
-          />
+          <FaVolumeMute className='toolbar-icon' onClick={changeSoundSetting} />
         )}
       </div>
       <div className='toolbar-icons-container'>
-        <FaQuestionCircle
-          className='toolbar-icon'
-          onClick={() => onClick('about')}
-        />
+        <div className='icon-wrapper'>
+          <FaQuestionCircle
+            className='toolbar-icon'
+            onClick={() => onClick('about')}
+          />
+          {showDot && <span className='notification-dot'></span>}
+        </div>
 
         <FaChartBar className='toolbar-icon' onClick={() => onClick('stats')} />
         <div
           ref={menuBtnRef}
-          className={`menu ${showMenu ? ' menu-active' : ''}`}
+          className={`menu${showMenu ? ' menu-active' : ''}`}
         >
           <FaBars className='toolbar-icon' />
           <ul ref={menuListRef}>

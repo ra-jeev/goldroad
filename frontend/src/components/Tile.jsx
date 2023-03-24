@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import './Tile.css';
 
@@ -10,11 +10,17 @@ const WALLS_MAP = {
 };
 
 export const Tile = ({ data, size, onClick }) => {
-  const { id, value, wall, active, end, done, start } = data;
+  const { id, value, wall, active, end, done, start, tabIndex, focus } = data;
   const [tileClasses, setTileClasses] = useState('tile');
+  const btnRef = useRef();
 
   useEffect(() => {
     const classes = ['tile'];
+
+    if (focus) {
+      btnRef.current.focus();
+    }
+
     if (Object.keys(WALLS_MAP).includes(`${wall}`)) {
       classes.push(`wall-${WALLS_MAP[wall]}`);
     }
@@ -48,7 +54,7 @@ export const Tile = ({ data, size, onClick }) => {
     } else {
       setTileClasses(classes.join(' '));
     }
-  }, [wall, active, start, end, done, tileClasses]);
+  }, [wall, active, start, end, done, tileClasses, focus]);
 
   const onTileClick = (event) => {
     event.preventDefault();
@@ -57,10 +63,15 @@ export const Tile = ({ data, size, onClick }) => {
 
   return (
     <button
+      ref={btnRef}
+      data-row={id[0]}
+      data-col={id[1]}
       type='button'
+      role='gridcell'
       className={tileClasses}
       onClick={onTileClick}
       style={size && { width: size, height: size }}
+      tabIndex={tabIndex}
     >
       <div className='border-div' />
       <span>{value}</span>

@@ -24,8 +24,7 @@ function AppRoutes() {
     getSavedGameSoundsSetting()
   );
 
-  const onGameSoundsSettingChange = () => {
-    const newValue = gameSoundsSetting === 'on' ? 'off' : 'on';
+  const onGameSoundsSettingChange = (newValue) => {
     saveGameSoundsSetting(newValue);
     setGameSoundsSetting(newValue);
   };
