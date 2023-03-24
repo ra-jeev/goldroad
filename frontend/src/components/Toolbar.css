@@ -49,9 +49,21 @@
   transform: scale(1.05);
 }
 
+.icon-wrapper,
 .menu {
   display: inline-flex;
   position: relative;
+}
+
+.notification-dot {
+  width: 8px;
+  height: 8px;
+  background-color: var(--app-red);
+  position: absolute;
+  right: 0;
+  top: 0;
+  border-radius: 50%;
+  border: 1px solid var(--app-brown);
 }
 
 .menu ul {

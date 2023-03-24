@@ -73,6 +73,7 @@
   cursor: pointer;
 }
 
+.tile--active:focus,
 .tile--active:hover {
   transform: scale(1.05);
 }

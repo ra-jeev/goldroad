@@ -7,6 +7,44 @@ export const About = () => {
   return (
     <div className='about-container'>
       <div className='about-section'>
+        <div className='title'>Updates</div>
+        <div style={{ marginBottom: '1rem' }}>
+          <strong>Mar 24, 2023</strong>
+        </div>
+        <p>Now you can walk down the road using your keyboard.</p>
+        <p>
+          Press{' '}
+          <kbd>
+            <strong>tab</strong>
+          </kbd>{' '}
+          to start keyboard navigation, and then use the arrow keys to move
+          vertically or horizontally.
+        </p>
+        <p>
+          Press{' '}
+          <kbd>
+            <strong>space</strong>
+          </kbd>{' '}
+          or{' '}
+          <kbd>
+            <strong>return</strong>
+          </kbd>{' '}
+          to click a coin.
+        </p>
+        <p>
+          To replay, just press{' '}
+          <kbd>
+            <strong>tab</strong>
+          </kbd>{' '}
+          and then press{' '}
+          <kbd>
+            <strong>return</strong>
+          </kbd>
+          .
+        </p>
+      </div>
+
+      <div className='about-section'>
         <div className='title'>How to play?</div>
         <HowToPlay />
         <div className='play-game-link'>
