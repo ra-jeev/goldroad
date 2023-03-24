@@ -14,6 +14,13 @@ body {
   box-sizing: inherit;
 }
 
+:focus-visible {
+  outline-style: ridge;
+  outline-width: 2px;
+  outline-color: #afcbff;
+  outline-offset: 1px;
+}
+
 :root {
   --app-brown: #230c0f;
   --app-red: #fc2f00;

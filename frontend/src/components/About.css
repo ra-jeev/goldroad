@@ -44,6 +44,14 @@ figure img {
   margin-top: 2rem;
 }
 
+kbd {
+  background-color: goldenrod;
+  color: var(--app-brown);
+  padding: 0 2px;
+  border-radius: 2px;
+  font-size: 0.9rem;
+}
+
 .about-link {
   color: goldenrod;
   font-weight: bold;
