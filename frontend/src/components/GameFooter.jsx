@@ -66,7 +66,9 @@ export const GameFooter = ({
       (!datesEqual(date, lastAttempt.playedAt) || lastAttempt.solved))
   ) {
     return (
-      <div className='game-item status'>Find your way to the red coin</div>
+      <div className='game-item status'>
+        Go to the red coin, tap the green one to begin.
+      </div>
     );
   }
 

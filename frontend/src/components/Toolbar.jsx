@@ -16,7 +16,7 @@ import { useFirebase } from '../providers/Firebase';
 import { useAppData } from '../providers/AppData';
 import './Toolbar.css';
 
-const LAST_UPDATE = 'game-update-240323';
+const LAST_UPDATE = 'game-update-300323';
 
 export const Toolbar = ({ onClick, sounds, toggleSound }) => {
   const menuListRef = useRef();
