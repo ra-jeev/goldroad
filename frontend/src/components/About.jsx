@@ -9,6 +9,13 @@ export const About = () => {
       <div className='about-section'>
         <div className='title'>Updates</div>
         <div style={{ marginBottom: '1rem' }}>
+          <strong>Mar 30, 2023</strong>
+        </div>
+        <p>
+          Going forward, you can see the total value of the coins present on the
+          board just below the max score.
+        </p>
+        <div style={{ marginTop: '2rem', marginBottom: '1rem' }}>
           <strong>Mar 24, 2023</strong>
         </div>
         <p>Now you can walk down the road using your keyboard.</p>
@@ -17,8 +24,12 @@ export const About = () => {
           <kbd>
             <strong>tab</strong>
           </kbd>{' '}
-          to start keyboard navigation, and then use the arrow keys to move
-          vertically or horizontally.
+          (or{' '}
+          <kbd>
+            <strong>option + tab</strong>
+          </kbd>{' '}
+          for Safari) to start keyboard navigation, and then use the arrow keys
+          to move vertically or horizontally.
         </p>
         <p>
           Press{' '}
