@@ -28,8 +28,7 @@ const gamePlayStatuses = [
 const DEFAULT_STATE = {
   moves: 0,
   score: 0,
-  status: 'Get to the red coin. Tap the green one to begin.',
-  statusIndex: -1,
+  status: '',
   lastMove: null,
   wrongMove: false,
   ended: false,
@@ -167,6 +166,7 @@ export const Game = ({ sounds }) => {
 
         const conns = [];
         const coins = gameDoc.coins;
+        let totalValue = 0;
 
         for (const coinsRow of coins) {
           conns.push([]);
@@ -174,6 +174,7 @@ export const Game = ({ sounds }) => {
             coin.tabIndex = -1;
             coin.focus = false;
             conns[conns.length - 1].push(null);
+            totalValue += coin.value;
           }
         }
 
@@ -194,6 +195,8 @@ export const Game = ({ sounds }) => {
           ...DEFAULT_STATE,
           tiles: coins,
           tileSize,
+          status: `Total coins on the board: ${totalValue}`,
+          totalValue,
           connections: conns,
           activeNodes: [startCoin.id],
           maxScore: gameDoc.maxScore,
@@ -452,6 +455,11 @@ export const Game = ({ sounds }) => {
   );
 
   const replayGame = () => {
+    const focussedNodeRow = gameState.tiles.find((row) => {
+      const found = row.find((tile) => tile.focus);
+      return !!found;
+    });
+
     const activeNodes = [];
     for (const rowTiles of gameState.tiles) {
       for (const tile of rowTiles) {
@@ -462,7 +470,9 @@ export const Game = ({ sounds }) => {
           col === parseInt(game.start[1])
         ) {
           tile.active = true;
-          tile.focus = true;
+          if (focussedNodeRow) {
+            tile.focus = true;
+          }
           tile.tabIndex = 0;
           activeNodes.push(tile.id);
         } else {
@@ -488,10 +498,12 @@ export const Game = ({ sounds }) => {
     const tileSize = getTileSize(gameState.tiles.length);
     setGameState({
       ...DEFAULT_STATE,
-      tiles: gameState.tiles,
+      status: `Total coins on the board: ${gameState.totalValue}`,
       tileSize,
-      connections: gameState.connections,
       activeNodes,
+      tiles: gameState.tiles,
+      totalValue: gameState.totalValue,
+      connections: gameState.connections,
       maxScore: gameState.maxScore,
     });
   };
@@ -513,17 +525,10 @@ export const Game = ({ sounds }) => {
           tiles[gameState.lastMove[0]][gameState.lastMove[1]].tabIndex = -1;
         }
 
-        let statusIndex =
-          gameState.statusIndex < gamePlayStatuses.length - 1
-            ? gameState.statusIndex + 1
-            : gameState.statusIndex;
-
         const changes = {
           score: gameState.score + currNode.value,
           moves: gameState.moves + 1,
           lastMove: [row, col],
-          status: gamePlayStatuses[statusIndex],
-          statusIndex,
           activeNodes: [],
         };
 
@@ -617,10 +622,10 @@ export const Game = ({ sounds }) => {
           if (changes.score === gameState.maxScore) {
             changes.status = "🏆 You've got the gold :-)";
           } else if (gameState.maxScore - changes.score <= 3) {
-            changes.status = `👏 You're really close...`;
+            changes.status = `👏 That was close. Try again!`;
             winSound = GAME_SOUNDS.OKAY;
           } else {
-            changes.status = '👻 Try getting some more...';
+            changes.status = '👻 Get some more coins. Try again!';
             winSound = GAME_SOUNDS.OKAY;
           }
 
