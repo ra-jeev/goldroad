@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 
 import './NewGameTicker.css';
@@ -9,6 +9,11 @@ export const NewGameTicker = ({ nextGameAt }) => {
 
   useEffect(() => {
     const prepareTimeString = (timeInSecs) => {
+      if (timeInSecs <= 0) {
+        setTimeStr('00:00:00');
+        return;
+      }
+
       const hrs = parseInt(timeInSecs / 3600);
       const mins = parseInt((timeInSecs - hrs * 3600) / 60);
       const secs = timeInSecs - hrs * 3600 - mins * 60;
@@ -22,31 +27,22 @@ export const NewGameTicker = ({ nextGameAt }) => {
 
     if (nextGameAt) {
       const nextGameTime = new Date(nextGameAt);
-      const timeRemainingInSecs = parseInt(
-        (nextGameTime.getTime() - Date.now()) / 1000
-      );
-      if (timeRemainingInSecs > 0) {
-        prepareTimeString(timeRemainingInSecs);
-
-        timer.current = setInterval(
-          (timeRemaining) => {
-            prepareTimeString(timeRemaining.secs);
-            if (timeRemaining.secs > 0) {
-              timeRemaining.secs -= 1;
-            } else {
-              clearInterval(timer.current);
-            }
-          },
-          1000,
-          { secs: timeRemainingInSecs }
+      timer.current = setInterval(() => {
+        const timeRemainingInSecs = parseInt(
+          (nextGameTime.getTime() - Date.now()) / 1000
         );
+
+        prepareTimeString(timeRemainingInSecs);
+        if (timeRemainingInSecs <= 0) {
+          clearInterval(timer.current);
+        }
 
         return () => {
           clearInterval(timer.current);
         };
-      } else {
-        setTimeStr('00:00:00');
-      }
+      }, [1000]);
+    } else {
+      setTimeStr('00:00:00');
     }
   }, [nextGameAt]);
 
