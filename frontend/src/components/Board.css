@@ -1,8 +1,0 @@
-.board {
-  display: flex;
-  flex-shrink: 0;
-}
-
-.tiles-wrapper {
-  position: relative;
-}
