@@ -1,0 +1,40 @@
+.coin {
+  width: 3.5rem;
+  aspect-ratio: 1;
+  max-width: 100%;
+  border: 4px dotted rgb(var(--ui-red));
+  font-size: 1.625rem;
+  font-weight: 700;
+  border-radius: 50%;
+  user-select: none;
+  transition: all 0.2s ease-in-out;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.coin .coin-border {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border: 4px solid rgb(var(--ui-foreground));
+  border-radius: 50%;
+  box-sizing: content-box;
+}
+
+.coin.wall-left .coin-border {
+  border-left-color: transparent;
+}
+
+.coin.wall-right .coin-border {
+  border-right-color: transparent;
+}
+
+.coin.wall-top .coin-border {
+  border-top-color: transparent;
+}
+
+.coin.wall-bottom .coin-border {
+  border-bottom-color: transparent;
+}
