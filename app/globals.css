@@ -1,6 +1,10 @@
 :root {
-  --foreground-rgb: 218, 165, 32;
-  --background-rgb: 35, 12, 15;
+  --ui-foreground: 218, 165, 32;
+  --ui-foreground-light: 212, 175, 55;
+  --ui-foreground-dark: 184, 134, 11;
+  --ui-background: 35, 12, 15;
+  --ui-green: 68, 221, 25;
+  --ui-red: 252, 47, 0;
 }
 
 * {
@@ -18,8 +22,8 @@ body {
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
-  background: rgb(var(--background-rgb));
+  color: rgb(var(--ui-foreground));
+  background: rgb(var(--ui-background));
 }
 
 a {
