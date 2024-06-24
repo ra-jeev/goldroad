@@ -23,7 +23,7 @@ export type Coin = {
 
 export type Game = {
   _id: string;
-  coins: Coin[][];
+  coins: Coin[];
   start: string;
   end: string;
   active: boolean;
