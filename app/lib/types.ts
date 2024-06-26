@@ -9,23 +9,29 @@ export type GameStats = {
 
 export enum CoinWall {
   None = 0,
-  TOP = 1,
-  RIGHT = 2,
-  BOTTOM = 3,
-  LEFT = 4,
+  Top = 1,
+  Right = 2,
+  Bottom = 3,
+  Left = 4,
 }
 
 export type Coin = {
-  id: string;
+  index: number;
   value: number;
+  state: 'none' | 'active' | 'done';
+  isStart: boolean;
+  isEnd: boolean;
   wall: CoinWall;
+  tabIndex: number;
+  focus: boolean;
 };
 
 export type Game = {
   _id: string;
-  coins: Coin[];
-  start: string;
-  end: string;
+  coins: number[];
+  walls: { [key: number]: number };
+  start: number;
+  end: number;
   active: boolean;
   createdAt: string;
   updatedAt: string;
