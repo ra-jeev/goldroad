@@ -44,9 +44,13 @@
 }
 
 .coin--done {
-  color: var(--ui-background);
+  color: rgb(var(--ui-background));
   box-shadow: 0px 0px 12px 4px rgba(var(--ui-foreground), 0.54);
-  background-image: rgb(var(--ui-foreground-light));
+  background-color: rgb(var(--ui-foreground-light));
+}
+
+.coin--done.coin--start {
+  color: rgb(var(--ui-green-dark));
 }
 
 .coin--done .coin-border {
