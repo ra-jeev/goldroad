@@ -15,10 +15,12 @@ export enum CoinWall {
   Left = 4,
 }
 
+export type CoinState = 'none' | 'active' | 'done';
+
 export type Coin = {
   index: number;
   value: number;
-  state: 'none' | 'active' | 'done';
+  state: CoinState;
   isStart: boolean;
   isEnd: boolean;
   wall: CoinWall;
@@ -36,6 +38,9 @@ export type Game = {
   createdAt: string;
   updatedAt: string;
   maxScore: number;
+  totalCoins: number;
+  rows: number;
+  cols: number;
   playableAt: string;
   gameNo: number;
   current: boolean;
