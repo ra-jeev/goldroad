@@ -1,13 +1,13 @@
 import clsx from 'clsx';
 import styles from '@/app/ui/game/board-coin.module.css';
-import { Coin, CoinWall } from '@/app/lib/types';
+import { Coin, CoinState, CoinWall } from '@/app/lib/types';
 
 export default function BoardCoin({
   coin,
   onClick,
 }: {
   coin: Coin;
-  onClick: (index: number) => void;
+  onClick: (index: number, state: CoinState) => void;
 }) {
   return (
     <button
@@ -16,6 +16,7 @@ export default function BoardCoin({
         [styles['wall-right']]: coin.wall === CoinWall.Right,
         [styles['wall-top']]: coin.wall === CoinWall.Top,
         [styles['wall-bottom']]: coin.wall === CoinWall.Bottom,
+        [styles['coin--start']]: coin.isStart,
         [styles['coin--end']]: coin.isEnd,
         [styles['coin--active']]: coin.state === 'active',
         [styles['coin--done']]: coin.state === 'done',
@@ -23,7 +24,7 @@ export default function BoardCoin({
       type='button'
       role='gridcell'
       tabIndex={coin.tabIndex}
-      onClick={() => onClick(coin.index)}
+      onClick={() => onClick(coin.index, coin.state)}
     >
       <div className={styles['coin-border']} />
       {coin.value}
