@@ -1,8 +1,14 @@
 'use client';
 
-import { MouseEventHandler, useCallback, useState } from 'react';
+import { useState } from 'react';
 import SoundManager from '@/app/lib/sound-manager';
-import { Coin, CoinState, CoinWall, Game } from '@/app/lib/types';
+import {
+  Coin,
+  CoinState,
+  CoinWall,
+  ConnectionDir,
+  Game,
+} from '@/app/lib/types';
 import BoardCoin from '@/app/ui/game/board-coin';
 import styles from '@/app/ui/game/game-board.module.css';
 
@@ -83,6 +89,20 @@ const handleNeighboringCoins = (
   return totalChanges;
 };
 
+const getConnectionDirection = (
+  prevIndex: number,
+  currIndex: number,
+  gameCols: number
+): ConnectionDir => {
+  const diff = currIndex - prevIndex;
+  if (diff === 1) return 'right';
+  if (diff === -1) return 'left';
+  if (diff === gameCols) return 'down';
+  if (diff === -gameCols) return 'up';
+
+  return 'none';
+};
+
 export default function GameBoard({ game }: { game: Game }) {
   const [coins, setCoins] = useState<Coin[]>(() =>
     game.coins.map((value, index) => ({
@@ -93,6 +113,7 @@ export default function GameBoard({ game }: { game: Game }) {
       wall: game.walls[index] ?? CoinWall.None,
       state: game.start === index ? 'active' : 'none',
       tabIndex: game.start === index ? 0 : -1,
+      connection: 'none',
       focus: false,
     }))
   );
@@ -116,10 +137,17 @@ export default function GameBoard({ game }: { game: Game }) {
 
       // find other currently active coins, and make them inactive
       if (lastClickedIndex !== -1) {
+        const direction = getConnectionDirection(
+          lastClickedIndex,
+          index,
+          gameColumns
+        );
+
         // Now we have a new lat clicked coin, so set this one's tabIndex -1
         newCoins[lastClickedIndex] = {
           ...coins[lastClickedIndex],
           tabIndex: -1,
+          connection: direction,
         };
 
         handleNeighboringCoins(lastClickedIndex, newCoins, false, gameColumns);

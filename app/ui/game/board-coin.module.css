@@ -73,3 +73,31 @@
 .coin.wall-bottom .coin-border {
   border-bottom-color: transparent;
 }
+
+.arrow {
+  position: absolute;
+  width: 1.5rem;
+  height: 1.5rem;
+  color: rgb(var(--ui-background));
+  background-color: rgba(var(--ui-foreground), 0.48);
+  z-index: 1;
+}
+
+.arrow--left {
+  left: -50%;
+  transform: rotate(180deg);
+}
+
+.arrow--right {
+  right: -50%;
+}
+
+.arrow--up {
+  top: -50%;
+  transform: rotate(-90deg);
+}
+
+.arrow--down {
+  bottom: -50%;
+  transform: rotate(90deg);
+}

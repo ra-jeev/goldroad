@@ -16,6 +16,7 @@ export enum CoinWall {
 }
 
 export type CoinState = 'none' | 'active' | 'done';
+export type ConnectionDir = 'none' | 'left' | 'right' | 'up' | 'down';
 
 export type Coin = {
   index: number;
@@ -26,6 +27,7 @@ export type Coin = {
   wall: CoinWall;
   tabIndex: number;
   focus: boolean;
+  connection: ConnectionDir;
 };
 
 export type Game = {
