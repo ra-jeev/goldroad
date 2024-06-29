@@ -27,6 +27,7 @@
 
 .coin--active {
   background-color: rgba(var(--ui-green), 0.48);
+  cursor: pointer;
 }
 
 .coin--active:hover,

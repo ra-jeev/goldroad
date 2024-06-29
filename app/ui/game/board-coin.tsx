@@ -1,14 +1,15 @@
+import { memo } from 'react';
 import clsx from 'clsx';
 import styles from '@/app/ui/game/board-coin.module.css';
 import { Coin, CoinState, CoinWall } from '@/app/lib/types';
 
-export default function BoardCoin({
+const BoardCoin = ({
   coin,
   onClick,
 }: {
   coin: Coin;
   onClick: (index: number, state: CoinState) => void;
-}) {
+}) => {
   return (
     <button
       className={clsx(styles.coin, {
@@ -30,4 +31,11 @@ export default function BoardCoin({
       {coin.value}
     </button>
   );
-}
+};
+
+export default memo(BoardCoin, (prevProps, nextProps) => {
+  return (
+    prevProps.coin.tabIndex === nextProps.coin.tabIndex &&
+    prevProps.coin.state === nextProps.coin.state
+  );
+});
