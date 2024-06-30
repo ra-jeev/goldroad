@@ -1,4 +1,11 @@
 .game-board {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  flex-grow: 1;
+}
+
+.coins-grid {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
   max-width: 100%;
