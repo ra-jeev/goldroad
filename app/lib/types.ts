@@ -40,7 +40,8 @@ export type Game = {
   createdAt: string;
   updatedAt: string;
   maxScore: number;
-  totalCoins: number;
+  maxScoreMoves: number;
+  boardScore: number;
   rows: number;
   cols: number;
   playableAt: string;
