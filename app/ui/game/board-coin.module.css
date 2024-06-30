@@ -76,28 +76,30 @@
 
 .arrow {
   position: absolute;
-  width: 1.5rem;
-  height: 1.5rem;
+  width: 21px;
+  height: 24px;
   color: rgb(var(--ui-background));
   background-color: rgba(var(--ui-foreground), 0.48);
   z-index: 1;
 }
 
 .arrow--left {
-  left: -50%;
-  transform: rotate(180deg);
+  left: 0;
+  transform: translateX(calc(-50% - 8px)) rotate(180deg);
 }
 
 .arrow--right {
-  right: -50%;
+  right: 0px;
+  /* Move 50% arrow length + border width + (coin gap) / 2 */
+  transform: translateX(calc(50% + 8px));
 }
 
 .arrow--up {
-  top: -50%;
-  transform: rotate(-90deg);
+  top: 0;
+  transform: translateY(calc(-50% - 8px)) rotate(-90deg);
 }
 
 .arrow--down {
-  bottom: -50%;
-  transform: rotate(90deg);
+  bottom: 0;
+  transform: translateY(calc(50% + 8px)) rotate(90deg);
 }
