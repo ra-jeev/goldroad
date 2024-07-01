@@ -1,0 +1,52 @@
+.about-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.about-section {
+  padding: 1rem;
+  width: 100%;
+}
+
+.title {
+  font-size: 2rem;
+  font-weight: bolder;
+  margin-bottom: 1.5rem;
+}
+
+.about-section p {
+  margin: 0 0 1rem;
+}
+
+.about-footer {
+  margin-top: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.5;
+  padding: 1rem;
+  width: 100%;
+}
+
+.play-game-link {
+  line-height: 1;
+  margin-top: 2rem;
+  font-size: 1.25rem;
+}
+
+.kbd {
+  background-color: rgb(var(--ui-foreground));
+  color: rgb(var(--ui-background));
+  padding: 0 2px;
+  border-radius: 2px;
+  font-size: 0.9rem;
+}
+
+@media screen and (min-width: 768px) {
+  .about-footer,
+  .about-section {
+    max-width: 32rem;
+  }
+}
