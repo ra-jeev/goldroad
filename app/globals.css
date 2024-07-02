@@ -26,6 +26,35 @@ body {
 body {
   color: rgb(var(--ui-foreground));
   background: rgb(var(--ui-background));
+  text-rendering: optimizeLegibility;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 100vh;
+}
+
+.section {
+  padding: 1rem;
+  width: 100%;
+  max-width: 32rem;
+
+  p {
+    margin-bottom: 1rem;
+  }
+
+  .title {
+    font-size: 2rem;
+    font-weight: bolder;
+    margin-bottom: 1.5rem;
+  }
+}
+
+.section + .section {
+  margin-top: 1rem;
 }
 
 a {
@@ -45,4 +74,12 @@ figure img {
 
 figure + figure {
   margin-top: 1rem;
+}
+
+@media (max-width: 768px) {
+  .section {
+    .title {
+      font-size: 1.5rem;
+    }
+  }
 }
