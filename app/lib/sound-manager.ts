@@ -8,7 +8,7 @@ const gameSounds = {
   okay: '/audio/okay.mp3',
 };
 
-type SoundName = keyof typeof gameSounds;
+export type SoundName = keyof typeof gameSounds;
 
 class SoundManager {
   private sounds: { [key in SoundName]?: Howl } = {};
