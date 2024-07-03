@@ -47,6 +47,7 @@ export default memo(BoardCoin, (prevProps, nextProps) => {
     prevProps.coin.tabIndex === nextProps.coin.tabIndex &&
     prevProps.coin.state === nextProps.coin.state &&
     prevProps.coin.focus === nextProps.coin.focus &&
-    prevProps.coin.connection === nextProps.coin.connection
+    prevProps.coin.connection === nextProps.coin.connection &&
+    prevProps.onClick === nextProps.onClick
   );
 });
