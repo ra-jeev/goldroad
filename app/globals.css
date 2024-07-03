@@ -7,6 +7,7 @@
   --ui-green-dark: 34, 120, 10;
   --ui-red: 252, 47, 0;
   --ui-red-dark: 158, 5, 23;
+  --header-height: 3.5rem;
 }
 
 * {
@@ -34,7 +35,7 @@ body {
   flex-direction: column;
   justify-content: space-between;
   align-items: center;
-  min-height: 100vh;
+  min-height: calc(100vh - var(--header-height));
 }
 
 .section {
@@ -60,10 +61,7 @@ body {
 a {
   color: inherit;
   font-weight: bold;
-}
-
-a:hover {
-  color: rgb(var(--ui-foreground-dark));
+  transition: 0.2s color ease-in-out;
 }
 
 figure img {
@@ -82,4 +80,21 @@ figure + figure {
       font-size: 1.5rem;
     }
   }
+}
+
+.icon-btn {
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 2px;
+  cursor: pointer;
+  transition: 0.2s color ease-in-out;
+}
+
+a:hover,
+.icon-btn:hover {
+  color: rgb(var(--ui-foreground-dark));
+}
+
+.icon-wrapper {
+  position: relative;
 }
