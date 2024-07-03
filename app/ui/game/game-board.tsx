@@ -1,17 +1,13 @@
 'use client';
 
-import { useState } from 'react';
-import SoundManager from '@/app/lib/sound-manager';
-import {
-  Coin,
-  CoinState,
-  CoinWall,
-  ConnectionDir,
-  Game,
-} from '@/app/lib/types';
+import { useCallback, useState } from 'react';
+import SoundManager, { type SoundName } from '@/app/lib/sound-manager';
+import { useGameSounds } from '@/app/hooks/useGameSounds';
+import type { Coin, CoinState, ConnectionDir, Game } from '@/app/lib/types';
+import { CoinWall } from '@/app/lib/types';
 import BoardCoin from '@/app/ui/game/board-coin';
-import styles from '@/app/ui/game/game-board.module.css';
 import GameStatus from '@/app/ui/game/game-status';
+import styles from '@/app/ui/game/game-board.module.css';
 
 const changeCoinState = (
   coin: Coin | null,
@@ -135,12 +131,22 @@ export default function GameBoard({ game }: { game: Game }) {
   });
 
   const gameColumns = game.cols;
+  const { gameSounds } = useGameSounds();
+  console.log(`current gameSounds value: ${gameSounds}`);
+  const playSound = (soundName: SoundName) => {
+    console.log(`playSound:: gameSounds: ${gameSounds}`);
+    if (gameSounds === 'off') {
+      return;
+    }
+
+    SoundManager.play(soundName);
+  };
 
   console.log('inside the game board component');
   const handleCoinClick = (index: number, state: CoinState) => {
     console.log('coin clicked:', index, 'state:', state);
     if (state === 'active') {
-      SoundManager.play('coin');
+      playSound('coin');
 
       // Create a new coins array
       const newCoins = [...coins];
@@ -190,7 +196,7 @@ export default function GameBoard({ game }: { game: Game }) {
           changes.status = 'Uh Oh! No further moves...';
           changes.currScore = 0; // If no further moves possible, then reset the score to 0
           // changes.ended = true;
-          SoundManager.play('noMoves');
+          playSound('noMoves');
         } else if (
           gameState.wrongMove ||
           changes.currScore >= game.maxScore ||
@@ -206,7 +212,7 @@ export default function GameBoard({ game }: { game: Game }) {
         // The game is over
         if (changes.currScore === game.maxScore) {
           changes.status = "🏆 You've got the gold :-)";
-          SoundManager.play('win');
+          playSound('win');
         } else {
           if (game.maxScore - changes.currScore <= 3) {
             changes.status = `👏 That was close. Try again!`;
@@ -214,14 +220,14 @@ export default function GameBoard({ game }: { game: Game }) {
             changes.status = '👻 Get some more coins. Try again!';
           }
 
-          SoundManager.play('okay');
+          playSound('okay');
         }
       }
 
       setGameState({ ...gameState, ...changes });
       setCoins(newCoins);
     } else if (state === 'none') {
-      SoundManager.play('deny');
+      playSound('deny');
     }
   };
 
