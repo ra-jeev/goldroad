@@ -9,6 +9,7 @@ export const useGameSounds = () => {
 
   const setGameSoundsSetting = (value: string) => {
     localStorage.setItem('sounds', value);
+    dispatchEvent(new Event('gameSoundsSetting'));
   };
 
   const [gameSounds, setGameSounds] = useState<string>();
@@ -17,11 +18,11 @@ export const useGameSounds = () => {
       setGameSounds(getGameSoundsSetting());
     };
 
-    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('gameSoundsSetting', handleStorageChange);
     handleStorageChange();
 
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('gameSoundsSetting', handleStorageChange);
     };
   }, []);
 
