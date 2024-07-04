@@ -1,0 +1,3 @@
+runConfig:
+  maxInstances: 10
+  cpu: 1
