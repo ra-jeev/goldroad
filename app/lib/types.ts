@@ -17,6 +17,13 @@ export enum CoinWall {
 
 export type CoinState = 'none' | 'active' | 'done';
 export type ConnectionDir = 'none' | 'left' | 'right' | 'up' | 'down';
+export type PlayStatus =
+  | 'initial'
+  | 'playing'
+  | 'no-moves'
+  | 'wrong-path'
+  | 'lost'
+  | 'win';
 
 export type Coin = {
   index: number;
