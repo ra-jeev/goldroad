@@ -3,10 +3,16 @@
 import { useCallback, useState } from 'react';
 import SoundManager, { type SoundName } from '@/app/lib/sound-manager';
 import { useGameSounds } from '@/app/hooks/useGameSounds';
-import type { Coin, CoinState, ConnectionDir, Game } from '@/app/lib/types';
+import type {
+  Coin,
+  CoinState,
+  ConnectionDir,
+  Game,
+  PlayStatus,
+} from '@/app/lib/types';
 import { CoinWall } from '@/app/lib/types';
 import BoardCoin from '@/app/ui/game/board-coin';
-import GameStatus from '@/app/ui/game/game-status';
+import BoardStatus from '@/app/ui/game/board-status';
 import styles from '@/app/ui/game/game-board.module.css';
 
 const changeCoinState = (
@@ -105,7 +111,7 @@ type GameState = {
   movesCount: number;
   currScore: number;
   wrongPath: boolean;
-  status: string;
+  status: PlayStatus;
   coins: Coin[];
 };
 
@@ -114,7 +120,7 @@ const INITIAL_GAME_STATE: GameState = {
   movesCount: 0,
   currScore: 0,
   wrongPath: false,
-  status: '',
+  status: 'initial',
   coins: [],
 };
 
@@ -134,7 +140,6 @@ export default function GameBoard({ game }: { game: Game }) {
 
     return {
       ...INITIAL_GAME_STATE,
-      status: `Total coins on the board: ${game.boardScore}`,
       coins,
     };
   });
@@ -171,6 +176,10 @@ export default function GameBoard({ game }: { game: Game }) {
             movesCount: prevState.movesCount + 1,
           };
 
+          if (prevState.status === 'initial') {
+            changes.status = 'playing';
+          }
+
           // find other currently active coins, and make them inactive
           if (prevState.lastClickedIndex !== -1) {
             const lastClickedIndex = prevState.lastClickedIndex;
@@ -180,7 +189,7 @@ export default function GameBoard({ game }: { game: Game }) {
               game.cols
             );
 
-            // Now we have a new lat clicked coin, so set this one's tabIndex -1
+            // Now we have a new last clicked coin, so set this one's tabIndex -1
             newCoins[lastClickedIndex] = {
               ...newCoins[lastClickedIndex],
               tabIndex: -1,
@@ -205,7 +214,7 @@ export default function GameBoard({ game }: { game: Game }) {
             );
 
             if (!activeCoinsCount) {
-              changes.status = 'Uh Oh! No further moves...';
+              changes.status = 'no-moves';
               changes.currScore = 0; // If no further moves possible, then reset the score to 0
               // changes.ended = true;
               playSound('noMoves');
@@ -215,7 +224,7 @@ export default function GameBoard({ game }: { game: Game }) {
               changes.movesCount! >= game.maxScoreMoves
             ) {
               changes.currScore = 0;
-              changes.status = `This road feels unfamiliar...`;
+              changes.status = 'wrong-path';
               if (!prevState.wrongPath) {
                 changes.wrongPath = true;
               }
@@ -223,15 +232,10 @@ export default function GameBoard({ game }: { game: Game }) {
           } else {
             // The game is over
             if (changes.currScore === game.maxScore) {
-              changes.status = "🏆 You've got the gold :-)";
+              changes.status = 'win';
               playSound('win');
             } else {
-              if (game.maxScore - changes.currScore! <= 3) {
-                changes.status = `👏 That was close. Try again!`;
-              } else {
-                changes.status = '👻 Get some more coins. Try again!';
-              }
-
+              changes.status = 'lost';
               playSound('okay');
             }
           }
@@ -247,10 +251,11 @@ export default function GameBoard({ game }: { game: Game }) {
 
   return (
     <div className={styles['game-board']}>
-      <GameStatus
+      <BoardStatus
         maxScore={game.maxScore}
         currScore={gameState.currScore}
         status={gameState.status}
+        boardScore={game.boardScore}
       />
       <div className={styles['coins-grid']} role='grid'>
         {gameState.coins.map((coin) => {
