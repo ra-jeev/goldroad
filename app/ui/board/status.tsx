@@ -1,7 +1,7 @@
 import type { PlayStatus } from '@/app/lib/types';
-import styles from '@/app/ui/game/board-status.module.css';
+import styles from '@/app/ui/board/status.module.css';
 
-export default function GameStatus({
+export default function BoardStatus({
   maxScore,
   currScore,
   status,

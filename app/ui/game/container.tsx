@@ -1,5 +1,5 @@
 import { fetchGame } from '@/app/lib/data';
-import GameBoard from '@/app/ui/game/game-board';
+import GameBoard from '@/app/ui/game/board';
 
 export default async function GameContainer() {
   const game = await fetchGame();

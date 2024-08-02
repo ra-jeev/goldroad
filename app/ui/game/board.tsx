@@ -11,9 +11,9 @@ import type {
   PlayStatus,
 } from '@/app/lib/types';
 import { CoinWall } from '@/app/lib/types';
-import BoardCoin from '@/app/ui/game/board-coin';
-import BoardStatus from '@/app/ui/game/board-status';
-import styles from '@/app/ui/game/game-board.module.css';
+import BoardCoin from '@/app/ui/board/coin';
+import BoardStatus from '@/app/ui/board/status';
+import styles from '@/app/ui/game/board.module.css';
 
 const changeCoinState = (
   coin: Coin | null,

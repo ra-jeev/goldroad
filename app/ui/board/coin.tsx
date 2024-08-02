@@ -1,7 +1,8 @@
 import { memo } from 'react';
 import clsx from 'clsx';
-import { type Coin, type CoinState, CoinWall } from '@/app/lib/types';
-import styles from '@/app/ui/game/board-coin.module.css';
+import type { Coin, CoinState } from '@/app/lib/types';
+import { CoinWall } from '@/app/lib/types';
+import styles from '@/app/ui/board/coin.module.css';
 
 const BoardCoin = ({
   coin,
