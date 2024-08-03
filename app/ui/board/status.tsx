@@ -39,7 +39,7 @@ export default function BoardStatus({
         Collect {maxScore - currScore} coins
         {currScore > 0 ? ' more' : ' in your path'}
       </span>
-      <span className={styles.status}>{playStatus()}</span>
+      <span className='font-medium'>{playStatus()}</span>
     </div>
   );
 }

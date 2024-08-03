@@ -13,7 +13,6 @@ export default function AboutBtn() {
 
   useEffect(() => {
     const updateShown = localStorage.getItem(LAST_UPDATE) || 'no';
-    console.log(`inside the useEffect: updateShown: ${updateShown}`);
     if (updateShown === 'no') {
       setShowDot(true);
     }

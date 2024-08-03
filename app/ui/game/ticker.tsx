@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import styles from '@/app/ui/game/ticker.module.css';
 
 export default function GameTicker({ nextGameAt }: { nextGameAt: string }) {
-  const [timeStr, setTimeStr] = useState('00:00:00');
+  const [timeStr, setTimeStr] = useState('');
   const pathName = usePathname();
   const router = useRouter();
 
@@ -70,9 +70,11 @@ export default function GameTicker({ nextGameAt }: { nextGameAt: string }) {
           </Link>
         </>
       ) : (
-        <span>
-          New Puzzle In <strong>{timeStr}</strong>
-        </span>
+        timeStr && (
+          <span>
+            New Puzzle In <strong>{timeStr}</strong>
+          </span>
+        )
       )}
     </div>
   );
