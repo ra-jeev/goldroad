@@ -13,6 +13,7 @@ import type {
 import { CoinWall } from '@/app/lib/types';
 import BoardCoin from '@/app/ui/board/coin';
 import BoardStatus from '@/app/ui/board/status';
+import BoardFooter from '@/app/ui/board/footer';
 import styles from '@/app/ui/game/board.module.css';
 
 const changeCoinState = (
@@ -249,6 +250,24 @@ export default function GameBoard({ game }: { game: Game }) {
     [game, playSound]
   );
 
+  const replayGame = () => {
+    console.log('replayGame');
+
+    setGameState((prevState) => {
+      const coins = prevState.coins.map((coin, index) => {
+        return {
+          ...coin,
+          connection: 'none' as ConnectionDir,
+          state: (game.start === index ? 'active' : 'none') as CoinState,
+          tabIndex: game.start === index ? 0 : -1,
+          focus: false,
+        };
+      });
+
+      return { ...INITIAL_GAME_STATE, coins };
+    });
+  };
+
   return (
     <div className={styles['game-board']}>
       <BoardStatus
@@ -268,6 +287,13 @@ export default function GameBoard({ game }: { game: Game }) {
           );
         })}
       </div>
+      <BoardFooter
+        playStatus={gameState.status}
+        tries={0}
+        isFirstGame={false}
+        nextGameAt='2024-08-04T00:00:00.000Z'
+        onClick={replayGame}
+      />
     </div>
   );
 }
