@@ -87,6 +87,7 @@ figure + figure {
   height: 1.75rem;
   padding: 2px;
   cursor: pointer;
+  color: rgb(var(--ui-foreground));
   transition: 0.2s color ease-in-out;
 }
 
@@ -97,4 +98,16 @@ a:hover,
 
 .icon-wrapper {
   position: relative;
+}
+
+.font-medium {
+  font-weight: 500;
+}
+
+.font-bold {
+  font-weight: bold;
+}
+
+.text-center {
+  text-align: center;
 }
