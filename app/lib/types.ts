@@ -41,6 +41,7 @@ export type Game = {
   _id: string;
   coins: number[];
   walls: { [key: number]: number };
+  hints: number[];
   start: number;
   end: number;
   active: boolean;
@@ -56,5 +57,5 @@ export type Game = {
   current: boolean;
   nextGameAt: string;
   playedAt: string;
-  prevGameStats: GameStats;
+  prevGameStats?: GameStats;
 };
