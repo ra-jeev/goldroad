@@ -52,6 +52,7 @@ export type Game = {
   boardScore: number;
   rows: number;
   cols: number;
+  hash: string;
   playableAt: string;
   gameNo: number;
   current: boolean;

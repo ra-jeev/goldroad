@@ -4,5 +4,9 @@ runConfig:
 env:
   - variable: MONGODB_URI
     secret: MONGODB_URI
+    availability:
+      - RUNTIME
   - variable: DB_NAME
     value: goldroadDb-dev
+    availability:
+      - RUNTIME
