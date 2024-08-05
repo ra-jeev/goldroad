@@ -5,8 +5,10 @@ env:
   - variable: MONGODB_URI
     secret: MONGODB_URI
     availability:
+      - BUILD
       - RUNTIME
   - variable: DB_NAME
     value: goldroadDb-dev
     availability:
+      - BUILD
       - RUNTIME
