@@ -111,3 +111,18 @@ a:hover,
 .text-center {
   text-align: center;
 }
+
+.app-btn {
+  font-size: 1rem;
+  color: rgb(var(--ui-foreground));
+  text-decoration: none;
+  padding: 0.5rem 1rem;
+  border: 1px solid rgb(var(--ui-foreground));
+  border-radius: 0.5rem;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.app-btn:hover {
+  background-color: rgb(var(--ui-foreground));
+  color: rgb(var(--ui-background));
+}

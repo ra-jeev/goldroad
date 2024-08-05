@@ -1,0 +1,19 @@
+.error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: calc(100vh - var(--header-height));
+  text-align: center;
+  padding: 2rem;
+}
+
+.error-title {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.error-description {
+  font-size: 1.25rem;
+  margin-bottom: 2rem;
+}
