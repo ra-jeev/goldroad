@@ -1,5 +1,4 @@
 import type { PlayStatus } from '@/app/lib/types';
-import styles from '@/app/ui/board/status.module.css';
 
 export default function BoardStatus({
   maxScore,
@@ -34,12 +33,12 @@ export default function BoardStatus({
   };
 
   return (
-    <div className={styles['info-container']}>
-      <span className={styles['score-details']}>
+    <div className='info-container'>
+      <div className='info-title'>
         Collect {maxScore - currScore} coins
         {currScore > 0 ? ' more' : ' in your path'}
-      </span>
-      <span className='font-medium'>{playStatus()}</span>
+      </div>
+      <div className='font-medium'>{playStatus()}</div>
     </div>
   );
 }

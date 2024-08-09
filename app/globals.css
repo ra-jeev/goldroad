@@ -33,7 +33,7 @@ body {
 .main {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   min-height: calc(100vh - var(--header-height));
 }
@@ -114,15 +114,55 @@ a:hover,
 
 .app-btn {
   font-size: 1rem;
+  font-weight: bold;
   color: rgb(var(--ui-foreground));
+  background-color: rgba(0, 0, 0, 0);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   text-decoration: none;
   padding: 0.5rem 1rem;
   border: 1px solid rgb(var(--ui-foreground));
   border-radius: 0.5rem;
   transition: background-color 0.3s ease, color 0.3s ease;
+  cursor: pointer;
 }
 
 .app-btn:hover {
   background-color: rgb(var(--ui-foreground));
   color: rgb(var(--ui-background));
+}
+
+.info-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.info-title {
+  font-size: 1.375rem;
+  font-weight: bold;
+}
+
+@media screen and (min-width: 768px) {
+  .info-title {
+    font-size: 1.625rem;
+  }
+}
+
+.mt-2 {
+  margin-top: 0.5rem;
+}
+
+.mt-4 {
+  margin-top: 1rem;
+}
+
+.mt-8 {
+  margin-top: 2rem;
+}
+
+.mt-12 {
+  margin-top: 3rem;
 }
