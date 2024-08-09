@@ -8,6 +8,7 @@ import {
   Bars3Icon,
 } from '@heroicons/react/16/solid';
 import clsx from 'clsx';
+import { signOut } from '@/app/lib/firebase/auth';
 import styles from '@/app/ui/app-menu.module.css';
 
 const CoinsIcon = () => {
@@ -30,10 +31,11 @@ export default function AppMenu() {
   const menuListRef = useRef<HTMLUListElement>(null);
   const menuBtnRef = useRef<HTMLDivElement>(null);
   const [showMenu, setShowMenu] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   const signOutUser = () => {
-    console.log('signed out the user');
+    console.log('signing out the user');
+    signOut();
     setIsLoggedIn(false);
   };
 

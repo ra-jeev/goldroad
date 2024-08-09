@@ -1,3 +1,7 @@
+.menu {
+  height: 1.75rem;
+}
+
 .menu ul {
   list-style: none;
   display: none;
