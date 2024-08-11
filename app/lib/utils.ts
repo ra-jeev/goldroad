@@ -24,3 +24,11 @@ export const getOrdinalSuffix = (n: number): string => {
   const v = n % 100;
   return suffix[(v - 20) % 10] || suffix[v] || suffix[0];
 };
+
+export const formatDate = (date: string) => {
+  return new Date(date).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+};
