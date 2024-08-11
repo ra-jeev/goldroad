@@ -1,0 +1,86 @@
+.gameCard {
+  display: flex;
+  background-color: rgba(192, 192, 192, 0.18);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  gap: 1rem;
+  align-items: center;
+  box-shadow: 0 2px 4px rgba(var(--ui-foreground), 0.18);
+  transition: box-shadow 0.3s ease;
+  width: 100%;
+}
+
+.gameCard:hover {
+  box-shadow: 0 4px 8px rgba(var(--ui-foreground), 0.24);
+}
+
+@media screen and (min-width: 768px) {
+  .gameCard,
+  .trophyContainer {
+    max-width: 32rem;
+  }
+
+  .gameCard {
+    gap: 1.5rem;
+  }
+}
+
+.gameDetails {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  gap: 0.5rem;
+}
+
+.gameTitle {
+  font-size: 1.25rem;
+  font-weight: bold;
+  text-decoration: none;
+  transition: 0.2s all ease-in-out;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.gameTitle:hover {
+  color: rgb(var(--ui-foreground-dark));
+}
+
+.playButton {
+  display: inline-flex;
+}
+
+.playIcon {
+  width: 3.25rem;
+  height: 3.25rem;
+  transition: transform 0.3s ease;
+}
+
+.playIcon:hover {
+  transform: scale(1.05);
+}
+
+.trophyIcon,
+.certificateIcon {
+  flex-shrink: 0;
+}
+
+.trophyIcon,
+.noAwardIcon {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.trophyIcon {
+  color: gold;
+}
+
+.noAwardIcon {
+  color: rgb(var(--ui-red));
+}
+
+.certificateIcon {
+  color: silver;
+  width: 1.125rem;
+  height: 1.5rem;
+}
