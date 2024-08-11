@@ -60,3 +60,16 @@ export type Game = {
   playedAt: string;
   prevGameStats?: GameStats;
 };
+
+export type GameAttempt = {
+  playedAt: string;
+  score: number;
+  tries: number;
+  solved: boolean;
+  current: boolean;
+};
+
+export type GameHistory = {
+  attempts: GameAttempt[];
+  firstSolved: number | undefined;
+};
