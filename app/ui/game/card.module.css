@@ -1,17 +1,8 @@
 .gameCard {
   display: flex;
-  background-color: rgba(192, 192, 192, 0.18);
-  border-radius: 0.75rem;
-  padding: 1rem;
   gap: 1rem;
   align-items: center;
-  box-shadow: 0 2px 4px rgba(var(--ui-foreground), 0.18);
-  transition: box-shadow 0.3s ease;
   width: 100%;
-}
-
-.gameCard:hover {
-  box-shadow: 0 4px 8px rgba(var(--ui-foreground), 0.24);
 }
 
 @media screen and (min-width: 768px) {

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import clsx from 'clsx';
 import { TrophyIcon } from '@heroicons/react/16/solid';
 import GamePlayHistory from '@/app/ui/game/play-history';
 import type { GameHistory } from '@/app/lib/types';
@@ -79,7 +80,7 @@ const GameCard = ({
   gameHistory: GameHistory;
 }) => {
   return (
-    <div className={styles.gameCard}>
+    <div className={clsx('card', styles.gameCard)}>
       <div className={styles.gameDetails}>
         <Link href={`/games/${gameNo}`} className={styles.gameTitle}>
           <GameAward gameHistory={gameHistory} />

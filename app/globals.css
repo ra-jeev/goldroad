@@ -166,3 +166,28 @@ a:hover,
 .mt-12 {
   margin-top: 3rem;
 }
+
+.card {
+  background-color: rgba(192, 192, 192, 0.18);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  box-shadow: 0 2px 4px rgba(var(--ui-foreground), 0.18);
+  transition: box-shadow 0.3s ease;
+}
+
+.card:hover {
+  box-shadow: 0 4px 8px rgba(var(--ui-foreground), 0.24);
+}
+
+.card-title {
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.stats-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 1.5rem;
+}
