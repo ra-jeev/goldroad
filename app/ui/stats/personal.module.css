@@ -1,0 +1,16 @@
+.statsEntry {
+  display: flex;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.statsKey {
+  color: rgb(var(--ui-foreground-dark));
+  width: 50%;
+  text-align: end;
+}
+
+.statsVal {
+  font-weight: bold;
+  width: 50%;
+}
