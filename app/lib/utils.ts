@@ -32,3 +32,33 @@ export const formatDate = (date: string) => {
     day: 'numeric',
   });
 };
+
+const knownPlurals = {
+  try: 'tries',
+  road: 'roads',
+  day: 'days',
+} as const;
+
+type KnownWord = keyof typeof knownPlurals;
+
+export function formatQuantity(
+  count: number,
+  singular: string,
+  fractionalDigits?: number,
+  customPlural?: string
+): string {
+  if (count === 1) {
+    return `${count} ${singular}`;
+  }
+
+  const value = fractionalDigits ? count.toFixed(fractionalDigits) : count;
+  if (singular in knownPlurals) {
+    return `${value} ${knownPlurals[singular as KnownWord]}`;
+  }
+
+  if (customPlural) {
+    return `${value} ${customPlural}`;
+  }
+
+  return `${value} ${singular}s`;
+}
