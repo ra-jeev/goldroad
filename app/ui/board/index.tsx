@@ -14,7 +14,7 @@ import { CoinWall } from '@/app/lib/types';
 import BoardCoin from '@/app/ui/board/coin';
 import BoardStatus from '@/app/ui/board/status';
 import BoardFooter from '@/app/ui/board/footer';
-import styles from '@/app/ui/game/board.module.css';
+import styles from '@/app/ui/board/index.module.css';
 
 const changeCoinState = (
   coin: Coin | null,
@@ -125,7 +125,7 @@ const INITIAL_GAME_STATE: GameState = {
   coins: [],
 };
 
-export default function GameBoard({ game }: { game: Game }) {
+export default function Board({ game }: { game: Game }) {
   const [gameState, setGameState] = useState<GameState>(() => {
     const coins = game.coins.map((value, index) => ({
       index,
