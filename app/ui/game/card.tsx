@@ -1,8 +1,7 @@
-'use client';
-
 import Link from 'next/link';
 import clsx from 'clsx';
 import { TrophyIcon } from '@heroicons/react/16/solid';
+import FootprintIcon from '@/app/ui/icons/Footprint';
 import GamePlayHistory from '@/app/ui/game/play-history';
 import type { GameHistory } from '@/app/lib/types';
 import styles from '@/app/ui/game/card.module.css';
@@ -22,22 +21,7 @@ const CertificateIcon = ({ className }: { className?: string }) => {
   );
 };
 
-const FootprintIcon = ({ className }: { className?: string }) => {
-  return (
-    <svg
-      xmlns='http://www.w3.org/2000/svg'
-      className={className}
-      viewBox='0 0 24 24'
-    >
-      <path
-        fill='currentColor'
-        d='M10.74 11.72c.47 1.23.42 2.51-.99 3.02c-2.9 1.07-3.55-1.74-3.59-1.88zm-5.03-.81l4.32-1.07c-.19-1.05.1-2.1.1-3.34c0-1.68-1.33-4.97-3.45-4.44c-2.42.6-2.77 3.29-2.68 4.59c.12 1.3 1.64 4.08 1.71 4.26m12.14 8.94c-.03.15-.69 2.95-3.59 1.89c-1.4-.52-1.46-1.8-.99-3.03zm2.15-6.2c.1-1.3-.24-4-2.67-4.6c-2.11-.55-3.44 2.76-3.44 4.45c0 1.23.28 2.28.11 3.33l4.3 1.07c.08-.18 1.59-2.96 1.7-4.25'
-      />
-    </svg>
-  );
-};
-
-const NoAward = ({ className }: { className?: string }) => {
+const NoAwardIcon = ({ className }: { className?: string }) => {
   return (
     <svg
       xmlns='http://www.w3.org/2000/svg'
@@ -58,9 +42,9 @@ const NoAward = ({ className }: { className?: string }) => {
   );
 };
 
-const GameAward = ({ gameHistory }: { gameHistory: GameHistory }) => {
+const GameAwardIcon = ({ gameHistory }: { gameHistory: GameHistory }) => {
   if (gameHistory.firstSolved === undefined) {
-    return <NoAward className={styles.noAwardIcon} />;
+    return <NoAwardIcon className={styles.noAwardIcon} />;
   }
 
   if (gameHistory.attempts[gameHistory.firstSolved].current) {
@@ -81,7 +65,7 @@ const GameCard = ({
 }) => {
   return (
     <Link href={`/games/${gameNo}`} className={clsx('card', styles.gameCard)}>
-      <GameAward gameHistory={gameHistory} />
+      <GameAwardIcon gameHistory={gameHistory} />
       <div className={styles.gameDetails}>
         <div className={styles.gameTitle}>
           <span>GoldRoad #{gameNo}</span>
@@ -92,9 +76,8 @@ const GameCard = ({
 
         <GamePlayHistory gameNo={gameNo} gameHistory={gameHistory} />
       </div>
-      <div className={styles.playButton}>
-        <FootprintIcon className={styles.playIcon} />
-      </div>
+
+      <FootprintIcon className={styles.playIcon} />
     </Link>
   );
 };

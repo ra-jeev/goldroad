@@ -1,3 +1,5 @@
+'use client';
+
 import type { GameHistory, GameAttempt } from '@/app/lib/types';
 import { formatDate } from '@/app/lib/utils';
 import styles from '@/app/ui/game/play-history.module.css';

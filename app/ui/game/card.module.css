@@ -35,10 +35,6 @@
   font-weight: bold;
 }
 
-.playButton {
-  display: inline-flex;
-}
-
 .playIcon {
   width: 3.25rem;
   height: 3.25rem;
