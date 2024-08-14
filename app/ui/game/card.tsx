@@ -22,17 +22,17 @@ const CertificateIcon = ({ className }: { className?: string }) => {
   );
 };
 
-const WalkIcon = ({ className }: { className?: string }) => {
+const FootprintIcon = ({ className }: { className?: string }) => {
   return (
     <svg
       xmlns='http://www.w3.org/2000/svg'
-      viewBox='0 0 48 48'
       className={className}
+      viewBox='0 0 24 24'
     >
-      <g fill='currentColor'>
-        <path d='M31.25 8a4 4 0 1 1-8 0a4 4 0 0 1 8 0m-5.557 20.397l5.193 5.124a2 2 0 0 1 .457.693l2.769 7.055a2 2 0 0 1-3.724 1.462l-2.614-6.661l-8.928-8.81a2 2 0 0 1-.583-1.649l.715-6.32c-1.724 1.714-3.054 4.123-4.073 7.316a2 2 0 1 1-3.81-1.216c1.87-5.86 4.975-10.246 10.185-12.257l.023-.009c1.327-.493 2.707-.453 3.937.182c1.181.611 2.022 1.666 2.573 2.848l.648 1.4c.488 1.058.898 1.95 1.293 2.732c.553 1.1.998 1.83 1.438 2.342c.408.474.813.766 1.33.968c.556.217 1.335.367 2.538.403a2 2 0 1 1-.12 3.998c-1.445-.043-2.728-.228-3.873-.675c-1.183-.462-2.116-1.165-2.91-2.09c-.5-.582-.94-1.247-1.35-1.97z' />
-        <path d='m18.263 30.22l3.315 3.18l-1.526 5.147a2 2 0 0 1-.684 1.006l-5.134 4.023a2 2 0 0 1-2.467-3.15l4.632-3.628l1.395-4.71z' />
-      </g>
+      <path
+        fill='currentColor'
+        d='M10.74 11.72c.47 1.23.42 2.51-.99 3.02c-2.9 1.07-3.55-1.74-3.59-1.88zm-5.03-.81l4.32-1.07c-.19-1.05.1-2.1.1-3.34c0-1.68-1.33-4.97-3.45-4.44c-2.42.6-2.77 3.29-2.68 4.59c.12 1.3 1.64 4.08 1.71 4.26m12.14 8.94c-.03.15-.69 2.95-3.59 1.89c-1.4-.52-1.46-1.8-.99-3.03zm2.15-6.2c.1-1.3-.24-4-2.67-4.6c-2.11-.55-3.44 2.76-3.44 4.45c0 1.23.28 2.28.11 3.33l4.3 1.07c.08-.18 1.59-2.96 1.7-4.25'
+      />
     </svg>
   );
 };
@@ -80,22 +80,22 @@ const GameCard = ({
   gameHistory: GameHistory;
 }) => {
   return (
-    <div className={clsx('card', styles.gameCard)}>
+    <Link href={`/games/${gameNo}`} className={clsx('card', styles.gameCard)}>
+      <GameAward gameHistory={gameHistory} />
       <div className={styles.gameDetails}>
-        <Link href={`/games/${gameNo}`} className={styles.gameTitle}>
-          <GameAward gameHistory={gameHistory} />
+        <div className={styles.gameTitle}>
           <span>GoldRoad #{gameNo}</span>
-        </Link>
+        </div>
         <div className={styles.gameDescription}>
           Collect <strong>{maxScore} coins</strong> in your path
         </div>
 
         <GamePlayHistory gameNo={gameNo} gameHistory={gameHistory} />
       </div>
-      <Link href={`/games/${gameNo}`} className={styles.playButton}>
-        <WalkIcon className={styles.playIcon} />
-      </Link>
-    </div>
+      <div className={styles.playButton}>
+        <FootprintIcon className={styles.playIcon} />
+      </div>
+    </Link>
   );
 };
 

@@ -3,6 +3,12 @@
   gap: 1rem;
   align-items: center;
   width: 100%;
+  text-decoration: none;
+  font-weight: normal;
+}
+
+.gameCard:hover {
+  color: inherit;
 }
 
 @media screen and (min-width: 768px) {
@@ -13,6 +19,7 @@
 
   .gameCard {
     gap: 1.5rem;
+    padding: 1.5rem;
   }
 }
 
@@ -26,15 +33,6 @@
 .gameTitle {
   font-size: 1.25rem;
   font-weight: bold;
-  text-decoration: none;
-  transition: 0.2s all ease-in-out;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.gameTitle:hover {
-  color: rgb(var(--ui-foreground-dark));
 }
 
 .playButton {
@@ -44,11 +42,12 @@
 .playIcon {
   width: 3.25rem;
   height: 3.25rem;
-  transition: transform 0.3s ease;
+  transition: transform 0.3s ease, color 0.3s ease-in-out;
 }
 
 .playIcon:hover {
   transform: scale(1.05);
+  color: rgb(var(--ui-foreground-dark));
 }
 
 .trophyIcon,
@@ -58,8 +57,8 @@
 
 .trophyIcon,
 .noAwardIcon {
-  width: 1.5rem;
-  height: 1.5rem;
+  width: 2rem;
+  height: 2rem;
 }
 
 .trophyIcon {
@@ -72,6 +71,6 @@
 
 .certificateIcon {
   color: silver;
-  width: 1.125rem;
-  height: 1.5rem;
+  width: 1.5rem;
+  height: 2rem;
 }
