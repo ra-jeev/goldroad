@@ -62,3 +62,28 @@ export function formatQuantity(
 
   return `${value} ${singular}s`;
 }
+
+const triesEmojis = {
+  '1': '🥇',
+  '2': '🥈',
+  '3': '🥉',
+  '4+': '😅',
+  '10+': '😥',
+  '20+': '😓',
+} as const;
+
+type KnownTriesCount = keyof typeof triesEmojis;
+
+export const getEmojiForTries = (tries: number) => {
+  const triesStr = String(tries);
+
+  if (triesStr in triesEmojis) {
+    return triesEmojis[triesStr as KnownTriesCount];
+  } else if (tries < 10) {
+    return triesEmojis['4+'];
+  } else if (tries < 20) {
+    return triesEmojis['10+'];
+  }
+
+  return triesEmojis['20+'];
+};
