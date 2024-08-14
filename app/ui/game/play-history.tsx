@@ -76,7 +76,7 @@ export default function GamePlayHistory({
       {attempts.length === 1 ? (
         <HistoryItem attempt={attempts[0]} />
       ) : (
-        <details>
+        <details onClick={(e) => e.stopPropagation()}>
           <summary className={styles.summary}>
             Played {attempts.length} times.{' '}
             {firstSolved !== undefined ? (
