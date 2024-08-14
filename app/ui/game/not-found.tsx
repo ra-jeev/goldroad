@@ -1,7 +1,7 @@
 'use client';
 
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import PlayTodaysGameBtn from '@/app/ui/play-todays-game-btn';
 import styles from '@/app/ui/game/not-found.module.css';
 
 export default function GameNotFound() {
@@ -14,11 +14,7 @@ export default function GameNotFound() {
         We couldn&apos;t find the game you&apos;re looking for. Please try again
         later.
       </p>
-      {pathname === '/' && (
-        <Link className='app-btn' href='/' replace>
-          Play today&apos;s game
-        </Link>
-      )}
+      {pathname !== '/' && <PlayTodaysGameBtn />}
     </div>
   );
 }
