@@ -1,0 +1,11 @@
+.statsText {
+  background-color: gold;
+  color: rgb(var(--ui-background));
+  padding: 1rem 2.5rem;
+  border-radius: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  line-height: 1.4;
+  font-weight: 500;
+}
