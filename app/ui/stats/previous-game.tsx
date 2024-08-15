@@ -91,10 +91,10 @@ export default function PreviousGameStats({
 
   return (
     <div className='card stats-card'>
-      <div className='card-title'>
-        Yesterday&apos;s Road: #{gameStats.gameNo}
+      <div className='card-title'>Yesterday&apos;s Road</div>
+      <div className='text-lg mt-2'>
+        GoldRoad #{gameStats.gameNo} Global Stats
       </div>
-      <div className='text-lg mt-2'>Global Stats</div>
 
       <div className={clsx('mt-8', styles.graphContainer)}>
         <div className={styles.graphPlot}>

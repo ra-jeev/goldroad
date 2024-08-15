@@ -96,7 +96,7 @@ export default function SolveTriesStats({
   );
 
   return (
-    <div className='mt-4'>
+    <div>
       <div className={styles.statsRow}>
         {Object.entries(categorizedStats)
           .slice(0, 3)
