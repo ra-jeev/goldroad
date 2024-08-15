@@ -74,14 +74,22 @@ const triesEmojis = {
 
 type KnownTriesCount = keyof typeof triesEmojis;
 
-export const getEmojiForTries = (tries: number) => {
-  const triesStr = String(tries);
+export const getEmojiForTries = (tries: string | number) => {
+  if (typeof tries === 'string' && tries in triesEmojis) {
+    return triesEmojis[tries as KnownTriesCount];
+  }
 
-  if (triesStr in triesEmojis) {
-    return triesEmojis[triesStr as KnownTriesCount];
-  } else if (tries < 10) {
+  const triesNum = typeof tries === 'string' ? parseInt(tries, 10) : tries;
+
+  if (isNaN(triesNum)) {
+    return triesEmojis['20+'];
+  }
+
+  if (triesNum <= 3) {
+    return triesEmojis[String(triesNum) as KnownTriesCount];
+  } else if (triesNum < 10) {
     return triesEmojis['4+'];
-  } else if (tries < 20) {
+  } else if (triesNum < 20) {
     return triesEmojis['10+'];
   }
 
