@@ -2,6 +2,11 @@
   display: flex;
   gap: 0.5rem;
   width: 100%;
+  margin-top: 1.25rem;
+}
+
+.statsEntry + .statsEntry {
+  margin-top: 0.5rem;
 }
 
 .statsKey {
