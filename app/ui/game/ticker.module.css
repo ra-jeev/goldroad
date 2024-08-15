@@ -1,0 +1,12 @@
+.ticker {
+  display: inline-flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.ticker .ticker-dot {
+  border-radius: 50%;
+  background-color: rgb(var(--ui-red));
+  width: 0.5rem;
+  height: 0.5rem;
+}

@@ -1,6 +1,0 @@
-{
-    "values": {
-        "dbName": "goldroadDb-dev",
-        "serviceName": "gcp-goldroad"
-    }
-}

@@ -1,0 +1,12 @@
+.replay-btn {
+  background-color: rgba(0, 0, 0, 0);
+  border-radius: 50%;
+  border: 0;
+}
+
+.how-to-play {
+  display: inline-flex;
+  gap: 0.5rem;
+  align-items: center;
+  font-size: 1.125rem;
+}

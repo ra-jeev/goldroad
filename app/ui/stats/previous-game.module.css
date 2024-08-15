@@ -1,0 +1,64 @@
+.graphContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.graphPlot {
+  display: flex;
+  gap: 6px;
+  height: 8rem;
+  align-items: flex-end;
+  padding: 0 0.5rem;
+  border-bottom: 1px solid #a4a4a4;
+}
+
+.graphBar {
+  width: 5px;
+  background-color: #a4a4a4;
+  position: relative;
+  border-top-left-radius: 2px;
+  border-top-right-radius: 2px;
+  transition: height 0.3s ease;
+}
+
+.axisMarker {
+  position: absolute;
+  bottom: -0.85rem;
+  font-size: 9px;
+  font-weight: 500;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.graphLabel {
+  line-height: 1;
+  font-size: small;
+}
+
+.highlight {
+  background-color: rgb(var(--ui-foreground));
+}
+
+.highlight::after {
+  position: absolute;
+  content: '￬';
+  font-weight: 900;
+  left: 50%;
+  transform: translateX(-50%);
+  top: -1.5rem;
+}
+
+.globalStatsText {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.5rem;
+  color: rgb(var(--ui-foreground-dark));
+}
+
+.globalStatsText strong {
+  color: rgb(var(--ui-foreground));
+}

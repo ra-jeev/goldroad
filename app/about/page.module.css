@@ -1,0 +1,17 @@
+.update {
+  .date {
+    margin-bottom: 1rem;
+  }
+}
+
+.update + .update {
+  margin-top: 2rem;
+}
+
+.kbd {
+  background-color: rgb(var(--ui-foreground));
+  color: rgb(var(--ui-background));
+  padding: 0 2px;
+  border-radius: 2px;
+  font-size: 0.9rem;
+}

@@ -1,0 +1,215 @@
+:root {
+  --ui-foreground: 218, 165, 32;
+  --ui-foreground-light: 212, 175, 55;
+  --ui-foreground-dark: 184, 134, 11;
+  --ui-background: 35, 12, 15;
+  --ui-green: 68, 221, 25;
+  --ui-green-dark: 34, 120, 10;
+  --ui-red: 252, 47, 0;
+  --ui-red-dark: 158, 5, 23;
+  --header-height: 3.5rem;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+body {
+  color: rgb(var(--ui-foreground));
+  background: rgb(var(--ui-background));
+  text-rendering: optimizeLegibility;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(100vh - var(--header-height));
+}
+
+.section {
+  padding: 1rem;
+  width: 100%;
+  max-width: 32rem;
+
+  p {
+    margin-bottom: 1rem;
+  }
+
+  .title {
+    font-size: 1.5rem;
+    font-weight: bolder;
+    margin-bottom: 1.5rem;
+  }
+}
+
+.section + .section {
+  margin-top: 1rem;
+}
+
+a {
+  color: inherit;
+  font-weight: bold;
+  transition: 0.2s color ease-in-out;
+}
+
+figure img {
+  margin-top: 0.5rem;
+  max-width: 12rem;
+  height: auto;
+}
+
+figure + figure {
+  margin-top: 1rem;
+}
+
+.icon-btn {
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 2px;
+  cursor: pointer;
+  color: rgb(var(--ui-foreground));
+  transition: 0.2s color ease-in-out;
+}
+
+a:hover,
+.icon-btn:hover {
+  color: rgb(var(--ui-foreground-dark));
+}
+
+.icon-wrapper {
+  position: relative;
+}
+
+.font-medium {
+  font-weight: 500;
+}
+
+.font-bold {
+  font-weight: bold;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.app-btn {
+  font-size: 1rem;
+  font-weight: bold;
+  color: rgb(var(--ui-background));
+  background-color: rgb(var(--ui-foreground));
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 1.5rem;
+  transition: background-color 0.3s ease, transform 0.3s ease;
+  cursor: pointer;
+}
+
+.app-btn:hover {
+  color: rgb(var(--ui-background));
+  background-color: rgb(var(--ui-foreground-dark));
+  transform: scale(1.05);
+}
+
+.info-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.info-title {
+  font-size: 1.375rem;
+  font-weight: bold;
+}
+
+.mt-2 {
+  margin-top: 0.5rem;
+}
+
+.mt-4 {
+  margin-top: 1rem;
+}
+
+.mt-6 {
+  margin-top: 1.5rem;
+}
+
+.mt-8 {
+  margin-top: 2rem;
+}
+
+.mt-12 {
+  margin-top: 3rem;
+}
+
+.card {
+  background-color: rgba(192, 192, 192, 0.18);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  box-shadow: 0 2px 4px rgba(var(--ui-foreground), 0.18);
+  transition: box-shadow 0.3s ease;
+}
+
+.card:hover {
+  box-shadow: 0 4px 8px rgba(var(--ui-foreground), 0.24);
+}
+
+.card-title {
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.stats-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 1.5rem;
+  position: relative;
+}
+
+.text-lg {
+  font-size: 1.125rem;
+}
+
+.emoji-medium {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.emoji-big {
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+@media screen and (min-width: 768px) {
+  .section {
+    .title {
+      font-size: 1.5rem;
+    }
+  }
+
+  .info-title {
+    font-size: 1.625rem;
+  }
+
+  .card {
+    max-width: 32rem;
+  }
+}

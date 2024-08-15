@@ -1,0 +1,14 @@
+runConfig:
+  maxInstances: 10
+  cpu: 1
+env:
+  - variable: MONGODB_URI
+    secret: MONGODB_URI
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: DB_NAME
+    value: goldroadDb-dev
+    availability:
+      - BUILD
+      - RUNTIME

@@ -1,0 +1,72 @@
+.gameCard {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  width: 100%;
+  text-decoration: none;
+  font-weight: normal;
+}
+
+.gameCard:hover {
+  color: inherit;
+}
+
+@media screen and (min-width: 768px) {
+  .gameCard,
+  .trophyContainer {
+    max-width: 32rem;
+  }
+
+  .gameCard {
+    gap: 1.5rem;
+    padding: 1.5rem;
+  }
+}
+
+.gameDetails {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  gap: 0.5rem;
+}
+
+.gameTitle {
+  font-size: 1.25rem;
+  font-weight: bold;
+}
+
+.playIcon {
+  width: 3.25rem;
+  height: 3.25rem;
+  transition: transform 0.3s ease, color 0.3s ease-in-out;
+}
+
+.playIcon:hover {
+  transform: scale(1.05);
+  color: rgb(var(--ui-foreground-dark));
+}
+
+.trophyIcon,
+.certificateIcon {
+  flex-shrink: 0;
+}
+
+.trophyIcon,
+.noAwardIcon {
+  width: 2rem;
+  height: 2rem;
+}
+
+.trophyIcon {
+  color: gold;
+}
+
+.noAwardIcon {
+  color: rgb(var(--ui-red));
+}
+
+.certificateIcon {
+  color: silver;
+  width: 1.5rem;
+  height: 2rem;
+}

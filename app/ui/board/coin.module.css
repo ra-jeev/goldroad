@@ -1,0 +1,105 @@
+.coin {
+  width: 3.5rem;
+  aspect-ratio: 1;
+  max-width: 100%;
+  border: 4px dotted rgb(var(--ui-red));
+  color: rgb(var(--ui-foreground));
+  background-color: rgba(0, 0, 0, 0);
+  font-size: 1.625rem;
+  font-weight: 700;
+  border-radius: 50%;
+  user-select: none;
+  transition: transform 0.2s ease-in-out, background-color 0.2s ease-in-out;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.coin .coin-border {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border: 4px solid rgb(var(--ui-foreground));
+  border-radius: 50%;
+  box-sizing: content-box;
+}
+
+.coin--active {
+  background-color: rgba(var(--ui-green), 0.48);
+  cursor: pointer;
+}
+
+.coin--active:hover,
+.coin--active:focus {
+  transform: scale(1.05);
+}
+
+.coin--active:active,
+.coin--active:focus:active {
+  transform: scale(0.95);
+}
+
+.coin--end {
+  background-color: rgba(var(--ui-red), 0.48);
+}
+
+.coin--done {
+  color: rgb(var(--ui-background));
+  box-shadow: 0px 0px 12px 4px rgba(var(--ui-foreground), 0.54);
+  background-color: rgb(var(--ui-foreground-light));
+}
+
+.coin--done.coin--start {
+  color: rgb(var(--ui-green-dark));
+}
+
+.coin--done .coin-border {
+  border-color: rgb(var(--ui-foreground-dark));
+}
+
+.coin.wall-left .coin-border {
+  border-left-color: transparent;
+}
+
+.coin.wall-right .coin-border {
+  border-right-color: transparent;
+}
+
+.coin.wall-top .coin-border {
+  border-top-color: transparent;
+}
+
+.coin.wall-bottom .coin-border {
+  border-bottom-color: transparent;
+}
+
+.arrow {
+  position: absolute;
+  width: 21px;
+  height: 24px;
+  color: rgb(var(--ui-background));
+  background-color: rgba(var(--ui-foreground), 0.48);
+  z-index: 1;
+}
+
+.arrow--left {
+  left: 0;
+  transform: translateX(calc(-50% - 8px)) rotate(180deg);
+}
+
+.arrow--right {
+  right: 0px;
+  /* Move 50% arrow length + border width + (coin gap) / 2 */
+  transform: translateX(calc(50% + 8px));
+}
+
+.arrow--up {
+  top: 0;
+  transform: translateY(calc(-50% - 8px)) rotate(-90deg);
+}
+
+.arrow--down {
+  bottom: 0;
+  transform: translateY(calc(50% + 8px)) rotate(90deg);
+}

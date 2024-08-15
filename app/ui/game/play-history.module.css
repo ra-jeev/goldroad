@@ -1,0 +1,30 @@
+.playHistory {
+  font-size: 0.875rem;
+}
+
+.playInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.detailsExpand {
+  margin-top: 0.5rem;
+  padding-left: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.summary {
+  user-select: none;
+  cursor: pointer;
+}
+
+.solved {
+  color: rgb(var(--ui-green));
+}
+
+.unsolved {
+  color: rgb(var(--ui-red));
+}

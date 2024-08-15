@@ -1,0 +1,43 @@
+import { Game } from '@/app/lib/types';
+
+export const gameData: Game = {
+  _id: '63a39e14261080ad1b3844e9',
+  coins: [
+    6, 3, 3, 6, 4, 1, 1, 5, 2, 2, 6, 6, 3, 2, 6, 5, 1, 2, 6, 1, 4, 4, 6, 2, 2,
+    4, 2, 6, 3, 3, 2, 1, 3, 6, 1, 5,
+  ],
+  start: 20,
+  end: 0,
+  active: true,
+  createdAt: '2022-12-22T00:00:09.439Z',
+  updatedAt: '2022-12-22T15:00:01.408Z',
+  maxScore: 112,
+  maxScoreMoves: 32,
+  hints: [
+    20, 21, 15, 14, 8, 2, 3, 9, 10, 4, 5, 11, 17, 16, 22, 23, 29, 35, 34, 33,
+    27, 26, 32, 31, 30, 24, 25, 19, 18, 12, 6, 0,
+  ],
+  playableAt: '2022-12-23T00:00:00.000Z',
+  gameNo: 9,
+  current: true,
+  nextGameAt: '2022-12-16T00:17:00.000Z',
+  playedAt: '2022-12-22T14:45:02.609Z',
+  boardScore: 125,
+  cols: 6,
+  hash: '68f1d8a0f7c40b67ee42eeb4bd8abddb04e1ab0d402cd25981c51c559a0e8c46',
+  rows: 6,
+  walls: {
+    0: 2,
+    1: 3,
+    6: 2,
+    7: 2,
+    15: 1,
+    17: 3,
+    18: 3,
+    22: 4,
+    27: 2,
+    28: 2,
+    31: 1,
+    33: 4,
+  },
+};
