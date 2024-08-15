@@ -1,0 +1,63 @@
+.statsRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.statsHeader {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.statsCount {
+  font-size: 1.25rem;
+  font-weight: bold;
+}
+
+.statsIncrement {
+  font-size: 0.75rem;
+  color: gold;
+  font-weight: bold;
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.statsIncrement.animateIncrement {
+  animation: fadeInDown 0.5s forwards;
+}
+
+.statsIncrement.showIncrement {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.statsTries {
+  font-size: 0.75rem;
+  color: rgb(var(--ui-foreground-dark));
+}
+
+.toggleBtn {
+  background: none;
+  border: none;
+  color: rgb(var(--ui-foreground));
+  cursor: pointer;
+  font-size: 14px;
+  width: 100%;
+  text-align: center;
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
