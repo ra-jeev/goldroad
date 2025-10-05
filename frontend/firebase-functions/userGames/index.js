@@ -25,7 +25,7 @@ exports.get = onCall(async (request) => {
       return game;
     }
 
-    throw new HttpsError('not-found', 'failed to find the game with given no');
+    return null;
   }
 
   throw new HttpsError('unauthenticated', 'No user id provided');
@@ -68,134 +68,97 @@ exports.getRange = onCall(async (request) => {
 });
 
 exports.update = onCall(async (request) => {
-  const startTime = Date.now();
   logger.debug('Incoming data', request.data);
   const userId = request.auth?.uid;
   const data = request.data;
-  if (userId) {
-    const { db } = await connectToDatabase();
-    const usersCollection = db.collection('users');
-    const userGamesCollection = db.collection('userGames');
-    const gamesCollection = db.collection('games');
 
-    const retVal = {};
-    const updatePromises = [];
+  if (!userId) {
+    throw new HttpsError('unauthenticated', 'No user id provided');
+  }
 
-    if (data.userChanges && (data.userChanges.$set || data.userChanges.$inc)) {
-      const userUpdate = {
-        ...data.userChanges,
-      };
+  const { db } = await connectToDatabase();
+  const usersCollection = db.collection('users');
+  const userGamesCollection = db.collection('userGames');
+  const gamesCollection = db.collection('games');
 
-      if (!userUpdate.$set) {
-        userUpdate.$set = {};
-      }
+  let updatedUser = null;
 
-      userUpdate.$set.updatedAt = new Date();
-
-      updatePromises.push(
-        usersCollection.updateOne({ _id: userId }, userUpdate),
-      );
-
-      // Logic from onGameSolved.js
-      const lastGamePlayed = userUpdate.$set['data.lastGamePlayed'];
-      const lastGamePlayedSolved =
-        userUpdate.$set['data.lastGamePlayed.solved'];
-
-      if (lastGamePlayed) {
-        const incChanges = { 'stats.played': 1 };
-        if (lastGamePlayed.solved) {
-          incChanges['stats.solved'] = 1;
-          incChanges[`stats.tries.${lastGamePlayed.tries}`] = 1;
-        }
-
-        updatePromises.push(
-          gamesCollection.updateOne(
-            { _id: new ObjectId(lastGamePlayed._id) },
-            { $inc: incChanges, $set: { updatedAt: new Date() } },
-          ),
-        );
-      } else if (lastGamePlayedSolved) {
-        logger.log('lastGamePlayedSolved in multiple tries: ');
-        const tries = userUpdate.$set['data.lastGamePlayed.tries'];
-        const gameId = userUpdate.$set['data.lastGamePlayed.gameId'];
-
-        if (tries && gameId) {
-          const incChanges = {
-            'stats.solved': 1,
-            [`stats.tries.${tries}`]: 1,
-          };
-          updatePromises.push(
-            gamesCollection.updateOne(
-              { _id: new ObjectId(gameId) },
-              { $inc: incChanges, $set: { updatedAt: new Date() } },
-            ),
-          );
-        }
-      }
+  if (data.userChanges && (data.userChanges.$set || data.userChanges.$inc)) {
+    const userUpdate = { ...data.userChanges };
+    if (!userUpdate.$set) {
+      userUpdate.$set = {};
     }
+    userUpdate.$set.updatedAt = new Date();
 
-    const update = {
-      ...data.userGameChanges,
-    };
+    const userResult = await usersCollection.findOneAndUpdate(
+      { _id: userId },
+      userUpdate,
+      { upsert: true, returnDocument: 'after' }, // Use upsert: true
+    );
 
-    if (update.$set) {
-      if (update.$set.createdAt) {
-        update.$set.createdAt = new Date(update.$set.createdAt);
-      }
+    // If the update was requested but failed to find or create a user, halt execution.
+    if (!userResult) {
+      throw new HttpsError(
+        'not-found',
+        'Failed to find or update the specified user.',
+      );
+    }
+    updatedUser = userResult;
+  }
 
-      if (update.$set.updatedAt) {
-        update.$set.updatedAt = new Date(update.$set.updatedAt);
-      }
-
-      if (update.$set.attempts) {
-        update.$set.attempts.forEach((attempt) => {
-          attempt.playedAt = new Date(attempt.playedAt);
+  const parallelPromises = [];
+  if (data.userGameChanges) {
+    const userGameUpdate = { ...data.userGameChanges };
+    if (userGameUpdate.$set) {
+      if (userGameUpdate.$set.createdAt)
+        userGameUpdate.$set.createdAt = new Date(userGameUpdate.$set.createdAt);
+      if (userGameUpdate.$set.updatedAt)
+        userGameUpdate.$set.updatedAt = new Date(userGameUpdate.$set.updatedAt);
+      if (userGameUpdate.$set.attempts) {
+        userGameUpdate.$set.attempts.forEach((a) => {
+          if (a.playedAt) a.playedAt = new Date(a.playedAt);
         });
       }
     }
 
-    if (update.$push) {
-      update.$push.attempts.playedAt = new Date(update.$push.attempts.playedAt);
+    if (userGameUpdate.$push) {
+      userGameUpdate.$push.attempts.playedAt = new Date(
+        userGameUpdate.$push.attempts.playedAt,
+      );
     }
 
-    updatePromises.push(
-      userGamesCollection.updateOne(
-        {
-          owner_id: userId,
-          gameNo: data.gameNo,
-        },
-        update,
-        { upsert: true },
+    parallelPromises.push(
+      userGamesCollection.findOneAndUpdate(
+        { owner_id: userId, gameNo: data.gameNo },
+        userGameUpdate,
+        { upsert: true, returnDocument: 'after' },
       ),
     );
+  }
 
-    const updateRes = await Promise.allSettled(updatePromises);
-    const startTime1 = Date.now();
-    logger.log(
-      `updated the user & userGame entries in ${
-        startTime1 - startTime
-      }ms: ${JSON.stringify(updateRes)}`,
-    );
+  if (updatedUser) {
+    const lastGamePlayed = updatedUser.data.lastGamePlayed;
+    if (lastGamePlayed) {
+      const incChanges = { 'stats.played': 1 };
+      if (lastGamePlayed.solved) {
+        incChanges['stats.solved'] = 1;
+        incChanges[`stats.tries.${lastGamePlayed.tries}`] = 1;
+      }
 
-    const getPromises = [
-      usersCollection.findOne({ _id: userId }),
-      userGamesCollection.findOne({ owner_id: userId, gameNo: data.gameNo }),
-    ];
-
-    const getRes = await Promise.allSettled(getPromises);
-    logger.log(`get request fulfilled in ${Date.now() - startTime1}ms`);
-    logger.log(`Got user data res: ${JSON.stringify(getRes[0])}`);
-    logger.log(`Got user game res: ${JSON.stringify(getRes[1])}`);
-
-    if (getRes[0].status === 'fulfilled' && getRes[0].value) {
-      const user = getRes[0].value;
-      if (user.createdAt) user.createdAt = user.createdAt.toISOString();
-      if (user.updatedAt) user.updatedAt = user.updatedAt.toISOString();
-      retVal.user = user;
+      parallelPromises.push(
+        gamesCollection.updateOne(
+          { _id: new ObjectId(lastGamePlayed._id) },
+          { $inc: incChanges, $set: { updatedAt: new Date() } },
+        ),
+      );
     }
+  }
 
-    if (getRes[1].status === 'fulfilled' && getRes[1].value) {
-      const userGame = getRes[1].value;
+  const retVal = {};
+  if (parallelPromises.length > 0) {
+    const [userGameResult] = await Promise.all(parallelPromises);
+    if (userGameResult) {
+      const userGame = userGameResult;
       if (userGame.createdAt)
         userGame.createdAt = userGame.createdAt.toISOString();
       if (userGame.updatedAt)
@@ -207,13 +170,22 @@ exports.update = onCall(async (request) => {
       }
       retVal.userGame = userGame;
     }
-
-    if (retVal.user || retVal.userGame) {
-      return retVal;
-    }
-
-    throw new HttpsError('not-found', 'failed to find the user with given id');
   }
 
-  throw new HttpsError('unauthenticated', 'No user id provided');
+  if (updatedUser) {
+    if (updatedUser.createdAt)
+      updatedUser.createdAt = updatedUser.createdAt.toISOString();
+    if (updatedUser.updatedAt)
+      updatedUser.updatedAt = updatedUser.updatedAt.toISOString();
+    retVal.user = updatedUser;
+  } else if (!retVal.userGame) {
+    const user = await usersCollection.findOne({ _id: userId });
+    if (user) {
+      if (user.createdAt) user.createdAt = user.createdAt.toISOString();
+      if (user.updatedAt) user.updatedAt = user.updatedAt.toISOString();
+      retVal.user = user;
+    }
+  }
+
+  return retVal;
 });
