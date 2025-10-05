@@ -7,7 +7,6 @@ import {
   useRef,
 } from 'react';
 
-import { getApp } from 'realm-web';
 import { initializeApp } from 'firebase/app';
 import {
   getAuth,
@@ -24,8 +23,13 @@ import {
   onAuthStateChanged,
   fetchSignInMethodsForEmail,
   signOut,
+  connectAuthEmulator,
 } from 'firebase/auth';
-import { getFunctions, httpsCallable } from 'firebase/functions';
+import {
+  getFunctions,
+  httpsCallable,
+  connectFunctionsEmulator,
+} from 'firebase/functions';
 import { getFirestore, doc, onSnapshot, deleteDoc } from 'firebase/firestore';
 import {
   getMessaging,
@@ -75,8 +79,16 @@ export function FirebaseProvider({ children }) {
 
   useEffect(() => {
     const firebaseApp = initializeApp(firebaseConfig);
-    setAuth(getAuth(firebaseApp));
-    setFunctions(getFunctions(firebaseApp, 'asia-south1'));
+    const auth = getAuth(firebaseApp);
+    const functions = getFunctions(firebaseApp, 'asia-south1');
+
+    if (window.location.hostname === 'localhost') {
+      connectAuthEmulator(auth, 'http://localhost:9099');
+      connectFunctionsEmulator(functions, 'localhost', 5001);
+    }
+
+    setAuth(auth);
+    setFunctions(functions);
     setFireDb(getFirestore(firebaseApp));
     setMessaging(getMessaging(firebaseApp));
   }, []);
@@ -97,7 +109,7 @@ export function FirebaseProvider({ children }) {
         }
       }
     },
-    [functions]
+    [functions],
   );
 
   const handleAccountExistsWithCredential = useCallback(
@@ -108,7 +120,7 @@ export function FirebaseProvider({ children }) {
         try {
           const methods = await fetchSignInMethodsForEmail(
             auth,
-            emailFromError
+            emailFromError,
           );
 
           if (methods.length) {
@@ -126,7 +138,7 @@ export function FirebaseProvider({ children }) {
 
       setAuthState({ state: AUTH_STATE.ERROR });
     },
-    [auth]
+    [auth],
   );
 
   const handleCredentialInUseError = useCallback(
@@ -136,7 +148,7 @@ export function FirebaseProvider({ children }) {
       try {
         const credentials = await signInWithCredential(
           auth,
-          OAuthProvider.credentialFromError(credentialError)
+          OAuthProvider.credentialFromError(credentialError),
         );
 
         await migrateCurrentUser({
@@ -153,7 +165,7 @@ export function FirebaseProvider({ children }) {
         }
       }
     },
-    [auth, migrateCurrentUser, handleAccountExistsWithCredential]
+    [auth, migrateCurrentUser, handleAccountExistsWithCredential],
   );
 
   useEffect(() => {
@@ -176,24 +188,14 @@ export function FirebaseProvider({ children }) {
             creatingUser.current = true;
             setNewUser(true);
             await signInAnonymously(auth);
-            const realmApp = getApp(process.env.REACT_APP_REALM_APP_ID);
-            if (realmApp.currentUser) {
-              const success = await migrateCurrentUser({
-                realmUserId: realmApp.currentUser.id,
-              });
 
-              if (success) {
-                realmApp.deleteUser(realmApp.currentUser);
-              }
-            } else {
-              const createUser = httpsCallable(functions, 'users-create');
-              if (createUser) {
-                const userDoc = await createUser();
-                if (userDoc?.data) {
-                  setCurrentUser(userDoc.data);
-                } else {
-                  console.log('No user doc found;');
-                }
+            const createUser = httpsCallable(functions, 'users-create');
+            if (createUser) {
+              const userDoc = await createUser();
+              if (userDoc?.data) {
+                setCurrentUser(userDoc.data);
+              } else {
+                console.log('No user doc found;');
               }
             }
 
@@ -250,7 +252,7 @@ export function FirebaseProvider({ children }) {
           if (userDocData) {
             unsubscribe();
             await deleteDoc(
-              doc(fireDb, 'migratedUsers', documentListener.user.uid)
+              doc(fireDb, 'migratedUsers', documentListener.user.uid),
             );
 
             setDocumentListener(null);
@@ -260,7 +262,7 @@ export function FirebaseProvider({ children }) {
 
             setCurrentUser(userDocData);
           }
-        }
+        },
       );
 
       return () => unsubscribe();
@@ -293,7 +295,7 @@ export function FirebaseProvider({ children }) {
         }
       }
     },
-    [auth, handleCredentialInUseError, handleAccountExistsWithCredential]
+    [auth, handleCredentialInUseError, handleAccountExistsWithCredential],
   );
 
   const authenticate = useCallback(
@@ -329,7 +331,7 @@ export function FirebaseProvider({ children }) {
         await handleSignInWithPopup(provider);
       }
     },
-    [auth, handleSignInWithPopup]
+    [auth, handleSignInWithPopup],
   );
 
   const getCallableFunction = useCallback(
@@ -340,7 +342,7 @@ export function FirebaseProvider({ children }) {
 
       return null;
     },
-    [functions]
+    [functions],
   );
 
   const signOutUser = useCallback(() => {
@@ -378,7 +380,10 @@ export function FirebaseProvider({ children }) {
 
       const savedToken = localStorage.getItem('registration-token');
 
-      const registerToken = httpsCallable(functions, 'messaging-registerToken');
+      const registerToken = httpsCallable(
+        functions,
+        'messaging-registerToken',
+      );
 
       if (
         registerToken &&
@@ -470,7 +475,7 @@ export const useFirebase = () => {
   const firebase = useContext(FirebaseContext);
   if (!firebase) {
     throw new Error(
-      `No firebase context found. Did you call useFirebase() inside of a <FirebaseProvider />?`
+      `No firebase context found. Did you call useFirebase() inside of a <FirebaseProvider />?`,
     );
   }
 

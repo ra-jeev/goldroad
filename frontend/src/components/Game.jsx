@@ -16,14 +16,14 @@ const MIN_TILE_SIZE = 48;
 const TILE_GAP = 8;
 const OTHER_ELEMENTS_HEIGHT = 52 + 62 + 28 + 2 * 24 + 2 * 16;
 
-const gamePlayStatuses = [
-  'You can only move up/down, or left/right',
-  `Red dashed lines are walls you can't cross`,
-  'There might be multiple paths to the goal',
-  'Tap the button at the bottom to replay',
-  'Come back tomorrow for a new puzzle',
-  ' ', // Empty status
-];
+// const gamePlayStatuses = [
+//   'You can only move up/down, or left/right',
+//   `Red dashed lines are walls you can't cross`,
+//   'There might be multiple paths to the goal',
+//   'Tap the button at the bottom to replay',
+//   'Come back tomorrow for a new puzzle',
+//   ' ', // Empty status
+// ];
 
 const DEFAULT_STATE = {
   moves: 0,
@@ -147,7 +147,7 @@ export const Game = ({ sounds }) => {
 
       setGameState({ ...gameState });
     },
-    [gameState]
+    [gameState],
   );
 
   useEffect(() => {
@@ -451,7 +451,7 @@ export const Game = ({ sounds }) => {
         }
       }
     },
-    [userData, userHistory, game, gameId, navigate, updateUserGameHistory]
+    [userData, userHistory, game, gameId, navigate, updateUserGameHistory],
   );
 
   const replayGame = () => {
@@ -642,11 +642,11 @@ export const Game = ({ sounds }) => {
         playSound(sounds, GAME_SOUNDS.DENY);
       }
     },
-    [gameState, sounds, playSound, updateUserEntry]
+    [gameState, sounds, playSound, updateUserEntry],
   );
 
   return (
-    <div className='board-container'>
+    <div className="board-container">
       {loading ? (
         gameId ? (
           'Loading the requested game...'
@@ -655,15 +655,15 @@ export const Game = ({ sounds }) => {
         )
       ) : gameState.error ? (
         <>
-          <div className='error'>{gameState.error}</div>
+          <div className="error">{gameState.error}</div>
           <br />
-          <Link className='link' to='/' replace={true}>
+          <Link className="link" to="/" replace={true}>
             Play today's game
           </Link>
         </>
       ) : gameState.tiles.length > 0 ? (
         useAlternateLayout ? (
-          <div className='alternate-layout'>
+          <div className="alternate-layout">
             <Board
               tiles={gameState.tiles}
               tileSize={gameState.tileSize}
@@ -671,13 +671,13 @@ export const Game = ({ sounds }) => {
               onClick={onTileClick}
               keyboardEventListener={onKeyboardEvent}
             />
-            <div className='alternate-layout-info'>
-              <div className='game-item game-info'>
-                <span className='score'>
+            <div className="alternate-layout-info">
+              <div className="game-item game-info">
+                <span className="score">
                   Collect {game.maxScore - gameState.score} coins
                   {gameState.score > 0 ? ' more' : ' in your path'}
                 </span>
-                <span className='status'>{gameState.status}</span>
+                <span className="status">{gameState.status}</span>
               </div>
 
               <GameFooter
@@ -691,12 +691,12 @@ export const Game = ({ sounds }) => {
           </div>
         ) : (
           <>
-            <div className='game-item game-info'>
-              <span className='score'>
+            <div className="game-item game-info">
+              <span className="score">
                 Collect {game.maxScore - gameState.score} coins
                 {gameState.score > 0 ? ' more' : ' in your path'}
               </span>
-              <span className='status'>{gameState.status}</span>
+              <span className="status">{gameState.status}</span>
             </div>
             <Board
               tiles={gameState.tiles}

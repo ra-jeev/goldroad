@@ -1,9 +1,10 @@
 # build environment
 FROM node:lts-alpine as react-build
 WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm install
 COPY . ./
-RUN yarn
-RUN yarn build
+RUN npm run build
 
 # server environment
 FROM nginx:alpine

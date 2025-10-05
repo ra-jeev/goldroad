@@ -59,7 +59,7 @@ export function AppDataProvider({ children }) {
         setCurrGameNo(gameDoc.gameNo);
       }
     },
-    [games]
+    [games],
   );
 
   const getPastGames = useCallback(
@@ -105,7 +105,7 @@ export function AppDataProvider({ children }) {
         }
       }
     },
-    [currentUser, getCallableFunction, pastGames]
+    [currentUser, getCallableFunction, pastGames],
   );
 
   const getUserGamesHistory = useCallback(
@@ -137,7 +137,7 @@ export function AppDataProvider({ children }) {
         }
       }
     },
-    [currentUser, getCallableFunction]
+    [currentUser, getCallableFunction],
   );
 
   const getUserHistoryForGame = useCallback(
@@ -154,7 +154,7 @@ export function AppDataProvider({ children }) {
         }
       }
     },
-    [currentUser, getCallableFunction, userGames]
+    [currentUser, getCallableFunction, userGames],
   );
 
   const updateUserData = useCallback(
@@ -171,7 +171,7 @@ export function AppDataProvider({ children }) {
         }
       }
     },
-    [currentUser, setCurrentUser, getCallableFunction]
+    [currentUser, setCurrentUser, getCallableFunction],
   );
 
   const updateUserGameHistory = useCallback(
@@ -198,7 +198,7 @@ export function AppDataProvider({ children }) {
         }
       }
     },
-    [currentUser, setCurrentUser, getCallableFunction]
+    [currentUser, setCurrentUser, getCallableFunction],
   );
 
   return (
@@ -225,7 +225,7 @@ export function useAppData() {
   const appData = useContext(DataContext);
   if (!appData) {
     throw new Error(
-      `No App Data context found. Did you call useAppData() inside of a <AppDataProvider />?`
+      `No App Data context found. Did you call useAppData() inside of a <AppDataProvider />?`,
     );
   }
 
