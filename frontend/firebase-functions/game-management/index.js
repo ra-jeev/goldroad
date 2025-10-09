@@ -157,9 +157,9 @@ const _createGame = async (data) => {
     const config = await appCollection.findOne({ type: 'config' });
 
     logger.log('fetch config data:', config);
-    logger.log('lastPlayableGame:', config.lastPlayableGame);
-
+    
     if (config) {
+      logger.log('lastPlayableGame:', config.lastPlayableGame);
       if (config.lastPlayableGame) {
         const lastPlayableDate = new Date(config.lastPlayableGame.playableAt);
         lastPlayableDate.setUTCDate(lastPlayableDate.getDate() + 1);
@@ -265,9 +265,6 @@ exports.changeGame = onSchedule('0 0 * * *', async () => {
     logger.log('after the bulkWrite Op', bulkWriteResult);
 
     if (bulkWriteResult.isOk()) {
-      logger.log(`Creating game for gameNo: ${currGame.gameNo + 2}`);
-      await _createGame({ gameNo: currGame.gameNo + 2 });
-
       const newGameNo = currGame.gameNo + 1;
       const messageId = await getMessaging().send({
         notification: {
@@ -287,6 +284,9 @@ exports.changeGame = onSchedule('0 0 * * *', async () => {
       });
       logger.log(`messaged sent to the topic with message id: ${messageId}`);
     }
+
+    logger.log(`Creating a new game now`);
+    await _createGame();
   } else {
     logger.error('Error! No current game found.');
   }
