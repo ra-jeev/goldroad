@@ -95,7 +95,7 @@ const findBestRoute = (coins, start, end) => {
   logger.warn('No valid path found');
 };
 
-const _createGame = async (data) => {
+const _createGame = async (data = {}) => {
   const maxRows = data.rows || 6;
   const maxCols = data.cols || 6;
   const walls = data.walls || 2;
