@@ -1,4 +1,4 @@
-const { onCall } = require('firebase-functions/v2/https');
+const { onRequest } = require('firebase-functions/v2/https');
 const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { logger } = require('firebase-functions/v2');
 const { connectToDatabase } = require('../common/mongo');
@@ -157,7 +157,7 @@ const _createGame = async (data = {}) => {
     const config = await appCollection.findOne({ type: 'config' });
 
     logger.log('fetch config data:', config);
-    
+
     if (config) {
       logger.log('lastPlayableGame:', config.lastPlayableGame);
       if (config.lastPlayableGame) {
@@ -295,6 +295,36 @@ exports.changeGame = onSchedule(
   },
 );
 
-exports.createGame = onCall(async (request) => {
-  return await _createGame(request.data);
-});
+exports.createGame = onRequest(
+  { memory: '512MiB', secrets: ['CREATE_GAME_SECRET'] },
+  async (request, response) => {
+    if (request.method !== 'POST') {
+      response.status(405).send('Method Not Allowed');
+      return;
+    }
+
+    const secret = process.env.CREATE_GAME_SECRET;
+    const authHeader = request.headers.authorization || '';
+    const [scheme, token] = authHeader.split(' ');
+
+    if (!secret) {
+      logger.error('CREATE_GAME_SECRET environment variable not set.');
+      response.status(500).send('Internal Server Error');
+      return;
+    }
+
+    if (scheme !== 'Bearer' || token !== secret) {
+      logger.warn('Unauthorized access attempt to createGame');
+      response.status(401).send('Unauthorized');
+      return;
+    }
+
+    try {
+      const game = await _createGame(request.body);
+      response.json(game);
+    } catch (error) {
+      logger.error('Error creating game:', error);
+      response.status(500).send('Internal Server Error');
+    }
+  },
+);
