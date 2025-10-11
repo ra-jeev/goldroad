@@ -211,86 +211,89 @@ const _createGame = async (data = {}) => {
   return gameEntry;
 };
 
-exports.changeGame = onSchedule('0 0 * * *', async () => {
-  logger.log('Executing scheduled game change.');
+exports.changeGame = onSchedule(
+  { schedule: '0 0 * * *', memory: '512MiB' },
+  async () => {
+    logger.log('Executing scheduled game change.');
 
-  const { db } = await connectToDatabase();
-  const gamesCollection = db.collection('games');
-  const currGame = await gamesCollection.findOne({ current: true });
+    const { db } = await connectToDatabase();
+    const gamesCollection = db.collection('games');
+    const currGame = await gamesCollection.findOne({ current: true });
 
-  if (currGame) {
-    logger.log(
-      `got the current game: ${currGame.gameNo}, nextGameAt: ${currGame.nextGameAt}`,
-    );
-    const date = new Date();
-    let nextGameDate;
-    if (currGame.nextGameAt) {
-      nextGameDate = new Date(currGame.nextGameAt);
-      nextGameDate.setUTCDate(nextGameDate.getDate() + 1);
-    } else {
-      nextGameDate = new Date(currGame.playableAt);
-      nextGameDate.setUTCDate(nextGameDate.getDate() + 2);
-    }
+    if (currGame) {
+      logger.log(
+        `got the current game: ${currGame.gameNo}, nextGameAt: ${currGame.nextGameAt}`,
+      );
+      const date = new Date();
+      let nextGameDate;
+      if (currGame.nextGameAt) {
+        nextGameDate = new Date(currGame.nextGameAt);
+        nextGameDate.setUTCDate(nextGameDate.getDate() + 1);
+      } else {
+        nextGameDate = new Date(currGame.playableAt);
+        nextGameDate.setUTCDate(nextGameDate.getDate() + 2);
+      }
 
-    const bulkWriteResult = await gamesCollection.bulkWrite(
-      [
-        {
-          updateOne: {
-            filter: { gameNo: currGame.gameNo + 1 },
-            update: {
-              $set: {
-                current: true,
-                active: true,
-                updatedAt: date,
-                playedAt: date,
-                nextGameAt: nextGameDate,
-                prevGameStats: {
-                  gameNo: currGame.gameNo,
-                  stats: currGame.stats,
+      const bulkWriteResult = await gamesCollection.bulkWrite(
+        [
+          {
+            updateOne: {
+              filter: { gameNo: currGame.gameNo + 1 },
+              update: {
+                $set: {
+                  current: true,
+                  active: true,
+                  updatedAt: date,
+                  playedAt: date,
+                  nextGameAt: nextGameDate,
+                  prevGameStats: {
+                    gameNo: currGame.gameNo,
+                    stats: currGame.stats,
+                  },
                 },
               },
             },
           },
-        },
-        {
-          updateOne: {
-            filter: { _id: currGame._id },
-            update: { $set: { current: false, updatedAt: date } },
+          {
+            updateOne: {
+              filter: { _id: currGame._id },
+              update: { $set: { current: false, updatedAt: date } },
+            },
           },
-        },
-      ],
-      { ordered: true },
-    );
+        ],
+        { ordered: true },
+      );
 
-    logger.log('after the bulkWrite Op', bulkWriteResult);
+      logger.log('after the bulkWrite Op', bulkWriteResult);
 
-    if (bulkWriteResult.isOk()) {
-      const newGameNo = currGame.gameNo + 1;
-      const messageId = await getMessaging().send({
-        notification: {
-          title: `GoldRoad #${newGameNo} is live`,
-          body: 'Get your walking boots on!',
-        },
-        webpush: {
-          headers: { TTL: '86400' },
+      if (bulkWriteResult.isOk()) {
+        const newGameNo = currGame.gameNo + 1;
+        const messageId = await getMessaging().send({
           notification: {
-            icon: `https://playgoldroad.com/icon-192.png`,
-            renotify: true,
-            tag: TOPIC_NAME,
+            title: `GoldRoad #${newGameNo} is live`,
+            body: 'Get your walking boots on!',
           },
-          fcm_options: { link: `https://playgoldroad.com` },
-        },
-        topic: TOPIC_NAME,
-      });
-      logger.log(`messaged sent to the topic with message id: ${messageId}`);
-    }
+          webpush: {
+            headers: { TTL: '86400' },
+            notification: {
+              icon: `https://playgoldroad.com/icon-192.png`,
+              renotify: true,
+              tag: TOPIC_NAME,
+            },
+            fcm_options: { link: `https://playgoldroad.com` },
+          },
+          topic: TOPIC_NAME,
+        });
+        logger.log(`messaged sent to the topic with message id: ${messageId}`);
+      }
 
-    logger.log(`Creating a new game now`);
-    await _createGame();
-  } else {
-    logger.error('Error! No current game found.');
-  }
-});
+      logger.log(`Creating a new game now`);
+      await _createGame();
+    } else {
+      logger.error('Error! No current game found.');
+    }
+  },
+);
 
 exports.createGame = onCall(async (request) => {
   return await _createGame(request.data);
