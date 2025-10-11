@@ -212,7 +212,7 @@ const _createGame = async (data = {}) => {
 };
 
 exports.changeGame = onSchedule(
-  { schedule: '0 0 * * *', memory: '512MiB' },
+  { schedule: '0 0 * * *', memory: '512MiB', timeoutSeconds: 300 },
   async () => {
     logger.log('Executing scheduled game change.');
 
@@ -296,7 +296,7 @@ exports.changeGame = onSchedule(
 );
 
 exports.createGame = onRequest(
-  { memory: '512MiB', secrets: ['CREATE_GAME_SECRET'] },
+  { memory: '512MiB', secrets: ['CREATE_GAME_SECRET'], timeoutSeconds: 300 },
   async (request, response) => {
     if (request.method !== 'POST') {
       response.status(405).send('Method Not Allowed');
