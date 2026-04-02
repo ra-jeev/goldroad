@@ -17,7 +17,7 @@
 	"upload_source_maps": true,
 	"compatibility_flags": [
 		"nodejs_compat"
-	]
+	],
 	/**
 	 * Smart Placement
 	 * https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
@@ -41,4 +41,16 @@
 	 * https://developers.cloudflare.com/workers/wrangler/configuration/#service-bindings
 	 */
 	// "services": [  {   "binding": "MY_SERVICE",   "service": "my-service"  } ]
+	/**
+	 * D1 Database — replace <database_id> after running: wrangler d1 create goldroad
+	 * https://developers.cloudflare.com/workers/wrangler/configuration/#d1-databases
+	 */
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "goldroad",
+			"database_id": "<database_id>",
+			"migrations_dir": "server/db/migrations"
+		}
+	]
 }
