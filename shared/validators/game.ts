@@ -30,6 +30,18 @@ export const EdgePairSchema = z.object({
   to: z.number().int().min(0),
 })
 
+function normalizedEdgeKey(from: number, to: number): string {
+  return from < to ? `${from}:${to}` : `${to}:${from}`
+}
+
+function isAdjacentEdge(from: number, to: number, cols: number): boolean {
+  const fromRow = Math.floor(from / cols)
+  const fromCol = from % cols
+  const toRow = Math.floor(to / cols)
+  const toCol = to % cols
+  return Math.abs(fromRow - toRow) + Math.abs(fromCol - toCol) === 1
+}
+
 export const BoardSchema = z.object({
   rows: z.number().int().min(3).max(10),
   cols: z.number().int().min(3).max(10),
@@ -41,6 +53,88 @@ export const BoardSchema = z.object({
   bonusValue: z.number().int().min(1).default(1),
   start: z.number().int().min(0),
   end: z.number().int().min(0),
+}).superRefine((board, ctx) => {
+  const tileCount = board.rows * board.cols
+
+  if (board.tiles.length !== tileCount) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['tiles'],
+      message: `tiles must contain exactly ${tileCount} values for a ${board.rows}x${board.cols} board`,
+    })
+  }
+
+  if (board.start >= tileCount) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['start'],
+      message: 'start must be a valid tile index within board bounds',
+    })
+  }
+
+  if (board.end >= tileCount) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['end'],
+      message: 'end must be a valid tile index within board bounds',
+    })
+  }
+
+  if (board.start === board.end) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['end'],
+      message: 'start and end must be different tiles',
+    })
+  }
+
+  const edgeGroups = [
+    ['blocked', board.blocked],
+    ['cost', board.cost],
+    ['bonus', board.bonus],
+  ] as const
+
+  const seen = new Map<string, string>()
+
+  for (const [groupName, edges] of edgeGroups) {
+    edges.forEach((edge, index) => {
+      if (edge.from >= tileCount || edge.to >= tileCount) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [groupName, index],
+          message: 'edge endpoints must be valid tile indexes within board bounds',
+        })
+      }
+
+      if (edge.from === edge.to) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [groupName, index],
+          message: 'edge endpoints must be different tiles',
+        })
+      }
+
+      if (!isAdjacentEdge(edge.from, edge.to, board.cols)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [groupName, index],
+          message: 'edges must connect orthogonally adjacent tiles only',
+        })
+      }
+
+      const key = normalizedEdgeKey(edge.from, edge.to)
+      const existingGroup = seen.get(key)
+      if (existingGroup) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [groupName, index],
+          message: `edge overlaps with an existing ${existingGroup} edge`,
+        })
+      } else {
+        seen.set(key, groupName)
+      }
+    })
+  }
 })
 
 // ---------------------------------------------------------------------------
