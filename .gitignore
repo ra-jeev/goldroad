@@ -1,31 +1,29 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-.vscode
-# dependencies
-/node_modules
-/.pnp
-.pnp.js
+# Nuxt dev/build outputs
+.output
+.data
+.nuxt
+.nitro
+.cache
+dist
 
-# testing
-/coverage
+# Node dependencies
+node_modules
 
-# production
-/build
+# Logs
+logs
+*.log
 
-# misc
+# Misc
 .DS_Store
+.fleet
+.idea
+
+# Local env files
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
+!.env.example
 
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-firebase-debug.log*
-firestore-debug.log*
-pubsub-debug.log*
-
-# Dev Crumbs directory
-.devcrumbs
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example

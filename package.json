@@ -1,0 +1,26 @@
+{
+	"name": "goldroad",
+	"type": "module",
+	"private": true,
+	"scripts": {
+		"build": "nuxt build",
+		"dev": "nuxt dev",
+		"generate": "nuxt generate",
+		"preview": "pnpm run build && wrangler dev",
+		"postinstall": "nuxt prepare",
+		"deploy": "pnpm run build && wrangler deploy",
+		"cf-typegen": "wrangler types"
+	},
+	"dependencies": {
+		"nuxt": "^4.4.2",
+		"vue": "^3.5.31",
+		"vue-router": "^5.0.4"
+	},
+	"devDependencies": {
+		"@types/node": "^25.5.0",
+		"h3": "2.0.1-rc.20",
+		"nitro-cloudflare-dev": "^0.2.2",
+		"nitropack": "^2.13.3",
+		"wrangler": "^4.79.0"
+	}
+}
