@@ -27,3 +27,6 @@ logs
 .wrangler
 .dev.vars*
 !.dev.vars.example
+
+# Dev Crumbs directory
+.devcrumbs
