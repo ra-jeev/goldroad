@@ -36,7 +36,12 @@ export function computeHint(
     // Nudge: direction toward the next tile on the optimal path.
     if (onPath) {
       const nextId = optimalPath[currentIndex + 1]!
-      return { level: 1, direction: getDirection(currentId, nextId, cols), fromTileIndex: currentId }
+      return {
+        level: 1,
+        direction: getDirection(currentId, nextId, cols),
+        fromTileIndex: currentId,
+        nextTileIndex: nextId,
+      }
     }
     // Off-path: nudge toward the nearest tile on the optimal path.
     return { level: 1, direction: nearestOptimalDirection(currentId, optimalPath, cols), fromTileIndex: currentId }

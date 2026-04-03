@@ -34,6 +34,9 @@ const traversedEdges = computed(() => {
   for (let i = 0; i < props.pathHistory.length - 1; i++) {
     const a = props.pathHistory[i]
     const b = props.pathHistory[i + 1]
+    if (typeof a !== 'number' || typeof b !== 'number') {
+      continue
+    }
     const key = `${Math.min(a, b)}-${Math.max(a, b)}`
     const diff = b - a
     if (diff === 1) map.set(key, 'right')

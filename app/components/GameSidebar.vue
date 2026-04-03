@@ -1,7 +1,8 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import type { DifficultyBand } from '../../shared/types/game'
 
-const props = defineProps<{
+defineProps<{
   gameNo: number | null
   score: number
   maxScore: number
@@ -11,8 +12,6 @@ const props = defineProps<{
   status: string
   hintMessage: string | null
   difficultyBand: DifficultyBand | null
-  routeCount: number
-  goldSilverGap: number
   hintUsage: {
     level1: number
     level2: number
@@ -26,14 +25,32 @@ const emit = defineEmits<{
   current: []
   hint: [level: 1 | 2 | 3]
 }>()
+
+const showLegend = ref(false)
+const showHints = ref(false)
+
+function closeOverlays() {
+  showLegend.value = false
+  showHints.value = false
+}
 </script>
 
 <template>
   <aside class="sidebar">
     <section class="hero-card">
-      <p class="eyebrow">Daily Test Build</p>
-      <h1>Road {{ gameNo ?? '...' }}</h1>
+      <div class="hero-top">
+        <div>
+          <p class="eyebrow">Daily Test Build</p>
+          <h1>Road {{ gameNo ?? '...' }}</h1>
+        </div>
+        <div class="hero-tools">
+          <button class="secondary ghost" type="button" @click="showLegend = true">Legend</button>
+          <button class="secondary ghost" type="button" @click="showHints = true">Hints</button>
+        </div>
+      </div>
+
       <p class="hero-copy">The goal is not to collect everything. The goal is to discover the best legal route.</p>
+
       <div class="hero-actions">
         <button class="secondary" :disabled="loading" @click="emit('current')">Reload Today</button>
       </div>
@@ -58,90 +75,95 @@ const emit = defineEmits<{
       </article>
     </section>
 
-    <section class="detail-card">
-      <div class="detail-row">
-        <span>Difficulty</span>
-        <strong>{{ difficultyBand ?? '—' }}</strong>
-      </div>
-      <div class="detail-row">
-        <span>Route Count</span>
-        <strong>{{ routeCount }}</strong>
-      </div>
-      <div class="detail-row">
-        <span>Gold Gap</span>
-        <strong>{{ goldSilverGap }}</strong>
-      </div>
-    </section>
-
-    <section class="hint-card">
-      <div class="card-header">
+    <section class="status-card">
+      <div class="status-header">
         <div>
-          <p class="eyebrow">Help</p>
-          <h2>Hints</h2>
+          <p class="eyebrow">Run Status</p>
+          <h2>{{ ended ? 'Route Complete' : 'Route Active' }}</h2>
         </div>
-        <span class="mini-status" :class="{ ended }">{{ ended ? 'Run ended' : 'Run active' }}</span>
+        <span class="mini-status" :class="{ ended }">{{ difficultyBand ?? '—' }}</span>
       </div>
 
-      <div class="hint-buttons">
-        <button class="secondary" :disabled="ended || loading" @click="emit('hint', 1)">
-          Hint 1
-          <small>Used {{ hintUsage.level1 }}</small>
-        </button>
-        <button class="secondary" :disabled="ended || loading" @click="emit('hint', 2)">
-          Hint 2
-          <small>Used {{ hintUsage.level2 }}</small>
-        </button>
-        <button class="secondary" :disabled="ended || loading" @click="emit('hint', 3)">
-          Hint 3
-          <small>Used {{ hintUsage.level3 }}</small>
-        </button>
-      </div>
-
-      <p class="hint-message" :class="{ empty: !hintMessage }">
-        {{ hintMessage ?? 'Hints will appear here. Level 2/3 also mark tiles on the board.' }}
-      </p>
-    </section>
-
-    <section class="legend-card">
-      <h2>Legend</h2>
-      <div class="legend-row">
-        <span class="legend-chip chip-active" />
-        <span>Legal next move</span>
-      </div>
-      <div class="legend-row">
-        <span class="legend-chip chip-done" />
-        <span>Visited tile</span>
-      </div>
-      <div class="legend-row">
-        <span class="legend-line open" />
-        <span>Open road</span>
-      </div>
-      <div class="legend-row">
-        <span class="legend-line traversed" />
-        <span>Your path</span>
-      </div>
-      <div class="legend-row">
-        <span class="legend-line blocked" />
-        <span>Blocked road</span>
-      </div>
-      <div class="legend-row">
-        <span class="legend-line cost" />
-        <span>Cost road</span>
-      </div>
-      <div class="legend-row">
-        <span class="legend-line bonus" />
-        <span>Bonus road</span>
-      </div>
-      <div class="legend-row">
-        <span class="legend-dot dot-start" />
-        <span>Start</span>
-      </div>
-      <div class="legend-row">
-        <span class="legend-dot dot-end" />
-        <span>End</span>
-      </div>
       <p class="status-copy">{{ status }}</p>
+      <p class="hint-inline" :class="{ empty: !hintMessage }">
+        {{ hintMessage ?? 'Use hints only when you need help. They stay tucked away until you ask for them.' }}
+      </p>
+
+      <div class="quick-actions">
+        <button class="secondary ghost" type="button" @click="showHints = true">Open Hints</button>
+        <button class="secondary ghost" type="button" @click="showLegend = true">Open Legend</button>
+      </div>
     </section>
+
+    <div v-if="showHints || showLegend" class="overlay-backdrop" @click.self="closeOverlays">
+      <section v-if="showHints" class="overlay-card" aria-label="Hints overlay">
+        <div class="overlay-header">
+          <div>
+            <p class="eyebrow">Help</p>
+            <h2>Hints</h2>
+          </div>
+          <button class="close-button" type="button" @click="showHints = false">Close</button>
+        </div>
+
+        <div class="hint-buttons">
+          <button class="secondary" :disabled="ended || loading" @click="emit('hint', 1)">
+            <span>Hint 1</span>
+            <small>Highlights the next best move · Used {{ hintUsage.level1 }}</small>
+          </button>
+          <button class="secondary" :disabled="ended || loading" @click="emit('hint', 2)">
+            <span>Hint 2</span>
+            <small>Shows the next few best tiles · Used {{ hintUsage.level2 }}</small>
+          </button>
+          <button class="secondary" :disabled="ended || loading" @click="emit('hint', 3)">
+            <span>Hint 3</span>
+            <small>Reveals the exact next best tile · Used {{ hintUsage.level3 }}</small>
+          </button>
+        </div>
+
+        <p class="hint-message" :class="{ empty: !hintMessage }">
+          {{ hintMessage ?? 'Hints appear here after you request one.' }}
+        </p>
+      </section>
+
+      <section v-if="showLegend" class="overlay-card" aria-label="Legend overlay">
+        <div class="overlay-header">
+          <div>
+            <p class="eyebrow">Help</p>
+            <h2>Legend</h2>
+          </div>
+          <button class="close-button" type="button" @click="showLegend = false">Close</button>
+        </div>
+
+        <div class="legend-row">
+          <span class="legend-chip chip-active" />
+          <span>Legal next move</span>
+        </div>
+        <div class="legend-row">
+          <span class="legend-chip chip-done" />
+          <span>Visited tile</span>
+        </div>
+        <div class="legend-row">
+          <span class="legend-line blocked" />
+          <span>Blocked road</span>
+        </div>
+        <div class="legend-row">
+          <span class="legend-line cost" />
+          <span>Cost road</span>
+        </div>
+        <div class="legend-row">
+          <span class="legend-line bonus" />
+          <span>Bonus road</span>
+        </div>
+        <div class="legend-row">
+          <span class="legend-dot dot-start" />
+          <span>Start</span>
+        </div>
+        <div class="legend-row">
+          <span class="legend-dot dot-end" />
+          <span>End</span>
+        </div>
+      </section>
+    </div>
   </aside>
 </template>
 
@@ -152,9 +174,7 @@ const emit = defineEmits<{
 }
 
 .hero-card,
-.detail-card,
-.hint-card,
-.legend-card {
+.status-card {
   border-radius: 24px;
   padding: 1rem;
   box-shadow:
@@ -171,6 +191,11 @@ const emit = defineEmits<{
   color: #e8c84a;
 }
 
+.status-card {
+  background: linear-gradient(180deg, #1e1407 0%, #150e04 100%);
+  border: 1px solid rgb(218 165 32 / 18%);
+}
+
 .eyebrow {
   margin: 0;
   font-size: 0.7rem;
@@ -180,8 +205,8 @@ const emit = defineEmits<{
 }
 
 .hero-card h1,
-.hint-card h2,
-.legend-card h2 {
+.status-card h2,
+.overlay-card h2 {
   margin: 0.25rem 0 0;
   color: goldenrod;
 }
@@ -189,13 +214,25 @@ const emit = defineEmits<{
 .hero-card h1 {
   font-size: 1.72rem;
   letter-spacing: 0.01em;
-  color: goldenrod;
 }
 
 .hero-copy {
   margin: 0.65rem 0 0;
   color: rgb(218 165 32 / 60%);
   line-height: 1.45;
+}
+
+.hero-top {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.hero-tools,
+.quick-actions {
+  display: flex;
+  gap: 0.55rem;
 }
 
 .hero-actions {
@@ -224,39 +261,14 @@ const emit = defineEmits<{
   font-size: 0.82rem;
 }
 
-.metrics-grid strong,
-.detail-row strong {
+.metrics-grid strong {
   color: goldenrod;
   font-size: 1.14rem;
   letter-spacing: 0.01em;
 }
 
-.detail-card,
-.legend-card {
-  background: linear-gradient(180deg, #1e1407 0%, #150e04 100%);
-  border: 1px solid rgb(218 165 32 / 18%);
-}
-
-.detail-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.35rem 0;
-  color: rgb(218 165 32 / 70%);
-}
-
-.detail-row + .detail-row {
-  border-top: 1px solid rgb(218 165 32 / 12%);
-}
-
-.hint-card {
-  background:
-    radial-gradient(ellipse 100% 80% at 95% 0%, rgb(180 80 0 / 12%) 0%, transparent 55%),
-    linear-gradient(180deg, #1e1407 0%, #150e04 100%);
-  border: 1px solid rgb(180 80 0 / 30%);
-}
-
-.card-header {
+.status-header,
+.overlay-header {
   display: flex;
   justify-content: space-between;
   align-items: start;
@@ -269,7 +281,7 @@ const emit = defineEmits<{
   background: rgb(218 165 32 / 15%);
   color: goldenrod;
   border: 1px solid rgb(218 165 32 / 30%);
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   font-weight: 700;
 }
 
@@ -279,6 +291,50 @@ const emit = defineEmits<{
   border-color: rgb(180 80 0 / 40%);
 }
 
+.status-copy,
+.hint-inline,
+.hint-message {
+  margin: 0.85rem 0 0;
+  line-height: 1.42;
+}
+
+.status-copy {
+  color: rgb(218 165 32 / 52%);
+}
+
+.hint-inline,
+.hint-message {
+  min-height: 2.8rem;
+  color: #d4a044;
+}
+
+.hint-inline.empty,
+.hint-message.empty {
+  color: rgb(218 165 32 / 40%);
+}
+
+.overlay-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgb(0 0 0 / 56%);
+  backdrop-filter: blur(4px);
+}
+
+.overlay-card {
+  width: min(100%, 440px);
+  border-radius: 24px;
+  padding: 1rem;
+  background:
+    radial-gradient(ellipse 110% 80% at 10% 0%, rgb(218 165 32 / 10%) 0%, transparent 58%),
+    linear-gradient(180deg, #1e1407 0%, #150e04 100%);
+  border: 1px solid rgb(218 165 32 / 22%);
+  box-shadow: 0 24px 48px rgb(0 0 0 / 42%);
+}
+
 .hint-buttons {
   display: grid;
   gap: 0.55rem;
@@ -286,25 +342,14 @@ const emit = defineEmits<{
 }
 
 .hint-buttons button {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
+  display: grid;
+  gap: 0.2rem;
+  text-align: left;
 }
 
 .hint-buttons small {
-  font-size: 0.72rem;
-  opacity: 0.7;
-}
-
-.hint-message {
-  min-height: 3.1rem;
-  margin: 0.85rem 0 0;
-  color: #d4a044;
-  line-height: 1.4;
-}
-
-.hint-message.empty {
-  color: rgb(218 165 32 / 40%);
+  font-size: 0.75rem;
+  opacity: 0.72;
 }
 
 .legend-row {
@@ -323,13 +368,12 @@ const emit = defineEmits<{
 }
 
 .chip-active {
-  background: rgb(68 221 25 / 50%);
-  border: 2px solid rgb(68 221 25);
+  background: #4ade80;
 }
 
 .chip-done {
-  background: linear-gradient(135deg, rgb(212 175 55), rgb(184 142 30));
-  box-shadow: 0 0 6px 2px rgb(218 165 32 / 40%);
+  background: goldenrod;
+  box-shadow: 0 0 8px rgb(218 165 32 / 36%);
 }
 
 .legend-line {
@@ -339,36 +383,33 @@ const emit = defineEmits<{
   display: inline-block;
 }
 
-.legend-line.blocked { background: #fc2f00; }
-.legend-line.cost { background: #f59e0b; }
-.legend-line.bonus { background: #22c55e; }
-.legend-line.open { background: rgb(218 165 32 / 20%); }
-.legend-line.traversed { background: goldenrod; box-shadow: 0 0 4px rgb(218 165 32 / 40%); }
+.legend-line.blocked {
+  background: #fc2f00;
+}
+
+.legend-line.cost {
+  background: #f59e0b;
+}
+
+.legend-line.bonus {
+  background: #22c55e;
+}
 
 .legend-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 999px;
   display: inline-block;
-  margin-left: 0.35rem;
 }
 
 .dot-start {
-  background: #22c55e;
-  border: 1.5px solid #a7f3d0;
-  box-shadow: 0 0 4px rgb(34 197 94 / 50%);
+  background: #065f46;
+  border: 1px solid #a7f3d0;
 }
 
 .dot-end {
-  background: #dc2626;
-  border: 1.5px solid #fca5a5;
-  box-shadow: 0 0 4px rgb(220 38 38 / 40%);
-}
-
-.status-copy {
-  margin: 0.9rem 0 0;
-  color: rgb(218 165 32 / 50%);
-  line-height: 1.42;
+  background: #7f1d1d;
+  border: 1px solid #fca5a5;
 }
 
 button {
@@ -386,6 +427,19 @@ button {
   border: 1px solid rgb(218 165 32 / 28%);
 }
 
+.ghost {
+  background: rgb(218 165 32 / 8%);
+}
+
+.close-button {
+  border: 1px solid rgb(218 165 32 / 24%);
+  border-radius: 14px;
+  padding: 0.55rem 0.8rem;
+  background: rgb(218 165 32 / 10%);
+  color: goldenrod;
+  font-weight: 700;
+}
+
 button:hover:not(:disabled) {
   transform: translateY(-1px);
   box-shadow: 0 8px 18px rgb(0 0 0 / 35%);
@@ -399,6 +453,11 @@ button:disabled {
 @media (max-width: 980px) {
   .hero-card h1 {
     font-size: 1.5rem;
+  }
+
+  .hero-top,
+  .quick-actions {
+    display: grid;
   }
 }
 </style>

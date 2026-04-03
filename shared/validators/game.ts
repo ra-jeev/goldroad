@@ -155,6 +155,7 @@ export const HintLevel1ResultSchema = z.object({
   level: z.literal(1),
   direction: DirectionSchema,
   fromTileIndex: z.number().int().min(0),
+  nextTileIndex: z.number().int().min(0).optional(),
 })
 
 export const HintLevel2ResultSchema = z.object({

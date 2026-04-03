@@ -8,7 +8,7 @@
 
 import type { Board } from '../../shared/types/game'
 import type { ConnectionGrid, TileState } from '../types/game'
-import { MIN_TILE_SIZE, OTHER_ELEMENTS_HEIGHT, TILE_GAP, TILE_SIZE } from '../../shared/utils/constants'
+import { MIN_TILE_SIZE, OTHER_ELEMENTS_HEIGHT, TILE_GAP, TILE_SIZE } from '../../lib/gameConstants'
 
 // ---------------------------------------------------------------------------
 // Initial runtime state builders

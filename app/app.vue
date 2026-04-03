@@ -2,7 +2,7 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { buildInitialTileStates } from './utils/boardUtils'
 import { buildEdgeMap, getActiveNeighbors, getNeighborId, parseTileIndex } from '../shared/utils/puzzleEngine'
-import { calcOutcomeTier } from '../shared/utils/tiers'
+import { calcOutcomeTier } from '../lib/gameTiers'
 import type { Direction } from '../shared/types/game'
 
 type GamePayload = Awaited<ReturnType<ReturnType<typeof useGamesApi>['getCurrentGame']>>
@@ -204,7 +204,12 @@ async function requestHint(level: 1 | 2 | 3) {
   hintedTiles.value.clear()
   if (res.hint.level === 1) {
     hintUsage.value.level1 += 1
-    hintMessage.value = `Hint: move ${res.hint.direction}.`
+    if (typeof res.hint.nextTileIndex === 'number') {
+      hintedTiles.value.add(res.hint.nextTileIndex)
+      hintMessage.value = 'Hint: the next best move is highlighted on the board.'
+    } else {
+      hintMessage.value = `Hint: move ${res.hint.direction}.`
+    }
   } else if (res.hint.level === 2) {
     hintUsage.value.level2 += 1
     for (const idx of res.hint.tileIndexes) hintedTiles.value.add(idx)
@@ -267,8 +272,6 @@ onUnmounted(() => {
         :status="status"
         :hint-message="hintMessage"
         :difficulty-band="game?.difficultyBand ?? null"
-        :route-count="game?.routeCount ?? 0"
-        :gold-silver-gap="game?.goldSilverGap ?? 0"
         :hint-usage="hintUsage"
         :ended="ended"
         :loading="loading"
@@ -307,6 +310,22 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+:global(html) {
+  margin: 0;
+  min-height: 100%;
+  background: #0d0702;
+}
+
+:global(body) {
+  margin: 0;
+  min-height: 100%;
+  background: #0d0702;
+}
+
+:global(#__nuxt) {
+  min-height: 100dvh;
+}
+
 .shell {
   min-height: 100dvh;
   padding: 1.3rem;

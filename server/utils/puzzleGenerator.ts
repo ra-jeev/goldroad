@@ -21,7 +21,7 @@ import {
   DEFAULT_ROWS,
   TILE_VALUE_MAX,
   TILE_VALUE_MIN,
-} from '../../shared/utils/constants'
+} from '../../lib/gameConstants'
 import { allBoardEdgePairs, tileIndex } from '../../shared/utils/puzzleEngine'
 
 // ---------------------------------------------------------------------------
