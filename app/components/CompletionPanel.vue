@@ -61,28 +61,35 @@ const tierLabel: Record<OutcomeTier, string> = {
 
 <style scoped>
 .completion-panel {
-  border-radius: 24px;
-  padding: 1rem;
-  background: linear-gradient(145deg, #fff6e7 0%, #fff 45%, #eef4ff 100%);
-  border: 1px solid #f0d6ad;
-  box-shadow: 0 18px 36px rgb(42 54 84 / 12%);
+  border-radius: 26px;
+  padding: 1.05rem;
+  background:
+    radial-gradient(ellipse 90% 70% at 10% 0%, rgb(218 165 32 / 12%) 0%, transparent 55%),
+    linear-gradient(160deg, #1e1407 0%, #150e04 100%);
+  border: 1px solid rgb(218 165 32 / 28%);
+  box-shadow:
+    0 0 0 1px rgb(0 0 0 / 45%),
+    0 24px 48px rgb(0 0 0 / 44%),
+    inset 0 1px 0 rgb(218 165 32 / 8%);
 }
 
 .eyebrow {
   margin: 0;
-  font-size: 0.72rem;
-  letter-spacing: 0.14em;
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: #9b6b29;
+  color: rgb(218 165 32 / 60%);
 }
 
 .copy h2 {
   margin: 0.25rem 0 0;
-  color: #1b2852;
+  color: goldenrod;
+  letter-spacing: 0.01em;
 }
 
 .copy p:last-child {
-  color: #556688;
+  color: rgb(218 165 32 / 55%);
+  line-height: 1.42;
 }
 
 .summary-grid {
@@ -93,23 +100,23 @@ const tierLabel: Record<OutcomeTier, string> = {
 }
 
 .summary-grid article {
-  border-radius: 16px;
+  border-radius: 18px;
   padding: 0.8rem;
-  background: rgb(255 255 255 / 78%);
-  border: 1px solid #e8e3d7;
+  background: rgb(218 165 32 / 8%);
+  border: 1px solid rgb(218 165 32 / 18%);
 }
 
 .summary-grid span {
   display: block;
-  color: #6c7998;
+  color: rgb(218 165 32 / 55%);
   font-size: 0.82rem;
 }
 
 .summary-grid strong {
   display: block;
   margin-top: 0.25rem;
-  color: #1b2852;
-  font-size: 1.1rem;
+  color: goldenrod;
+  font-size: 1.16rem;
 }
 
 .actions {
@@ -120,24 +127,32 @@ const tierLabel: Record<OutcomeTier, string> = {
 
 button {
   border: 0;
-  border-radius: 14px;
+  border-radius: 15px;
   padding: 0.75rem 1rem;
   font-weight: 700;
   cursor: pointer;
+  transition: transform 140ms ease, box-shadow 140ms ease;
 }
 
 .primary {
-  color: #fff;
-  background: linear-gradient(135deg, #d9480f 0%, #ff7a18 100%);
+  color: #1a0e00;
+  background: linear-gradient(135deg, goldenrod 0%, #b8860b 100%);
+  box-shadow: 0 0 18px rgb(218 165 32 / 35%);
 }
 
 .secondary {
-  color: #203158;
-  background: #e8efff;
+  color: goldenrod;
+  background: rgb(218 165 32 / 12%);
+  border: 1px solid rgb(218 165 32 / 28%);
+}
+
+button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgb(0 0 0 / 40%);
 }
 
 button:disabled {
-  opacity: 0.6;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 

@@ -132,40 +132,54 @@ const emit = defineEmits<{
 <style scoped>
 .sidebar {
   display: grid;
-  gap: 0.95rem;
+  gap: 1rem;
 }
 
 .hero-card,
 .detail-card,
 .hint-card,
 .legend-card {
-  border-radius: 22px;
+  border-radius: 24px;
   padding: 1rem;
-  box-shadow: 0 18px 36px rgb(20 30 58 / 10%);
+  box-shadow:
+    0 0 0 1px rgb(0 0 0 / 50%),
+    0 20px 42px rgb(0 0 0 / 40%),
+    inset 0 1px 0 rgb(218 165 32 / 10%);
 }
 
 .hero-card {
-  background: linear-gradient(160deg, #1f2d5c 0%, #304989 60%, #5671bb 100%);
-  color: #f4f7ff;
+  background:
+    radial-gradient(ellipse 120% 90% at 10% 0%, rgb(218 165 32 / 14%) 0%, transparent 60%),
+    linear-gradient(160deg, #1e1004 0%, #150c03 62%, #0e0802 100%);
+  border: 1px solid rgb(218 165 32 / 30%);
+  color: #e8c84a;
 }
 
 .eyebrow {
   margin: 0;
-  font-size: 0.72rem;
-  letter-spacing: 0.14em;
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  opacity: 0.8;
+  color: rgb(218 165 32 / 65%);
 }
 
 .hero-card h1,
 .hint-card h2,
 .legend-card h2 {
   margin: 0.25rem 0 0;
+  color: goldenrod;
+}
+
+.hero-card h1 {
+  font-size: 1.72rem;
+  letter-spacing: 0.01em;
+  color: goldenrod;
 }
 
 .hero-copy {
   margin: 0.65rem 0 0;
-  color: #d9e4ff;
+  color: rgb(218 165 32 / 60%);
+  line-height: 1.45;
 }
 
 .hero-actions {
@@ -179,29 +193,32 @@ const emit = defineEmits<{
 }
 
 .metrics-grid article {
-  border-radius: 18px;
+  border-radius: 20px;
   padding: 0.9rem;
-  background: linear-gradient(180deg, #fffefa 0%, #f5f7ff 100%);
-  border: 1px solid #dde5f6;
+  background:
+    radial-gradient(ellipse 120% 80% at 50% -20%, rgb(218 165 32 / 10%) 0%, transparent 60%),
+    linear-gradient(180deg, #1e1407 0%, #150e04 100%);
+  border: 1px solid rgb(218 165 32 / 20%);
 }
 
 .metric-label {
   display: block;
   margin-bottom: 0.3rem;
-  color: #67779d;
+  color: rgb(218 165 32 / 55%);
   font-size: 0.82rem;
 }
 
 .metrics-grid strong,
 .detail-row strong {
-  color: #182450;
-  font-size: 1.1rem;
+  color: goldenrod;
+  font-size: 1.14rem;
+  letter-spacing: 0.01em;
 }
 
 .detail-card,
 .legend-card {
-  background: linear-gradient(180deg, #fffefa 0%, #f7f8fc 100%);
-  border: 1px solid #e4e8f2;
+  background: linear-gradient(180deg, #1e1407 0%, #150e04 100%);
+  border: 1px solid rgb(218 165 32 / 18%);
 }
 
 .detail-row {
@@ -209,16 +226,18 @@ const emit = defineEmits<{
   justify-content: space-between;
   gap: 1rem;
   padding: 0.35rem 0;
-  color: #405179;
+  color: rgb(218 165 32 / 70%);
 }
 
 .detail-row + .detail-row {
-  border-top: 1px solid #e6eaf4;
+  border-top: 1px solid rgb(218 165 32 / 12%);
 }
 
 .hint-card {
-  background: linear-gradient(180deg, #fff7ef 0%, #fffefe 100%);
-  border: 1px solid #f4dcc6;
+  background:
+    radial-gradient(ellipse 100% 80% at 95% 0%, rgb(180 80 0 / 12%) 0%, transparent 55%),
+    linear-gradient(180deg, #1e1407 0%, #150e04 100%);
+  border: 1px solid rgb(180 80 0 / 30%);
 }
 
 .card-header {
@@ -231,15 +250,17 @@ const emit = defineEmits<{
 .mini-status {
   padding: 0.25rem 0.55rem;
   border-radius: 999px;
-  background: #e5efff;
-  color: #23407d;
+  background: rgb(218 165 32 / 15%);
+  color: goldenrod;
+  border: 1px solid rgb(218 165 32 / 30%);
   font-size: 0.75rem;
   font-weight: 700;
 }
 
 .mini-status.ended {
-  background: #efe3ff;
-  color: #6b2fb8;
+  background: rgb(180 80 0 / 20%);
+  color: #f59e0b;
+  border-color: rgb(180 80 0 / 40%);
 }
 
 .hint-buttons {
@@ -262,11 +283,12 @@ const emit = defineEmits<{
 .hint-message {
   min-height: 3.1rem;
   margin: 0.85rem 0 0;
-  color: #663b0f;
+  color: #d4a044;
+  line-height: 1.4;
 }
 
 .hint-message.empty {
-  color: #886a49;
+  color: rgb(218 165 32 / 40%);
 }
 
 .legend-row {
@@ -274,7 +296,7 @@ const emit = defineEmits<{
   align-items: center;
   gap: 0.65rem;
   margin-top: 0.7rem;
-  color: #394a73;
+  color: rgb(218 165 32 / 70%);
 }
 
 .legend-chip {
@@ -299,30 +321,44 @@ const emit = defineEmits<{
   display: inline-block;
 }
 
-.legend-line.blocked { background: #111827; }
+.legend-line.blocked { background: #fc2f00; }
 .legend-line.cost { background: #f59e0b; }
-.legend-line.bonus { background: #0f9d72; }
+.legend-line.bonus { background: #22c55e; }
 
 .status-copy {
   margin: 0.9rem 0 0;
-  color: #53658d;
+  color: rgb(218 165 32 / 50%);
+  line-height: 1.42;
 }
 
 button {
   border: 0;
-  border-radius: 14px;
+  border-radius: 15px;
   padding: 0.7rem 0.9rem;
   font-weight: 700;
   cursor: pointer;
+  transition: transform 140ms ease, box-shadow 140ms ease;
 }
 
 .secondary {
-  color: #203158;
-  background: #e8efff;
+  color: goldenrod;
+  background: rgb(218 165 32 / 12%);
+  border: 1px solid rgb(218 165 32 / 28%);
+}
+
+button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgb(0 0 0 / 35%);
 }
 
 button:disabled {
-  opacity: 0.6;
+  opacity: 0.4;
   cursor: not-allowed;
+}
+
+@media (max-width: 980px) {
+  .hero-card h1 {
+    font-size: 1.5rem;
+  }
 }
 </style>

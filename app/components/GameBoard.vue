@@ -96,12 +96,18 @@ function moveIndex(id: number) {
 </template>
 
 <style scoped>
+/* ── Board shell ────────────────────────────────────────────── */
 .board-shell {
-  padding: 1rem;
-  border-radius: 24px;
-  background: linear-gradient(180deg, #fffdf8 0%, #eef4ff 100%);
-  border: 1px solid #dbe2f3;
-  box-shadow: 0 18px 40px rgb(28 39 74 / 10%);
+  padding: 1.1rem;
+  border-radius: 26px;
+  background:
+    radial-gradient(ellipse 80% 60% at 18% 10%, rgb(255 212 59 / 6%) 0%, transparent 60%),
+    linear-gradient(175deg, #1c1108 0%, #160e05 50%, #0e0a04 100%);
+  border: 1px solid rgb(218 165 32 / 25%);
+  box-shadow:
+    0 0 0 1px rgb(0 0 0 / 55%),
+    0 28px 56px rgb(0 0 0 / 48%),
+    inset 0 1px 0 rgb(255 215 0 / 10%);
 }
 
 .board-header {
@@ -109,117 +115,195 @@ function moveIndex(id: number) {
   justify-content: space-between;
   align-items: end;
   gap: 1rem;
-  margin-bottom: 0.9rem;
+  margin-bottom: 1rem;
 }
 
 .eyebrow {
   margin: 0;
-  font-size: 0.72rem;
-  letter-spacing: 0.14em;
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: #5d6d91;
+  color: rgb(218 165 32 / 65%);
 }
 
 .board-header h2 {
-  margin: 0.15rem 0 0;
-  font-size: 1.05rem;
-  color: #1d2850;
+  margin: 0.18rem 0 0;
+  font-size: 1.08rem;
+  letter-spacing: 0.01em;
+  color: #d4af37;
 }
 
 .kbd-note {
   margin: 0;
-  color: #6a7697;
-  font-size: 0.9rem;
+  color: rgb(218 165 32 / 45%);
+  font-size: 0.86rem;
 }
 
+/* ── Tile grid ──────────────────────────────────────────────── */
 .board {
   display: grid;
-  gap: 0.6rem;
+  gap: 0.7rem;
 }
 
+/* ── Tile base ──────────────────────────────────────────────── */
 .tile {
   position: relative;
   aspect-ratio: 1 / 1;
-  border: 1px solid #d6deef;
-  border-radius: 18px;
-  background: linear-gradient(180deg, #ffffff 0%, #f7faff 100%);
-  color: #18254b;
+  border-radius: 50%;
+  /* double-ring: dotted outer (brand red-orange), solid gold inner */
+  border: 3px dotted #b33200;
+  background: #160e05;
+  color: goldenrod;
+  font-size: 1.25rem;
   font-weight: 800;
   overflow: hidden;
-  transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease, background 140ms ease;
+  isolation: isolate;
+  transition: transform 160ms ease, box-shadow 160ms ease;
 }
 
-.tile:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 24px rgb(38 57 105 / 14%);
+/* inner gold ring via outline */
+.tile::before {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  border: 2.5px solid rgb(218 165 32 / 45%);
+  pointer-events: none;
+  z-index: 3;
 }
 
+/* ── Tile states ────────────────────────────────────────────── */
 .tile.active {
-  border-color: #3d6cff;
-  background: linear-gradient(180deg, #eef4ff 0%, #deebff 100%);
+  border-color: #b33200;
+  cursor: pointer;
+  color: goldenrod;
 }
 
+.tile.active::before {
+  border-color: rgb(68 221 25 / 50%);
+}
+
+/* green tint fill for legal moves */
+.tile.active::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(68 221 25 / 18%) 0%, transparent 72%);
+  z-index: 0;
+}
+
+.tile.active:hover:not(:disabled) {
+  transform: scale(1.08);
+  box-shadow: 0 0 18px rgb(68 221 25 / 35%);
+}
+
+.tile.active:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+/* gold fill + glow for visited path */
 .tile.done {
-  border-color: #a6c77a;
-  background: linear-gradient(180deg, #f3fbe8 0%, #e5f2cd 100%);
+  color: #2d1c02;
+  border-color: darkgoldenrod;
 }
 
+.tile.done::before {
+  border-color: darkgoldenrod;
+}
+
+.tile.done::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgb(212 175 55) 0%, rgb(184 142 30) 100%);
+  z-index: 0;
+}
+
+.tile.done .value {
+  color: #2d1c02;
+  text-shadow: 0 1px 0 rgb(255 230 100 / 40%);
+}
+
+/* gold glow around current tile */
 .tile.current {
-  box-shadow: inset 0 0 0 3px #f08c00;
+  box-shadow:
+    0 0 0 3px goldenrod,
+    0 0 18px rgb(218 165 32 / 55%);
+}
+
+/* pink/magenta for hints */
+.tile.hinted::before {
+  border-color: #d6336c;
 }
 
 .tile.hinted {
-  box-shadow: inset 0 0 0 3px #d6336c;
+  box-shadow: 0 0 14px rgb(214 51 108 / 45%);
 }
 
+.tile:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px #4b9eff, 0 0 12px rgb(75 158 255 / 35%);
+}
+
+/* ── Value text ─────────────────────────────────────────────── */
 .value {
   position: relative;
   z-index: 2;
-  font-size: 1.15rem;
+  /* let .done override via .done .value */
+  color: goldenrod;
 }
 
+/* ── Step badge (path order) ────────────────────────────────── */
 .step-badge {
   position: absolute;
-  top: 0.34rem;
-  left: 0.38rem;
-  z-index: 2;
+  top: 0.28rem;
+  left: 0.32rem;
+  z-index: 4;
+  min-width: 1.2rem;
+  height: 1.2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 60%);
+  color: goldenrod;
+  font-size: 0.62rem;
+  font-weight: 800;
+  border: 1px solid rgb(218 165 32 / 40%);
+}
+
+/* ── Start / End tags ───────────────────────────────────────── */
+.tag {
+  position: absolute;
+  right: 0.3rem;
+  z-index: 4;
   min-width: 1.25rem;
   height: 1.25rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  background: #20335f;
   color: #fff;
-  font-size: 0.68rem;
-  font-weight: 700;
-}
-
-.tag {
-  position: absolute;
-  right: 0.38rem;
-  z-index: 2;
-  min-width: 1.4rem;
-  height: 1.4rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  color: #fff;
-  font-size: 0.7rem;
-  font-weight: 800;
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
 }
 
 .tag-start {
-  top: 0.34rem;
-  background: #0f766e;
+  top: 0.28rem;
+  background: #065f46;
+  border: 1px solid #a7f3d0;
 }
 
 .tag-end {
-  bottom: 0.34rem;
-  background: #c2410c;
+  bottom: 0.3rem;
+  background: #7f1d1d;
+  border: 1px solid #fca5a5;
 }
 
+/* ── Edge constraint markers ─────────────────────────────────── */
 .edge {
   position: absolute;
   z-index: 1;
@@ -228,24 +312,24 @@ function moveIndex(id: number) {
 
 .edge-top,
 .edge-bottom {
-  left: 16%;
-  right: 16%;
-  height: 7px;
+  left: 22%;
+  right: 22%;
+  height: 6px;
   border-radius: 999px;
 }
 
 .edge-left,
 .edge-right {
-  top: 16%;
-  bottom: 16%;
-  width: 7px;
+  top: 22%;
+  bottom: 22%;
+  width: 6px;
   border-radius: 999px;
 }
 
-.edge-top { top: 0.12rem; }
-.edge-bottom { bottom: 0.12rem; }
-.edge-left { left: 0.12rem; }
-.edge-right { right: 0.12rem; }
+.edge-top    { top: 0; }
+.edge-bottom { bottom: 0; }
+.edge-left   { left: 0; }
+.edge-right  { right: 0; }
 
 .edge-open,
 .edge-boundary {
@@ -253,7 +337,8 @@ function moveIndex(id: number) {
 }
 
 .edge-blocked {
-  background: #111827;
+  background: #fc2f00;
+  opacity: 0.85;
 }
 
 .edge-cost {
@@ -261,11 +346,21 @@ function moveIndex(id: number) {
 }
 
 .edge-bonus {
-  background: #0f9d72;
+  background: #22c55e;
 }
 
 button:disabled {
   cursor: default;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tile {
+    transition: none;
+  }
+
+  .tile.active:hover:not(:disabled) {
+    transform: none;
+  }
 }
 
 @media (max-width: 760px) {
@@ -274,8 +369,12 @@ button:disabled {
     gap: 0.45rem;
   }
 
-  .kbd-note {
-    font-size: 0.82rem;
+  .board {
+    gap: 0.52rem;
+  }
+
+  .tile {
+    font-size: 1.1rem;
   }
 }
 </style>
