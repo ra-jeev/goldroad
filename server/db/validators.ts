@@ -17,9 +17,8 @@ import {
   PastGameSummarySchema,
   SessionEndPayloadSchema,
   HintRequestPayloadSchema,
-  SessionEndPayload,
-  HintRequestPayload,
 } from '../../shared/validators/game'
+import type { SessionEndPayload, HintRequestPayload } from '../../shared/validators/game'
 
 // Re-export shared validators (source of truth for domain shapes)
 export {
@@ -31,9 +30,9 @@ export {
   PastGameSummarySchema,
   SessionEndPayloadSchema,
   HintRequestPayloadSchema,
-  SessionEndPayload,
-  HintRequestPayload,
 }
+
+export type { SessionEndPayload, HintRequestPayload }
 
 // ---------------------------------------------------------------------------
 // Database table validators (derived from Drizzle)
