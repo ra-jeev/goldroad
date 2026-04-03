@@ -1,8 +1,9 @@
 import { and, eq, sql } from 'drizzle-orm'
 import { dailyGameStats, games, playerGameSession } from '../../db/schema'
 import { useDb } from '../../db/client'
-import { HintRequestPayloadSchema, selectGameSchema } from '../../db/validators'
+import { HintRequestPayloadSchema } from '../../db/validators'
 import { computeHint } from '../../utils/hints'
+import { parseGameRow } from '../../utils/apiGames'
 
 export default defineEventHandler(async (event) => {
   const db = useDb(event)
@@ -31,11 +32,11 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: `Game ${payload.gameNo} not found` })
   }
 
-  const parsed = selectGameSchema.parse(row)
+  const parsed = parseGameRow(row)
   const hint = computeHint(
-    parsed.optimalPathJson,
+    parsed.optimalPath,
     payload.currentTileIndex,
-    parsed.boardJson.cols,
+    parsed.board.cols,
     payload.level,
   )
 

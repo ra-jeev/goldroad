@@ -1,23 +1,29 @@
-import { selectGameSchema } from '../db/validators'
+import { z } from 'zod'
+import { BoardSchema, DifficultyBandSchema, PathResultSchema } from '../../shared/validators/game'
 
-interface RawGameRow {
-  gameNo: number
-  boardJson: string
-  optimalPathJson: string
-  maxScore: number
-  totalCoins: number
-  difficultyBand: 'easy' | 'medium' | 'hard'
-  playableAt: string
-  nextGameAt: string | null
-  routeCount: number
-  goldSilverGap: number
-}
+const RawGameRowSchema = z.object({
+  gameNo: z.number().int().positive(),
+  boardJson: z.string(),
+  optimalPathJson: z.string(),
+  maxScore: z.number().int().positive(),
+  totalCoins: z.number().int().positive(),
+  difficultyBand: DifficultyBandSchema,
+  playableAt: z.string().datetime({ offset: true }),
+  nextGameAt: z.string().datetime({ offset: true }).nullable(),
+  routeCount: z.number().int().nonnegative(),
+  goldSilverGap: z.number().int().nonnegative(),
+})
+
+type RawGameRow = z.infer<typeof RawGameRowSchema>
 
 export function parseGameRow(row: RawGameRow) {
-  const parsed = selectGameSchema.parse(row)
+  const parsed = RawGameRowSchema.parse(row)
+  const board = BoardSchema.parse(JSON.parse(parsed.boardJson))
+  const optimalPath = PathResultSchema.shape.path.parse(JSON.parse(parsed.optimalPathJson))
+
   return {
     gameNo: parsed.gameNo,
-    board: parsed.boardJson,
+    board,
     maxScore: parsed.maxScore,
     totalCoins: parsed.totalCoins,
     difficultyBand: parsed.difficultyBand,
@@ -25,6 +31,6 @@ export function parseGameRow(row: RawGameRow) {
     nextGameAt: parsed.nextGameAt,
     routeCount: parsed.routeCount,
     goldSilverGap: parsed.goldSilverGap,
-    optimalPath: parsed.optimalPathJson,
+    optimalPath,
   }
 }
