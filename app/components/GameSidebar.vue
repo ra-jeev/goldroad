@@ -113,6 +113,14 @@ const emit = defineEmits<{
         <span>Visited tile</span>
       </div>
       <div class="legend-row">
+        <span class="legend-line open" />
+        <span>Open road</span>
+      </div>
+      <div class="legend-row">
+        <span class="legend-line traversed" />
+        <span>Your path</span>
+      </div>
+      <div class="legend-row">
         <span class="legend-line blocked" />
         <span>Blocked road</span>
       </div>
@@ -123,6 +131,14 @@ const emit = defineEmits<{
       <div class="legend-row">
         <span class="legend-line bonus" />
         <span>Bonus road</span>
+      </div>
+      <div class="legend-row">
+        <span class="legend-dot dot-start" />
+        <span>Start</span>
+      </div>
+      <div class="legend-row">
+        <span class="legend-dot dot-end" />
+        <span>End</span>
       </div>
       <p class="status-copy">{{ status }}</p>
     </section>
@@ -307,11 +323,13 @@ const emit = defineEmits<{
 }
 
 .chip-active {
-  background: #3d6cff;
+  background: rgb(68 221 25 / 50%);
+  border: 2px solid rgb(68 221 25);
 }
 
 .chip-done {
-  background: #a6c77a;
+  background: linear-gradient(135deg, rgb(212 175 55), rgb(184 142 30));
+  box-shadow: 0 0 6px 2px rgb(218 165 32 / 40%);
 }
 
 .legend-line {
@@ -324,6 +342,28 @@ const emit = defineEmits<{
 .legend-line.blocked { background: #fc2f00; }
 .legend-line.cost { background: #f59e0b; }
 .legend-line.bonus { background: #22c55e; }
+.legend-line.open { background: rgb(218 165 32 / 20%); }
+.legend-line.traversed { background: goldenrod; box-shadow: 0 0 4px rgb(218 165 32 / 40%); }
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-left: 0.35rem;
+}
+
+.dot-start {
+  background: #22c55e;
+  border: 1.5px solid #a7f3d0;
+  box-shadow: 0 0 4px rgb(34 197 94 / 50%);
+}
+
+.dot-end {
+  background: #dc2626;
+  border: 1.5px solid #fca5a5;
+  box-shadow: 0 0 4px rgb(220 38 38 / 40%);
+}
 
 .status-copy {
   margin: 0.9rem 0 0;

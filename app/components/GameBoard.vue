@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { buildEdgeMap, getEdgeType, getNeighborId, parseTileIndex } from '../../shared/utils/puzzleEngine'
-import type { Board, Direction } from '../../shared/types/game'
+import { buildEdgeMap, getEdgeType } from '../../shared/utils/puzzleEngine'
+import type { Board, EdgeType } from '../../shared/types/game'
 import type { TileState } from '../types/game'
+import GameTile from './GameTile.vue'
+import BoardRoad from './BoardRoad.vue'
 
 const props = defineProps<{
   board: Board
@@ -19,42 +21,92 @@ const emit = defineEmits<{
   select: [tileIndex: number]
 }>()
 
-const EDGE_DIRECTIONS: Direction[] = ['top', 'right', 'bottom', 'left']
+const TILE_PX = 50
+const GAP_PX = 14
+const CELL = TILE_PX + GAP_PX
+const ROAD_THICK = 6
 
 const edgeMap = computed(() => buildEdgeMap(props.board))
-const moveIndexMap = computed(() => {
-  const map = new Map<number, number>()
-  props.pathHistory.forEach((id, index) => map.set(id, index + 1))
+
+const traversedEdges = computed(() => {
+  const map = new Map<string, string>()
+  const { cols } = props.board
+  for (let i = 0; i < props.pathHistory.length - 1; i++) {
+    const a = props.pathHistory[i]
+    const b = props.pathHistory[i + 1]
+    const key = `${Math.min(a, b)}-${Math.max(a, b)}`
+    const diff = b - a
+    if (diff === 1) map.set(key, 'right')
+    else if (diff === -1) map.set(key, 'left')
+    else if (diff === cols) map.set(key, 'down')
+    else map.set(key, 'up')
+  }
   return map
 })
 
-function edgeTypeFor(tileIndex: number, direction: Direction): 'open' | 'blocked' | 'cost' | 'bonus' | 'boundary' {
-  const [row, col] = parseTileIndex(tileIndex, props.board.cols)
-  const neighbor = getNeighborId(row, col, direction, props.board.rows, props.board.cols)
-  if (neighbor === null) return 'boundary'
-  return getEdgeType(tileIndex, neighbor, edgeMap.value)
+interface RoadData {
+  key: string
+  orientation: 'h' | 'v'
+  type: 'open' | EdgeType
+  traversed: boolean
+  arrowDir: string | null
+  style: Record<string, string>
 }
 
-function edgeClass(tileIndex: number, direction: Direction) {
-  const type = edgeTypeFor(tileIndex, direction)
-  return ['edge', `edge-${direction}`, `edge-${type}`]
-}
+const allRoads = computed<RoadData[]>(() => {
+  const roads: RoadData[] = []
+  const { rows, cols } = props.board
+  const em = edgeMap.value
+  const trav = traversedEdges.value
 
-function tileClass(id: number) {
-  return {
-    tile: true,
-    current: props.currentTileIndex === id,
-    active: props.activeSet.has(id),
-    done: props.visitedSet.has(id),
-    start: props.board.start === id,
-    end: props.board.end === id,
-    hinted: props.hintedTiles.has(id),
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const idx = r * cols + c
+
+      if (c < cols - 1) {
+        const nIdx = idx + 1
+        const t = getEdgeType(idx, nIdx, em)
+        const edgeKey = `${idx}-${nIdx}`
+        const hit = trav.has(edgeKey)
+        roads.push({
+          key: `h-${idx}`,
+          orientation: 'h',
+          type: t,
+          traversed: hit,
+          arrowDir: hit ? trav.get(edgeKey)! : null,
+          style: {
+            left: `${c * CELL + TILE_PX}px`,
+            top: `${r * CELL + (TILE_PX - ROAD_THICK) / 2}px`,
+            width: `${GAP_PX}px`,
+            height: `${ROAD_THICK}px`,
+          },
+        })
+      }
+
+      if (r < rows - 1) {
+        const nIdx = idx + cols
+        const t = getEdgeType(idx, nIdx, em)
+        const edgeKey = `${idx}-${nIdx}`
+        const hit = trav.has(edgeKey)
+        roads.push({
+          key: `v-${idx}`,
+          orientation: 'v',
+          type: t,
+          traversed: hit,
+          arrowDir: hit ? trav.get(edgeKey)! : null,
+          style: {
+            left: `${c * CELL + (TILE_PX - ROAD_THICK) / 2}px`,
+            top: `${r * CELL + TILE_PX}px`,
+            width: `${ROAD_THICK}px`,
+            height: `${GAP_PX}px`,
+          },
+        })
+      }
+    }
   }
-}
 
-function moveIndex(id: number) {
-  return moveIndexMap.value.get(id) ?? null
-}
+  return roads
+})
 </script>
 
 <template>
@@ -67,37 +119,45 @@ function moveIndex(id: number) {
       <p class="kbd-note">Click tiles or use arrow keys</p>
     </header>
 
-    <div
-      class="board"
-      :style="{
-        gridTemplateColumns: `repeat(${board.cols}, minmax(2.9rem, 1fr))`,
-      }"
-    >
-      <button
-        v-for="tile in tiles.flat()"
-        :key="tile.id"
-        :class="tileClass(tile.id)"
-        :disabled="disabled"
-        @click="emit('select', tile.id)"
+    <div class="board-wrapper">
+      <div
+        class="board"
+        :style="{
+          gridTemplateColumns: `repeat(${board.cols}, var(--tile-size))`,
+        }"
       >
-        <span
-          v-for="dir in EDGE_DIRECTIONS"
-          :key="`${tile.id}-${dir}`"
-          :class="edgeClass(tile.id, dir)"
+        <GameTile
+          v-for="tile in tiles.flat()"
+          :key="tile.id"
+          :value="tile.value"
+          :is-start="board.start === tile.id"
+          :is-end="board.end === tile.id"
+          :is-current="currentTileIndex === tile.id"
+          :is-active="activeSet.has(tile.id)"
+          :is-done="visitedSet.has(tile.id)"
+          :is-hinted="hintedTiles.has(tile.id)"
+          :disabled="disabled"
+          @select="emit('select', tile.id)"
         />
+      </div>
 
-        <span v-if="moveIndex(tile.id)" class="step-badge">{{ moveIndex(tile.id) }}</span>
-        <span class="value">{{ tile.value }}</span>
-        <span v-if="tile.start" class="tag tag-start">S</span>
-        <span v-if="tile.end" class="tag tag-end">E</span>
-      </button>
+      <BoardRoad
+        v-for="road in allRoads"
+        :key="road.key"
+        :type="road.type"
+        :traversed="road.traversed"
+        :arrow-dir="road.arrowDir"
+        :style="road.style"
+      />
     </div>
   </section>
 </template>
 
 <style scoped>
-/* ── Board shell ────────────────────────────────────────────── */
 .board-shell {
+  --tile-size: 50px;
+  --gap: 14px;
+
   padding: 1.1rem;
   border-radius: 26px;
   background:
@@ -108,6 +168,7 @@ function moveIndex(id: number) {
     0 0 0 1px rgb(0 0 0 / 55%),
     0 28px 56px rgb(0 0 0 / 48%),
     inset 0 1px 0 rgb(255 215 0 / 10%);
+  text-align: center;
 }
 
 .board-header {
@@ -116,6 +177,7 @@ function moveIndex(id: number) {
   align-items: end;
   gap: 1rem;
   margin-bottom: 1rem;
+  text-align: left;
 }
 
 .eyebrow {
@@ -139,242 +201,26 @@ function moveIndex(id: number) {
   font-size: 0.86rem;
 }
 
-/* ── Tile grid ──────────────────────────────────────────────── */
+.board-wrapper {
+  position: relative;
+  display: inline-block;
+  margin: 0 auto;
+}
+
 .board {
   display: grid;
-  gap: 0.7rem;
-}
-
-/* ── Tile base ──────────────────────────────────────────────── */
-.tile {
-  position: relative;
-  aspect-ratio: 1 / 1;
-  border-radius: 50%;
-  /* double-ring: dotted outer (brand red-orange), solid gold inner */
-  border: 3px dotted #b33200;
-  background: #160e05;
-  color: goldenrod;
-  font-size: 1.25rem;
-  font-weight: 800;
-  overflow: hidden;
-  isolation: isolate;
-  transition: transform 160ms ease, box-shadow 160ms ease;
-}
-
-/* inner gold ring via outline */
-.tile::before {
-  content: '';
-  position: absolute;
-  inset: 3px;
-  border-radius: 50%;
-  border: 2.5px solid rgb(218 165 32 / 45%);
-  pointer-events: none;
-  z-index: 3;
-}
-
-/* ── Tile states ────────────────────────────────────────────── */
-.tile.active {
-  border-color: #b33200;
-  cursor: pointer;
-  color: goldenrod;
-}
-
-.tile.active::before {
-  border-color: rgb(68 221 25 / 50%);
-}
-
-/* green tint fill for legal moves */
-.tile.active::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgb(68 221 25 / 18%) 0%, transparent 72%);
-  z-index: 0;
-}
-
-.tile.active:hover:not(:disabled) {
-  transform: scale(1.08);
-  box-shadow: 0 0 18px rgb(68 221 25 / 35%);
-}
-
-.tile.active:active:not(:disabled) {
-  transform: scale(0.94);
-}
-
-/* gold fill + glow for visited path */
-.tile.done {
-  color: #2d1c02;
-  border-color: darkgoldenrod;
-}
-
-.tile.done::before {
-  border-color: darkgoldenrod;
-}
-
-.tile.done::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background: linear-gradient(135deg, rgb(212 175 55) 0%, rgb(184 142 30) 100%);
-  z-index: 0;
-}
-
-.tile.done .value {
-  color: #2d1c02;
-  text-shadow: 0 1px 0 rgb(255 230 100 / 40%);
-}
-
-/* gold glow around current tile */
-.tile.current {
-  box-shadow:
-    0 0 0 3px goldenrod,
-    0 0 18px rgb(218 165 32 / 55%);
-}
-
-/* pink/magenta for hints */
-.tile.hinted::before {
-  border-color: #d6336c;
-}
-
-.tile.hinted {
-  box-shadow: 0 0 14px rgb(214 51 108 / 45%);
-}
-
-.tile:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px #4b9eff, 0 0 12px rgb(75 158 255 / 35%);
-}
-
-/* ── Value text ─────────────────────────────────────────────── */
-.value {
-  position: relative;
-  z-index: 2;
-  /* let .done override via .done .value */
-  color: goldenrod;
-}
-
-/* ── Step badge (path order) ────────────────────────────────── */
-.step-badge {
-  position: absolute;
-  top: 0.28rem;
-  left: 0.32rem;
-  z-index: 4;
-  min-width: 1.2rem;
-  height: 1.2rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  background: rgb(0 0 0 / 60%);
-  color: goldenrod;
-  font-size: 0.62rem;
-  font-weight: 800;
-  border: 1px solid rgb(218 165 32 / 40%);
-}
-
-/* ── Start / End tags ───────────────────────────────────────── */
-.tag {
-  position: absolute;
-  right: 0.3rem;
-  z-index: 4;
-  min-width: 1.25rem;
-  height: 1.25rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  color: #fff;
-  font-size: 0.62rem;
-  font-weight: 900;
-  letter-spacing: 0.02em;
-}
-
-.tag-start {
-  top: 0.28rem;
-  background: #065f46;
-  border: 1px solid #a7f3d0;
-}
-
-.tag-end {
-  bottom: 0.3rem;
-  background: #7f1d1d;
-  border: 1px solid #fca5a5;
-}
-
-/* ── Edge constraint markers ─────────────────────────────────── */
-.edge {
-  position: absolute;
-  z-index: 1;
-  pointer-events: none;
-}
-
-.edge-top,
-.edge-bottom {
-  left: 22%;
-  right: 22%;
-  height: 6px;
-  border-radius: 999px;
-}
-
-.edge-left,
-.edge-right {
-  top: 22%;
-  bottom: 22%;
-  width: 6px;
-  border-radius: 999px;
-}
-
-.edge-top    { top: 0; }
-.edge-bottom { bottom: 0; }
-.edge-left   { left: 0; }
-.edge-right  { right: 0; }
-
-.edge-open,
-.edge-boundary {
-  display: none;
-}
-
-.edge-blocked {
-  background: #fc2f00;
-  opacity: 0.85;
-}
-
-.edge-cost {
-  background: #f59e0b;
-}
-
-.edge-bonus {
-  background: #22c55e;
-}
-
-button:disabled {
-  cursor: default;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .tile {
-    transition: none;
-  }
-
-  .tile.active:hover:not(:disabled) {
-    transform: none;
-  }
+  gap: var(--gap);
 }
 
 @media (max-width: 760px) {
+  .board-shell {
+    --tile-size: 42px;
+    --gap: 12px;
+  }
+
   .board-header {
     display: grid;
     gap: 0.45rem;
-  }
-
-  .board {
-    gap: 0.52rem;
-  }
-
-  .tile {
-    font-size: 1.1rem;
   }
 }
 </style>
