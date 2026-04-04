@@ -310,18 +310,6 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-:global(html) {
-  margin: 0;
-  min-height: 100%;
-  background: #0d0702;
-}
-
-:global(body) {
-  margin: 0;
-  min-height: 100%;
-  background: #0d0702;
-}
-
 :global(#__nuxt) {
   min-height: 100dvh;
 }
@@ -329,10 +317,7 @@ onUnmounted(() => {
 .shell {
   min-height: 100dvh;
   padding: 1.3rem;
-  background:
-    radial-gradient(ellipse 70% 50% at 15% 0%, rgb(160 90 0 / 22%) 0%, transparent 55%),
-    radial-gradient(ellipse 55% 45% at 85% 100%, rgb(90 40 0 / 20%) 0%, transparent 60%),
-    linear-gradient(175deg, #1a0e03 0%, #110900 55%, #0d0702 100%);
+  background: var(--gradient-bg-main);
 }
 
 .layout {
@@ -350,22 +335,11 @@ onUnmounted(() => {
 }
 
 .layout > * {
-  animation: rise-in 360ms cubic-bezier(.2, .8, .2, 1) both;
+  animation: rise-in var(--transition-slow) both;
 }
 
 .layout > *:nth-child(2) {
   animation-delay: 80ms;
-}
-
-@keyframes rise-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 @media (max-width: 980px) {

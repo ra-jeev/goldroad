@@ -14,79 +14,71 @@ defineProps<{
     :class="['road', `road--${type}`, { 'road--traversed': traversed }]"
     :style="style"
   >
-    <span v-if="traversed && arrowDir" :class="['arrow', `arrow--${arrowDir}`]" />
+     <svg
+      v-if="traversed && arrowDir"
+      :class="['arrow', `arrow--${arrowDir}`]"
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="3"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <path d="M18 8L22 12L18 16" />
+      <path d="M2 12H22" />
+    </svg>
   </span>
 </template>
 
 <style scoped>
 .road {
   position: absolute;
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   pointer-events: none;
   z-index: 1;
-  transition: background 0.2s ease;
+  transition: background var(--transition-base);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-/* Open roads: visible but muted */
 .road--open {
-  background: rgb(218 165 32 / 30%);
+  background: rgb(var(--color-gold-rgb) / 0.30);
 }
 
-/* Special roads */
 .road--blocked {
-  background: #fc2f00;
+  background: var(--color-blocked);
   opacity: 0.9;
 }
 
 .road--cost {
-  background: #f59e0b;
+  background: var(--color-cost);
   opacity: 0.85;
 }
 
 .road--bonus {
-  background: #22c55e;
+  background: var(--color-bonus);
   opacity: 0.85;
 }
 
-/* Traversed roads: bright golden */
 .road--traversed {
-  background: goldenrod !important;
+  background: var(--color-gold) !important;
   opacity: 1 !important;
-  box-shadow: 0 0 8px rgb(218 165 32 / 55%);
+  box-shadow: var(--shadow-glow-road);
   z-index: 2;
 }
 
-/* ── Arrow triangles ────────────────────────────────────────── */
+/* ── SVG arrow ──────────────────────────────────────────────── */
 .arrow {
-  width: 0;
-  height: 0;
+  width: 10px;
+  height: 10px;
   flex-shrink: 0;
+  color: var(--color-text-dark);
 }
 
-.arrow--right {
-  border-top: 5px solid transparent;
-  border-bottom: 5px solid transparent;
-  border-left: 7px solid #1a0e03;
-}
-
-.arrow--left {
-  border-top: 5px solid transparent;
-  border-bottom: 5px solid transparent;
-  border-right: 7px solid #1a0e03;
-}
-
-.arrow--down {
-  border-left: 5px solid transparent;
-  border-right: 5px solid transparent;
-  border-top: 7px solid #1a0e03;
-}
-
-.arrow--up {
-  border-left: 5px solid transparent;
-  border-right: 5px solid transparent;
-  border-bottom: 7px solid #1a0e03;
-}
+.arrow--right { transform: rotate(0deg); }
+.arrow--down  { transform: rotate(90deg); }
+.arrow--left  { transform: rotate(180deg); }
+.arrow--up    { transform: rotate(270deg); }
 </style>

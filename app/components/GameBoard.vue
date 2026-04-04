@@ -158,19 +158,14 @@ const allRoads = computed<RoadData[]>(() => {
 
 <style scoped>
 .board-shell {
-  --tile-size: 50px;
-  --gap: 14px;
-
   padding: 1.1rem;
-  border-radius: 26px;
-  background:
-    radial-gradient(ellipse 80% 60% at 18% 10%, rgb(255 212 59 / 6%) 0%, transparent 60%),
-    linear-gradient(175deg, #1c1108 0%, #160e05 50%, #0e0a04 100%);
-  border: 1px solid rgb(218 165 32 / 25%);
+  border-radius: var(--radius-xl);
+  background: var(--gradient-card-board);
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.40);
   box-shadow:
-    0 0 0 1px rgb(0 0 0 / 55%),
-    0 28px 56px rgb(0 0 0 / 48%),
-    inset 0 1px 0 rgb(255 215 0 / 10%);
+    var(--shadow-border-dark),
+    var(--shadow-2xl),
+    var(--shadow-inset-gold);
   text-align: center;
 }
 
@@ -183,24 +178,16 @@ const allRoads = computed<RoadData[]>(() => {
   text-align: left;
 }
 
-.eyebrow {
-  margin: 0;
-  font-size: 0.7rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: rgb(218 165 32 / 65%);
-}
-
 .board-header h2 {
   margin: 0.18rem 0 0;
   font-size: 1.08rem;
-  letter-spacing: 0.01em;
-  color: #d4af37;
+  letter-spacing: var(--letter-spacing-tight);
+  color: var(--color-gold-bright);
 }
 
 .kbd-note {
   margin: 0;
-  color: rgb(218 165 32 / 45%);
+  color: rgb(var(--color-gold-rgb) / 0.80);
   font-size: 0.86rem;
 }
 
@@ -212,15 +199,10 @@ const allRoads = computed<RoadData[]>(() => {
 
 .board {
   display: grid;
-  gap: var(--gap);
+  gap: var(--tile-gap);
 }
 
 @media (max-width: 760px) {
-  .board-shell {
-    --tile-size: 42px;
-    --gap: 12px;
-  }
-
   .board-header {
     display: grid;
     gap: 0.45rem;

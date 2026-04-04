@@ -61,35 +61,25 @@ const tierLabel: Record<OutcomeTier, string> = {
 
 <style scoped>
 .completion-panel {
-  border-radius: 26px;
+  border-radius: var(--radius-xl);
   padding: 1.05rem;
-  background:
-    radial-gradient(ellipse 90% 70% at 10% 0%, rgb(218 165 32 / 12%) 0%, transparent 55%),
-    linear-gradient(160deg, #1e1407 0%, #150e04 100%);
-  border: 1px solid rgb(218 165 32 / 28%);
+  background: var(--gradient-card-completion);
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.42);
   box-shadow:
-    0 0 0 1px rgb(0 0 0 / 45%),
-    0 24px 48px rgb(0 0 0 / 44%),
-    inset 0 1px 0 rgb(218 165 32 / 8%);
-}
-
-.eyebrow {
-  margin: 0;
-  font-size: 0.7rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: rgb(218 165 32 / 60%);
+    var(--shadow-border-dark),
+    var(--shadow-xl),
+    var(--shadow-inset-gold);
 }
 
 .copy h2 {
   margin: 0.25rem 0 0;
-  color: goldenrod;
-  letter-spacing: 0.01em;
+  color: var(--color-gold);
+  letter-spacing: var(--letter-spacing-tight);
 }
 
 .copy p:last-child {
-  color: rgb(218 165 32 / 55%);
-  line-height: 1.42;
+  color: rgb(var(--color-gold-rgb) / 0.85);
+  line-height: var(--line-height-snug);
 }
 
 .summary-grid {
@@ -100,22 +90,22 @@ const tierLabel: Record<OutcomeTier, string> = {
 }
 
 .summary-grid article {
-  border-radius: 18px;
+  border-radius: var(--radius-md);
   padding: 0.8rem;
-  background: rgb(218 165 32 / 8%);
-  border: 1px solid rgb(218 165 32 / 18%);
+  background: rgb(var(--color-gold-rgb) / 0.10);
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.35);
 }
 
 .summary-grid span {
   display: block;
-  color: rgb(218 165 32 / 55%);
-  font-size: 0.82rem;
+  color: rgb(var(--color-gold-rgb) / 0.88);
+  font-size: var(--font-size-base);
 }
 
 .summary-grid strong {
   display: block;
   margin-top: 0.25rem;
-  color: goldenrod;
+  color: var(--color-gold);
   font-size: 1.16rem;
 }
 
@@ -127,28 +117,28 @@ const tierLabel: Record<OutcomeTier, string> = {
 
 button {
   border: 0;
-  border-radius: 15px;
+  border-radius: var(--radius-sm);
   padding: 0.75rem 1rem;
   font-weight: 700;
   cursor: pointer;
-  transition: transform 140ms ease, box-shadow 140ms ease;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .primary {
-  color: #1a0e00;
-  background: linear-gradient(135deg, goldenrod 0%, #b8860b 100%);
-  box-shadow: 0 0 18px rgb(218 165 32 / 35%);
+  color: var(--color-text-on-gold);
+  background: var(--gradient-button-primary);
+  box-shadow: 0 0 18px rgb(var(--color-gold-rgb) / 0.35);
 }
 
 .secondary {
-  color: goldenrod;
-  background: rgb(218 165 32 / 12%);
-  border: 1px solid rgb(218 165 32 / 28%);
+  color: var(--color-gold);
+  background: rgb(var(--color-gold-rgb) / 0.15);
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.38);
 }
 
 button:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 10px 22px rgb(0 0 0 / 40%);
+  box-shadow: var(--shadow-md);
 }
 
 button:disabled {

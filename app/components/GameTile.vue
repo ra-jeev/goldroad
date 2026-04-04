@@ -39,21 +39,21 @@ const emit = defineEmits<{
 .tile {
   position: relative;
   aspect-ratio: 1 / 1;
-  border-radius: 50%;
-  border: 3px solid rgb(218 165 32 / 40%);
+  border-radius: var(--radius-circle);
+  border: var(--tile-border) solid rgb(var(--color-gold-rgb) / 0.50);
   background: transparent;
-  color: goldenrod;
-  font-size: 1.15rem;
+  color: var(--color-gold);
+  font-size: var(--font-size-xl);
   font-weight: 700;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease-in-out;
+  transition: all var(--transition-base);
 }
 
 /* ── States ─────────────────────────────────────────────────── */
 .tile.active {
-  border-color: rgb(68 221 25 / 50%);
+  border-color: rgb(var(--color-active-rgb) / 0.50);
   cursor: pointer;
 }
 
@@ -61,14 +61,14 @@ const emit = defineEmits<{
   content: '';
   position: absolute;
   inset: 0;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgb(68 221 25 / 14%) 0%, transparent 72%);
+  border-radius: var(--radius-circle);
+  background: var(--gradient-radial-active);
   pointer-events: none;
 }
 
 .tile.active:hover:not(:disabled) {
   transform: scale(1.05);
-  box-shadow: 0 0 14px rgb(68 221 25 / 30%);
+  box-shadow: var(--shadow-glow-active);
 }
 
 .tile.active:active:not(:disabled) {
@@ -76,33 +76,33 @@ const emit = defineEmits<{
 }
 
 .tile.done {
-  border-color: darkgoldenrod;
-  background: linear-gradient(135deg, rgb(212 175 55), rgb(184 142 30));
-  box-shadow: 0 0 12px 4px rgb(218 165 32 / 54%);
+  border-color: var(--color-gold-dark);
+  background: var(--gradient-tile-done);
+  box-shadow: var(--shadow-glow-gold);
 }
 
 .tile.done .value {
-  color: #2d1c02;
+  color: var(--color-text-dark);
   text-shadow: 0 1px 0 rgb(255 230 100 / 40%);
 }
 
 .tile.current {
   box-shadow:
-    0 0 0 3px goldenrod,
-    0 0 18px rgb(218 165 32 / 55%);
+    0 0 0 3px var(--color-gold),
+    0 0 18px rgb(var(--color-gold-rgb) / 0.55);
 }
 
 .tile.start {
-  border-color: rgb(68 221 25 / 55%);
+  border-color: rgb(var(--color-active-rgb) / 0.55);
 }
 
 .tile.start.done {
-  border-color: rgb(68 221 25 / 70%);
+  border-color: rgb(var(--color-active-rgb) / 0.70);
 }
 
 .tile.end {
-  border-color: rgb(180 60 20 / 60%);
-  box-shadow: 0 0 10px rgb(180 60 20 / 20%);
+  border-color: rgb(180 60 20 / 0.60);
+  box-shadow: var(--shadow-glow-end-subtle);
 }
 
 .tile.end.done {
@@ -110,20 +110,20 @@ const emit = defineEmits<{
 }
 
 .tile.hinted {
-  border-color: #d6336c;
-  box-shadow: 0 0 14px rgb(214 51 108 / 45%);
+  border-color: var(--color-hint);
+  box-shadow: var(--shadow-glow-hint);
 }
 
 .tile:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px #4b9eff, 0 0 12px rgb(75 158 255 / 35%);
+  box-shadow: 0 0 0 3px var(--color-focus), var(--shadow-glow-focus);
 }
 
 /* ── Value ──────────────────────────────────────────────────── */
 .value {
   position: relative;
   z-index: 2;
-  color: goldenrod;
+  color: var(--color-gold);
 }
 
 /* ── Start / End dot markers ────────────────────────────────── */
@@ -132,24 +132,24 @@ const emit = defineEmits<{
   z-index: 4;
   width: 10px;
   height: 10px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   pointer-events: none;
 }
 
 .marker-start {
   top: -3px;
   right: -3px;
-  background: #22c55e;
-  border: 1.5px solid #a7f3d0;
-  box-shadow: 0 0 6px rgb(34 197 94 / 60%);
+  background: var(--color-start);
+  border: 1.5px solid var(--color-start-light);
+  box-shadow: var(--shadow-glow-start);
 }
 
 .marker-end {
   bottom: -3px;
   right: -3px;
-  background: #dc2626;
-  border: 1.5px solid #fca5a5;
-  box-shadow: 0 0 6px rgb(220 38 38 / 50%);
+  background: var(--color-end);
+  border: 1.5px solid var(--color-end-light);
+  box-shadow: var(--shadow-glow-end);
 }
 
 button:disabled {
@@ -168,7 +168,7 @@ button:disabled {
 
 @media (max-width: 760px) {
   .tile {
-    font-size: 1rem;
+    font-size: var(--font-size-lg);
   }
 }
 </style>

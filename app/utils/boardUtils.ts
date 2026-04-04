@@ -99,11 +99,6 @@ export function calcTileSize(numTiles: number): TileSizeResult {
 // Board value helpers
 // ---------------------------------------------------------------------------
 
-/** Sum of all tile values on the board (upper bound of any reachable score). */
-export function totalBoardValue(tiles: number[]): number {
-  return tiles.reduce((sum, value) => sum + value, 0)
-}
-
 /** Compute "coins still needed" display string above the board. */
 export function coinsNeededLabel(maxScore: number, currentScore: number): string {
   const remaining = maxScore - currentScore
