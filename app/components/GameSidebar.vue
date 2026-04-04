@@ -1,18 +1,20 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import type { DifficultyBand } from '../../shared/types/game'
 import { UI_COPY } from '../content/uiCopy'
 
 defineProps<{
-  gameNo: number | null
+  roadHeading: string
   score: number
   maxScore: number
   totalCoins: number
   moves: number
   completionPercent: number
+  progressText: string
   status: string
-  hintMessage: string | null
-  difficultyBand: DifficultyBand | null
+  hintDisplayMessage: string
+  hasHintMessage: boolean
+  runStateHeading: string
+  difficultyLabel: string
   hintUsage: {
     level1: number
     level2: number
@@ -42,7 +44,7 @@ function closeOverlays() {
       <div class="hero-top">
         <div>
           <p class="eyebrow">{{ UI_COPY.sidebar.eyebrow }}</p>
-          <h1>Road {{ gameNo ?? '...' }}</h1>
+          <h1>{{ roadHeading }}</h1>
         </div>
         <div class="hero-tools">
           <button class="secondary ghost" type="button" @click="showLegend = true">{{ UI_COPY.sidebar.legend }}</button>
@@ -72,7 +74,7 @@ function closeOverlays() {
       </article>
       <article>
         <span class="metric-label">{{ UI_COPY.sidebar.metrics.progress }}</span>
-        <strong>{{ completionPercent }}%</strong>
+        <strong>{{ progressText }}</strong>
       </article>
     </section>
 
@@ -80,14 +82,14 @@ function closeOverlays() {
       <div class="status-header">
         <div>
           <p class="eyebrow">{{ UI_COPY.sidebar.runStatusEyebrow }}</p>
-          <h2>{{ ended ? UI_COPY.sidebar.routeComplete : UI_COPY.sidebar.routeActive }}</h2>
+          <h2>{{ runStateHeading }}</h2>
         </div>
-        <span class="mini-status" :class="{ ended }">{{ difficultyBand ?? '—' }}</span>
+        <span class="mini-status" :class="{ ended }">{{ difficultyLabel }}</span>
       </div>
 
       <p class="status-copy">{{ status }}</p>
-      <p class="hint-inline" :class="{ empty: !hintMessage }">
-        {{ hintMessage ?? UI_COPY.sidebar.defaultHintInline }}
+      <p class="hint-inline" :class="{ empty: !hasHintMessage }">
+        {{ hintDisplayMessage }}
       </p>
 
       <div class="quick-actions">
@@ -121,8 +123,8 @@ function closeOverlays() {
           </button>
         </div>
 
-        <p class="hint-message" :class="{ empty: !hintMessage }">
-          {{ hintMessage ?? UI_COPY.sidebar.hintFallback }}
+        <p class="hint-message" :class="{ empty: !hasHintMessage }">
+          {{ hasHintMessage ? hintDisplayMessage : UI_COPY.sidebar.hintFallback }}
         </p>
       </section>
 

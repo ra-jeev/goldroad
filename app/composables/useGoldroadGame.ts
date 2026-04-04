@@ -42,6 +42,20 @@ export function useGoldroadGame() {
     return Math.min(100, Math.round((score.value / maxScore.value) * 100))
   })
 
+  // UI-ready labels (derived display text and formatted fields)
+  const uiLabels = computed(() => ({
+    roadHeading: game.value ? `Road ${game.value.gameNo}` : 'Road ...',
+    runStateHeading: ended.value ? UI_COPY.sidebar.routeComplete : UI_COPY.sidebar.routeActive,
+    difficultyLabel: game.value?.difficultyBand ?? '—',
+    hintDisplayMessage: hintMessage.value ?? UI_COPY.sidebar.defaultHintInline,
+    hasHintMessage: Boolean(hintMessage.value),
+    progressText: `${completionPercent.value}%`,
+    completionHeading: lastTier.value
+      ? UI_COPY.completion.tiers[lastTier.value]
+      : UI_COPY.completion.headingFallback,
+    completionOutcome: lastTier.value ?? '—',
+  }))
+
   function ensurePlayerUUID(): string {
     if (typeof window === 'undefined') return '00000000-0000-4000-8000-000000000000'
 
@@ -277,6 +291,7 @@ export function useGoldroadGame() {
     maxScore,
     totalCoins,
     completionPercent,
+    uiLabels,
     loadCurrentGame,
     playAnother,
     moveTo,

@@ -19,6 +19,7 @@ const {
   maxScore,
   totalCoins,
   completionPercent,
+  uiLabels,
   loadCurrentGame,
   playAnother,
   moveTo,
@@ -32,15 +33,18 @@ const {
 
     <main class="layout">
       <GameSidebar
-        :game-no="game?.gameNo ?? null"
+        :road-heading="uiLabels.roadHeading"
         :score="score"
         :max-score="maxScore"
         :total-coins="totalCoins"
         :moves="moves"
         :completion-percent="completionPercent"
+        :progress-text="uiLabels.progressText"
         :status="status"
-        :hint-message="hintMessage"
-        :difficulty-band="game?.difficultyBand ?? null"
+        :hint-display-message="uiLabels.hintDisplayMessage"
+        :has-hint-message="uiLabels.hasHintMessage"
+        :run-state-heading="uiLabels.runStateHeading"
+        :difficulty-label="uiLabels.difficultyLabel"
         :hint-usage="hintUsage"
         :ended="ended"
         :loading="loading"
@@ -65,6 +69,8 @@ const {
         <CompletionPanel
           :visible="ended"
           :tier="lastTier"
+          :heading="uiLabels.completionHeading"
+          :outcome-label="uiLabels.completionOutcome"
           :score="score"
           :max-score="maxScore"
           :moves="moves"

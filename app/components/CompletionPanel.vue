@@ -5,6 +5,8 @@ import { UI_COPY } from '../content/uiCopy'
 defineProps<{
   visible: boolean
   tier: OutcomeTier | null
+  heading: string
+  outcomeLabel: string
   score: number
   maxScore: number
   moves: number
@@ -24,7 +26,7 @@ const tierLabel: Record<OutcomeTier, string> = UI_COPY.completion.tiers
   <section v-if="visible" class="completion-panel">
     <div class="copy">
       <p class="eyebrow">{{ UI_COPY.completion.eyebrow }}</p>
-      <h2>{{ tier ? tierLabel[tier] : UI_COPY.completion.headingFallback }}</h2>
+      <h2>{{ heading }}</h2>
       <p>{{ status }}</p>
     </div>
 
@@ -43,7 +45,7 @@ const tierLabel: Record<OutcomeTier, string> = UI_COPY.completion.tiers
       </article>
       <article>
         <span>{{ UI_COPY.completion.labels.outcome }}</span>
-        <strong>{{ tier ?? '—' }}</strong>
+        <strong>{{ outcomeLabel }}</strong>
       </article>
     </div>
 
