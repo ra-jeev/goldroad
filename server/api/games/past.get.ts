@@ -26,8 +26,6 @@ export default defineEventHandler(async (event) => {
       totalCoins: games.totalCoins,
       playableAt: games.playableAt,
       difficultyBand: games.difficultyBand,
-      routeCount: games.routeCount,
-      goldSilverGap: games.goldSilverGap,
     })
     .from(games)
     .where(

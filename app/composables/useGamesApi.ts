@@ -8,8 +8,6 @@ interface GamePayload {
   difficultyBand: DifficultyBand
   playableAt: string
   nextGameAt: string | null
-  routeCount: number
-  goldSilverGap: number
 }
 
 interface PastGamesResponse {
@@ -20,8 +18,6 @@ interface PastGamesResponse {
     totalCoins: number
     playableAt: string
     difficultyBand: DifficultyBand
-    routeCount: number
-    goldSilverGap: number
   }>
 }
 
