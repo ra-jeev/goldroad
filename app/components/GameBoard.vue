@@ -5,6 +5,7 @@ import type { Board, EdgeType } from '../../shared/types/game'
 import type { TileState } from '../types/game'
 import GameTile from './GameTile.vue'
 import BoardRoad from './BoardRoad.vue'
+import { UI_COPY } from '../content/uiCopy'
 
 const props = defineProps<{
   board: Board
@@ -116,10 +117,10 @@ const allRoads = computed<RoadData[]>(() => {
   <section class="board-shell">
     <header class="board-header">
       <div>
-        <p class="eyebrow">Road Map</p>
-        <h2>Pick the richest route to the exit</h2>
+        <p class="eyebrow">{{ UI_COPY.board.eyebrow }}</p>
+        <h2>{{ UI_COPY.board.heading }}</h2>
       </div>
-      <p class="kbd-note">Click tiles or use arrow keys</p>
+      <p class="kbd-note">{{ UI_COPY.board.keyboardHint }}</p>
     </header>
 
     <div class="board-wrapper">

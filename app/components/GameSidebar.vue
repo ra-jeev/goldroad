@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import type { DifficultyBand } from '../../shared/types/game'
+import { UI_COPY } from '../content/uiCopy'
 
 defineProps<{
   gameNo: number | null
@@ -40,37 +41,37 @@ function closeOverlays() {
     <section class="hero-card">
       <div class="hero-top">
         <div>
-          <p class="eyebrow">Daily Test Build</p>
+          <p class="eyebrow">{{ UI_COPY.sidebar.eyebrow }}</p>
           <h1>Road {{ gameNo ?? '...' }}</h1>
         </div>
         <div class="hero-tools">
-          <button class="secondary ghost" type="button" @click="showLegend = true">Legend</button>
-          <button class="secondary ghost" type="button" @click="showHints = true">Hints</button>
+          <button class="secondary ghost" type="button" @click="showLegend = true">{{ UI_COPY.sidebar.legend }}</button>
+          <button class="secondary ghost" type="button" @click="showHints = true">{{ UI_COPY.sidebar.hints }}</button>
         </div>
       </div>
 
-      <p class="hero-copy">The goal is not to collect everything. The goal is to discover the best legal route.</p>
+      <p class="hero-copy">{{ UI_COPY.sidebar.heroCopy }}</p>
 
       <div class="hero-actions">
-        <button class="secondary" :disabled="loading" @click="emit('current')">Reload Today</button>
+        <button class="secondary" :disabled="loading" @click="emit('current')">{{ UI_COPY.sidebar.reloadToday }}</button>
       </div>
     </section>
 
     <section class="metrics-grid">
       <article>
-        <span class="metric-label">Score</span>
+        <span class="metric-label">{{ UI_COPY.sidebar.metrics.score }}</span>
         <strong>{{ score }} / {{ maxScore }}</strong>
       </article>
       <article>
-        <span class="metric-label">Board Coins</span>
+        <span class="metric-label">{{ UI_COPY.sidebar.metrics.boardCoins }}</span>
         <strong>{{ totalCoins }}</strong>
       </article>
       <article>
-        <span class="metric-label">Moves</span>
+        <span class="metric-label">{{ UI_COPY.sidebar.metrics.moves }}</span>
         <strong>{{ moves }}</strong>
       </article>
       <article>
-        <span class="metric-label">Progress</span>
+        <span class="metric-label">{{ UI_COPY.sidebar.metrics.progress }}</span>
         <strong>{{ completionPercent }}%</strong>
       </article>
     </section>
@@ -78,20 +79,20 @@ function closeOverlays() {
     <section class="status-card">
       <div class="status-header">
         <div>
-          <p class="eyebrow">Run Status</p>
-          <h2>{{ ended ? 'Route Complete' : 'Route Active' }}</h2>
+          <p class="eyebrow">{{ UI_COPY.sidebar.runStatusEyebrow }}</p>
+          <h2>{{ ended ? UI_COPY.sidebar.routeComplete : UI_COPY.sidebar.routeActive }}</h2>
         </div>
         <span class="mini-status" :class="{ ended }">{{ difficultyBand ?? '—' }}</span>
       </div>
 
       <p class="status-copy">{{ status }}</p>
       <p class="hint-inline" :class="{ empty: !hintMessage }">
-        {{ hintMessage ?? 'Use hints only when you need help. They stay tucked away until you ask for them.' }}
+        {{ hintMessage ?? UI_COPY.sidebar.defaultHintInline }}
       </p>
 
       <div class="quick-actions">
-        <button class="secondary ghost" type="button" @click="showHints = true">Open Hints</button>
-        <button class="secondary ghost" type="button" @click="showLegend = true">Open Legend</button>
+        <button class="secondary ghost" type="button" @click="showHints = true">{{ UI_COPY.sidebar.openHints }}</button>
+        <button class="secondary ghost" type="button" @click="showLegend = true">{{ UI_COPY.sidebar.openLegend }}</button>
       </div>
     </section>
 
@@ -99,68 +100,68 @@ function closeOverlays() {
       <section v-if="showHints" class="overlay-card" aria-label="Hints overlay">
         <div class="overlay-header">
           <div>
-            <p class="eyebrow">Help</p>
-            <h2>Hints</h2>
+            <p class="eyebrow">{{ UI_COPY.sidebar.overlayHelpEyebrow }}</p>
+            <h2>{{ UI_COPY.sidebar.hintsTitle }}</h2>
           </div>
-          <button class="close-button" type="button" @click="showHints = false">Close</button>
+          <button class="close-button" type="button" @click="showHints = false">{{ UI_COPY.sidebar.close }}</button>
         </div>
 
         <div class="hint-buttons">
           <button class="secondary" :disabled="ended || loading" @click="emit('hint', 1)">
-            <span>Hint 1</span>
-            <small>Highlights the next best move · Used {{ hintUsage.level1 }}</small>
+            <span>{{ UI_COPY.sidebar.hintRows.level1Title }}</span>
+            <small>{{ UI_COPY.sidebar.hintRows.level1Desc }} · Used {{ hintUsage.level1 }}</small>
           </button>
           <button class="secondary" :disabled="ended || loading" @click="emit('hint', 2)">
-            <span>Hint 2</span>
-            <small>Shows the next few best tiles · Used {{ hintUsage.level2 }}</small>
+            <span>{{ UI_COPY.sidebar.hintRows.level2Title }}</span>
+            <small>{{ UI_COPY.sidebar.hintRows.level2Desc }} · Used {{ hintUsage.level2 }}</small>
           </button>
           <button class="secondary" :disabled="ended || loading" @click="emit('hint', 3)">
-            <span>Hint 3</span>
-            <small>Reveals the exact next best tile · Used {{ hintUsage.level3 }}</small>
+            <span>{{ UI_COPY.sidebar.hintRows.level3Title }}</span>
+            <small>{{ UI_COPY.sidebar.hintRows.level3Desc }} · Used {{ hintUsage.level3 }}</small>
           </button>
         </div>
 
         <p class="hint-message" :class="{ empty: !hintMessage }">
-          {{ hintMessage ?? 'Hints appear here after you request one.' }}
+          {{ hintMessage ?? UI_COPY.sidebar.hintFallback }}
         </p>
       </section>
 
       <section v-if="showLegend" class="overlay-card" aria-label="Legend overlay">
         <div class="overlay-header">
           <div>
-            <p class="eyebrow">Help</p>
-            <h2>Legend</h2>
+            <p class="eyebrow">{{ UI_COPY.sidebar.overlayHelpEyebrow }}</p>
+            <h2>{{ UI_COPY.sidebar.legendTitle }}</h2>
           </div>
-          <button class="close-button" type="button" @click="showLegend = false">Close</button>
+          <button class="close-button" type="button" @click="showLegend = false">{{ UI_COPY.sidebar.close }}</button>
         </div>
 
         <div class="legend-row">
           <span class="legend-chip chip-active" />
-          <span>Legal next move</span>
+          <span>{{ UI_COPY.sidebar.legendRows.legalMove }}</span>
         </div>
         <div class="legend-row">
           <span class="legend-chip chip-done" />
-          <span>Visited tile</span>
+          <span>{{ UI_COPY.sidebar.legendRows.visitedTile }}</span>
         </div>
         <div class="legend-row">
           <span class="legend-line blocked" />
-          <span>Blocked road</span>
+          <span>{{ UI_COPY.sidebar.legendRows.blockedRoad }}</span>
         </div>
         <div class="legend-row">
           <span class="legend-line cost" />
-          <span>Cost road</span>
+          <span>{{ UI_COPY.sidebar.legendRows.costRoad }}</span>
         </div>
         <div class="legend-row">
           <span class="legend-line bonus" />
-          <span>Bonus road</span>
+          <span>{{ UI_COPY.sidebar.legendRows.bonusRoad }}</span>
         </div>
         <div class="legend-row">
           <span class="legend-dot dot-start" />
-          <span>Start</span>
+          <span>{{ UI_COPY.sidebar.legendRows.start }}</span>
         </div>
         <div class="legend-row">
           <span class="legend-dot dot-end" />
-          <span>End</span>
+          <span>{{ UI_COPY.sidebar.legendRows.end }}</span>
         </div>
       </section>
     </div>

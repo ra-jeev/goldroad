@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { OutcomeTier } from '../../shared/types/game'
+import { UI_COPY } from '../content/uiCopy'
 
 defineProps<{
   visible: boolean
@@ -16,45 +17,39 @@ const emit = defineEmits<{
   today: []
 }>()
 
-const tierLabel: Record<OutcomeTier, string> = {
-  gold: 'Perfect route',
-  silver: 'Excellent route',
-  bronze: 'Strong route',
-  finished: 'Finished route',
-  unfinished: 'Unfinished route',
-}
+const tierLabel: Record<OutcomeTier, string> = UI_COPY.completion.tiers
 </script>
 
 <template>
   <section v-if="visible" class="completion-panel">
     <div class="copy">
-      <p class="eyebrow">Run Complete</p>
-      <h2>{{ tier ? tierLabel[tier] : 'Road complete' }}</h2>
+      <p class="eyebrow">{{ UI_COPY.completion.eyebrow }}</p>
+      <h2>{{ tier ? tierLabel[tier] : UI_COPY.completion.headingFallback }}</h2>
       <p>{{ status }}</p>
     </div>
 
     <div class="summary-grid">
       <article>
-        <span>Final score</span>
+        <span>{{ UI_COPY.completion.labels.finalScore }}</span>
         <strong>{{ score }}</strong>
       </article>
       <article>
-        <span>Gold target</span>
+        <span>{{ UI_COPY.completion.labels.goldTarget }}</span>
         <strong>{{ maxScore }}</strong>
       </article>
       <article>
-        <span>Moves</span>
+        <span>{{ UI_COPY.completion.labels.moves }}</span>
         <strong>{{ moves }}</strong>
       </article>
       <article>
-        <span>Outcome</span>
+        <span>{{ UI_COPY.completion.labels.outcome }}</span>
         <strong>{{ tier ?? '—' }}</strong>
       </article>
     </div>
 
     <div class="actions">
-      <button class="primary" :disabled="submitting" @click="emit('another')">Play Another</button>
-      <button class="secondary" :disabled="submitting" @click="emit('today')">Reload Today</button>
+      <button class="primary" :disabled="submitting" @click="emit('another')">{{ UI_COPY.completion.labels.playAnother }}</button>
+      <button class="secondary" :disabled="submitting" @click="emit('today')">{{ UI_COPY.completion.labels.reloadToday }}</button>
     </div>
   </section>
 </template>
