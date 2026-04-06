@@ -22,7 +22,7 @@ export default defineEventHandler(async (event) => {
     .select({
       gameNo: games.gameNo,
       boardJson: games.boardJson,
-      optimalPathJson: games.optimalPathJson,
+      optimalPathsJson: games.optimalPathsJson,
       maxScore: games.maxScore,
       totalCoins: games.totalCoins,
       difficultyBand: games.difficultyBand,
@@ -62,7 +62,7 @@ export default defineEventHandler(async (event) => {
     .select({
       gameNo: games.gameNo,
       boardJson: games.boardJson,
-      optimalPathJson: games.optimalPathJson,
+      optimalPathsJson: games.optimalPathsJson,
       maxScore: games.maxScore,
       totalCoins: games.totalCoins,
       difficultyBand: games.difficultyBand,

@@ -4,7 +4,7 @@ import { BoardSchema, DifficultyBandSchema, PathResultSchema } from '../../share
 const RawGameRowSchema = z.object({
   gameNo: z.number().int().positive(),
   boardJson: z.string(),
-  optimalPathJson: z.string(),
+  optimalPathsJson: z.string(),
   maxScore: z.number().int().positive(),
   totalCoins: z.number().int().positive(),
   difficultyBand: DifficultyBandSchema,
@@ -19,7 +19,7 @@ type RawGameRow = z.infer<typeof RawGameRowSchema>
 export function parseGameRow(row: RawGameRow) {
   const parsed = RawGameRowSchema.parse(row)
   const board = BoardSchema.parse(JSON.parse(parsed.boardJson))
-  const optimalPaths = z.array(z.array(z.number())).parse(JSON.parse(parsed.optimalPathJson))
+  const optimalPaths = z.array(z.array(z.number())).parse(JSON.parse(parsed.optimalPathsJson))
 
   return {
     gameNo: parsed.gameNo,

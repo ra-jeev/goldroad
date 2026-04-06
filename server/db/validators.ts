@@ -55,10 +55,10 @@ const boardJsonValidator = z.string().refine(
 )
 
 /**
- * Validator for optimalPathJson field: string that must contain valid JSON
+ * Validator for optimalPathsJson field: string that must contain valid JSON
  * representing an array of arrays of tile indexes (all gold route paths).
  */
-const optimalPathJsonValidator = z.string().refine(
+const optimalPathsJsonValidator = z.string().refine(
   (val) => {
     try {
       const parsed = JSON.parse(val)
@@ -68,31 +68,31 @@ const optimalPathJsonValidator = z.string().refine(
       return false
     }
   },
-  { message: 'optimalPathJson must be valid JSON array of arrays of tile indexes' },
+  { message: 'optimalPathsJson must be valid JSON array of arrays of tile indexes' },
 )
 
 export const insertGameSchema = createInsertSchema(games, {
-  gameNo:          s => s.positive(),
-  maxScore:        s => s.positive(),
-  totalCoins:      s => s.positive(),
-  boardJson:       () => boardJsonValidator,
-  optimalPathJson: () => optimalPathJsonValidator,
-  playableAt:      s => z.iso.datetime({ offset: true }),
+  gameNo:           s => s.positive(),
+  maxScore:         s => s.positive(),
+  totalCoins:       s => s.positive(),
+  boardJson:        () => boardJsonValidator,
+  optimalPathsJson: () => optimalPathsJsonValidator,
+  playableAt:       s => z.iso.datetime({ offset: true }),
 })
 
 export const selectGameSchema = createSelectSchema(games, {
-  boardJson:       s => s.transform((val) => {
+  boardJson:        s => s.transform((val) => {
     try {
       return BoardSchema.parse(JSON.parse(val))
     } catch (e) {
       throw new Error(`Failed to parse boardJson from database: ${e instanceof Error ? e.message : String(e)}`)
     }
   }),
-  optimalPathJson: s => s.transform((val) => {
+  optimalPathsJson: s => s.transform((val) => {
     try {
       return z.array(z.array(z.number().int().min(0))).parse(JSON.parse(val))
     } catch (e) {
-      throw new Error(`Failed to parse optimalPathJson from database: ${e instanceof Error ? e.message : String(e)}`)
+      throw new Error(`Failed to parse optimalPathsJson from database: ${e instanceof Error ? e.message : String(e)}`)
     }
   }),
 })
