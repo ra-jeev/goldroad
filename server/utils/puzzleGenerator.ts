@@ -14,7 +14,7 @@
  */
 
 import { findBestRoute, findAllRoutes } from './pathfinder'
-import type { Board, DifficultyBand, EdgePair, PathResult } from '../../shared/types/game'
+import type { Board, DifficultyBand, EdgePair, PathResult, Direction } from '../../shared/types/game'
 import {
   DEFAULT_BLOCKED_EDGES,
   DEFAULT_COLS,
@@ -22,7 +22,7 @@ import {
   TILE_VALUE_MAX,
   TILE_VALUE_MIN,
 } from '../../lib/gameConstants'
-import { allBoardEdgePairs, tileIndex } from '../../shared/utils/puzzleEngine'
+import { allBoardEdgePairs, tileIndex, parseTileIndex, getNeighborId } from '../../shared/utils/puzzleEngine'
 
 // ---------------------------------------------------------------------------
 // RNG helpers
@@ -136,28 +136,52 @@ export function generatePuzzle(
     const endId = pickEnd(rows, cols, startId)
 
     // ------------------------------------------------------------------
-    // 3. Select edges to block
-    //    Skip edges adjacent to start or end to guarantee initial moves
-    //    and a reachable destination from the penultimate tile.
+    // 3. Select edges to block randomly
+    //    No pre-filtering — we validate start/end connectivity below.
     // ------------------------------------------------------------------
-    const protectedSet = new Set<string>()
     const allPairs = allBoardEdgePairs(rows, cols)
-
-    for (const [a, b] of allPairs) {
-      if (a === startId || b === startId || a === endId || b === endId) {
-        protectedSet.add(`${a}|${b}`)
-      }
-    }
-
-    const candidates = shuffle(
-      allPairs.filter(([a, b]) => !protectedSet.has(`${a}|${b}`)),
-    )
+    const candidates = shuffle(allPairs)
 
     const blockedEdges: EdgePair[] = []
     for (const [a, b] of candidates) {
       if (blockedEdges.length >= numBlocked) break
       blockedEdges.push({ from: a, to: b })
     }
+
+    // ------------------------------------------------------------------
+    // 4. Verify start and end each have at least one open edge
+    // ------------------------------------------------------------------
+    const getNeighbors = (tileId: number): number[] => {
+      const [row, col] = parseTileIndex(tileId, cols)
+      const neighbors: number[] = []
+      const dirs: Direction[] = ['top', 'bottom', 'left', 'right']
+      
+      for (const dir of dirs) {
+        const nId = getNeighborId(row, col, dir, rows, cols)
+        if (nId !== null) neighbors.push(nId)
+      }
+      
+      return neighbors
+    }
+    
+    const isEdgeBlocked = (a: number, b: number): boolean => {
+      return blockedEdges.some(
+        edge => (edge.from === a && edge.to === b) || (edge.from === b && edge.to === a)
+      )
+    }
+    
+    const startNeighbors = getNeighbors(startId)
+    const endNeighbors = getNeighbors(endId)
+    
+    const startOpenEdges = startNeighbors.filter(n => !isEdgeBlocked(startId, n))
+    const endOpenEdges = endNeighbors.filter(n => !isEdgeBlocked(endId, n))
+    
+    if (startOpenEdges.length === 0) continue
+    if (endOpenEdges.length === 0) continue
+
+    // ------------------------------------------------------------------
+    // 5. Build the board now that we know start/end have open edges
+    // ------------------------------------------------------------------
 
     const board: Board = {
       rows,
@@ -173,13 +197,13 @@ export function generatePuzzle(
     }
 
     // ------------------------------------------------------------------
-    // 4. Verify at least one valid path exists
+    // 6. Verify at least one valid path exists
     // ------------------------------------------------------------------
     const bestRoute = findBestRoute(board)
     if (!bestRoute) continue
 
     // ------------------------------------------------------------------
-    // 5. Compute analytics / difficulty metadata
+    // 7. Compute analytics / difficulty metadata
     // ------------------------------------------------------------------
     const allRoutes = findAllRoutes(board)
     const silverRoute: PathResult | undefined = allRoutes[1]
