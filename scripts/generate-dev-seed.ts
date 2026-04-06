@@ -59,11 +59,10 @@ DELETE FROM games;
 INSERT INTO games (
   game_no,
   board_json,
-  optimal_path_json,
+  optimal_paths_json,
   max_score,
   total_coins,
   difficulty_band,
-  route_count,
   gold_silver_gap,
   active,
   current,
