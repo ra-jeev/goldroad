@@ -93,8 +93,6 @@ export interface GeneratedPuzzle {
   /** All gold (optimal) paths — stored server-side only, never sent to client. */
   optimalPaths: number[][]
   difficultyBand: DifficultyBand
-  /** Branching factor — number of valid routes (informational). */
-  routeCount: number
   /** Coin gap between gold and silver route (0 if only one route). */
   goldSilverGap: number
 }
@@ -226,7 +224,6 @@ export function generatePuzzle(
       totalCoins,
       optimalPaths,
       difficultyBand,
-      routeCount: allRoutes.length,
       goldSilverGap,
     }
   }

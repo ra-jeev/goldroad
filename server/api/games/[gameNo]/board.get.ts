@@ -22,7 +22,6 @@ export default defineEventHandler(async (event) => {
       difficultyBand: games.difficultyBand,
       playableAt: games.playableAt,
       nextGameAt: games.nextGameAt,
-      routeCount: games.routeCount,
       goldSilverGap: games.goldSilverGap,
     })
     .from(games)

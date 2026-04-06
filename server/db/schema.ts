@@ -40,8 +40,6 @@ export const games = sqliteTable('games', {
   totalCoins:      integer('total_coins').notNull(),
   difficultyBand:  text('difficulty_band', { enum: ['easy', 'medium', 'hard'] }).notNull(),
 
-  /** Number of distinct valid routes (informational / difficulty metadata). */
-  routeCount:      integer('route_count').notNull().default(0),
   /** Coin gap between gold and silver route. */
   goldSilverGap:   integer('gold_silver_gap').notNull().default(0),
 

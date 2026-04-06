@@ -10,7 +10,6 @@ const RawGameRowSchema = z.object({
   difficultyBand: DifficultyBandSchema,
   playableAt: z.string().datetime({ offset: true }),
   nextGameAt: z.string().datetime({ offset: true }).nullable(),
-  routeCount: z.number().int().nonnegative(),
   goldSilverGap: z.number().int().nonnegative(),
 })
 
@@ -29,7 +28,6 @@ export function parseGameRow(row: RawGameRow) {
     difficultyBand: parsed.difficultyBand,
     playableAt: parsed.playableAt,
     nextGameAt: parsed.nextGameAt,
-    routeCount: parsed.routeCount,
     goldSilverGap: parsed.goldSilverGap,
     optimalPaths,
   }

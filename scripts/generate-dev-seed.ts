@@ -31,7 +31,6 @@ function buildInsertRow(gameNo: number, isCurrent: boolean, playableAt: string) 
   ${puzzle.maxScore},
   ${puzzle.totalCoins},
   ${toSqlString(puzzle.difficultyBand)},
-  ${puzzle.routeCount},
   ${puzzle.goldSilverGap},
   1,
   ${isCurrent ? 1 : 0},
