@@ -61,15 +61,24 @@ function pickStart(rows: number, cols: number): number {
   return tileIndex(randomInt(minRow, maxRow), randomInt(minCol, maxCol), cols)
 }
 
-/** Pick an end tile from one of the four board corners. */
+/** Pick an end tile from any edge of the board. */
 function pickEnd(rows: number, cols: number, excludeId: number): number {
-  const corners = [
-    tileIndex(0, 0, cols),
-    tileIndex(0, cols - 1, cols),
-    tileIndex(rows - 1, 0, cols),
-    tileIndex(rows - 1, cols - 1, cols),
-  ].filter(id => id !== excludeId)
-  return corners[randomInt(0, corners.length - 1)]!
+  const edgeTiles: number[] = []
+  
+  // Top and bottom edges
+  for (let c = 0; c < cols; c++) {
+    edgeTiles.push(tileIndex(0, c, cols))
+    edgeTiles.push(tileIndex(rows - 1, c, cols))
+  }
+  
+  // Left and right edges (excluding corners already added)
+  for (let r = 1; r < rows - 1; r++) {
+    edgeTiles.push(tileIndex(r, 0, cols))
+    edgeTiles.push(tileIndex(r, cols - 1, cols))
+  }
+  
+  const candidates = edgeTiles.filter(id => id !== excludeId)
+  return candidates[randomInt(0, candidates.length - 1)]!
 }
 
 // ---------------------------------------------------------------------------
