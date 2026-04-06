@@ -1,7 +1,7 @@
 import { and, desc, eq, inArray, lt, sql } from 'drizzle-orm'
 import { games, playerGameSession } from '../../db/schema'
 import { useDb } from '../../db/client'
-import { parseGameRow } from '../../utils/apiGames'
+import { parsePublicGameRow } from '../../utils/apiGames'
 
 const RECENT_POOL_SIZE = 30
 
@@ -22,13 +22,11 @@ export default defineEventHandler(async (event) => {
     .select({
       gameNo: games.gameNo,
       boardJson: games.boardJson,
-      optimalPathsJson: games.optimalPathsJson,
       maxScore: games.maxScore,
       totalCoins: games.totalCoins,
       difficultyBand: games.difficultyBand,
       playableAt: games.playableAt,
       nextGameAt: games.nextGameAt,
-      goldSilverGap: games.goldSilverGap,
     })
     .from(games)
     .where(
@@ -61,13 +59,11 @@ export default defineEventHandler(async (event) => {
     .select({
       gameNo: games.gameNo,
       boardJson: games.boardJson,
-      optimalPathsJson: games.optimalPathsJson,
       maxScore: games.maxScore,
       totalCoins: games.totalCoins,
       difficultyBand: games.difficultyBand,
       playableAt: games.playableAt,
       nextGameAt: games.nextGameAt,
-      goldSilverGap: games.goldSilverGap,
     })
     .from(games)
     .where(inArray(games.gameNo, candidatePool.map(g => g.gameNo)))
@@ -79,7 +75,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'No game available in candidate pool' })
   }
 
-  const game = parseGameRow(selected)
+  const game = parsePublicGameRow(selected)
   return {
     gameNo: game.gameNo,
     board: game.board,

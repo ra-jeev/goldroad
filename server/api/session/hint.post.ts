@@ -3,7 +3,7 @@ import { dailyGameStats, games, playerGameSession } from '../../db/schema'
 import { useDb } from '../../db/client'
 import { HintRequestPayloadSchema } from '../../db/validators'
 import { computeHint } from '../../utils/hints'
-import { parseGameRow } from '../../utils/apiGames'
+import { parseHintGameRow } from '../../utils/apiGames'
 
 export default defineEventHandler(async (event) => {
   const db = useDb(event)
@@ -12,15 +12,8 @@ export default defineEventHandler(async (event) => {
 
   const rows = await db
     .select({
-      gameNo: games.gameNo,
       boardJson: games.boardJson,
       optimalPathsJson: games.optimalPathsJson,
-      maxScore: games.maxScore,
-      totalCoins: games.totalCoins,
-      difficultyBand: games.difficultyBand,
-      playableAt: games.playableAt,
-      nextGameAt: games.nextGameAt,
-      goldSilverGap: games.goldSilverGap,
     })
     .from(games)
     .where(and(eq(games.gameNo, payload.gameNo), eq(games.active, true)))
@@ -31,7 +24,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: `Game ${payload.gameNo} not found` })
   }
 
-  const parsed = parseGameRow(row)
+  const parsed = parseHintGameRow(row)
   const hint = computeHint(
     parsed.optimalPaths,
     payload.currentTileIndex,

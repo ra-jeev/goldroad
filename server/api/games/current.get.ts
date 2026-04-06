@@ -1,7 +1,7 @@
 import { and, eq, lte } from 'drizzle-orm'
 import { games } from '../../db/schema'
 import { useDb } from '../../db/client'
-import { parseGameRow } from '../../utils/apiGames'
+import { parsePublicGameRow } from '../../utils/apiGames'
 
 export default defineEventHandler(async (event) => {
   const db = useDb(event)
@@ -11,13 +11,11 @@ export default defineEventHandler(async (event) => {
     .select({
       gameNo: games.gameNo,
       boardJson: games.boardJson,
-      optimalPathsJson: games.optimalPathsJson,
       maxScore: games.maxScore,
       totalCoins: games.totalCoins,
       difficultyBand: games.difficultyBand,
       playableAt: games.playableAt,
       nextGameAt: games.nextGameAt,
-      goldSilverGap: games.goldSilverGap,
     })
     .from(games)
     .where(and(eq(games.active, true), eq(games.current, true), lte(games.playableAt, nowIso)))
@@ -28,7 +26,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'No current game available' })
   }
 
-  const game = parseGameRow(current)
+  const game = parsePublicGameRow(current)
   return {
     gameNo: game.gameNo,
     board: game.board,
