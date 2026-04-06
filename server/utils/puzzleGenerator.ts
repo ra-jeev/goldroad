@@ -13,7 +13,7 @@
  *   4. A difficulty band is tagged at generation time for future filtering.
  */
 
-import { findBestRoute, findAllRoutes } from './pathfinder'
+import { findAllRoutes } from './pathfinder'
 import type { Board, DifficultyBand, EdgePair, PathResult, Direction } from '../../shared/types/game'
 import {
   DEFAULT_BLOCKED_EDGES,
@@ -90,8 +90,8 @@ export interface GeneratedPuzzle {
   maxScore: number
   /** Sum of all tile values on the board (upper bound if player collected everything). */
   totalCoins: number
-  /** The gold (optimal) path — stored server-side only, never sent to client. */
-  optimalPath: number[]
+  /** All gold (optimal) paths — stored server-side only, never sent to client. */
+  optimalPaths: number[][]
   difficultyBand: DifficultyBand
   /** Branching factor — number of valid routes (informational). */
   routeCount: number
@@ -197,27 +197,34 @@ export function generatePuzzle(
     }
 
     // ------------------------------------------------------------------
-    // 6. Verify at least one valid path exists
-    // ------------------------------------------------------------------
-    const bestRoute = findBestRoute(board)
-    if (!bestRoute) continue
-
-    // ------------------------------------------------------------------
-    // 7. Compute analytics / difficulty metadata
+    // 6. Find all valid routes and verify at least one exists
     // ------------------------------------------------------------------
     const allRoutes = findAllRoutes(board)
-    const silverRoute: PathResult | undefined = allRoutes[1]
-    const goldSilverGap = silverRoute ? bestRoute.total - silverRoute.total : 0
-    const difficultyBand = calcDifficultyBand(bestRoute, board, allRoutes.length, goldSilverGap)
+    if (allRoutes.length === 0) continue
+
+    // ------------------------------------------------------------------
+    // 7. Extract all optimal (gold) paths
+    // ------------------------------------------------------------------
+    const maxScore = allRoutes[0]!.total
+    const optimalPaths = allRoutes
+      .filter(r => r.total === maxScore)
+      .map(r => r.path)
+
+    // ------------------------------------------------------------------
+    // 8. Compute analytics / difficulty metadata
+    // ------------------------------------------------------------------
+    const silverRoute: PathResult | undefined = allRoutes.find(r => r.total < maxScore)
+    const goldSilverGap = silverRoute ? maxScore - silverRoute.total : 0
+    const difficultyBand = calcDifficultyBand(allRoutes[0]!, board, allRoutes.length, goldSilverGap)
 
     // Calculate total coins available on the board
     const totalCoins = board.tiles.reduce((sum, tileValue) => sum + tileValue, 0)
 
     return {
       board,
-      maxScore: bestRoute.total,
+      maxScore,
       totalCoins,
-      optimalPath: bestRoute.path,
+      optimalPaths,
       difficultyBand,
       routeCount: allRoutes.length,
       goldSilverGap,

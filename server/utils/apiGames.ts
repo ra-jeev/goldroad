@@ -19,7 +19,7 @@ type RawGameRow = z.infer<typeof RawGameRowSchema>
 export function parseGameRow(row: RawGameRow) {
   const parsed = RawGameRowSchema.parse(row)
   const board = BoardSchema.parse(JSON.parse(parsed.boardJson))
-  const optimalPath = PathResultSchema.shape.path.parse(JSON.parse(parsed.optimalPathJson))
+  const optimalPaths = z.array(z.array(z.number())).parse(JSON.parse(parsed.optimalPathJson))
 
   return {
     gameNo: parsed.gameNo,
@@ -31,6 +31,6 @@ export function parseGameRow(row: RawGameRow) {
     nextGameAt: parsed.nextGameAt,
     routeCount: parsed.routeCount,
     goldSilverGap: parsed.goldSilverGap,
-    optimalPath,
+    optimalPaths,
   }
 }

@@ -6,7 +6,7 @@
  *   player_game_session — one row per anonymous player per game (analytics)
  *   daily_game_stats    — pre-aggregated daily counters (fast reads for stats page)
  *
- * The optimal path (gold route) is stored in `games.optimal_path_json` and is
+ * The optimal paths (gold routes) are stored in `games.optimal_path_json` and are
  * NEVER returned to the client — only used server-side for hint computation.
  */
 
@@ -30,7 +30,7 @@ export const games = sqliteTable('games', {
   boardJson:       text('board_json').notNull(),
 
   /**
-   * Ordered tile-id array of the gold route.
+   * Array of all gold route paths (each path is an array of tile IDs).
    * Server-side only — used exclusively for hint computation.
    */
   optimalPathJson: text('optimal_path_json').notNull(),

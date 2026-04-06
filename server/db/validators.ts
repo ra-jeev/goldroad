@@ -56,19 +56,19 @@ const boardJsonValidator = z.string().refine(
 
 /**
  * Validator for optimalPathJson field: string that must contain valid JSON
- * representing an array of tile indexes (the gold route path).
+ * representing an array of arrays of tile indexes (all gold route paths).
  */
 const optimalPathJsonValidator = z.string().refine(
   (val) => {
     try {
       const parsed = JSON.parse(val)
-      // Path is an ordered array of tile indexes
-      return z.array(z.number().int().min(0)).safeParse(parsed).success
+      // Array of paths, where each path is an array of tile indexes
+      return z.array(z.array(z.number().int().min(0))).safeParse(parsed).success
     } catch {
       return false
     }
   },
-  { message: 'optimalPathJson must be valid JSON array of tile indexes' },
+  { message: 'optimalPathJson must be valid JSON array of arrays of tile indexes' },
 )
 
 export const insertGameSchema = createInsertSchema(games, {
@@ -90,7 +90,7 @@ export const selectGameSchema = createSelectSchema(games, {
   }),
   optimalPathJson: s => s.transform((val) => {
     try {
-      return z.array(z.number().int().min(0)).parse(JSON.parse(val))
+      return z.array(z.array(z.number().int().min(0))).parse(JSON.parse(val))
     } catch (e) {
       throw new Error(`Failed to parse optimalPathJson from database: ${e instanceof Error ? e.message : String(e)}`)
     }

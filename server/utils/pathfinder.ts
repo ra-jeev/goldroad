@@ -3,8 +3,8 @@
  *
  * Finds the highest-value route from Board.start to Board.end respecting
  * all edge constraints. Used by:
- *   • The puzzle generator (to compute maxScore and optimalPath at creation time).
- *   • The hint endpoint (to compute the stored optimalPath for a given game).
+ *   • The puzzle generator (to compute maxScore and optimalPaths at creation time).
+ *   • The hint endpoint (to compute the stored optimalPaths for a given game).
  *
  * Complexity note:
  *   For a 6×6 board the search space is bounded and completes in <50 ms.

@@ -34,7 +34,7 @@ export default defineEventHandler(async (event) => {
 
   const parsed = parseGameRow(row)
   const hint = computeHint(
-    parsed.optimalPath,
+    parsed.optimalPaths,
     payload.currentTileIndex,
     parsed.board.cols,
     payload.level,

@@ -1,9 +1,9 @@
 /**
  * Server-side hint computation.
  *
- * The optimal path is NEVER sent to the client. When a hint is requested,
+ * The optimal paths are NEVER sent to the client. When a hint is requested,
  * the client sends its current tile id and the desired level; the server
- * looks up the stored optimalPath for that game and returns only the
+ * looks up the stored optimalPaths for that game and returns only the
  * minimal information needed for that hint level.
  *
  * Hint levels:
@@ -16,26 +16,53 @@ import type { Direction, HintResult } from '../../shared/types/game'
 import { getDirection, parseTileIndex } from '../../shared/utils/puzzleEngine'
 
 /**
- * Compute a hint given the server-stored optimal path and the player's
- * current position.
+ * Compute a hint given the server-stored optimal paths and the player's
+ * current position. When multiple optimal paths exist, chooses the one
+ * closest to the player's current position.
  *
- * @param optimalPath  Full tile-id path from start → end (server-side only).
- * @param currentId    The tile the player is currently on.
- * @param level        Hint level requested (1 | 2 | 3).
+ * @param optimalPaths  All gold paths from start → end (server-side only).
+ * @param currentId     The tile the player is currently on.
+ * @param level         Hint level requested (1 | 2 | 3).
  */
 export function computeHint(
-  optimalPath: number[],
+  optimalPaths: number[][],
   currentId: number,
   cols: number,
   level: 1 | 2 | 3,
 ): HintResult {
-  const currentIndex = optimalPath.indexOf(currentId)
-  const onPath = currentIndex !== -1 && currentIndex < optimalPath.length - 1
+  // Find the optimal path that contains the current tile, or the nearest one
+  let bestPath = optimalPaths[0]!
+  let bestIndex = -1
+  
+  // First, check if player is on any optimal path
+  for (const path of optimalPaths) {
+    const idx = path.indexOf(currentId)
+    if (idx !== -1 && idx < path.length - 1) {
+      bestPath = path
+      bestIndex = idx
+      break
+    }
+  }
+  
+  // If not on any optimal path, find the nearest one
+  if (bestIndex === -1) {
+    let minDist = Infinity
+    for (const path of optimalPaths) {
+      const dist = minDistanceToPath(currentId, path, cols)
+      if (dist < minDist) {
+        minDist = dist
+        bestPath = path
+      }
+    }
+  }
+  
+  const currentIndex = bestPath.indexOf(currentId)
+  const onPath = currentIndex !== -1 && currentIndex < bestPath.length - 1
 
   if (level === 1) {
     // Nudge: direction toward the next tile on the optimal path.
     if (onPath) {
-      const nextId = optimalPath[currentIndex + 1]!
+      const nextId = bestPath[currentIndex + 1]!
       return {
         level: 1,
         direction: getDirection(currentId, nextId, cols),
@@ -44,23 +71,41 @@ export function computeHint(
       }
     }
     // Off-path: nudge toward the nearest tile on the optimal path.
-    return { level: 1, direction: nearestOptimalDirection(currentId, optimalPath, cols), fromTileIndex: currentId }
+    return { level: 1, direction: nearestOptimalDirection(currentId, bestPath, cols), fromTileIndex: currentId }
   }
 
   if (level === 2) {
     // Branch: next 2–3 tiles on the optimal path from the current position.
     // If the player is off-path, show tiles from the start of the optimal path.
     const startIndex = onPath ? currentIndex + 1 : 0
-    const tileIndexes = optimalPath.slice(startIndex, startIndex + 3)
+    const tileIndexes = bestPath.slice(startIndex, startIndex + 3)
     return { level: 2, tileIndexes }
   }
 
   // Level 3 — Rescue: exact next step.
   if (onPath) {
-    return { level: 3, nextTileIndex: optimalPath[currentIndex + 1]! }
+    return { level: 3, nextTileIndex: bestPath[currentIndex + 1]! }
   }
   // If the player is completely off-path, guide back to the start of the route.
-  return { level: 3, nextTileIndex: optimalPath[0]! }
+  return { level: 3, nextTileIndex: bestPath[0]! }
+}
+
+/**
+ * Calculate minimum Manhattan distance from a tile to any tile in a path.
+ */
+function minDistanceToPath(tileId: number, path: number[], cols: number): number {
+  const [tr, tc] = parseTileIndex(tileId, cols)
+  let minDist = Infinity
+  
+  for (const pathId of path) {
+    const [pr, pc] = parseTileIndex(pathId, cols)
+    const dist = Math.abs(pr - tr) + Math.abs(pc - tc)
+    if (dist < minDist) {
+      minDist = dist
+    }
+  }
+  
+  return minDist
 }
 
 /**

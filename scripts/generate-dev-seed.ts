@@ -27,7 +27,7 @@ function buildInsertRow(gameNo: number, isCurrent: boolean, playableAt: string) 
   return `(
   ${gameNo},
   ${toSqlString(JSON.stringify(puzzle.board))},
-  ${toSqlString(JSON.stringify(puzzle.optimalPath))},
+  ${toSqlString(JSON.stringify(puzzle.optimalPaths))},
   ${puzzle.maxScore},
   ${puzzle.totalCoins},
   ${toSqlString(puzzle.difficultyBand)},
