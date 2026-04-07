@@ -11,10 +11,35 @@ defineProps<{
 
 <template>
   <span
+    v-if="type !== 'blocked'"
     :class="['road', `road--${type}`, { 'road--traversed': traversed }]"
     :style="style"
   >
-     <svg
+    <!-- Cost/Bonus indicators -->
+    <svg
+      v-if="!traversed && type === 'cost'"
+      class="road-icon"
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+    >
+      <circle cx="12" cy="12" r="10" fill="#cd7f32" />
+      <text x="12" y="16" text-anchor="middle" font-size="14" font-weight="bold" fill="#2d1c02">-</text>
+    </svg>
+    
+    <svg
+      v-if="!traversed && type === 'bonus'"
+      class="road-icon"
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+    >
+      <circle cx="12" cy="12" r="10" fill="#ffd700" />
+      <text x="12" y="16" text-anchor="middle" font-size="14" font-weight="bold" fill="#2d1c02">+</text>
+    </svg>
+
+    <!-- Traversal arrow -->
+    <svg
       v-if="traversed && arrowDir"
       :class="['arrow', `arrow--${arrowDir}`]"
       xmlns="http://www.w3.org/2000/svg"
@@ -34,45 +59,33 @@ defineProps<{
 <style scoped>
 .road {
   position: absolute;
-  border-radius: var(--radius-full);
   pointer-events: none;
   z-index: 1;
   transition: background var(--transition-base);
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.road--open {
-  background: rgb(var(--color-gold-rgb) / 0.30);
-}
-
-.road--blocked {
-  background: var(--color-blocked);
-  opacity: 0.9;
-}
-
-.road--cost {
-  background: var(--color-cost);
-  opacity: 0.85;
-}
-
-.road--bonus {
-  background: var(--color-bonus);
-  opacity: 0.85;
+  background: rgb(var(--color-gold-rgb) / 0.32);
 }
 
 .road--traversed {
-  background: var(--color-gold) !important;
-  opacity: 1 !important;
+  background: var(--color-gold-dark);
   box-shadow: var(--shadow-glow-road);
   z-index: 2;
 }
 
+/* ── Road icons ─────────────────────────────────────────────── */
+.road-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+}
+
 /* ── SVG arrow ──────────────────────────────────────────────── */
 .arrow {
-  width: 10px;
-  height: 10px;
+  width: 16px;
+  height: 16px;
   flex-shrink: 0;
   color: var(--color-text-dark);
 }

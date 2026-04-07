@@ -18,17 +18,18 @@
   --color-bg-base: #1a0e03;
 
   /* ── Semantic colors ──────────────────────────────────────── */
-  --color-start: #22c55e;
-  --color-start-light: #a7f3d0;
-  --color-start-dark: #065f46;
-  --color-end: #dc2626;
-  --color-end-light: #fca5a5;
-  --color-end-dark: #7f1d1d;
+  --color-start: #c0c0c0;
+  --color-silver-rgb: 192 192 192;
+  --color-start-light: #e8e8e8;
+  --color-start-dark: #808080;
+  --color-end: #cd7f32;
+  --color-end-light: #e8a75c;
+  --color-end-dark: #8b5a2b;
   --color-active: #4ade80;
   --color-active-rgb: 68 221 25;
-  --color-blocked: #fc2f00;
-  --color-cost: #f59e0b;
-  --color-bonus: #22c55e;
+  --color-blocked: #8b4513;
+  --color-cost: #cd7f32;
+  --color-bonus: #ffd700;
   --color-hint: #d6336c;
   --color-hint-rgb: 214 51 108;
   --color-focus: #4b9eff;
@@ -43,7 +44,7 @@
   --tile-size: 50px;
   --tile-gap: 14px;
   --tile-border: 3px;
-  --road-thickness: 6px;
+  --road-thickness: 10px;
 
   /* ── Border radius ────────────────────────────────────────── */
   --radius-sm: 14px;
@@ -58,7 +59,7 @@
   --font-size-sm: 0.75rem;
   --font-size-base: 0.82rem;
   --font-size-lg: 1rem;
-  --font-size-xl: 1.15rem;
+  --font-size-xl: 1.25rem;
   --font-size-2xl: 1.5rem;
   --font-size-3xl: 1.72rem;
 
@@ -112,7 +113,7 @@
     linear-gradient(180deg, #1e1407 0%, #150e04 100%);
   --gradient-tile-done: linear-gradient(135deg, rgb(212 175 55), rgb(184 142 30));
   --gradient-button-primary: linear-gradient(135deg, goldenrod 0%, #b8860b 100%);
-  --gradient-radial-active: radial-gradient(circle, rgb(var(--color-active-rgb) / 0.14) 0%, transparent 72%);
+  --gradient-radial-active: radial-gradient(circle, rgb(var(--color-gold-rgb) / 0.75) 0%, transparent 96%);
 
   /* ── Transitions ──────────────────────────────────────────── */
   --transition-fast: 140ms ease;

@@ -25,7 +25,7 @@ const emit = defineEmits<{
 const TILE_PX = 50
 const GAP_PX = 14
 const CELL = TILE_PX + GAP_PX
-const ROAD_THICK = 6
+const ROAD_THICK = 14
 
 const edgeMap = computed(() => buildEdgeMap(props.board))
 
@@ -56,6 +56,9 @@ interface RoadData {
   arrowDir: string | null
   style: Record<string, string>
 }
+
+// type: r === 3 && c=== 3 ? 'cost' : t,
+// type: r === 4 && c=== 5 ? 'bonus' : t,
 
 const allRoads = computed<RoadData[]>(() => {
   const roads: RoadData[] = []
