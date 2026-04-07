@@ -40,20 +40,28 @@ const emit = defineEmits<{
   position: relative;
   aspect-ratio: 1 / 1;
   border-radius: var(--radius-circle);
-  border: var(--tile-border) solid rgb(var(--color-gold-rgb) / 0.50);
-  background: transparent;
+  border: var(--tile-border) solid rgb(var(--color-gold-rgb));
+  /* Subtle background so emboss is visible */
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.35));
   color: var(--color-gold);
-  font-size: var(--font-size-xl);
+  font-size: var(--font-size-2xl);
   font-weight: 700;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   transition: all var(--transition-base);
+  /* Raised coin effect - light from top-left */
+  box-shadow: 
+    /* Inner highlight (top-left) */
+    inset 3px 3px 6px rgba(255, 255, 255, 0.1),
+    /* Inner shadow (bottom-right) */
+    inset -3px -3px 6px rgba(0, 0, 0, 0.5),
+    /* Outer shadow for depth */
+    0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 /* ── States ─────────────────────────────────────────────────── */
 .tile.active {
-  border-color: rgb(var(--color-active-rgb) / 0.50);
   cursor: pointer;
 }
 
@@ -78,36 +86,37 @@ const emit = defineEmits<{
 .tile.done {
   border-color: var(--color-gold-dark);
   background: var(--gradient-tile-done);
-  box-shadow: var(--shadow-glow-gold);
+  box-shadow: 
+    inset 2px 2px 4px rgba(255, 255, 255, 0.3),
+    inset -2px -2px 4px rgba(0, 0, 0, 0.2),
+    var(--shadow-glow-gold);
 }
 
 .tile.done .value {
   color: var(--color-text-dark);
-  text-shadow: 0 1px 0 rgb(255 230 100 / 40%);
+  /* Enhanced embossed effect for done tiles */
+  text-shadow: 
+    1px 1px 2px rgba(0, 0, 0, 0.5),
+    -1px -1px 1px rgba(255, 255, 255, 0.6),
+    0 1px 0 rgb(255 230 100 / 40%);
 }
 
-.tile.current {
-  box-shadow:
-    0 0 0 3px var(--color-gold),
-    0 0 18px rgb(var(--color-gold-rgb) / 0.55);
-}
-
-.tile.start {
+/* .tile.start {
   border-color: rgb(var(--color-active-rgb) / 0.55);
 }
 
 .tile.start.done {
   border-color: rgb(var(--color-active-rgb) / 0.70);
-}
+} */
 
-.tile.end {
+/* .tile.end {
   border-color: rgb(180 60 20 / 0.60);
   box-shadow: var(--shadow-glow-end-subtle);
 }
 
 .tile.end.done {
   border-color: rgb(212 175 55);
-}
+} */
 
 .tile.hinted {
   border-color: var(--color-hint);
@@ -124,6 +133,11 @@ const emit = defineEmits<{
   position: relative;
   z-index: 2;
   color: var(--color-gold);
+  /* Embossed/raised effect - light from top-left */
+  text-shadow: 
+    -1px -1px 0px rgba(255, 255, 255, 0.4),  /* highlight top-left */
+    1px 1px 3px rgba(0, 0, 0, 0.8),          /* shadow bottom-right */
+    0 0 8px rgba(212, 175, 55, 0.3);         /* subtle gold glow */
 }
 
 /* ── Start / End dot markers ────────────────────────────────── */
@@ -166,9 +180,9 @@ button:disabled {
   }
 }
 
-@media (max-width: 760px) {
+/* @media (max-width: 760px) {
   .tile {
     font-size: var(--font-size-lg);
   }
-}
+} */
 </style>
