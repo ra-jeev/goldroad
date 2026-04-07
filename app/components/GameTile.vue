@@ -42,9 +42,9 @@ const emit = defineEmits<{
   position: relative;
   aspect-ratio: 1 / 1;
   border-radius: var(--radius-circle);
-  border: var(--tile-border) solid rgb(var(--color-gold-rgb));
+  border: var(--tile-border) solid rgb(var(--color-gold-rgb) / 0.72);
   background: linear-gradient(135deg, rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.35));
-  color: var(--color-gold);
+  color: rgb(var(--color-gold-rgb) / 0.72);
   font-size: var(--font-size-2xl);
   font-weight: 700;
   display: inline-flex;
@@ -63,20 +63,24 @@ const emit = defineEmits<{
 /* ── States ─────────────────────────────────────────────────── */
 .tile.active {
   cursor: pointer;
-}
-
-.tile.active::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: var(--radius-circle);
-  background: var(--gradient-radial-active);
-  pointer-events: none;
+  color: var(--color-gold);
+  border-color: var(--color-gold);
+  /* Outer gold glow to make active tiles stand out */
+  box-shadow: 
+    inset 3px 3px 6px rgba(255, 255, 255, 0.1),
+    inset -3px -3px 6px rgba(0, 0, 0, 0.5),
+    0 0 12px 4px rgba(var(--color-gold-rgb) / 0.6),
+    0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .tile.active:hover:not(:disabled) {
   transform: scale(1.05);
-  box-shadow: var(--shadow-glow-active);
+  /* Stronger outer glow on hover */
+  box-shadow: 
+    inset 3px 3px 6px rgba(255, 255, 255, 0.1),
+    inset -3px -3px 6px rgba(0, 0, 0, 0.5),
+    0 0 20px 4px rgba(var(--color-gold-rgb) / 0.8),
+    0 2px 6px rgba(0, 0, 0, 0.4);
 }
 
 .tile.active:active:not(:disabled) {

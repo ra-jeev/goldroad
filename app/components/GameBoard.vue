@@ -25,7 +25,7 @@ const emit = defineEmits<{
 const TILE_PX = 50
 const GAP_PX = 14
 const CELL = TILE_PX + GAP_PX
-const ROAD_THICK = 14
+const ROAD_THICK = 16
 
 const edgeMap = computed(() => buildEdgeMap(props.board))
 

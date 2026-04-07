@@ -60,18 +60,20 @@ defineProps<{
 .road {
   position: absolute;
   pointer-events: none;
-  z-index: 1;
   transition: background var(--transition-base);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgb(var(--color-gold-rgb) / 0.32);
+  background: rgb(var(--color-gold-rgb) / 0.28);
 }
 
 .road--traversed {
   background: var(--color-gold-dark);
-  box-shadow: var(--shadow-glow-road);
-  z-index: 2;
+  box-shadow: 
+    inset 2px 2px 4px rgba(255, 255, 255, 0.15),
+    inset -2px -2px 4px rgba(0, 0, 0, 0.4),
+    0 0 8px rgba(var(--color-gold-rgb) / 0.4),
+    0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 /* ── Road icons ─────────────────────────────────────────────── */
