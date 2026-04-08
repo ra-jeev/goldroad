@@ -5,6 +5,7 @@ defineProps<{
   type: 'open' | EdgeType;
   traversed: boolean;
   arrowDir: string | null;
+  orientation: 'h' | 'v';
   style: Record<string, string>;
 }>();
 </script>
@@ -18,42 +19,41 @@ defineProps<{
     <!-- Cost/Bonus indicators -->
     <svg
       v-if="!traversed && type === 'cost'"
-      class="road-icon"
+      :class="[
+        'road-icon',
+        'road-cost',
+        { 'road--vertical': orientation === 'v' },
+      ]"
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
-      fill="currentColor"
     >
-      <circle cx="12" cy="12" r="10" fill="#cd7f32" />
-      <text
-        x="12"
-        y="16"
-        text-anchor="middle"
-        font-size="14"
-        font-weight="bold"
-        fill="#2d1c02"
-      >
-        -
-      </text>
+      <path
+        fill="none"
+        stroke="currentColor"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-width="3"
+        d="M4 7.927C6.667 4.928 9.333 5.806 12 8s5.333 3.072 8 .073M4 15.927c2.667-2.999 5.333-2.121 8 .073s5.333 3.072 8 .073"
+      />
     </svg>
 
     <svg
       v-if="!traversed && type === 'bonus'"
-      class="road-icon"
+      :class="[
+        'road-icon',
+        'road-bonus',
+        { 'road--vertical': orientation === 'v' },
+      ]"
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
-      fill="currentColor"
     >
-      <circle cx="12" cy="12" r="10" fill="#ffd700" />
-      <text
-        x="12"
-        y="16"
-        text-anchor="middle"
-        font-size="14"
-        font-weight="bold"
-        fill="#2d1c02"
-      >
-        +
-      </text>
+      <path
+        fill="none"
+        stroke="currentColor"
+        stroke-linecap="round"
+        stroke-width="3"
+        d="M4 8h16M4 16h16"
+      />
     </svg>
 
     <!-- Traversal arrow -->
@@ -92,10 +92,22 @@ defineProps<{
 
 /* ── Road icons ─────────────────────────────────────────────── */
 .road-icon {
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
   flex-shrink: 0;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+}
+
+.road-cost {
+  color: #cd7f32;
+}
+
+.road-bonus {
+  color: var(--color-gold);
+}
+
+.road--vertical {
+  transform: rotate(90deg);
 }
 
 /* ── SVG arrow ──────────────────────────────────────────────── */
