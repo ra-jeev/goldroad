@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import type { EdgeType } from '../../shared/types/game'
+import type { EdgeType } from '../../shared/types/game';
 
 defineProps<{
-  type: 'open' | EdgeType
-  traversed: boolean
-  arrowDir: string | null
-  style: Record<string, string>
-}>()
+  type: 'open' | EdgeType;
+  traversed: boolean;
+  arrowDir: string | null;
+  style: Record<string, string>;
+}>();
 </script>
 
 <template>
@@ -24,9 +24,18 @@ defineProps<{
       fill="currentColor"
     >
       <circle cx="12" cy="12" r="10" fill="#cd7f32" />
-      <text x="12" y="16" text-anchor="middle" font-size="14" font-weight="bold" fill="#2d1c02">-</text>
+      <text
+        x="12"
+        y="16"
+        text-anchor="middle"
+        font-size="14"
+        font-weight="bold"
+        fill="#2d1c02"
+      >
+        -
+      </text>
     </svg>
-    
+
     <svg
       v-if="!traversed && type === 'bonus'"
       class="road-icon"
@@ -35,7 +44,16 @@ defineProps<{
       fill="currentColor"
     >
       <circle cx="12" cy="12" r="10" fill="#ffd700" />
-      <text x="12" y="16" text-anchor="middle" font-size="14" font-weight="bold" fill="#2d1c02">+</text>
+      <text
+        x="12"
+        y="16"
+        text-anchor="middle"
+        font-size="14"
+        font-weight="bold"
+        fill="#2d1c02"
+      >
+        +
+      </text>
     </svg>
 
     <!-- Traversal arrow -->
@@ -43,15 +61,16 @@ defineProps<{
       v-if="traversed && arrowDir"
       :class="['arrow', `arrow--${arrowDir}`]"
       xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="3"
-      stroke-linecap="round"
-      stroke-linejoin="round"
+      viewBox="0 0 32 32"
     >
-      <path d="M18 8L22 12L18 16" />
-      <path d="M2 12H22" />
+      <path
+        fill="none"
+        stroke="currentColor"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-width="8"
+        d="m12 30l12-14L12 2"
+      />
     </svg>
   </span>
 </template>
@@ -69,11 +88,6 @@ defineProps<{
 
 .road--traversed {
   background: var(--color-gold-dark);
-  box-shadow: 
-    inset 2px 2px 4px rgba(255, 255, 255, 0.15),
-    inset -2px -2px 4px rgba(0, 0, 0, 0.4),
-    0 0 8px rgba(var(--color-gold-rgb) / 0.4),
-    0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 /* ── Road icons ─────────────────────────────────────────────── */
@@ -86,14 +100,22 @@ defineProps<{
 
 /* ── SVG arrow ──────────────────────────────────────────────── */
 .arrow {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   flex-shrink: 0;
-  color: var(--color-text-dark);
+  color: var(--color-gold-dark);
 }
 
-.arrow--right { transform: rotate(0deg); }
-.arrow--down  { transform: rotate(90deg); }
-.arrow--left  { transform: rotate(180deg); }
-.arrow--up    { transform: rotate(270deg); }
+.arrow--right {
+  transform: rotate(0deg) translateX(4px);
+}
+.arrow--down {
+  transform: translateY(4px) rotate(90deg);
+}
+.arrow--left {
+  transform: rotate(180deg) translateX(4px);
+}
+.arrow--up {
+  transform: translateY(-4px) rotate(270deg);
+}
 </style>
