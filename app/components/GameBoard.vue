@@ -1,84 +1,85 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { buildEdgeMap, getEdgeType } from '../../shared/utils/puzzleEngine'
-import type { Board, EdgeType } from '../../shared/types/game'
-import type { TileState } from '../types/game'
-import GameTile from './GameTile.vue'
-import BoardRoad from './BoardRoad.vue'
-import { UI_COPY } from '../content/uiCopy'
+import { computed } from 'vue';
+import { buildEdgeMap, getEdgeType } from '../../shared/utils/puzzleEngine';
+import type { Board, EdgeType } from '../../shared/types/game';
+import type { TileState } from '../types/game';
+import GameTile from './GameTile.vue';
+import BoardRoad from './BoardRoad.vue';
+import { UI_COPY } from '../content/uiCopy';
 
 const props = defineProps<{
-  board: Board
-  tiles: TileState[][]
-  currentTileIndex: number | null
-  activeSet: Set<number>
-  visitedSet: Set<number>
-  hintedTiles: Set<number>
-  pathHistory: number[]
-  disabled?: boolean
-}>()
+  board: Board;
+  tiles: TileState[][];
+  currentTileIndex: number | null;
+  activeSet: Set<number>;
+  visitedSet: Set<number>;
+  hintedTiles: Set<number>;
+  pathHistory: number[];
+  disabled?: boolean;
+}>();
 
 const emit = defineEmits<{
-  select: [tileIndex: number]
-}>()
+  select: [tileIndex: number];
+}>();
 
-const TILE_PX = 50
-const GAP_PX = 14
-const CELL = TILE_PX + GAP_PX
-const ROAD_THICK = 16
+const TILE_PX = 50;
+const GAP_PX = 14;
+const CELL = TILE_PX + GAP_PX;
+const ROAD_THICK = 6;
 
-const edgeMap = computed(() => buildEdgeMap(props.board))
+const edgeMap = computed(() => buildEdgeMap(props.board));
 
 const traversedEdges = computed(() => {
-  const map = new Map<string, string>()
-  const { cols } = props.board
+  const map = new Map<string, string>();
+  const { cols } = props.board;
   for (let i = 0; i < props.pathHistory.length - 1; i++) {
-    const a = props.pathHistory[i]
-    const b = props.pathHistory[i + 1]
+    const a = props.pathHistory[i];
+    const b = props.pathHistory[i + 1];
     if (typeof a !== 'number' || typeof b !== 'number') {
-      continue
+      continue;
     }
-    const key = `${Math.min(a, b)}-${Math.max(a, b)}`
-    const diff = b - a
-    if (diff === 1) map.set(key, 'right')
-    else if (diff === -1) map.set(key, 'left')
-    else if (diff === cols) map.set(key, 'down')
-    else map.set(key, 'up')
+    const key = `${Math.min(a, b)}-${Math.max(a, b)}`;
+    const diff = b - a;
+    if (diff === 1) map.set(key, 'right');
+    else if (diff === -1) map.set(key, 'left');
+    else if (diff === cols) map.set(key, 'down');
+    else map.set(key, 'up');
   }
-  return map
-})
+  return map;
+});
 
 interface RoadData {
-  key: string
-  orientation: 'h' | 'v'
-  type: 'open' | EdgeType
-  traversed: boolean
-  arrowDir: string | null
-  style: Record<string, string>
+  key: string;
+  orientation: 'h' | 'v';
+  type: 'open' | EdgeType;
+  traversed: boolean;
+  arrowDir: string | null;
+  style: Record<string, string>;
 }
 
 // type: r === 3 && c=== 3 ? 'cost' : t,
 // type: r === 4 && c=== 5 ? 'bonus' : t,
 
 const allRoads = computed<RoadData[]>(() => {
-  const roads: RoadData[] = []
-  const { rows, cols } = props.board
-  const em = edgeMap.value
-  const trav = traversedEdges.value
+  const roads: RoadData[] = [];
+  const { rows, cols } = props.board;
+  const em = edgeMap.value;
+  const trav = traversedEdges.value;
 
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
-      const idx = r * cols + c
+      const idx = r * cols + c;
 
       if (c < cols - 1) {
-        const nIdx = idx + 1
-        const t = getEdgeType(idx, nIdx, em)
-        const edgeKey = `${idx}-${nIdx}`
-        const hit = trav.has(edgeKey)
+        const nIdx = idx + 1;
+        const t = getEdgeType(idx, nIdx, em);
+        const edgeKey = `${idx}-${nIdx}`;
+        const hit = trav.has(edgeKey);
         roads.push({
           key: `h-${idx}`,
           orientation: 'h',
-          type: t,
+          // type: t,
+          type: r === 3 && c=== 3 ? 'cost' : t,
           traversed: hit,
           arrowDir: hit ? trav.get(edgeKey)! : null,
           style: {
@@ -87,18 +88,19 @@ const allRoads = computed<RoadData[]>(() => {
             width: `${GAP_PX}px`,
             height: `${ROAD_THICK}px`,
           },
-        })
+        });
       }
 
       if (r < rows - 1) {
-        const nIdx = idx + cols
-        const t = getEdgeType(idx, nIdx, em)
-        const edgeKey = `${idx}-${nIdx}`
-        const hit = trav.has(edgeKey)
+        const nIdx = idx + cols;
+        const t = getEdgeType(idx, nIdx, em);
+        const edgeKey = `${idx}-${nIdx}`;
+        const hit = trav.has(edgeKey);
         roads.push({
           key: `v-${idx}`,
           orientation: 'v',
-          type: t,
+          // type: t,
+          type: r === 4 && c=== 5 ? 'bonus' : t,
           traversed: hit,
           arrowDir: hit ? trav.get(edgeKey)! : null,
           style: {
@@ -107,13 +109,13 @@ const allRoads = computed<RoadData[]>(() => {
             width: `${ROAD_THICK}px`,
             height: `${GAP_PX}px`,
           },
-        })
+        });
       }
     }
   }
 
-  return roads
-})
+  return roads;
+});
 </script>
 
 <template>
@@ -154,6 +156,7 @@ const allRoads = computed<RoadData[]>(() => {
         :type="road.type"
         :traversed="road.traversed"
         :arrow-dir="road.arrowDir"
+        :orientation="road.orientation"
         :style="road.style"
       />
     </div>
@@ -165,11 +168,9 @@ const allRoads = computed<RoadData[]>(() => {
   padding: 1.1rem;
   border-radius: var(--radius-xl);
   background: var(--gradient-card-board);
-  border: 1px solid rgb(var(--color-gold-rgb) / 0.40);
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.4);
   box-shadow:
-    var(--shadow-border-dark),
-    var(--shadow-2xl),
-    var(--shadow-inset-gold);
+    var(--shadow-border-dark), var(--shadow-2xl), var(--shadow-inset-gold);
   text-align: center;
 }
 
@@ -191,7 +192,7 @@ const allRoads = computed<RoadData[]>(() => {
 
 .kbd-note {
   margin: 0;
-  color: rgb(var(--color-gold-rgb) / 0.80);
+  color: rgb(var(--color-gold-rgb) / 0.8);
   font-size: 0.86rem;
 }
 

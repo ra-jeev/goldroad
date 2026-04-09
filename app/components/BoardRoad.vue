@@ -11,14 +11,10 @@ defineProps<{
 </script>
 
 <template>
-  <span
-    v-if="type !== 'blocked'"
-    :class="['road', `road--${type}`, { 'road--traversed': traversed }]"
-    :style="style"
-  >
-    <!-- Cost/Bonus indicators -->
+  <span class="road" :style="style">
+    <!-- Cost/Bonus indicators - always show, even when traversed -->
     <svg
-      v-if="!traversed && type === 'cost'"
+      v-if="type === 'cost'"
       :class="[
         'road-icon',
         'road-cost',
@@ -38,7 +34,7 @@ defineProps<{
     </svg>
 
     <svg
-      v-if="!traversed && type === 'bonus'"
+      v-else-if="type === 'bonus'"
       :class="[
         'road-icon',
         'road-bonus',
@@ -56,7 +52,26 @@ defineProps<{
       />
     </svg>
 
-    <!-- Traversal arrow -->
+    <svg
+      v-else-if="type !== 'blocked'"
+      :class="[
+        'road-icon',
+        { 'road--vertical': orientation === 'v' },
+      ]"
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+    >
+      <path
+        fill="none"
+        stroke="currentColor"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-width="3"
+        d="M5 12h14"
+      />
+    </svg>
+
+    <!-- Traversal arrow - show alongside cost/bonus icons -->
     <svg
       v-if="traversed && arrowDir"
       :class="['arrow', `arrow--${arrowDir}`]"
@@ -79,15 +94,24 @@ defineProps<{
 .road {
   position: absolute;
   pointer-events: none;
-  transition: background var(--transition-base);
+  transition: color var(--transition-base);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgb(var(--color-gold-rgb) / 0.28);
+  gap: 2px;
+  color: rgb(var(--color-gold-rgb) / 0.48);
 }
+
+/* :class="['road', `road--${type}`, { 'road--traversed': traversed }]" */
 
 .road--traversed {
   background: var(--color-gold-dark);
+  /* Embossed effect matching tile borders */
+  box-shadow:
+    inset 2px 2px 4px rgba(255, 255, 255, 0.15),
+    inset -2px -2px 4px rgba(0, 0, 0, 0.4),
+    0 0 8px rgba(var(--color-gold-rgb) / 0.4),
+    0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 /* ── Road icons ─────────────────────────────────────────────── */
@@ -103,7 +127,16 @@ defineProps<{
 }
 
 .road-bonus {
-  color: var(--color-gold);
+  color: #ffd700;
+}
+
+/* When traversed, make icons darker to contrast with gold background */
+.road--traversed .road-cost {
+  color: #8b5a2b;
+}
+
+.road--traversed .road-bonus {
+  color: #e8c84a;
 }
 
 .road--vertical {
@@ -115,7 +148,8 @@ defineProps<{
   width: 14px;
   height: 14px;
   flex-shrink: 0;
-  color: var(--color-gold-dark);
+  color: var(--color-text-dark);
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.3));
 }
 
 .arrow--right {
