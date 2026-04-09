@@ -22,7 +22,7 @@ import {
   TILE_VALUE_MAX,
   TILE_VALUE_MIN,
 } from '../../lib/gameConstants'
-import { allBoardEdgePairs, tileIndex, parseTileIndex, getNeighborId } from '../../shared/utils/puzzleEngine'
+import { allBoardEdgePairs, tileIndex, parseTileIndex, getNeighborId, edgeKey } from '../../shared/utils/puzzleEngine'
 
 // ---------------------------------------------------------------------------
 // RNG helpers
@@ -108,47 +108,39 @@ export interface GeneratedPuzzle {
  * placing blocked edges. In practice the first attempt succeeds almost always
  * for default parameters.
  *
+ * @param type         The type of puzzle to generate (default 'classic').
  * @param rows         Board row count (default 6).
  * @param cols         Board column count (default 6).
  * @param numBlocked   Number of edges to block (default 10).
  * @param maxAttempts  Maximum generation retries before giving up.
  */
 export function generatePuzzle(
+  type: 'classic' | 'expedition' = 'classic',
   rows = DEFAULT_ROWS,
   cols = DEFAULT_COLS,
-  numBlocked = DEFAULT_BLOCKED_EDGES,
+  baseBlocked = DEFAULT_BLOCKED_EDGES,
   maxAttempts = 20,
 ): GeneratedPuzzle | null {
+  const numBlocked = type === 'expedition' ? baseBlocked - 2 : baseBlocked;
+
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    // ------------------------------------------------------------------
     // 1. Build tile grid with random coin values
-    // ------------------------------------------------------------------
     const tiles: number[] = Array.from({ length: rows * cols }, () =>
       randomInt(TILE_VALUE_MIN, TILE_VALUE_MAX),
     )
 
-    // ------------------------------------------------------------------
     // 2. Place start (inner quadrant) and end (corner)
-    // ------------------------------------------------------------------
     const startId = pickStart(rows, cols)
     const endId = pickEnd(rows, cols, startId)
 
-    // ------------------------------------------------------------------
     // 3. Select edges to block randomly
-    //    No pre-filtering — we validate start/end connectivity below.
-    // ------------------------------------------------------------------
     const allPairs = allBoardEdgePairs(rows, cols)
     const candidates = shuffle(allPairs)
 
-    const blockedEdges: EdgePair[] = []
-    for (const [a, b] of candidates) {
-      if (blockedEdges.length >= numBlocked) break
-      blockedEdges.push({ from: a, to: b })
-    }
+    const blockedEdges: EdgePair[] = candidates.slice(0, numBlocked)
+      .map(([a, b]) => ({ from: a, to: b }));
 
-    // ------------------------------------------------------------------
     // 4. Verify start and end each have at least one open edge
-    // ------------------------------------------------------------------
     const getNeighbors = (tileId: number): number[] => {
       const [row, col] = parseTileIndex(tileId, cols)
       const neighbors: number[] = []
@@ -177,40 +169,78 @@ export function generatePuzzle(
     if (startOpenEdges.length === 0) continue
     if (endOpenEdges.length === 0) continue
 
-    // ------------------------------------------------------------------
     // 5. Build the board now that we know start/end have open edges
-    // ------------------------------------------------------------------
-
     const board: Board = {
       rows,
       cols,
       tiles,
       blocked: blockedEdges,
-      cost: [],
+      toll: [],
       bonus: [],
-      costValue: 1,
-      bonusValue: 1,
+      tollValue: randomInt(1, 3),
+      bonusValue: randomInt(4, 6),
       start: startId,
       end: endId,
     }
 
-    // ------------------------------------------------------------------
     // 6. Find all valid routes and verify at least one exists
-    // ------------------------------------------------------------------
-    const allRoutes = findAllRoutes(board)
+    let allRoutes = findAllRoutes(board)
     if (allRoutes.length === 0) continue
 
-    // ------------------------------------------------------------------
+    // Add toll/bonus roads for expedition mode
+    if (type === 'expedition') {
+      const bestPath = allRoutes[0]!.path;
+      const goldEdgeKeys = new Set<string>();
+      
+      for (let i = 0; i < bestPath.length - 1; i++) {
+        const currentTile = bestPath[i];
+        const nextTile = bestPath[i + 1];
+
+        if (currentTile !== undefined && nextTile !== undefined) {
+          goldEdgeKeys.add(edgeKey(currentTile, nextTile));
+          goldEdgeKeys.add(edgeKey(nextTile, currentTile));
+        }
+      }
+
+      // Filter remaining open edges for On-Path (Tolls) and Off-Path (Bonus)
+      const openEdges = candidates.slice(numBlocked);
+      
+      const onPathCandidates = openEdges.filter(([a, b]) => goldEdgeKeys.has(edgeKey(a, b)));
+      const offPathCandidates = openEdges.filter(([a, b]) => !goldEdgeKeys.has(edgeKey(a, b)));
+
+      // Place Toll roads on the "Main Highway"
+      if (onPathCandidates.length > 0) {
+        const numTollsToPlace = Math.min(2, onPathCandidates.length);
+        const shuffledOnPath = shuffle(onPathCandidates);
+
+        for (let i = 0; i < numTollsToPlace; i++) {
+          const pair = shuffledOnPath[i];
+          if (pair) {
+            board.toll.push({ from: pair[0], to: pair[1] });
+          }
+        }
+      }
+
+      // Place a Bonus road as a "Temptation"
+      if (offPathCandidates.length > 0) {
+        const pair = offPathCandidates[randomInt(0, offPathCandidates.length - 1)];
+        if (pair) {
+          board.bonus = [{ from: pair[0], to: pair[1] }];
+        }
+      }
+
+      // Final Solver Pass (Recalculate with new modifiers)
+      allRoutes = findAllRoutes(board);
+      if (allRoutes.length === 0) continue; 
+    }
+
     // 7. Extract all optimal (gold) paths
-    // ------------------------------------------------------------------
     const maxScore = allRoutes[0]!.total
     const optimalPaths = allRoutes
       .filter(r => r.total === maxScore)
       .map(r => r.path)
 
-    // ------------------------------------------------------------------
     // 8. Compute analytics / difficulty metadata
-    // ------------------------------------------------------------------
     const silverRoute: PathResult | undefined = allRoutes.find(r => r.total < maxScore)
     const goldSilverGap = silverRoute ? maxScore - silverRoute.total : 0
     const difficultyBand = calcDifficultyBand(allRoutes[0]!, board, allRoutes.length, goldSilverGap)

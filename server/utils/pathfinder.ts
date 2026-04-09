@@ -12,81 +12,29 @@
  *   array, not a clone of the full board — significantly lighter than v1.
  */
 
-import type { Board, PathResult } from '../../shared/types/game'
-import { buildEdgeMap, getActiveNeighbors } from '../../shared/utils/puzzleEngine'
+import type { Board, PathResult } from '../../shared/types/game';
+import {
+  buildEdgeMap,
+  getActiveNeighbors,
+  getEdgeType,
+} from '../../shared/utils/puzzleEngine';
 
 interface PathJob {
-  currentId: number
-  visited: Set<number>
-  path: number[]
-  total: number
+  currentId: number;
+  visited: Set<number>;
+  path: number[];
+  total: number;
 }
 
 /**
- * Find the highest-scoring path from Board.start to Board.end.
- * Returns null if no path exists (puzzle should be regenerated).
- */
-export function findBestRoute(board: Board): PathResult | null {
-  const edgeMap = buildEdgeMap(board)
-
-  const startTileValue = board.tiles[board.start]
-  if (startTileValue === undefined) return null
-
-  const jobs: PathJob[] = [
-    {
-      currentId: board.start,
-      visited: new Set([board.start]),
-      path: [board.start],
-      total: startTileValue,
-    },
-  ]
-
-  const results: PathResult[] = []
-
-  while (jobs.length > 0) {
-    const job = jobs.shift()!
-
-    if (job.currentId === board.end) {
-      results.push({ total: job.total, moves: job.path.length, path: job.path })
-      continue
-    }
-
-    const neighbors = getActiveNeighbors(
-      job.currentId,
-      board.rows,
-      board.cols,
-      edgeMap,
-      job.visited,
-    )
-
-    for (const nId of neighbors) {
-      const neighborValue = board.tiles[nId]
-      if (neighborValue === undefined) continue
-      jobs.push({
-        currentId: nId,
-        visited: new Set([...job.visited, nId]),
-        path: [...job.path, nId],
-        total: job.total + neighborValue,
-      })
-    }
-  }
-
-  if (!results.length) return null
-
-  // Return the route with the highest total (gold route).
-  results.sort((a, b) => b.total - a.total)
-  return results[0] ?? null
-}
-
-/**
- * Return all valid routes sorted by descending score.
- * Used for difficulty analysis (gap between gold and silver route).
+ * Finds all valid paths from start to end, calculating total score
+ * including tile values and edge modifiers (tolls/bonuses).
  */
 export function findAllRoutes(board: Board): PathResult[] {
-  const edgeMap = buildEdgeMap(board)
+  const edgeMap = buildEdgeMap(board);
+  const startTileValue = board.tiles[board.start];
 
-  const startTileValue = board.tiles[board.start]
-  if (startTileValue === undefined) return []
+  if (startTileValue === undefined) return [];
 
   const jobs: PathJob[] = [
     {
@@ -95,16 +43,20 @@ export function findAllRoutes(board: Board): PathResult[] {
       path: [board.start],
       total: startTileValue,
     },
-  ]
+  ];
 
-  const results: PathResult[] = []
+  const results: PathResult[] = [];
 
   while (jobs.length > 0) {
-    const job = jobs.shift()!
+    const job = jobs.shift()!;
 
     if (job.currentId === board.end) {
-      results.push({ total: job.total, moves: job.path.length, path: job.path })
-      continue
+      results.push({
+        total: job.total,
+        moves: job.path.length,
+        path: job.path,
+      });
+      continue;
     }
 
     const neighbors = getActiveNeighbors(
@@ -113,20 +65,25 @@ export function findAllRoutes(board: Board): PathResult[] {
       board.cols,
       edgeMap,
       job.visited,
-    )
+    );
 
     for (const nId of neighbors) {
-      const neighborValue = board.tiles[nId]
-      if (neighborValue === undefined) continue
+      const neighborValue = board.tiles[nId];
+      if (neighborValue === undefined) continue;
+
+      const type = getEdgeType(job.currentId, nId, edgeMap);
+      let modifier = 0;
+      if (type === 'toll') modifier = -board.tollValue;
+      if (type === 'bonus') modifier = board.bonusValue;
+
       jobs.push({
         currentId: nId,
         visited: new Set([...job.visited, nId]),
         path: [...job.path, nId],
-        total: job.total + neighborValue,
-      })
+        total: job.total + neighborValue + modifier,
+      });
     }
   }
 
-  results.sort((a, b) => b.total - a.total)
-  return results
+  return results.sort((a, b) => b.total - a.total);
 }
