@@ -16,16 +16,17 @@ function toSqlString(value: string | null) {
   return `'${value.replaceAll("'", "''")}'`
 }
 
-function buildInsertRow(gameNo: number, isCurrent: boolean, playableAt: string) {
-  const puzzle = generatePuzzle()
+function buildInsertRow(gameNo: number, puzzleType: 'classic' | 'expedition', isCurrent: boolean, playableAt: string) {
+  const puzzle = generatePuzzle(puzzleType)
   if (!puzzle) {
-    throw new Error(`Failed to generate puzzle for game ${gameNo}`)
+    throw new Error(`Failed to generate ${puzzleType} puzzle for game ${gameNo}`)
   }
 
   const nextGameAt = isCurrent ? new Date(new Date(playableAt).getTime() + 86400000).toISOString() : null
 
   return `(
   ${gameNo},
+  ${toSqlString(puzzleType)},
   ${toSqlString(JSON.stringify(puzzle.board))},
   ${toSqlString(JSON.stringify(puzzle.optimalPaths))},
   ${puzzle.maxScore},
@@ -44,9 +45,15 @@ Math.random = mulberry32(20260403)
 
 try {
   const rows = [
-    buildInsertRow(1, false, '2026-01-01T00:00:00.000Z'),
-    buildInsertRow(2, false, '2026-01-02T00:00:00.000Z'),
-    buildInsertRow(3, true, '2026-01-03T00:00:00.000Z'),
+    // Day 1 - Past games (gameNo 1)
+    buildInsertRow(1, 'classic', false, '2026-01-01T00:00:00.000Z'),
+    buildInsertRow(1, 'expedition', false, '2026-01-01T00:00:00.000Z'),
+    // Day 2 - Past games (gameNo 2)
+    buildInsertRow(2, 'classic', false, '2026-01-02T00:00:00.000Z'),
+    buildInsertRow(2, 'expedition', false, '2026-01-02T00:00:00.000Z'),
+    // Day 3 - Current games (gameNo 3)
+    buildInsertRow(3, 'classic', true, '2026-01-03T00:00:00.000Z'),
+    buildInsertRow(3, 'expedition', true, '2026-01-03T00:00:00.000Z'),
   ]
 
   const sql = `-- Local development seed data for GoldRoad API testing.
@@ -58,6 +65,7 @@ DELETE FROM games;
 
 INSERT INTO games (
   game_no,
+  puzzle_type,
   board_json,
   optimal_paths_json,
   max_score,
