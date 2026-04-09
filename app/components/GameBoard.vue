@@ -75,20 +75,37 @@ const allRoads = computed<RoadData[]>(() => {
         const t = getEdgeType(idx, nIdx, em);
         const edgeKey = `${idx}-${nIdx}`;
         const hit = trav.has(edgeKey);
-        roads.push({
-          key: `h-${idx}`,
-          orientation: 'h',
-          // type: t,
-          type: r === 3 && c=== 3 ? 'cost' : t,
-          traversed: hit,
-          arrowDir: hit ? trav.get(edgeKey)! : null,
-          style: {
-            left: `${c * CELL + TILE_PX}px`,
-            top: `${r * CELL + (TILE_PX - ROAD_THICK) / 2}px`,
-            width: `${GAP_PX}px`,
-            height: `${ROAD_THICK}px`,
-          },
-        });
+
+        const idxVisited = props.visitedSet.has(idx);
+        const nIdxVisited = props.visitedSet.has(nIdx);
+        const idxActive = props.activeSet.has(idx);
+        const nIdxActive = props.activeSet.has(nIdx);
+
+        // Show road if:
+        // 1. Already traversed
+        // 2. Neither endpoint visited (unexplored area)
+        // 3. One visited and other is active (feasible from visited)
+        const shouldShow =
+          hit ||
+          (!idxVisited && !nIdxVisited) ||
+          (idxVisited && nIdxActive) ||
+          (nIdxVisited && idxActive);
+
+        if (shouldShow) {
+          roads.push({
+            key: `h-${idx}`,
+            orientation: 'h',
+            type: t,
+            traversed: hit,
+            arrowDir: hit ? trav.get(edgeKey)! : null,
+            style: {
+              left: `${c * CELL + TILE_PX}px`,
+              top: `${r * CELL + (TILE_PX - ROAD_THICK) / 2}px`,
+              width: `${GAP_PX}px`,
+              height: `${ROAD_THICK}px`,
+            },
+          });
+        }
       }
 
       if (r < rows - 1) {
@@ -96,20 +113,37 @@ const allRoads = computed<RoadData[]>(() => {
         const t = getEdgeType(idx, nIdx, em);
         const edgeKey = `${idx}-${nIdx}`;
         const hit = trav.has(edgeKey);
-        roads.push({
-          key: `v-${idx}`,
-          orientation: 'v',
-          // type: t,
-          type: r === 4 && c=== 5 ? 'bonus' : t,
-          traversed: hit,
-          arrowDir: hit ? trav.get(edgeKey)! : null,
-          style: {
-            left: `${c * CELL + (TILE_PX - ROAD_THICK) / 2}px`,
-            top: `${r * CELL + TILE_PX}px`,
-            width: `${ROAD_THICK}px`,
-            height: `${GAP_PX}px`,
-          },
-        });
+
+        const idxVisited = props.visitedSet.has(idx);
+        const nIdxVisited = props.visitedSet.has(nIdx);
+        const idxActive = props.activeSet.has(idx);
+        const nIdxActive = props.activeSet.has(nIdx);
+
+        // Show road if:
+        // 1. Already traversed
+        // 2. Neither endpoint visited (unexplored area)
+        // 3. One visited and other is active (feasible from visited)
+        const shouldShow =
+          hit ||
+          (!idxVisited && !nIdxVisited) ||
+          (idxVisited && nIdxActive) ||
+          (nIdxVisited && idxActive);
+
+        if (shouldShow) {
+          roads.push({
+            key: `v-${idx}`,
+            orientation: 'v',
+            type: t,
+            traversed: hit,
+            arrowDir: hit ? trav.get(edgeKey)! : null,
+            style: {
+              left: `${c * CELL + (TILE_PX - ROAD_THICK) / 2}px`,
+              top: `${r * CELL + TILE_PX}px`,
+              width: `${ROAD_THICK}px`,
+              height: `${GAP_PX}px`,
+            },
+          });
+        }
       }
     }
   }
