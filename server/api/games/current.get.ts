@@ -10,6 +10,7 @@ export default defineEventHandler(async (event) => {
   const rows = await db
     .select({
       gameNo: games.gameNo,
+      puzzleType: games.puzzleType,
       boardJson: games.boardJson,
       maxScore: games.maxScore,
       totalCoins: games.totalCoins,
@@ -19,21 +20,39 @@ export default defineEventHandler(async (event) => {
     })
     .from(games)
     .where(and(eq(games.active, true), eq(games.current, true), lte(games.playableAt, nowIso)))
-    .limit(1)
+    .limit(2) // Fetch both current puzzles
 
-  const current = rows[0]
-  if (!current) {
-    throw createError({ statusCode: 404, statusMessage: 'No current game available' })
+  if (rows.length === 0) {
+    throw createError({ statusCode: 404, statusMessage: 'No current games available' })
   }
 
-  const game = parsePublicGameRow(current)
+  // Parse and organize by puzzle type
+  const parsedGames = rows.map(row => parsePublicGameRow(row))
+  
+  const classic = parsedGames.find(g => g.puzzleType === 'classic')
+  const expedition = parsedGames.find(g => g.puzzleType === 'expedition')
+
+  // Return both puzzles (or null if one type is missing)
   return {
-    gameNo: game.gameNo,
-    board: game.board,
-    maxScore: game.maxScore,
-    totalCoins: game.totalCoins,
-    difficultyBand: game.difficultyBand,
-    playableAt: game.playableAt,
-    nextGameAt: game.nextGameAt,
+    classic: classic ? {
+      gameNo: classic.gameNo,
+      puzzleType: classic.puzzleType,
+      board: classic.board,
+      maxScore: classic.maxScore,
+      totalCoins: classic.totalCoins,
+      difficultyBand: classic.difficultyBand,
+      playableAt: classic.playableAt,
+      nextGameAt: classic.nextGameAt,
+    } : null,
+    expedition: expedition ? {
+      gameNo: expedition.gameNo,
+      puzzleType: expedition.puzzleType,
+      board: expedition.board,
+      maxScore: expedition.maxScore,
+      totalCoins: expedition.totalCoins,
+      difficultyBand: expedition.difficultyBand,
+      playableAt: expedition.playableAt,
+      nextGameAt: expedition.nextGameAt,
+    } : null,
   }
 })

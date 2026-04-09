@@ -21,6 +21,7 @@ export default defineEventHandler(async (event) => {
   const baseCandidates = await db
     .select({
       gameNo: games.gameNo,
+      puzzleType: games.puzzleType,
       boardJson: games.boardJson,
       maxScore: games.maxScore,
       totalCoins: games.totalCoins,
@@ -58,6 +59,7 @@ export default defineEventHandler(async (event) => {
   const randomPick = await db
     .select({
       gameNo: games.gameNo,
+      puzzleType: games.puzzleType,
       boardJson: games.boardJson,
       maxScore: games.maxScore,
       totalCoins: games.totalCoins,
@@ -78,6 +80,7 @@ export default defineEventHandler(async (event) => {
   const game = parsePublicGameRow(selected)
   return {
     gameNo: game.gameNo,
+    puzzleType: game.puzzleType,
     board: game.board,
     maxScore: game.maxScore,
     totalCoins: game.totalCoins,
