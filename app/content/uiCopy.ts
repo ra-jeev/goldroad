@@ -41,7 +41,7 @@ export const UI_COPY = {
       legalMove: 'Legal next move',
       visitedTile: 'Visited tile',
       blockedRoad: 'Blocked road',
-      costRoad: 'Cost road',
+      tollRoad: 'Toll road',
       bonusRoad: 'Bonus road',
       start: 'Start',
       end: 'End',

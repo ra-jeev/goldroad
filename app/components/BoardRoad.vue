@@ -15,9 +15,9 @@ defineProps<{
     :class="['road', `road--${type}`, { 'road--traversed': traversed }]"
     :style="style"
   >
-    <!-- Cost/Bonus indicators - always show, even when traversed -->
+    <!-- Toll/Bonus indicators - always show, even when traversed -->
     <svg
-      v-if="type === 'cost'"
+      v-if="type === 'toll'"
       :class="['road-icon', { 'road-icon--vertical': orientation === 'v' }]"
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
@@ -63,7 +63,7 @@ defineProps<{
       />
     </svg>
 
-    <!-- Traversal arrow - show alongside cost/bonus icons -->
+    <!-- Traversal arrow - show alongside toll/bonus icons -->
     <svg
       v-if="traversed && arrowDir"
       :class="['road-arrow', `road-arrow--${arrowDir}`]"
@@ -93,12 +93,12 @@ defineProps<{
   color: rgb(var(--color-gold-rgb) / 0.48);
 }
 
-.road--cost {
-  color: #cd7f32;
+.road--toll {
+  color: var(--color-toll);
 }
 
 .road--bonus {
-  color: #ffd700;
+  color: var(--color-bonus);
 }
 
 .road--traversed {

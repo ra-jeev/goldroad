@@ -1,40 +1,40 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { UI_COPY } from '../content/uiCopy'
+import { ref } from 'vue';
+import { UI_COPY } from '../content/uiCopy';
 
 defineProps<{
-  roadHeading: string
-  score: number
-  maxScore: number
-  totalCoins: number
-  moves: number
-  completionPercent: number
-  progressText: string
-  status: string
-  hintDisplayMessage: string
-  hasHintMessage: boolean
-  runStateHeading: string
-  difficultyLabel: string
+  roadHeading: string;
+  score: number;
+  maxScore: number;
+  totalCoins: number;
+  moves: number;
+  completionPercent: number;
+  progressText: string;
+  status: string;
+  hintDisplayMessage: string;
+  hasHintMessage: boolean;
+  runStateHeading: string;
+  difficultyLabel: string;
   hintUsage: {
-    level1: number
-    level2: number
-    level3: number
-  }
-  ended: boolean
-  loading: boolean
-}>()
+    level1: number;
+    level2: number;
+    level3: number;
+  };
+  ended: boolean;
+  loading: boolean;
+}>();
 
 const emit = defineEmits<{
-  current: []
-  hint: [level: 1 | 2 | 3]
-}>()
+  current: [];
+  hint: [level: 1 | 2 | 3];
+}>();
 
-const showLegend = ref(false)
-const showHints = ref(false)
+const showLegend = ref(false);
+const showHints = ref(false);
 
 function closeOverlays() {
-  showLegend.value = false
-  showHints.value = false
+  showLegend.value = false;
+  showHints.value = false;
 }
 </script>
 
@@ -47,15 +47,29 @@ function closeOverlays() {
           <h1>{{ roadHeading }}</h1>
         </div>
         <div class="hero-tools">
-          <button class="secondary ghost" type="button" @click="showLegend = true">{{ UI_COPY.sidebar.legend }}</button>
-          <button class="secondary ghost" type="button" @click="showHints = true">{{ UI_COPY.sidebar.hints }}</button>
+          <button
+            class="secondary ghost"
+            type="button"
+            @click="showLegend = true"
+          >
+            {{ UI_COPY.sidebar.legend }}
+          </button>
+          <button
+            class="secondary ghost"
+            type="button"
+            @click="showHints = true"
+          >
+            {{ UI_COPY.sidebar.hints }}
+          </button>
         </div>
       </div>
 
       <p class="hero-copy">{{ UI_COPY.sidebar.heroCopy }}</p>
 
       <div class="hero-actions">
-        <button class="secondary" :disabled="loading" @click="emit('current')">{{ UI_COPY.sidebar.reloadToday }}</button>
+        <button class="secondary" :disabled="loading" @click="emit('current')">
+          {{ UI_COPY.sidebar.reloadToday }}
+        </button>
       </div>
     </section>
 
@@ -65,7 +79,9 @@ function closeOverlays() {
         <strong>{{ score }} / {{ maxScore }}</strong>
       </article>
       <article>
-        <span class="metric-label">{{ UI_COPY.sidebar.metrics.boardCoins }}</span>
+        <span class="metric-label">{{
+          UI_COPY.sidebar.metrics.boardCoins
+        }}</span>
         <strong>{{ totalCoins }}</strong>
       </article>
       <article>
@@ -84,7 +100,9 @@ function closeOverlays() {
           <p class="eyebrow">{{ UI_COPY.sidebar.runStatusEyebrow }}</p>
           <h2>{{ runStateHeading }}</h2>
         </div>
-        <span class="mini-status" :class="{ ended }">{{ difficultyLabel }}</span>
+        <span class="mini-status" :class="{ ended }">{{
+          difficultyLabel
+        }}</span>
       </div>
 
       <p class="status-copy">{{ status }}</p>
@@ -93,48 +111,95 @@ function closeOverlays() {
       </p>
 
       <div class="quick-actions">
-        <button class="secondary ghost" type="button" @click="showHints = true">{{ UI_COPY.sidebar.openHints }}</button>
-        <button class="secondary ghost" type="button" @click="showLegend = true">{{ UI_COPY.sidebar.openLegend }}</button>
+        <button class="secondary ghost" type="button" @click="showHints = true">
+          {{ UI_COPY.sidebar.openHints }}
+        </button>
+        <button
+          class="secondary ghost"
+          type="button"
+          @click="showLegend = true"
+        >
+          {{ UI_COPY.sidebar.openLegend }}
+        </button>
       </div>
     </section>
 
-    <div v-if="showHints || showLegend" class="overlay-backdrop" @click.self="closeOverlays">
+    <div
+      v-if="showHints || showLegend"
+      class="overlay-backdrop"
+      @click.self="closeOverlays"
+    >
       <section v-if="showHints" class="overlay-card" aria-label="Hints overlay">
         <div class="overlay-header">
           <div>
             <p class="eyebrow">{{ UI_COPY.sidebar.overlayHelpEyebrow }}</p>
             <h2>{{ UI_COPY.sidebar.hintsTitle }}</h2>
           </div>
-          <button class="close-button" type="button" @click="showHints = false">{{ UI_COPY.sidebar.close }}</button>
+          <button class="close-button" type="button" @click="showHints = false">
+            {{ UI_COPY.sidebar.close }}
+          </button>
         </div>
 
         <div class="hint-buttons">
-          <button class="secondary" :disabled="ended || loading" @click="emit('hint', 1)">
+          <button
+            class="secondary"
+            :disabled="ended || loading"
+            @click="emit('hint', 1)"
+          >
             <span>{{ UI_COPY.sidebar.hintRows.level1Title }}</span>
-            <small>{{ UI_COPY.sidebar.hintRows.level1Desc }} · Used {{ hintUsage.level1 }}</small>
+            <small
+              >{{ UI_COPY.sidebar.hintRows.level1Desc }} · Used
+              {{ hintUsage.level1 }}</small
+            >
           </button>
-          <button class="secondary" :disabled="ended || loading" @click="emit('hint', 2)">
+          <button
+            class="secondary"
+            :disabled="ended || loading"
+            @click="emit('hint', 2)"
+          >
             <span>{{ UI_COPY.sidebar.hintRows.level2Title }}</span>
-            <small>{{ UI_COPY.sidebar.hintRows.level2Desc }} · Used {{ hintUsage.level2 }}</small>
+            <small
+              >{{ UI_COPY.sidebar.hintRows.level2Desc }} · Used
+              {{ hintUsage.level2 }}</small
+            >
           </button>
-          <button class="secondary" :disabled="ended || loading" @click="emit('hint', 3)">
+          <button
+            class="secondary"
+            :disabled="ended || loading"
+            @click="emit('hint', 3)"
+          >
             <span>{{ UI_COPY.sidebar.hintRows.level3Title }}</span>
-            <small>{{ UI_COPY.sidebar.hintRows.level3Desc }} · Used {{ hintUsage.level3 }}</small>
+            <small
+              >{{ UI_COPY.sidebar.hintRows.level3Desc }} · Used
+              {{ hintUsage.level3 }}</small
+            >
           </button>
         </div>
 
         <p class="hint-message" :class="{ empty: !hasHintMessage }">
-          {{ hasHintMessage ? hintDisplayMessage : UI_COPY.sidebar.hintFallback }}
+          {{
+            hasHintMessage ? hintDisplayMessage : UI_COPY.sidebar.hintFallback
+          }}
         </p>
       </section>
 
-      <section v-if="showLegend" class="overlay-card" aria-label="Legend overlay">
+      <section
+        v-if="showLegend"
+        class="overlay-card"
+        aria-label="Legend overlay"
+      >
         <div class="overlay-header">
           <div>
             <p class="eyebrow">{{ UI_COPY.sidebar.overlayHelpEyebrow }}</p>
             <h2>{{ UI_COPY.sidebar.legendTitle }}</h2>
           </div>
-          <button class="close-button" type="button" @click="showLegend = false">{{ UI_COPY.sidebar.close }}</button>
+          <button
+            class="close-button"
+            type="button"
+            @click="showLegend = false"
+          >
+            {{ UI_COPY.sidebar.close }}
+          </button>
         </div>
 
         <div class="legend-row">
@@ -150,8 +215,8 @@ function closeOverlays() {
           <span>{{ UI_COPY.sidebar.legendRows.blockedRoad }}</span>
         </div>
         <div class="legend-row">
-          <span class="legend-line cost" />
-          <span>{{ UI_COPY.sidebar.legendRows.costRoad }}</span>
+          <span class="legend-line toll" />
+          <span>{{ UI_COPY.sidebar.legendRows.tollRoad }}</span>
         </div>
         <div class="legend-row">
           <span class="legend-line bonus" />
@@ -181,9 +246,7 @@ function closeOverlays() {
   border-radius: var(--radius-lg);
   padding: 1rem;
   box-shadow:
-    var(--shadow-border-dark),
-    var(--shadow-lg),
-    var(--shadow-inset-gold);
+    var(--shadow-border-dark), var(--shadow-lg), var(--shadow-inset-gold);
 }
 
 .hero-card {
@@ -271,15 +334,15 @@ function closeOverlays() {
   border-radius: var(--radius-full);
   background: rgb(var(--color-gold-rgb) / 0.15);
   color: var(--color-gold);
-  border: 1px solid rgb(var(--color-gold-rgb) / 0.40);
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.4);
   font-size: 0.8rem;
   font-weight: 700;
 }
 
 .mini-status.ended {
-  background: rgb(180 80 0 / 0.20);
-  color: var(--color-cost);
-  border-color: rgb(180 80 0 / 0.40);
+  background: rgb(180 80 0 / 0.2);
+  color: var(--color-toll);
+  border-color: rgb(180 80 0 / 0.4);
 }
 
 .status-copy,
@@ -301,7 +364,7 @@ function closeOverlays() {
 
 .hint-inline.empty,
 .hint-message.empty {
-  color: rgb(var(--color-gold-rgb) / 0.70);
+  color: rgb(var(--color-gold-rgb) / 0.7);
 }
 
 .overlay-backdrop {
@@ -376,8 +439,8 @@ function closeOverlays() {
   background: var(--color-blocked);
 }
 
-.legend-line.cost {
-  background: var(--color-cost);
+.legend-line.toll {
+  background: var(--color-toll);
 }
 
 .legend-line.bonus {
@@ -407,7 +470,9 @@ button {
   padding: 0.7rem 0.9rem;
   font-weight: 700;
   cursor: pointer;
-  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  transition:
+    transform var(--transition-fast),
+    box-shadow var(--transition-fast);
 }
 
 .secondary {
@@ -417,7 +482,7 @@ button {
 }
 
 .ghost {
-  background: rgb(var(--color-gold-rgb) / 0.10);
+  background: rgb(var(--color-gold-rgb) / 0.1);
 }
 
 .close-button {

@@ -15,7 +15,7 @@ import { z } from 'zod'
 
 export const DirectionSchema = z.enum(['top', 'bottom', 'left', 'right'])
 
-export const EdgeTypeSchema = z.enum(['blocked', 'cost', 'bonus'])
+export const EdgeTypeSchema = z.enum(['blocked', 'toll', 'bonus'])
 
 export const OutcomeTierSchema = z.enum(['gold', 'silver', 'bronze', 'finished', 'unfinished'])
 
@@ -47,9 +47,9 @@ export const BoardSchema = z.object({
   cols: z.number().int().min(3).max(10),
   tiles: z.array(z.number().int().min(1).max(6)),
   blocked: z.array(EdgePairSchema),
-  cost: z.array(EdgePairSchema),
+  toll: z.array(EdgePairSchema),
   bonus: z.array(EdgePairSchema),
-  costValue: z.number().int().min(1).default(1),
+  tollValue: z.number().int().min(1).default(1),
   bonusValue: z.number().int().min(1).default(1),
   start: z.number().int().min(0),
   end: z.number().int().min(0),
@@ -90,7 +90,7 @@ export const BoardSchema = z.object({
 
   const edgeGroups = [
     ['blocked', board.blocked],
-    ['cost', board.cost],
+    ['toll', board.toll],
     ['bonus', board.bonus],
   ] as const
 

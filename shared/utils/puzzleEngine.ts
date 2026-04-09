@@ -44,7 +44,7 @@ export function edgeKey(from: number, to: number): string {
 /**
  * Build an EdgeMap (O(1) lookup) from the board's grouped edge arrays.
  *
- * Design note: Board stores only non-open edge groups (blocked, cost, bonus).
+ * Design note: Board stores only non-open edge groups (blocked, toll, bonus).
  * Open traversal between adjacent tiles is the implicit default, so edges
  * absent from the map are open. This keeps game payloads small.
  */
@@ -56,9 +56,9 @@ export function buildEdgeMap(board: Board): EdgeMap {
     map.set(edgeKey(edge.to, edge.from), 'blocked')
   }
 
-  for (const edge of board.cost) {
-    map.set(edgeKey(edge.from, edge.to), 'cost')
-    map.set(edgeKey(edge.to, edge.from), 'cost')
+  for (const edge of board.toll) {
+    map.set(edgeKey(edge.from, edge.to), 'toll')
+    map.set(edgeKey(edge.to, edge.from), 'toll')
   }
 
   for (const edge of board.bonus) {

@@ -24,7 +24,7 @@ export type {
 } from '../validators/game'
 
 /**
- * Fast O(1) edge-type lookup built from Board.blocked/cost/bonus.
+ * Fast O(1) edge-type lookup built from Board.blocked/toll/bonus.
  * Key format: "{fromId}->{toId}". Both directions are stored.
  * (Runtime utility, not validated)
  */
