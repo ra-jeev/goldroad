@@ -16,6 +16,7 @@ import {
   real,
   sqliteTable,
   text,
+  uniqueIndex,
 } from 'drizzle-orm/sqlite-core'
 
 // ---------------------------------------------------------------------------
@@ -24,7 +25,8 @@ import {
 
 export const games = sqliteTable('games', {
   id:              integer('id').primaryKey({ autoIncrement: true }),
-  gameNo:          integer('game_no').notNull().unique(),
+  gameNo:          integer('game_no').notNull(),
+  puzzleType:      text('puzzle_type', { enum: ['classic', 'expedition'] }).notNull().default('classic'),
 
   /** Full Board JSON (tiles + edges + start/end). Served to client. */
   boardJson:       text('board_json').notNull(),
@@ -58,7 +60,10 @@ export const games = sqliteTable('games', {
 
   createdAt:       text('created_at').notNull().default(sql`(datetime('now'))`),
   updatedAt:       text('updated_at').notNull().default(sql`(datetime('now'))`),
-})
+}, (table) => ({
+  // Composite unique constraint: one classic and one expedition per gameNo
+  gameNoPuzzleTypeIdx: uniqueIndex('games_game_no_puzzle_type_unique').on(table.gameNo, table.puzzleType),
+}))
 
 // ---------------------------------------------------------------------------
 // player_game_session
@@ -70,6 +75,7 @@ export const playerGameSession = sqliteTable('player_game_session', {
   /** Random UUID stored in the player's localStorage. Not linked to any account. */
   playerId:      text('player_id').notNull(),
   gameNo:        integer('game_no').notNull(),
+  puzzleType:    text('puzzle_type', { enum: ['classic', 'expedition'] }).notNull(),
 
   /** Per-tab session UUID — allows multiple device sessions per player per game. */
   sessionId:     text('session_id').notNull().unique(),
@@ -109,7 +115,8 @@ export const playerGameSession = sqliteTable('player_game_session', {
  */
 export const dailyGameStats = sqliteTable('daily_game_stats', {
   id:                  integer('id').primaryKey({ autoIncrement: true }),
-  gameNo:              integer('game_no').notNull().unique(),
+  gameNo:              integer('game_no').notNull(),
+  puzzleType:          text('puzzle_type', { enum: ['classic', 'expedition'] }).notNull(),
 
   plays:               integer('plays').notNull().default(0),
   completions:         integer('completions').notNull().default(0),
@@ -127,7 +134,10 @@ export const dailyGameStats = sqliteTable('daily_game_stats', {
   pastRoadsOpened:     integer('past_roads_opened').notNull().default(0),
 
   updatedAt:           text('updated_at').notNull().default(sql`(datetime('now'))`),
-})
+}, (table) => ({
+  // Composite unique constraint: one stats row per gameNo + puzzleType
+  gameNoPuzzleTypeIdx: uniqueIndex('daily_game_stats_game_no_puzzle_type_unique').on(table.gameNo, table.puzzleType),
+}))
 
 // ---------------------------------------------------------------------------
 // Inferred TypeScript types (used across server handlers)

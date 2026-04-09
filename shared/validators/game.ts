@@ -21,6 +21,8 @@ export const OutcomeTierSchema = z.enum(['gold', 'silver', 'bronze', 'finished',
 
 export const DifficultyBandSchema = z.enum(['easy', 'medium', 'hard'])
 
+export const PuzzleTypeSchema = z.enum(['classic', 'expedition'])
+
 // ---------------------------------------------------------------------------
 // Shared board model
 // ---------------------------------------------------------------------------
@@ -180,12 +182,18 @@ export const HintResultSchema = z.union([
 
 export const PublicGameSchema = z.object({
   gameNo: z.number().int().positive(),
+  puzzleType: PuzzleTypeSchema,
   board: BoardSchema,
   maxScore: z.number().int().min(1),
   totalCoins: z.number().int().min(1),
   difficultyBand: DifficultyBandSchema,
   playableAt: z.string().datetime({ offset: true }),
   nextGameAt: z.string().datetime({ offset: true }).nullable(),
+})
+
+export const CurrentGamesResponseSchema = z.object({
+  classic: PublicGameSchema.nullable(),
+  expedition: PublicGameSchema.nullable(),
 })
 
 export const PastGameSummarySchema = z.object({
@@ -228,6 +236,7 @@ export type Direction = z.infer<typeof DirectionSchema>
 export type EdgeType = z.infer<typeof EdgeTypeSchema>
 export type OutcomeTier = z.infer<typeof OutcomeTierSchema>
 export type DifficultyBand = z.infer<typeof DifficultyBandSchema>
+export type PuzzleType = z.infer<typeof PuzzleTypeSchema>
 
 export type EdgePair = z.infer<typeof EdgePairSchema>
 export type Board = z.infer<typeof BoardSchema>
@@ -240,6 +249,7 @@ export type HintLevel3Result = z.infer<typeof HintLevel3ResultSchema>
 export type HintResult = z.infer<typeof HintResultSchema>
 
 export type PublicGame = z.infer<typeof PublicGameSchema>
+export type CurrentGamesResponse = z.infer<typeof CurrentGamesResponseSchema>
 export type PastGameSummary = z.infer<typeof PastGameSummarySchema>
 
 export type SessionEndPayload = z.infer<typeof SessionEndPayloadSchema>

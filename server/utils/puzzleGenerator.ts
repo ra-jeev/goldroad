@@ -87,6 +87,7 @@ function pickEnd(rows: number, cols: number, excludeId: number): number {
 
 export interface GeneratedPuzzle {
   board: Board
+  puzzleType: 'classic' | 'expedition'
   maxScore: number
   /** Sum of all tile values on the board (upper bound if player collected everything). */
   totalCoins: number
@@ -250,6 +251,7 @@ export function generatePuzzle(
 
     return {
       board,
+      puzzleType: type,
       maxScore,
       totalCoins,
       optimalPaths,

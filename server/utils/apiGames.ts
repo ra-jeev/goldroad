@@ -4,6 +4,7 @@ import { BoardSchema, DifficultyBandSchema } from '../../shared/validators/game'
 /** Schema for game board endpoints (public game data) */
 const PublicGameRowSchema = z.object({
   gameNo: z.number().int().positive(),
+  puzzleType: z.enum(['classic', 'expedition']),
   boardJson: z.string(),
   maxScore: z.number().int().positive(),
   totalCoins: z.number().int().positive(),
@@ -28,6 +29,7 @@ export function parsePublicGameRow(row: PublicGameRow) {
 
   return {
     gameNo: parsed.gameNo,
+    puzzleType: parsed.puzzleType,
     board,
     maxScore: parsed.maxScore,
     totalCoins: parsed.totalCoins,
