@@ -18,6 +18,23 @@
   --color-bg-dark: #110900;
   --color-bg-base: #1a0e03;
 
+  /* ── Mode-specific backgrounds ────────────────────────────── */
+  /* Classic mode - warm brown tones (default) */
+  --color-bg-classic-deepest: #0d0702;
+  --color-bg-classic-dark: #110900;
+  --color-bg-classic-base: #1a0e03;
+
+  /* Expedition mode - deep blue-teal tones */
+  --color-bg-expedition-deepest: #020a0d;
+  --color-bg-expedition-dark: #031419;
+  --color-bg-expedition-base: #041f26;
+
+  /* Mode-specific card tints */
+  --mode-tint-classic: rgb(160 90 0 / 0.22);
+  --mode-tint-classic-alt: rgb(90 40 0 / 0.2);
+  --mode-tint-expedition: rgb(0 90 120 / 0.18);
+  --mode-tint-expedition-alt: rgb(0 60 80 / 0.16);
+
   /* ── Semantic colors ──────────────────────────────────────── */
   --color-start: #c0c0c0;
   --color-silver-rgb: 192 192 192;
@@ -93,73 +110,83 @@
 
   /* ── Gradients ────────────────────────────────────────────── */
   --gradient-bg-main:
-    radial-gradient(
-      ellipse 70% 50% at 15% 0%,
+    radial-gradient(ellipse 70% 50% at 15% 0%,
       rgb(160 90 0 / 0.22) 0%,
-      transparent 55%
-    ),
-    radial-gradient(
-      ellipse 55% 45% at 85% 100%,
+      transparent 55%),
+    radial-gradient(ellipse 55% 45% at 85% 100%,
       rgb(90 40 0 / 0.2) 0%,
-      transparent 60%
-    ),
-    linear-gradient(
-      175deg,
+      transparent 60%),
+    linear-gradient(175deg,
       var(--color-bg-base) 0%,
       var(--color-bg-dark) 55%,
-      var(--color-bg-deepest) 100%
-    );
+      var(--color-bg-deepest) 100%);
+  --gradient-bg-classic:
+    radial-gradient(ellipse 70% 50% at 15% 0%,
+      rgb(160 90 0 / 0.22) 0%,
+      transparent 55%),
+    radial-gradient(ellipse 55% 45% at 85% 100%,
+      rgb(90 40 0 / 0.2) 0%,
+      transparent 60%),
+    linear-gradient(175deg,
+      var(--color-bg-classic-base) 0%,
+      var(--color-bg-classic-dark) 55%,
+      var(--color-bg-classic-deepest) 100%);
+  --gradient-bg-expedition:
+    radial-gradient(ellipse 70% 50% at 15% 0%,
+      rgb(0 90 120 / 0.18) 0%,
+      transparent 55%),
+    radial-gradient(ellipse 55% 45% at 85% 100%,
+      rgb(0 60 80 / 0.16) 0%,
+      transparent 60%),
+    linear-gradient(175deg,
+      var(--color-bg-expedition-base) 0%,
+      var(--color-bg-expedition-dark) 55%,
+      var(--color-bg-expedition-deepest) 100%);
   --gradient-card-hero:
-    radial-gradient(
-      ellipse 120% 90% at 10% 0%,
-      rgb(var(--color-gold-rgb) / 0.14) 0%,
-      transparent 60%
-    ),
+    radial-gradient(ellipse 120% 90% at 10% 0%,
+      var(--mode-tint-classic) 0%,
+      transparent 60%),
     linear-gradient(160deg, #1e1004 0%, #150c03 62%, #0e0802 100%);
   --gradient-card-board:
-    radial-gradient(
-      ellipse 80% 60% at 18% 10%,
+    radial-gradient(ellipse 80% 60% at 18% 10%,
+      var(--mode-tint-classic) 0%,
+      transparent 60%),
+    linear-gradient(175deg, #1c1108 0%, #160e05 50%, #0e0a04 100%);
+  --gradient-card-hero:
+    radial-gradient(ellipse 120% 90% at 10% 0%,
+      rgb(var(--color-gold-rgb) / 0.14) 0%,
+      transparent 60%),
+    linear-gradient(160deg, #1e1004 0%, #150c03 62%, #0e0802 100%);
+  --gradient-card-board:
+    radial-gradient(ellipse 80% 60% at 18% 10%,
       rgb(255 212 59 / 0.06) 0%,
-      transparent 60%
-    ),
+      transparent 60%),
     linear-gradient(175deg, #1c1108 0%, #160e05 50%, #0e0a04 100%);
   --gradient-card-status: linear-gradient(180deg, #1e1407 0%, #150e04 100%);
   --gradient-card-overlay:
-    radial-gradient(
-      ellipse 110% 80% at 10% 0%,
+    radial-gradient(ellipse 110% 80% at 10% 0%,
       rgb(var(--color-gold-rgb) / 0.1) 0%,
-      transparent 58%
-    ),
+      transparent 58%),
     linear-gradient(180deg, #1e1407 0%, #150e04 100%);
   --gradient-card-completion:
-    radial-gradient(
-      ellipse 90% 70% at 10% 0%,
+    radial-gradient(ellipse 90% 70% at 10% 0%,
       rgb(var(--color-gold-rgb) / 0.12) 0%,
-      transparent 55%
-    ),
+      transparent 55%),
     linear-gradient(160deg, #1e1407 0%, #150e04 100%);
   --gradient-card-metric:
-    radial-gradient(
-      ellipse 120% 80% at 50% -20%,
+    radial-gradient(ellipse 120% 80% at 50% -20%,
       rgb(var(--color-gold-rgb) / 0.1) 0%,
-      transparent 60%
-    ),
+      transparent 60%),
     linear-gradient(180deg, #1e1407 0%, #150e04 100%);
-  --gradient-tile-done: linear-gradient(
-    135deg,
-    rgb(212 175 55),
-    rgb(184 142 30)
-  );
-  --gradient-button-primary: linear-gradient(
-    135deg,
-    goldenrod 0%,
-    #b8860b 100%
-  );
-  --gradient-radial-active: radial-gradient(
-    circle,
-    rgb(var(--color-gold-rgb) / 0.75) 0%,
-    transparent 96%
-  );
+  --gradient-tile-done: linear-gradient(135deg,
+      rgb(212 175 55),
+      rgb(184 142 30));
+  --gradient-button-primary: linear-gradient(135deg,
+      goldenrod 0%,
+      #b8860b 100%);
+  --gradient-radial-active: radial-gradient(circle,
+      rgb(var(--color-gold-rgb) / 0.75) 0%,
+      transparent 96%);
 
   /* ── Transitions ──────────────────────────────────────────── */
   --transition-fast: 140ms ease;
@@ -216,6 +243,32 @@ body {
   color: rgb(var(--color-gold-rgb) / 0.9);
 }
 
+/* ── Mode-specific backgrounds ────────────────────────────────── */
+
+body.mode-classic .hero-card,
+body.mode-classic .board-shell {
+  --mode-tint-classic: rgb(160 90 0 / 0.22);
+  --mode-tint-classic-alt: rgb(90 40 0 / 0.2);
+}
+
+body.mode-expedition .hero-card {
+  background: radial-gradient(ellipse 120% 90% at 10% 0%,
+      var(--mode-tint-expedition) 0%,
+      transparent 60%),
+    linear-gradient(160deg, #0a1419 0%, #051015 62%, #020a0d 100%);
+}
+
+body.mode-expedition .board-shell {
+  background: radial-gradient(ellipse 80% 60% at 18% 10%,
+      var(--mode-tint-expedition) 0%,
+      transparent 60%),
+    linear-gradient(175deg, #0d1a1f 0%, #081318 50%, #040d11 100%);
+  border-color: rgb(0 180 200 / 0.4);
+  box-shadow:
+    var(--shadow-border-dark), var(--shadow-2xl),
+    inset 0 1px 0 rgb(0 220 240 / 0.1);
+}
+
 /* ── Responsive ───────────────────────────────────────────────── */
 
 @media (max-width: 760px) {
@@ -235,6 +288,7 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {

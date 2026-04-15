@@ -59,12 +59,13 @@ export default defineEventHandler(async (event) => {
     .insert(dailyGameStats)
     .values({
       gameNo: payload.gameNo,
+      puzzleType: payload.puzzleType,
       hintLevel1Uses: payload.level === 1 ? 1 : 0,
       hintLevel2Uses: payload.level === 2 ? 1 : 0,
       hintLevel3Uses: payload.level === 3 ? 1 : 0,
     })
     .onConflictDoUpdate({
-      target: dailyGameStats.gameNo,
+      target: [dailyGameStats.gameNo, dailyGameStats.puzzleType],
       set: {
         hintLevel1Uses: payload.level === 1 ? sql`${dailyGameStats.hintLevel1Uses} + 1` : dailyGameStats.hintLevel1Uses,
         hintLevel2Uses: payload.level === 2 ? sql`${dailyGameStats.hintLevel2Uses} + 1` : dailyGameStats.hintLevel2Uses,

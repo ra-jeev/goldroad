@@ -162,6 +162,17 @@ const allRoads = computed<RoadData[]>(() => {
       <p class="kbd-note">{{ UI_COPY.board.keyboardHint }}</p>
     </header>
 
+    <div class="board-info">
+      <div class="info-item info-toll">
+        <span class="info-icon">⊝</span>
+        <span class="info-label">Toll: -{{ board.tollValue }}</span>
+      </div>
+      <div class="info-item info-bonus">
+        <span class="info-icon">⊕</span>
+        <span class="info-label">Bonus: +{{ board.bonusValue }}</span>
+      </div>
+    </div>
+
     <div class="board-wrapper">
       <div
         class="board"
@@ -230,6 +241,45 @@ const allRoads = computed<RoadData[]>(() => {
   font-size: 0.86rem;
 }
 
+.board-info {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 0.8rem;
+  justify-content: center;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: var(--radius-full);
+  font-size: 0.9rem;
+  font-weight: 700;
+  border: 1px solid;
+}
+
+.info-toll {
+  background: rgb(205 127 50 / 0.15);
+  color: var(--color-toll);
+  border-color: rgb(205 127 50 / 0.4);
+}
+
+.info-bonus {
+  background: rgb(255 215 0 / 0.15);
+  color: var(--color-bonus);
+  border-color: rgb(255 215 0 / 0.4);
+}
+
+.info-icon {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.info-label {
+  letter-spacing: 0.02em;
+}
+
 .board-wrapper {
   position: relative;
   display: inline-block;
@@ -245,6 +295,19 @@ const allRoads = computed<RoadData[]>(() => {
   .board-header {
     display: grid;
     gap: 0.45rem;
+  }
+
+  .board-info {
+    gap: 0.6rem;
+  }
+
+  .info-item {
+    padding: 0.35rem 0.65rem;
+    font-size: 0.82rem;
+  }
+
+  .info-icon {
+    font-size: 1rem;
   }
 }
 </style>

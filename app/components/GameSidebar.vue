@@ -4,6 +4,7 @@ import { UI_COPY } from '../content/uiCopy';
 
 defineProps<{
   roadHeading: string;
+  modeLabel: string;
   score: number;
   maxScore: number;
   totalCoins: number;
@@ -43,7 +44,10 @@ function closeOverlays() {
     <section class="hero-card">
       <div class="hero-top">
         <div>
-          <p class="eyebrow">{{ UI_COPY.sidebar.eyebrow }}</p>
+          <p class="eyebrow">
+            {{ UI_COPY.sidebar.eyebrow }}
+            <span class="mode-badge">{{ modeLabel }}</span>
+          </p>
           <h1>{{ roadHeading }}</h1>
         </div>
         <div class="hero-tools">
@@ -270,6 +274,20 @@ function closeOverlays() {
 .hero-card h1 {
   font-size: var(--font-size-3xl);
   letter-spacing: var(--letter-spacing-tight);
+}
+
+.mode-badge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-full);
+  background: rgb(var(--color-gold-rgb) / 0.2);
+  color: var(--color-gold);
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.35);
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .hero-copy {

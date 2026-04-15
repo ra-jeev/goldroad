@@ -210,6 +210,7 @@ export const PastGameSummarySchema = z.object({
 export const SessionEndPayloadSchema = z.object({
   playerUUID: z.string().uuid(),
   gameNo: z.number().int().positive(),
+  puzzleType: PuzzleTypeSchema,
   sessionId: z.string().uuid(),
   score: z.number().int().min(0),
   moves: z.number().int().min(0),
@@ -223,6 +224,7 @@ export const SessionEndPayloadSchema = z.object({
 export const HintRequestPayloadSchema = z.object({
   playerUUID: z.string().uuid(),
   gameNo: z.number().int().positive(),
+  puzzleType: PuzzleTypeSchema,
   sessionId: z.string().uuid(),
   level: z.union([z.literal(1), z.literal(2), z.literal(3)]),
   currentTileIndex: z.number().int().min(0),

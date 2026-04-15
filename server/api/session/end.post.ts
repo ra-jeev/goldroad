@@ -11,6 +11,7 @@ export default defineEventHandler(async (event) => {
   const gameRows = await db
     .select({
       gameNo: games.gameNo,
+      puzzleType: games.puzzleType,
       maxScore: games.maxScore,
     })
     .from(games)
@@ -31,6 +32,7 @@ export default defineEventHandler(async (event) => {
     .values({
       playerId: payload.playerUUID,
       gameNo: payload.gameNo,
+      puzzleType: payload.puzzleType,
       sessionId: payload.sessionId,
       startedAt: finishedAt,
       finishedAt,
@@ -76,6 +78,7 @@ export default defineEventHandler(async (event) => {
     .insert(dailyGameStats)
     .values({
       gameNo: payload.gameNo,
+      puzzleType: payload.puzzleType,
       plays: 1,
       completions: completed ? 1 : 0,
       goldCompletions: payload.tier === 'gold' ? 1 : 0,
@@ -90,7 +93,7 @@ export default defineEventHandler(async (event) => {
       updatedAt: sql`(datetime('now'))`,
     })
     .onConflictDoUpdate({
-      target: dailyGameStats.gameNo,
+      target: [dailyGameStats.gameNo, dailyGameStats.puzzleType],
       set: {
         plays: sql`${dailyGameStats.plays} + 1`,
         completions: completed ? sql`${dailyGameStats.completions} + 1` : dailyGameStats.completions,

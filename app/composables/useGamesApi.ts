@@ -1,13 +1,19 @@
-import type { Board, DifficultyBand } from '../../shared/types/game'
+import type { Board, DifficultyBand, PuzzleType } from '../../shared/types/game'
 
 interface GamePayload {
   gameNo: number
+  puzzleType: PuzzleType
   board: Board
   maxScore: number
   totalCoins: number
   difficultyBand: DifficultyBand
   playableAt: string
   nextGameAt: string | null
+}
+
+interface CurrentGamesResponse {
+  classic: GamePayload | null
+  expedition: GamePayload | null
 }
 
 interface PastGamesResponse {
@@ -24,8 +30,8 @@ interface PastGamesResponse {
 export function useGamesApi() {
   const api = useApi()
 
-  function getCurrentGame() {
-    return api.get<GamePayload>('/api/games/current')
+  function getCurrentGames() {
+    return api.get<CurrentGamesResponse>('/api/games/current')
   }
 
   function getAnotherGame(playerId?: string) {
@@ -43,7 +49,7 @@ export function useGamesApi() {
   }
 
   return {
-    getCurrentGame,
+    getCurrentGames,
     getAnotherGame,
     getPastGames,
     getGameBoard,

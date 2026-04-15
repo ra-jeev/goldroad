@@ -1,16 +1,32 @@
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { buildInitialTileStates } from '../utils/boardUtils'
 import { buildEdgeMap, getActiveNeighbors, getNeighborId, parseTileIndex } from '../../shared/utils/puzzleEngine'
 import { calcOutcomeTier } from '../../lib/gameTiers'
-import type { Direction } from '../../shared/types/game'
+import type { Direction, PuzzleType } from '../../shared/types/game'
 import { UI_COPY } from '../content/uiCopy'
 
-type GamePayload = Awaited<ReturnType<ReturnType<typeof useGamesApi>['getCurrentGame']>>
+type GamePayload = {
+  gameNo: number
+  puzzleType: PuzzleType
+  board: any
+  maxScore: number
+  totalCoins: number
+  difficultyBand: string
+  playableAt: string
+  nextGameAt: string | null
+}
 
 export function useGoldroadGame() {
   const gamesApi = useGamesApi()
   const sessionApi = useSessionApi()
 
+  const availableGames = ref<{ classic: GamePayload | null; expedition: GamePayload | null }>({
+    classic: null,
+    expedition: null,
+  })
+  const selectedMode = ref<PuzzleType | null>(null)
+  const showModeSelector = ref(false)
+  
   const game = ref<GamePayload | null>(null)
   const tiles = ref<ReturnType<typeof buildInitialTileStates>>([])
   const currentTileIndex = ref<number | null>(null)
@@ -42,9 +58,28 @@ export function useGoldroadGame() {
     return Math.min(100, Math.round((score.value / maxScore.value) * 100))
   })
 
+  // Check if expedition is unlocked (classic completed with gold today)
+  const isExpeditionUnlocked = computed(() => {
+    if (!availableGames.value.classic) return false
+    const today = new Date().toISOString().split('T')[0]
+    const key = `goldroad-classic-gold-${today}`
+    return typeof window !== 'undefined' && window.localStorage.getItem(key) === 'true'
+  })
+
+  // Check if classic was completed today (any tier)
+  const classicCompletedToday = computed(() => {
+    if (!availableGames.value.classic) return false
+    const today = new Date().toISOString().split('T')[0]
+    const key = `goldroad-classic-completed-${today}`
+    return typeof window !== 'undefined' && window.localStorage.getItem(key) === 'true'
+  })
+
   // UI-ready labels (derived display text and formatted fields)
   const uiLabels = computed(() => ({
     roadHeading: game.value ? `Road ${game.value.gameNo}` : 'Road ...',
+    modeLabel: selectedMode.value === 'expedition' 
+      ? UI_COPY.modeSelector.expeditionBadge 
+      : UI_COPY.modeSelector.classicBadge,
     runStateHeading: ended.value ? UI_COPY.sidebar.routeComplete : UI_COPY.sidebar.routeActive,
     difficultyLabel: game.value?.difficultyBand ?? '—',
     hintDisplayMessage: hintMessage.value ?? UI_COPY.sidebar.defaultHintInline,
@@ -55,6 +90,15 @@ export function useGoldroadGame() {
       : UI_COPY.completion.headingFallback,
     completionOutcome: lastTier.value ?? '—',
   }))
+
+  // Update body class based on selected mode
+  watch(selectedMode, (mode) => {
+    if (typeof window === 'undefined') return
+    document.body.classList.remove('mode-classic', 'mode-expedition')
+    if (mode) {
+      document.body.classList.add(`mode-${mode}`)
+    }
+  })
 
   function ensurePlayerUUID(): string {
     if (typeof window === 'undefined') return '00000000-0000-4000-8000-000000000000'
@@ -74,6 +118,44 @@ export function useGoldroadGame() {
   function newSessionId(): string {
     if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID()
     return '00000000-0000-4000-8000-000000000000'
+  }
+
+  function markClassicCompleted(tier: 'gold' | 'silver' | 'bronze' | 'finished' | 'unfinished') {
+    if (typeof window === 'undefined' || selectedMode.value !== 'classic') return
+    
+    const today = new Date().toISOString().split('T')[0]
+    
+    // Mark as completed (any tier)
+    window.localStorage.setItem(`goldroad-classic-completed-${today}`, 'true')
+    
+    // Mark gold completion for expedition unlock
+    if (tier === 'gold') {
+      window.localStorage.setItem(`goldroad-classic-gold-${today}`, 'true')
+    }
+
+    // Clean up old entries (keep last 7 days)
+    cleanupOldCompletionFlags()
+  }
+
+  function cleanupOldCompletionFlags() {
+    if (typeof window === 'undefined') return
+    
+    const sevenDaysAgo = new Date()
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+    
+    const keysToRemove: string[] = []
+    for (let i = 0; i < window.localStorage.length; i++) {
+      const key = window.localStorage.key(i)
+      if (key && (key.startsWith('goldroad-classic-gold-') || key.startsWith('goldroad-classic-completed-'))) {
+        const dateStr = key.split('-').slice(-3).join('-')
+        const keyDate = new Date(dateStr)
+        if (keyDate < sevenDaysAgo) {
+          keysToRemove.push(key)
+        }
+      }
+    }
+    
+    keysToRemove.forEach(key => window.localStorage.removeItem(key))
   }
 
   function updateTileStates() {
@@ -113,15 +195,29 @@ export function useGoldroadGame() {
     updateTileStates()
   }
 
-  async function loadCurrentGame() {
+  async function loadAvailableGames() {
     loading.value = true
     status.value = UI_COPY.runtime.loadingTodaysRoad
     try {
-      const payload = await gamesApi.getCurrentGame()
-      setupGame(payload)
+      const response = await gamesApi.getCurrentGames()
+      availableGames.value = response
+      showModeSelector.value = true
     } finally {
       loading.value = false
     }
+  }
+
+  function selectMode(mode: PuzzleType) {
+    const gameToLoad = mode === 'classic' ? availableGames.value.classic : availableGames.value.expedition
+    if (!gameToLoad) return
+    
+    selectedMode.value = mode
+    showModeSelector.value = false
+    setupGame(gameToLoad)
+  }
+
+  async function loadCurrentGame() {
+    await loadAvailableGames()
   }
 
   async function playAnother() {
@@ -150,10 +246,16 @@ export function useGoldroadGame() {
     const tier = calcOutcomeTier(score.value, game.value.maxScore, reachedEnd, highestHintLevelUsed())
     lastTier.value = tier
 
+    // Mark classic completion if applicable
+    if (selectedMode.value === 'classic') {
+      markClassicCompleted(tier)
+    }
+
     try {
       await sessionApi.endSession({
         playerUUID: playerUUID.value,
         gameNo: game.value.gameNo,
+        puzzleType: game.value.puzzleType,
         sessionId: sessionId.value,
         score: score.value,
         moves: moves.value,
@@ -166,6 +268,17 @@ export function useGoldroadGame() {
     } finally {
       submitting.value = false
     }
+  }
+
+  async function handlePlayAnother() {
+    // If classic was completed with gold and expedition is available, show mode selector
+    if (selectedMode.value === 'classic' && lastTier.value === 'gold' && availableGames.value.expedition) {
+      showModeSelector.value = true
+      return
+    }
+    
+    // Otherwise, load a random past game
+    await playAnother()
   }
 
   async function moveTo(tileIndex: number) {
@@ -211,6 +324,7 @@ export function useGoldroadGame() {
     const res = await sessionApi.requestHint({
       playerUUID: playerUUID.value,
       gameNo: game.value.gameNo,
+      puzzleType: game.value.puzzleType,
       sessionId: sessionId.value,
       level,
       currentTileIndex: currentTileIndex.value,
@@ -292,8 +406,14 @@ export function useGoldroadGame() {
     totalCoins,
     completionPercent,
     uiLabels,
+    availableGames,
+    selectedMode,
+    showModeSelector,
+    isExpeditionUnlocked,
+    classicCompletedToday,
     loadCurrentGame,
-    playAnother,
+    selectMode,
+    playAnother: handlePlayAnother,
     moveTo,
     requestHint,
   }

@@ -1,6 +1,19 @@
 import type { Direction, OutcomeTier } from '../../shared/types/game'
 
 export const UI_COPY = {
+  modeSelector: {
+    heading: 'Choose Your Daily Puzzle',
+    classicTitle: 'Classic',
+    expeditionTitle: 'Expedition',
+    classicBadge: 'Classic Mode',
+    expeditionBadge: 'Expedition Mode',
+    playButton: 'Play',
+    replayButton: 'Replay',
+    lockedLabel: 'Locked',
+    unlockHint: 'Complete Classic with Gold to unlock Expedition!',
+    unlockedLabel: '✨ Unlocked',
+    completedLabel: 'Completed',
+  },
   board: {
     eyebrow: 'Board',
     heading: 'Find the richest legal route',

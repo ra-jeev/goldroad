@@ -20,7 +20,13 @@ const {
   totalCoins,
   completionPercent,
   uiLabels,
+  availableGames,
+  selectedMode,
+  showModeSelector,
+  isExpeditionUnlocked,
+  classicCompletedToday,
   loadCurrentGame,
+  selectMode,
   playAnother,
   moveTo,
   requestHint,
@@ -29,9 +35,20 @@ const {
 
 <template>
   <div class="shell">
+    <PuzzleModeSelector
+      v-if="showModeSelector"
+      :classic-game="availableGames.classic"
+      :expedition-game="availableGames.expedition"
+      :is-expedition-unlocked="isExpeditionUnlocked"
+      :classic-completed="classicCompletedToday"
+      @select="selectMode"
+      @close="showModeSelector = false"
+    />
+
     <main class="layout">
       <GameSidebar
         :road-heading="uiLabels.roadHeading"
+        :mode-label="uiLabels.modeLabel"
         :score="score"
         :max-score="maxScore"
         :total-coins="totalCoins"

@@ -1,8 +1,9 @@
-import type { HintResult, OutcomeTier } from '../../shared/types/game'
+import type { HintResult, OutcomeTier, PuzzleType } from '../../shared/types/game'
 
 export interface SessionEndRequest {
   playerUUID: string
   gameNo: number
+  puzzleType: PuzzleType
   sessionId: string
   score: number
   moves: number
@@ -16,6 +17,7 @@ export interface SessionEndRequest {
 export interface HintRequest {
   playerUUID: string
   gameNo: number
+  puzzleType: PuzzleType
   sessionId: string
   level: 1 | 2 | 3
   currentTileIndex: number
