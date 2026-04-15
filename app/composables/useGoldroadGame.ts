@@ -1,6 +1,6 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { buildInitialTileStates } from '../utils/boardUtils'
-import { buildEdgeMap, getActiveNeighbors, getNeighborId, parseTileIndex } from '../../shared/utils/puzzleEngine'
+import { buildEdgeMap, getActiveNeighbors, getNeighborId, parseTileIndex, getEdgeType } from '../../shared/utils/puzzleEngine'
 import { calcOutcomeTier } from '../../lib/gameTiers'
 import type { Direction, PuzzleType } from '../../shared/types/game'
 import { UI_COPY } from '../content/uiCopy'
@@ -265,6 +265,14 @@ export function useGoldroadGame() {
         hintsLevel2: hintUsage.value.level2,
         hintsLevel3: hintUsage.value.level3,
       })
+
+      // Auto-show mode selector if classic completed with gold and expedition available
+      if (selectedMode.value === 'classic' && tier === 'gold' && availableGames.value.expedition) {
+        // Small delay to let the completion panel show first
+        setTimeout(() => {
+          showModeSelector.value = true
+        }, 1500)
+      }
     } finally {
       submitting.value = false
     }
@@ -285,10 +293,24 @@ export function useGoldroadGame() {
     if (!game.value || ended.value || currentTileIndex.value === null) return
     if (!activeSet.value.has(tileIndex)) return
 
+    const board = game.value.board
+    const edgeMap = buildEdgeMap(board)
+    
+    // Calculate edge cost (toll/bonus) for the move
+    const fromIndex = currentTileIndex.value
+    const toIndex = tileIndex
+    const edgeType = getEdgeType(fromIndex, toIndex, edgeMap)
+    let edgeCost = 0
+    if (edgeType === 'toll') {
+      edgeCost = -board.tollValue
+    } else if (edgeType === 'bonus') {
+      edgeCost = board.bonusValue
+    }
+
     visited.value.add(tileIndex)
     pathHistory.value = [...pathHistory.value, tileIndex]
     currentTileIndex.value = tileIndex
-    score.value += game.value.board.tiles[tileIndex] ?? 0
+    score.value += (game.value.board.tiles[tileIndex] ?? 0) + edgeCost
     moves.value += 1
     hintedTiles.value.clear()
     hintMessage.value = null
@@ -302,8 +324,6 @@ export function useGoldroadGame() {
       return
     }
 
-    const board = game.value.board
-    const edgeMap = buildEdgeMap(board)
     const next = getActiveNeighbors(tileIndex, board.rows, board.cols, edgeMap, visited.value)
     activeSet.value = new Set(next)
 
