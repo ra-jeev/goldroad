@@ -17,6 +17,8 @@ export const DirectionSchema = z.enum(['top', 'bottom', 'left', 'right'])
 
 export const EdgeTypeSchema = z.enum(['blocked', 'toll', 'bonus'])
 
+export const MedalSchema = z.enum(['gold', 'silver', 'bronze'])
+
 export const OutcomeTierSchema = z.enum(['gold', 'silver', 'bronze', 'finished', 'unfinished'])
 
 export const DifficultyBandSchema = z.enum(['easy', 'medium', 'hard'])
@@ -214,11 +216,48 @@ export const SessionEndPayloadSchema = z.object({
   sessionId: z.string().uuid(),
   score: z.number().int().min(0),
   moves: z.number().int().min(0),
-  attempts: z.number().int().positive(),
-  tier: OutcomeTierSchema,
+  attemptNumber: z.number().int().positive(),
+  reachedEnd: z.boolean(),
+  solvedExact: z.boolean(),
+  medal: MedalSchema.nullable(),
   hintsLevel1: z.number().int().min(0).default(0),
   hintsLevel2: z.number().int().min(0).default(0),
   hintsLevel3: z.number().int().min(0).default(0),
+}).superRefine((payload, ctx) => {
+  if (payload.solvedExact && !payload.reachedEnd) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['solvedExact'],
+      message: 'solvedExact requires reachedEnd to be true',
+    })
+  }
+
+  if (!payload.solvedExact && payload.medal !== null) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['medal'],
+      message: 'unsolved runs cannot report a medal',
+    })
+    return
+  }
+
+  if (!payload.solvedExact) return
+
+  const expectedMedal = payload.attemptNumber === 1
+    ? 'gold'
+    : payload.attemptNumber === 2
+      ? 'silver'
+      : payload.attemptNumber === 3
+        ? 'bronze'
+        : null
+
+  if (payload.medal !== expectedMedal) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['medal'],
+      message: 'medal must match the first exact-solve attempt number',
+    })
+  }
 })
 
 export const HintRequestPayloadSchema = z.object({
@@ -236,6 +275,7 @@ export const HintRequestPayloadSchema = z.object({
 
 export type Direction = z.infer<typeof DirectionSchema>
 export type EdgeType = z.infer<typeof EdgeTypeSchema>
+export type Medal = z.infer<typeof MedalSchema>
 export type OutcomeTier = z.infer<typeof OutcomeTierSchema>
 export type DifficultyBand = z.infer<typeof DifficultyBandSchema>
 export type PuzzleType = z.infer<typeof PuzzleTypeSchema>

@@ -21,12 +21,14 @@ defineProps<{
     level2: number;
     level3: number;
   };
+  canRetry: boolean;
   ended: boolean;
   loading: boolean;
 }>();
 
 const emit = defineEmits<{
   current: [];
+  retry: [];
   hint: [level: 1 | 2 | 3];
 }>();
 
@@ -71,6 +73,14 @@ function closeOverlays() {
       <p class="hero-copy">{{ UI_COPY.sidebar.heroCopy }}</p>
 
       <div class="hero-actions">
+        <button
+          v-if="canRetry"
+          class="primary"
+          :disabled="loading"
+          @click="emit('retry')"
+        >
+          {{ UI_COPY.sidebar.retryRoad }}
+        </button>
         <button class="secondary" :disabled="loading" @click="emit('current')">
           {{ UI_COPY.sidebar.reloadToday }}
         </button>
@@ -310,6 +320,8 @@ function closeOverlays() {
 }
 
 .hero-actions {
+  display: flex;
+  gap: 0.55rem;
   margin-top: 0.9rem;
 }
 
@@ -499,6 +511,12 @@ button {
   border: 1px solid rgb(var(--color-gold-rgb) / 0.38);
 }
 
+.primary {
+  color: var(--color-text-on-gold);
+  background: var(--gradient-button-primary);
+  box-shadow: 0 0 18px rgb(var(--color-gold-rgb) / 0.3);
+}
+
 .ghost {
   background: rgb(var(--color-gold-rgb) / 0.1);
 }
@@ -528,6 +546,7 @@ button:disabled {
   }
 
   .hero-top,
+  .hero-actions,
   .quick-actions {
     display: grid;
   }

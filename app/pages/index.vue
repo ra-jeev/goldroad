@@ -25,9 +25,11 @@ const {
   showModeSelector,
   isExpeditionUnlocked,
   classicCompletedToday,
+  lastSolvedExact,
   loadCurrentGame,
   selectMode,
   playAnother,
+  retryCurrentGame,
   moveTo,
   requestHint,
 } = useGoldroadGame()
@@ -61,9 +63,11 @@ const {
         :run-state-heading="uiLabels.runStateHeading"
         :difficulty-label="uiLabels.difficultyLabel"
         :hint-usage="hintUsage"
+        :can-retry="moves > 1"
         :ended="ended"
         :loading="loading"
         @current="loadCurrentGame"
+        @retry="retryCurrentGame"
         @hint="requestHint"
       />
 
@@ -84,6 +88,7 @@ const {
         <CompletionPanel
           :visible="ended"
           :tier="lastTier"
+          :solved-exact="lastSolvedExact"
           :heading="uiLabels.completionHeading"
           :outcome-label="uiLabels.completionOutcome"
           :score="score"
@@ -92,7 +97,7 @@ const {
           :status="status"
           :submitting="submitting || loading"
           @another="playAnother"
-          @today="loadCurrentGame"
+          @retry="retryCurrentGame"
         />
       </section>
     </main>

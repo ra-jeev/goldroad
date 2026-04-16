@@ -2,9 +2,10 @@
 import type { OutcomeTier } from '../../shared/types/game'
 import { UI_COPY } from '../content/uiCopy'
 
-defineProps<{
+const props = defineProps<{
   visible: boolean
   tier: OutcomeTier | null
+  solvedExact: boolean
   heading: string
   outcomeLabel: string
   score: number
@@ -16,10 +17,8 @@ defineProps<{
 
 const emit = defineEmits<{
   another: []
-  today: []
+  retry: []
 }>()
-
-const tierLabel: Record<OutcomeTier, string> = UI_COPY.completion.tiers
 </script>
 
 <template>
@@ -50,8 +49,12 @@ const tierLabel: Record<OutcomeTier, string> = UI_COPY.completion.tiers
     </div>
 
     <div class="actions">
-      <button class="primary" :disabled="submitting" @click="emit('another')">{{ UI_COPY.completion.labels.playAnother }}</button>
-      <button class="secondary" :disabled="submitting" @click="emit('today')">{{ UI_COPY.completion.labels.reloadToday }}</button>
+      <button class="primary" :disabled="submitting" @click="props.solvedExact ? emit('another') : emit('retry')">
+        {{ props.solvedExact ? UI_COPY.completion.labels.playAnother : UI_COPY.completion.labels.retryRoad }}
+      </button>
+      <button class="secondary" :disabled="submitting" @click="props.solvedExact ? emit('retry') : emit('another')">
+        {{ props.solvedExact ? UI_COPY.completion.labels.retryRoad : UI_COPY.completion.labels.playAnother }}
+      </button>
     </div>
   </section>
 </template>

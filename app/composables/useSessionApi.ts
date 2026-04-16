@@ -1,4 +1,4 @@
-import type { HintResult, OutcomeTier, PuzzleType } from '../../shared/types/game'
+import type { HintResult, Medal, PuzzleType } from '../../shared/types/game'
 
 export interface SessionEndRequest {
   playerUUID: string
@@ -7,8 +7,10 @@ export interface SessionEndRequest {
   sessionId: string
   score: number
   moves: number
-  attempts: number
-  tier: OutcomeTier
+  attemptNumber: number
+  reachedEnd: boolean
+  solvedExact: boolean
+  medal: Medal | null
   hintsLevel1?: number
   hintsLevel2?: number
   hintsLevel3?: number
@@ -30,9 +32,10 @@ export function useSessionApi() {
     return api.post<{
       ok: boolean
       gameNo: number
-      tier: OutcomeTier
+      medal: Medal | null
       score: number
-      completed: boolean
+      solvedExact: boolean
+      reachedEnd: boolean
     }>('/api/session/end', payload)
   }
 

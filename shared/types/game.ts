@@ -8,6 +8,7 @@ import type { EdgeType } from '../validators/game'
 export type {
   Direction,
   EdgeType,
+  Medal,
   OutcomeTier,
   DifficultyBand,
   PuzzleType,

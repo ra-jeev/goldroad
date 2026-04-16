@@ -10,7 +10,7 @@ export const UI_COPY = {
     playButton: 'Play',
     replayButton: 'Replay',
     lockedLabel: 'Locked',
-    unlockHint: 'Complete Classic with Gold to unlock Expedition!',
+    unlockHint: 'Solve Classic exactly to unlock Expedition!',
     unlockedLabel: '✨ Unlocked',
     completedLabel: 'Completed',
   },
@@ -23,6 +23,7 @@ export const UI_COPY = {
     eyebrow: 'Daily Challenge',
     heroCopy: 'The goal is not to collect everything. The goal is to discover the best legal route.',
     reloadToday: 'Reload Today',
+    retryRoad: 'Retry Road',
     legend: 'Legend',
     hints: 'Hints',
     metrics: {
@@ -69,7 +70,7 @@ export const UI_COPY = {
       moves: 'Moves',
       outcome: 'Outcome',
       playAnother: 'Play Another',
-      reloadToday: 'Reload Today',
+      retryRoad: 'Retry Road',
     },
     tiers: {
       gold: 'Perfect route',

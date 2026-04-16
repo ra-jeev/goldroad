@@ -1,12 +1,30 @@
 /**
- * Outcome tier calculation.
+ * Exact-solve and legacy outcome helpers.
  *
- * Shared between the server (for analytics tagging) and the client
- * (for post-run debrief display).
+ * The exact-solve helpers are the new contract for milestone 1.
+ * The ratio-tier helpers remain temporarily so the existing UI can be
+ * migrated incrementally without a breaking all-at-once change.
  */
 
-import type { OutcomeTier } from '../shared/types/game'
-import { TIER_THRESHOLDS, HINT_GOLD_LOCK_LEVEL } from './gameConstants'
+import type { Medal, OutcomeTier } from '../shared/types/game'
+import { MEDAL_ATTEMPTS, TIER_THRESHOLDS, HINT_GOLD_LOCK_LEVEL } from './gameConstants'
+
+/** Whether a run ends on the exact target score required for a solve. */
+export function isExactSolve(score: number, maxScore: number): boolean {
+  return score === maxScore
+}
+
+/**
+ * Tries-based medal assignment for the FIRST exact solve of a puzzle.
+ * Returns null for unsolved runs or solves on attempt 4+.
+ */
+export function calcMedalForAttempt(attemptNumber: number, solvedExact: boolean): Medal | null {
+  if (!solvedExact) return null
+  if (attemptNumber === MEDAL_ATTEMPTS.GOLD) return 'gold'
+  if (attemptNumber === MEDAL_ATTEMPTS.SILVER) return 'silver'
+  if (attemptNumber === MEDAL_ATTEMPTS.BRONZE) return 'bronze'
+  return null
+}
 
 /**
  * Classify a completed (or abandoned) run into an OutcomeTier.
@@ -41,6 +59,18 @@ export function calcOutcomeTier(
 export function applyHintPenalties(rawScore: number, penalties: number[]): number {
   const multiplier = penalties.reduce((m, p) => m * (1 - p), 1)
   return Math.round(rawScore * multiplier)
+}
+
+export const MEDAL_LABEL: Record<Medal, string> = {
+  gold: 'Solved on the first try.',
+  silver: 'Solved on the second try.',
+  bronze: 'Solved on the third try.',
+}
+
+export const MEDAL_SHORT: Record<Medal, string> = {
+  gold: 'Gold',
+  silver: 'Silver',
+  bronze: 'Bronze',
 }
 
 export const TIER_LABEL: Record<OutcomeTier, string> = {

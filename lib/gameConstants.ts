@@ -26,8 +26,15 @@ export const TILE_GAP = 8
 export const OTHER_ELEMENTS_HEIGHT = 52 + 62 + 28 + 2 * 24 + 2 * 16
 
 // ---------------------------------------------------------------------------
-// Outcome tiers
+// Medals and outcome tiers
 // ---------------------------------------------------------------------------
+
+/** First exact-solve attempt thresholds for tries-based medals. */
+export const MEDAL_ATTEMPTS = {
+  GOLD: 1,
+  SILVER: 2,
+  BRONZE: 3,
+} as const
 
 /**
  * Score-ratio thresholds for tier classification.
