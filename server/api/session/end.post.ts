@@ -27,9 +27,9 @@ export default defineEventHandler(async (event) => {
   }
 
   const finishedAt = new Date().toISOString()
-  const completed = payload.solvedExact
+  const completed = payload.solved
   const isGold = payload.medal === 'gold'
-  const outcomeTier = payload.medal ?? (payload.reachedEnd ? 'finished' : 'unfinished')
+  const outcomeTier = payload.medal ?? 'unfinished'
 
   await db
     .insert(playerGameSession)
@@ -127,7 +127,6 @@ export default defineEventHandler(async (event) => {
     gameNo: payload.gameNo,
     medal: payload.medal,
     score: payload.score,
-    solvedExact: payload.solvedExact,
-    reachedEnd: payload.reachedEnd,
+    solved: payload.solved,
   }
 })

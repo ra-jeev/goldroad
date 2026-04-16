@@ -8,8 +8,7 @@ export interface SessionEndRequest {
   score: number
   moves: number
   attemptNumber: number
-  reachedEnd: boolean
-  solvedExact: boolean
+  solved: boolean
   medal: Medal | null
   hintsLevel1?: number
   hintsLevel2?: number
@@ -34,8 +33,7 @@ export function useSessionApi() {
       gameNo: number
       medal: Medal | null
       score: number
-      solvedExact: boolean
-      reachedEnd: boolean
+      solved: boolean
     }>('/api/session/end', payload)
   }
 

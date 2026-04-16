@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import type { EdgeType } from '../../shared/types/game';
 
+type RoadVisualType = 'open' | Exclude<EdgeType, 'blocked'>;
+
 defineProps<{
-  type: 'open' | EdgeType;
+  type: RoadVisualType;
+  state: 'default' | 'closed' | 'active' | 'traversed';
   traversed: boolean;
   arrowDir: string | null;
   orientation: 'h' | 'v';
@@ -12,7 +15,7 @@ defineProps<{
 
 <template>
   <span
-    :class="['road', `road--${type}`, { 'road--traversed': traversed }]"
+    :class="['road', `road--${type}`, `road--${state}`, { 'road--traversed': traversed }]"
     :style="style"
   >
     <!-- Toll/Bonus indicators - always show, even when traversed -->
@@ -48,7 +51,7 @@ defineProps<{
     </svg>
 
     <svg
-      v-else-if="type !== 'blocked'"
+      v-else
       :class="['road-icon', { 'road-icon--vertical': orientation === 'v' }]"
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
@@ -86,11 +89,23 @@ defineProps<{
 .road {
   position: absolute;
   pointer-events: none;
-  transition: color var(--transition-base);
+  transition: color var(--transition-base), opacity var(--transition-base), transform var(--transition-fast);
   display: flex;
   align-items: center;
   justify-content: center;
   color: rgb(var(--color-gold-rgb) / 0.48);
+  opacity: 0.82;
+}
+
+.road--closed {
+  opacity: 0.26;
+}
+
+.road--active {
+  opacity: 1;
+  color: rgb(var(--color-gold-rgb) / 0.95);
+  transform: scale(1.04);
+  filter: drop-shadow(0 0 4px rgb(var(--color-gold-rgb) / 0.55));
 }
 
 .road--toll {
@@ -102,6 +117,7 @@ defineProps<{
 }
 
 .road--traversed {
+  opacity: 1;
   color: var(--color-gold-dark);
 }
 

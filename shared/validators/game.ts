@@ -217,22 +217,13 @@ export const SessionEndPayloadSchema = z.object({
   score: z.number().int().min(0),
   moves: z.number().int().min(0),
   attemptNumber: z.number().int().positive(),
-  reachedEnd: z.boolean(),
-  solvedExact: z.boolean(),
+  solved: z.boolean(),
   medal: MedalSchema.nullable(),
   hintsLevel1: z.number().int().min(0).default(0),
   hintsLevel2: z.number().int().min(0).default(0),
   hintsLevel3: z.number().int().min(0).default(0),
 }).superRefine((payload, ctx) => {
-  if (payload.solvedExact && !payload.reachedEnd) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ['solvedExact'],
-      message: 'solvedExact requires reachedEnd to be true',
-    })
-  }
-
-  if (!payload.solvedExact && payload.medal !== null) {
+  if (!payload.solved && payload.medal !== null) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ['medal'],
@@ -241,7 +232,7 @@ export const SessionEndPayloadSchema = z.object({
     return
   }
 
-  if (!payload.solvedExact) return
+  if (!payload.solved) return
 
   const expectedMedal = payload.attemptNumber === 1
     ? 'gold'

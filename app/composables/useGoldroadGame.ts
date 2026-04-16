@@ -19,13 +19,13 @@ type GamePayload = {
 export function useGoldroadGame() {
   const gamesApi = useGamesApi()
   const sessionApi = useSessionApi()
+  const localProgress = useLocalGameProgress()
 
   const availableGames = ref<{ classic: GamePayload | null; expedition: GamePayload | null }>({
     classic: null,
     expedition: null,
   })
   const selectedMode = ref<PuzzleType | null>(null)
-  const showModeSelector = ref(false)
   
   const game = ref<GamePayload | null>(null)
   const tiles = ref<ReturnType<typeof buildInitialTileStates>>([])
@@ -45,7 +45,7 @@ export function useGoldroadGame() {
   const status = ref<string>(UI_COPY.runtime.loadingGame)
   const lastTier = ref<OutcomeTier | null>(null)
   const lastMedal = ref<Medal | null>(null)
-  const lastSolvedExact = ref(false)
+  const lastSolved = ref(false)
   const attemptNumber = ref(1)
 
   const hintUsage = ref({
@@ -61,26 +61,49 @@ export function useGoldroadGame() {
     return Math.min(100, Math.round((score.value / maxScore.value) * 100))
   })
 
-  // Check if expedition is unlocked (classic solved exactly today)
+  const roadHeading = computed(() => game.value ? `Road ${game.value.gameNo}` : 'Road ...')
+  const canSwitchToExpedition = computed(() => (
+    selectedMode.value === 'classic'
+    && lastSolved.value
+    && Boolean(availableGames.value.expedition)
+  ))
+
   const isExpeditionUnlocked = computed(() => {
     if (!availableGames.value.classic) return false
+
+    const classicProgress = localProgress.getGameProgress(
+      availableGames.value.classic.gameNo,
+      'classic',
+    )
+    if (classicProgress.solved) return true
+
     const today = new Date().toISOString().split('T')[0]
+    const solvedKey = `goldroad-classic-solved-${today}`
     const exactKey = `goldroad-classic-exact-${today}`
     const legacyGoldKey = `goldroad-classic-gold-${today}`
     return typeof window !== 'undefined' && (
-      window.localStorage.getItem(exactKey) === 'true'
+      window.localStorage.getItem(solvedKey) === 'true'
+      || window.localStorage.getItem(exactKey) === 'true'
       || window.localStorage.getItem(legacyGoldKey) === 'true'
     )
   })
 
-  // Check if classic was solved exactly today.
-  const classicCompletedToday = computed(() => {
+  const classicSolvedToday = computed(() => {
     if (!availableGames.value.classic) return false
+
+    const classicProgress = localProgress.getGameProgress(
+      availableGames.value.classic.gameNo,
+      'classic',
+    )
+    if (classicProgress.solved) return true
+
     const today = new Date().toISOString().split('T')[0]
+    const solvedKey = `goldroad-classic-solved-${today}`
     const exactKey = `goldroad-classic-exact-${today}`
     const legacyGoldKey = `goldroad-classic-gold-${today}`
     return typeof window !== 'undefined' && (
-      window.localStorage.getItem(exactKey) === 'true'
+      window.localStorage.getItem(solvedKey) === 'true'
+      || window.localStorage.getItem(exactKey) === 'true'
       || window.localStorage.getItem(legacyGoldKey) === 'true'
     )
   })
@@ -131,12 +154,13 @@ export function useGoldroadGame() {
     return '00000000-0000-4000-8000-000000000000'
   }
 
-  function markClassicCompleted(solvedExact: boolean) {
+  function markClassicSolved(solved: boolean) {
     if (typeof window === 'undefined' || selectedMode.value !== 'classic') return
 
     const today = new Date().toISOString().split('T')[0]
 
-    if (solvedExact) {
+    if (solved) {
+      window.localStorage.setItem(`goldroad-classic-solved-${today}`, 'true')
       window.localStorage.setItem(`goldroad-classic-exact-${today}`, 'true')
     }
 
@@ -154,7 +178,8 @@ export function useGoldroadGame() {
     for (let i = 0; i < window.localStorage.length; i++) {
       const key = window.localStorage.key(i)
       if (key && (
-        key.startsWith('goldroad-classic-exact-')
+        key.startsWith('goldroad-classic-solved-')
+        || key.startsWith('goldroad-classic-exact-')
         || key.startsWith('goldroad-classic-gold-')
         || key.startsWith('goldroad-classic-completed-')
       )) {
@@ -187,6 +212,14 @@ export function useGoldroadGame() {
     next: GamePayload,
     options: { attemptNumber?: number; preserveSession?: boolean } = {},
   ) {
+    const progress = playerUUID.value
+      ? localProgress.getGameProgress(next.gameNo, next.puzzleType)
+      : null
+    const progressAttemptNumber = progress?.solved
+      ? (progress.firstSolvedAttempt ?? Math.max(progress.attempts, 1))
+      : progress
+        ? progress.attempts + 1
+        : 1
     const nextAttemptNumber = options.attemptNumber ?? 1
     const nextSessionId = options.preserveSession && sessionId.value
       ? sessionId.value
@@ -203,12 +236,16 @@ export function useGoldroadGame() {
     submitting.value = false
     hintMessage.value = null
     hintedTiles.value = new Set()
-    status.value = UI_COPY.runtime.introStatus
+    status.value = progress?.solved
+      ? progress.medal
+        ? UI_COPY.runtime.alreadySolvedWithMedal(UI_COPY.boardHeader.medals[progress.medal])
+        : UI_COPY.runtime.alreadySolved
+      : UI_COPY.runtime.preRun(next.maxScore)
     lastTier.value = null
-    lastMedal.value = null
-    lastSolvedExact.value = false
-    attemptNumber.value = nextAttemptNumber
-    hintUsage.value = { level1: 0, level2: 0, level3: 0 }
+    lastMedal.value = progress?.medal ?? null
+    lastSolved.value = progress?.solved ?? false
+    attemptNumber.value = options.attemptNumber ?? progressAttemptNumber ?? nextAttemptNumber
+    hintUsage.value = progress?.hints ?? { level1: 0, level2: 0, level3: 0 }
     sessionId.value = nextSessionId
 
     const edgeMap = buildEdgeMap(next.board)
@@ -223,7 +260,25 @@ export function useGoldroadGame() {
     try {
       const response = await gamesApi.getCurrentGames()
       availableGames.value = response
-      showModeSelector.value = true
+
+      const preferredMode = (
+        selectedMode.value === 'expedition' && response.expedition && isExpeditionUnlocked.value
+      )
+        ? 'expedition'
+        : response.classic
+          ? 'classic'
+          : response.expedition
+            ? 'expedition'
+            : null
+
+      if (!preferredMode) {
+        selectedMode.value = null
+        game.value = null
+        return
+      }
+
+      selectedMode.value = preferredMode
+      setupGame(preferredMode === 'classic' ? response.classic! : response.expedition!)
     } finally {
       loading.value = false
     }
@@ -231,11 +286,16 @@ export function useGoldroadGame() {
 
   function selectMode(mode: PuzzleType) {
     const gameToLoad = mode === 'classic' ? availableGames.value.classic : availableGames.value.expedition
+    if (mode === 'expedition' && !isExpeditionUnlocked.value) return
     if (!gameToLoad) return
     
     selectedMode.value = mode
-    showModeSelector.value = false
     setupGame(gameToLoad)
+  }
+
+  function switchToExpedition() {
+    if (!availableGames.value.expedition || !isExpeditionUnlocked.value) return
+    selectMode('expedition')
   }
 
   async function loadCurrentGame() {
@@ -254,22 +314,32 @@ export function useGoldroadGame() {
     }
   }
 
-  async function finalizeRun(reachedEnd: boolean) {
+  async function finalizeRun(endedAtExit: boolean) {
     if (!game.value || submitting.value || !playerUUID.value || !sessionId.value) return
     submitting.value = true
 
-    const solvedExact = reachedEnd && isExactSolve(score.value, game.value.maxScore)
-    const medal = calcMedalForAttempt(attemptNumber.value, solvedExact)
-    const tier: OutcomeTier = medal ?? (reachedEnd ? 'finished' : 'unfinished')
+    const solved = endedAtExit && isExactSolve(score.value, game.value.maxScore)
+    const medal = calcMedalForAttempt(attemptNumber.value, solved)
+    const tier: OutcomeTier = medal ?? (endedAtExit ? 'finished' : 'unfinished')
 
-    lastSolvedExact.value = solvedExact
+    lastSolved.value = solved
     lastMedal.value = medal
     lastTier.value = tier
 
-    // Mark classic completion if applicable
     if (selectedMode.value === 'classic') {
-      markClassicCompleted(solvedExact)
+      markClassicSolved(solved)
     }
+
+    localProgress.recordRun(
+      playerUUID.value,
+      game.value.gameNo,
+      game.value.puzzleType,
+      attemptNumber.value,
+      solved,
+      medal,
+      score.value,
+      hintUsage.value,
+    )
 
     try {
       await sessionApi.endSession({
@@ -280,21 +350,12 @@ export function useGoldroadGame() {
         score: score.value,
         moves: moves.value,
         attemptNumber: attemptNumber.value,
-        reachedEnd,
-        solvedExact,
+        solved,
         medal,
         hintsLevel1: hintUsage.value.level1,
         hintsLevel2: hintUsage.value.level2,
         hintsLevel3: hintUsage.value.level3,
       })
-
-      // Auto-show mode selector if classic was solved exactly and expedition is available.
-      if (selectedMode.value === 'classic' && solvedExact && availableGames.value.expedition) {
-        // Small delay to let the completion panel show first
-        setTimeout(() => {
-          showModeSelector.value = true
-        }, 1500)
-      }
     } finally {
       submitting.value = false
     }
@@ -317,9 +378,8 @@ export function useGoldroadGame() {
   }
 
   async function handlePlayAnother() {
-    // If classic was solved exactly and expedition is available, show mode selector.
-    if (selectedMode.value === 'classic' && lastSolvedExact.value && availableGames.value.expedition) {
-      showModeSelector.value = true
+    if (canSwitchToExpedition.value) {
+      switchToExpedition()
       return
     }
     
@@ -348,14 +408,20 @@ export function useGoldroadGame() {
     visited.value.add(tileIndex)
     pathHistory.value = [...pathHistory.value, tileIndex]
     currentTileIndex.value = tileIndex
-    score.value += (game.value.board.tiles[tileIndex] ?? 0) + edgeCost
+    const nextScore = score.value + (game.value.board.tiles[tileIndex] ?? 0) + edgeCost
+    score.value = nextScore
     moves.value += 1
     hintedTiles.value.clear()
     hintMessage.value = null
 
     if (tileIndex === game.value.board.end) {
       ended.value = true
-      status.value = UI_COPY.runtime.destinationReached
+      const delta = game.value.maxScore - nextScore
+      status.value = delta === 0
+        ? UI_COPY.runtime.destinationSolved
+        : delta > 0
+          ? UI_COPY.runtime.destinationShort(delta)
+          : UI_COPY.runtime.destinationOver(Math.abs(delta))
       activeSet.value.clear()
       updateTileStates()
       await finalizeRun(true)
@@ -372,6 +438,13 @@ export function useGoldroadGame() {
       await finalizeRun(false)
       return
     }
+
+    const delta = game.value.maxScore - nextScore
+    status.value = delta === 0
+      ? UI_COPY.runtime.exactNowFinish
+      : delta > 0
+        ? UI_COPY.runtime.needMore(delta)
+        : UI_COPY.runtime.overBy(Math.abs(delta))
 
     updateTileStates()
   }
@@ -390,7 +463,8 @@ export function useGoldroadGame() {
 
     hintedTiles.value.clear()
     if (res.hint.level === 1) {
-      hintUsage.value.level1 += 1
+      const progress = localProgress.incrementHintUsage(playerUUID.value, game.value.gameNo, game.value.puzzleType, 1)
+      hintUsage.value = progress.hints
       if (typeof res.hint.nextTileIndex === 'number') {
         hintedTiles.value.add(res.hint.nextTileIndex)
         hintMessage.value = UI_COPY.runtime.hint1Highlighted
@@ -398,13 +472,15 @@ export function useGoldroadGame() {
         hintMessage.value = UI_COPY.runtime.hint1Direction(res.hint.direction)
       }
     } else if (res.hint.level === 2) {
-      hintUsage.value.level2 += 1
+      const progress = localProgress.incrementHintUsage(playerUUID.value, game.value.gameNo, game.value.puzzleType, 2)
+      hintUsage.value = progress.hints
       for (const idx of res.hint.tileIndexes) hintedTiles.value.add(idx)
-      hintMessage.value = UI_COPY.runtime.hint2Suggested(res.hint.tileIndexes)
+      hintMessage.value = UI_COPY.runtime.hint2Suggested()
     } else {
-      hintUsage.value.level3 += 1
+      const progress = localProgress.incrementHintUsage(playerUUID.value, game.value.gameNo, game.value.puzzleType, 3)
+      hintUsage.value = progress.hints
       hintedTiles.value.add(res.hint.nextTileIndex)
-      hintMessage.value = UI_COPY.runtime.hint3Next(res.hint.nextTileIndex)
+      hintMessage.value = UI_COPY.runtime.hint3Next()
     }
   }
 
@@ -435,6 +511,7 @@ export function useGoldroadGame() {
 
   onMounted(async () => {
     playerUUID.value = ensurePlayerUUID()
+    localProgress.load(playerUUID.value)
     window.addEventListener('keydown', handleKeydown)
     await loadCurrentGame()
   })
@@ -459,6 +536,7 @@ export function useGoldroadGame() {
     submitting,
     status,
     lastTier,
+    lastMedal,
     hintUsage,
     maxScore,
     totalCoins,
@@ -466,12 +544,15 @@ export function useGoldroadGame() {
     uiLabels,
     availableGames,
     selectedMode,
-    showModeSelector,
     isExpeditionUnlocked,
-    classicCompletedToday,
-    lastSolvedExact,
+    classicSolvedToday,
+    lastSolved,
+    attemptNumber,
+    roadHeading,
+    canSwitchToExpedition,
     loadCurrentGame,
     selectMode,
+    switchToExpedition,
     playAnother: handlePlayAnother,
     retryCurrentGame,
     moveTo,

@@ -1,4 +1,4 @@
-import type { Direction, OutcomeTier } from '../../shared/types/game'
+import type { Direction, Medal, OutcomeTier } from '../../shared/types/game'
 
 export const UI_COPY = {
   modeSelector: {
@@ -15,9 +15,72 @@ export const UI_COPY = {
     completedLabel: 'Completed',
   },
   board: {
-    eyebrow: 'Board',
-    heading: 'Find the richest legal route',
     keyboardHint: 'Click tiles or use arrow keys',
+    info: {
+      toll: 'Toll',
+      bonus: 'Bonus',
+    },
+  },
+  boardHeader: {
+    classic: 'Classic',
+    expedition: 'Expedition',
+    solvedBadge: 'Solved',
+    lockedBadge: 'Locked',
+    unlockHint: 'Solve Classic exactly to unlock Expedition.',
+    metrics: {
+      score: 'Score',
+      boardCoins: 'Board Coins',
+    },
+    medals: {
+      gold: 'Gold',
+      silver: 'Silver',
+      bronze: 'Bronze',
+    } as Record<Medal, string>,
+  },
+  boardFooter: {
+    retryRoad: 'Retry Road',
+    openHint: 'Hint',
+    openHelp: 'Help',
+    switchToExpedition: 'Play Expedition',
+    attemptLabel: 'Attempt',
+    hintTitle: 'Hints',
+    helpTitle: 'How To Play',
+    hintRows: {
+      level1Title: 'Nudge',
+      level1Desc: 'Highlights the next best move',
+      level2Title: 'Route Preview',
+      level2Desc: 'Shows the next few best tiles',
+      level3Title: 'Rescue',
+      level3Desc: 'Reveals the exact next best tile',
+    },
+  },
+  helpSheet: {
+    sections: {
+      howToPlay: {
+        title: 'How to Play',
+        items: [
+          'Reach the end tile with the exact target score.',
+          'You cannot revisit a tile during the same run.',
+          'Only up, down, left, and right moves are legal.',
+          'Blocked roads can never be used. Muted roads are currently unavailable.',
+          'Retry restarts the same road and increases your try count.',
+          'Hints highlight the board and do not reduce your score or medal.',
+          'Solving Classic exactly unlocks Expedition for the day.',
+        ],
+      },
+      about: {
+        title: 'About GoldRoad',
+        body: 'GoldRoad is a daily route puzzle about finding the best legal path, not collecting every coin on the board.',
+      },
+      updates: {
+        title: 'Milestone 1',
+        items: [
+          'Exact-score solves are back at the center of the game.',
+          'Gold, silver, and bronze are based on solve attempts 1, 2, and 3.',
+          'Hints now act as recovery tools instead of score penalties.',
+        ],
+      },
+    },
   },
   sidebar: {
     eyebrow: 'Daily Challenge',
@@ -84,12 +147,19 @@ export const UI_COPY = {
     loadingGame: 'Loading game...',
     loadingTodaysRoad: 'Loading today\'s road...',
     findingAnotherRoad: 'Finding another road...',
-    introStatus: 'Find the richest legal path to the exit. Dark bars are blocked roads.',
-    destinationReached: 'Destination reached.',
-    deadEnd: 'Dead end reached. This route cannot continue.',
-    hint1Highlighted: 'Hint: the next best move is highlighted on the board.',
+    preRun: (maxScore: number) => `Target ${maxScore}. Start from the marked tile.`,
+    needMore: (delta: number) => `Need ${delta} more before the exit.`,
+    exactNowFinish: 'Exact score reached. Reach the exit.',
+    overBy: (delta: number) => `Over by ${delta}.`,
+    destinationSolved: 'Exact solve. You reached the exit on target.',
+    destinationShort: (delta: number) => `You reached the exit ${delta} short of the target.`,
+    destinationOver: (delta: number) => `You reached the exit ${delta} over the target.`,
+    alreadySolved: 'Already solved today. You can replay or switch modes.',
+    alreadySolvedWithMedal: (medal: string) => `Already solved today with ${medal.toLowerCase()}. You can replay or switch modes.`,
+    deadEnd: 'Dead end before the exit. Retry this road.',
+    hint1Highlighted: 'Hint applied. The next best move is highlighted on the board.',
     hint1Direction: (direction: Direction) => `Hint: move ${direction}.`,
-    hint2Suggested: (tileIndexes: number[]) => `Hint: suggested route nodes ${tileIndexes.join(', ')}.`,
-    hint3Next: (nextTileIndex: number) => `Hint: next best tile is ${nextTileIndex}.`,
+    hint2Suggested: () => 'Hint applied. The next few best tiles are highlighted on the board.',
+    hint3Next: () => 'Hint applied. The exact next tile is highlighted on the board.',
   },
 } as const

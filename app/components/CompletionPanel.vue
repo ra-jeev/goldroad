@@ -5,7 +5,7 @@ import { UI_COPY } from '../content/uiCopy'
 const props = defineProps<{
   visible: boolean
   tier: OutcomeTier | null
-  solvedExact: boolean
+  solved: boolean
   heading: string
   outcomeLabel: string
   score: number
@@ -49,11 +49,11 @@ const emit = defineEmits<{
     </div>
 
     <div class="actions">
-      <button class="primary" :disabled="submitting" @click="props.solvedExact ? emit('another') : emit('retry')">
-        {{ props.solvedExact ? UI_COPY.completion.labels.playAnother : UI_COPY.completion.labels.retryRoad }}
+      <button class="primary" :disabled="submitting" @click="props.solved ? emit('another') : emit('retry')">
+        {{ props.solved ? UI_COPY.completion.labels.playAnother : UI_COPY.completion.labels.retryRoad }}
       </button>
-      <button class="secondary" :disabled="submitting" @click="props.solvedExact ? emit('retry') : emit('another')">
-        {{ props.solvedExact ? UI_COPY.completion.labels.retryRoad : UI_COPY.completion.labels.playAnother }}
+      <button class="secondary" :disabled="submitting" @click="props.solved ? emit('retry') : emit('another')">
+        {{ props.solved ? UI_COPY.completion.labels.retryRoad : UI_COPY.completion.labels.playAnother }}
       </button>
     </div>
   </section>

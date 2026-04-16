@@ -1,14 +1,17 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { buildEdgeMap, getEdgeType } from '../../shared/utils/puzzleEngine';
-import type { Board, EdgeType } from '../../shared/types/game';
+import type { Board, EdgeType, PuzzleType } from '../../shared/types/game';
 import type { TileState } from '../types/game';
 import GameTile from './GameTile.vue';
 import BoardRoad from './BoardRoad.vue';
 import { UI_COPY } from '../content/uiCopy';
 
+type RoadVisualType = 'open' | Exclude<EdgeType, 'blocked'>;
+
 const props = defineProps<{
   board: Board;
+  puzzleType: PuzzleType;
   tiles: TileState[][];
   currentTileIndex: number | null;
   activeSet: Set<number>;
@@ -51,14 +54,12 @@ const traversedEdges = computed(() => {
 interface RoadData {
   key: string;
   orientation: 'h' | 'v';
-  type: 'open' | EdgeType;
+  type: RoadVisualType;
+  state: 'default' | 'closed' | 'active' | 'traversed';
   traversed: boolean;
   arrowDir: string | null;
   style: Record<string, string>;
 }
-
-// type: r === 3 && c=== 3 ? 'cost' : t,
-// type: r === 4 && c=== 5 ? 'bonus' : t,
 
 const allRoads = computed<RoadData[]>(() => {
   const roads: RoadData[] = [];
@@ -66,84 +67,84 @@ const allRoads = computed<RoadData[]>(() => {
   const em = edgeMap.value;
   const trav = traversedEdges.value;
 
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      const idx = r * cols + c;
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      const idx = row * cols + col;
 
-      if (c < cols - 1) {
-        const nIdx = idx + 1;
-        const t = getEdgeType(idx, nIdx, em);
-        const edgeKey = `${idx}-${nIdx}`;
-        const hit = trav.has(edgeKey);
-
-        const idxVisited = props.visitedSet.has(idx);
-        const nIdxVisited = props.visitedSet.has(nIdx);
-        const idxActive = props.activeSet.has(idx);
-        const nIdxActive = props.activeSet.has(nIdx);
-
-        // Show road if:
-        // 1. Already traversed
-        // 2. Neither endpoint visited (unexplored area)
-        // 3. One visited and other is active (feasible from visited)
-        const shouldShow =
-          hit ||
-          (!idxVisited && !nIdxVisited) ||
-          (idxVisited && nIdxActive) ||
-          (nIdxVisited && idxActive);
-
-        if (shouldShow) {
-          roads.push({
-            key: `h-${idx}`,
-            orientation: 'h',
-            type: t,
-            traversed: hit,
-            arrowDir: hit ? trav.get(edgeKey)! : null,
-            style: {
-              left: `${c * CELL + TILE_PX}px`,
-              top: `${r * CELL + (TILE_PX - ROAD_THICK) / 2}px`,
-              width: `${GAP_PX}px`,
-              height: `${ROAD_THICK}px`,
-            },
-          });
+      if (col < cols - 1) {
+        const rightIdx = idx + 1;
+        const type = getEdgeType(idx, rightIdx, em);
+        if (type === 'blocked') {
+          continue;
         }
+        const edgeKey = `${idx}-${rightIdx}`;
+        const hit = trav.has(edgeKey);
+        const hasVisitedEndpoint = props.visitedSet.has(idx) || props.visitedSet.has(rightIdx)
+        const isCurrentActiveRoad = (
+          props.currentTileIndex === idx && props.activeSet.has(rightIdx)
+        ) || (
+          props.currentTileIndex === rightIdx && props.activeSet.has(idx)
+        )
+        const state = hit
+          ? 'traversed'
+          : isCurrentActiveRoad
+            ? 'active'
+            : hasVisitedEndpoint
+              ? 'closed'
+              : 'default'
+
+        roads.push({
+          key: `h-${idx}`,
+          orientation: 'h',
+          type,
+          state,
+          traversed: hit,
+          arrowDir: hit ? trav.get(edgeKey)! : null,
+          style: {
+            left: `${col * CELL + TILE_PX}px`,
+            top: `${row * CELL + (TILE_PX - ROAD_THICK) / 2}px`,
+            width: `${GAP_PX}px`,
+            height: `${ROAD_THICK}px`,
+          },
+        });
       }
 
-      if (r < rows - 1) {
-        const nIdx = idx + cols;
-        const t = getEdgeType(idx, nIdx, em);
-        const edgeKey = `${idx}-${nIdx}`;
-        const hit = trav.has(edgeKey);
-
-        const idxVisited = props.visitedSet.has(idx);
-        const nIdxVisited = props.visitedSet.has(nIdx);
-        const idxActive = props.activeSet.has(idx);
-        const nIdxActive = props.activeSet.has(nIdx);
-
-        // Show road if:
-        // 1. Already traversed
-        // 2. Neither endpoint visited (unexplored area)
-        // 3. One visited and other is active (feasible from visited)
-        const shouldShow =
-          hit ||
-          (!idxVisited && !nIdxVisited) ||
-          (idxVisited && nIdxActive) ||
-          (nIdxVisited && idxActive);
-
-        if (shouldShow) {
-          roads.push({
-            key: `v-${idx}`,
-            orientation: 'v',
-            type: t,
-            traversed: hit,
-            arrowDir: hit ? trav.get(edgeKey)! : null,
-            style: {
-              left: `${c * CELL + (TILE_PX - ROAD_THICK) / 2}px`,
-              top: `${r * CELL + TILE_PX}px`,
-              width: `${ROAD_THICK}px`,
-              height: `${GAP_PX}px`,
-            },
-          });
+      if (row < rows - 1) {
+        const downIdx = idx + cols;
+        const type = getEdgeType(idx, downIdx, em);
+        if (type === 'blocked') {
+          continue;
         }
+        const edgeKey = `${idx}-${downIdx}`;
+        const hit = trav.has(edgeKey);
+        const hasVisitedEndpoint = props.visitedSet.has(idx) || props.visitedSet.has(downIdx)
+        const isCurrentActiveRoad = (
+          props.currentTileIndex === idx && props.activeSet.has(downIdx)
+        ) || (
+          props.currentTileIndex === downIdx && props.activeSet.has(idx)
+        )
+        const state = hit
+          ? 'traversed'
+          : isCurrentActiveRoad
+            ? 'active'
+            : hasVisitedEndpoint
+              ? 'closed'
+              : 'default'
+
+        roads.push({
+          key: `v-${idx}`,
+          orientation: 'v',
+          type,
+          state,
+          traversed: hit,
+          arrowDir: hit ? trav.get(edgeKey)! : null,
+          style: {
+            left: `${col * CELL + (TILE_PX - ROAD_THICK) / 2}px`,
+            top: `${row * CELL + TILE_PX}px`,
+            width: `${ROAD_THICK}px`,
+            height: `${GAP_PX}px`,
+          },
+        });
       }
     }
   }
@@ -154,24 +155,19 @@ const allRoads = computed<RoadData[]>(() => {
 
 <template>
   <section class="board-shell">
-    <header class="board-header">
-      <div>
-        <p class="eyebrow">{{ UI_COPY.board.eyebrow }}</p>
-        <h2>{{ UI_COPY.board.heading }}</h2>
-      </div>
-      <p class="kbd-note">{{ UI_COPY.board.keyboardHint }}</p>
-    </header>
-
-    <div class="board-info">
+    <div v-if="puzzleType === 'expedition'" class="board-info">
       <div class="info-item info-toll">
         <span class="info-icon">⊝</span>
-        <span class="info-label">Toll: -{{ board.tollValue }}</span>
+        <span class="info-label">{{ UI_COPY.board.info.toll }}: -{{ board.tollValue }}</span>
       </div>
       <div class="info-item info-bonus">
         <span class="info-icon">⊕</span>
-        <span class="info-label">Bonus: +{{ board.bonusValue }}</span>
+        <span class="info-label">{{ UI_COPY.board.info.bonus }}: +{{ board.bonusValue }}</span>
       </div>
+      <p class="kbd-note">{{ UI_COPY.board.keyboardHint }}</p>
     </div>
+
+    <p v-else class="kbd-note">{{ UI_COPY.board.keyboardHint }}</p>
 
     <div class="board-wrapper">
       <div
@@ -199,6 +195,7 @@ const allRoads = computed<RoadData[]>(() => {
         v-for="road in allRoads"
         :key="road.key"
         :type="road.type"
+        :state="road.state"
         :traversed="road.traversed"
         :arrow-dir="road.arrowDir"
         :orientation="road.orientation"
@@ -210,29 +207,9 @@ const allRoads = computed<RoadData[]>(() => {
 
 <style scoped>
 .board-shell {
-  padding: 1.1rem;
-  border-radius: var(--radius-xl);
-  background: var(--gradient-card-board);
-  border: 1px solid rgb(var(--color-gold-rgb) / 0.4);
-  box-shadow:
-    var(--shadow-border-dark), var(--shadow-2xl), var(--shadow-inset-gold);
-  text-align: center;
-}
-
-.board-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: end;
-  gap: 1rem;
-  margin-bottom: 1rem;
+  display: grid;
+  gap: 0.7rem;
   text-align: left;
-}
-
-.board-header h2 {
-  margin: 0.18rem 0 0;
-  font-size: 1.08rem;
-  letter-spacing: var(--letter-spacing-tight);
-  color: var(--color-gold-bright);
 }
 
 .kbd-note {
@@ -243,9 +220,10 @@ const allRoads = computed<RoadData[]>(() => {
 
 .board-info {
   display: flex;
+  flex-wrap: wrap;
   gap: 1rem;
-  margin-bottom: 0.8rem;
-  justify-content: center;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .info-item {
@@ -292,12 +270,8 @@ const allRoads = computed<RoadData[]>(() => {
 }
 
 @media (max-width: 760px) {
-  .board-header {
-    display: grid;
-    gap: 0.45rem;
-  }
-
   .board-info {
+    justify-content: start;
     gap: 0.6rem;
   }
 
