@@ -30,6 +30,7 @@ export const UI_COPY = {
     metrics: {
       score: 'Score',
       boardCoins: 'Board Coins',
+      medal: 'Medal',
     },
     medals: {
       gold: 'Gold',
@@ -40,7 +41,7 @@ export const UI_COPY = {
   boardFooter: {
     retryRoad: 'Retry Road',
     openHint: 'Hint',
-    openHelp: 'Help',
+    openHelp: 'How to Play',
     switchToExpedition: 'Play Expedition',
     attemptLabel: 'Attempt',
     hintTitle: 'Hints',

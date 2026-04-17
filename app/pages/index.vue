@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { UI_COPY } from '../content/uiCopy'
+import { onUnmounted, watchEffect } from 'vue'
 
 const {
   game,
@@ -34,19 +34,22 @@ const {
   moveTo,
   requestHint,
 } = useGoldroadGame()
+
+const currentRoadLabel = useState<string | null>('current-road-label', () => null)
+
+watchEffect(() => {
+  currentRoadLabel.value = game.value ? roadHeading.value : null
+})
+
+onUnmounted(() => {
+  currentRoadLabel.value = null
+})
 </script>
 
 <template>
   <div class="shell">
     <main class="layout">
       <section v-if="game" class="board-column">
-        <section class="page-toolbar">
-          <div>
-            <p class="toolbar-eyebrow">{{ UI_COPY.sidebar.eyebrow }}</p>
-            <h1 class="toolbar-heading">{{ roadHeading }}</h1>
-          </div>
-        </section>
-
         <GameBoardHeader
           :selected-mode="selectedMode"
           :has-expedition="Boolean(availableGames.expedition)"
@@ -113,31 +116,6 @@ const {
   gap: 0.9rem;
   max-width: 760px;
   margin: 0 auto;
-}
-
-.page-toolbar {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.toolbar-eyebrow,
-.toolbar-heading {
-  margin: 0;
-}
-
-.toolbar-eyebrow {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: rgb(var(--color-gold-rgb) / 0.7);
-}
-
-.toolbar-heading {
-  color: var(--color-gold);
-  font-size: clamp(1.5rem, 4vw, 2rem);
-  line-height: 1.05;
 }
 
 .board-column > * {

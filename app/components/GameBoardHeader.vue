@@ -19,10 +19,18 @@ const emit = defineEmits<{
   selectMode: [mode: PuzzleType]
 }>()
 
-const metrics = computed(() => [
-  { label: UI_COPY.boardHeader.metrics.score, value: `${props.score}/${props.maxScore}` },
-  { label: UI_COPY.boardHeader.metrics.boardCoins, value: `${props.totalCoins}` },
-])
+const metrics = computed(() => {
+  const items: Array<{ label: string; value: string }> = [
+    { label: UI_COPY.boardHeader.metrics.score, value: `${props.score}/${props.maxScore}` },
+    { label: UI_COPY.boardHeader.metrics.boardCoins, value: `${props.totalCoins}` },
+  ]
+
+  if (props.solved && props.medal) {
+    items.push({ label: UI_COPY.boardHeader.metrics.medal, value: UI_COPY.boardHeader.medals[props.medal] })
+  }
+
+  return items
+})
 </script>
 
 <template>
@@ -61,9 +69,6 @@ const metrics = computed(() => [
           <span>{{ metric.label }}</span>
           <strong>{{ metric.value }}</strong>
         </article>
-        <span v-if="solved && medal" class="medal-pill">
-          {{ UI_COPY.boardHeader.medals[medal] }}
-        </span>
       </div>
     </div>
 
@@ -140,17 +145,6 @@ const metrics = computed(() => [
 .unlock-hint {
   color: rgb(var(--color-gold-rgb) / 0.76);
   font-size: 0.88rem;
-}
-
-.medal-pill {
-  width: fit-content;
-  padding: 0.24rem 0.55rem;
-  border-radius: var(--radius-full);
-  background: rgb(var(--color-gold-rgb) / 0.18);
-  border: 1px solid rgb(var(--color-gold-rgb) / 0.35);
-  color: var(--color-gold);
-  font-size: 0.82rem;
-  font-weight: 700;
 }
 
 .metric-row {

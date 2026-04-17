@@ -1,6 +1,13 @@
 <script setup lang="ts">
 const showMobileMenu = ref(false)
 const showAbout = ref(false)
+const route = useRoute()
+const currentRoadLabel = useState<string | null>('current-road-label', () => null)
+
+watch(() => route.fullPath, () => {
+  closeAbout()
+  closeMobileMenu()
+})
 
 function closeAbout() {
   showAbout.value = false
@@ -15,33 +22,61 @@ function closeMobileMenu() {
   <div class="app-root">
     <header class="app-header">
       <div class="header-content">
-        <NuxtLink to="/" class="logo" @click="closeMobileMenu">
-          <span class="logo-text">Goldroad</span>
-        </NuxtLink>
-
-        <button
-          class="menu-toggle"
-          :aria-expanded="showMobileMenu"
-          aria-label="Toggle navigation menu"
-          @click="showMobileMenu = !showMobileMenu"
-        >
-          <span class="menu-icon" />
-        </button>
-
-        <nav class="nav" :class="{ 'nav--open': showMobileMenu }">
-          <NuxtLink to="/" class="nav-link" @click="closeMobileMenu">
-            Today's Road
+        <div class="header-brand">
+          <NuxtLink to="/" class="logo" @click="closeMobileMenu">
+            <span class="logo-text">Goldroad</span>
           </NuxtLink>
-          <NuxtLink to="/games" class="nav-link" @click="closeMobileMenu">
-            Past Games
-          </NuxtLink>
-          <NuxtLink to="/stats" class="nav-link" @click="closeMobileMenu">
+
+          <p v-if="currentRoadLabel" class="road-chip">{{ currentRoadLabel }}</p>
+        </div>
+
+        <div class="header-actions">
+          <NuxtLink to="/stats" class="nav-link nav-link--compact" @click="closeMobileMenu">
             Stats
           </NuxtLink>
-          <button class="nav-link nav-button" @click="showAbout = true; closeMobileMenu()">
-            About
+
+          <button
+            class="icon-button"
+            aria-label="About Goldroad"
+            @click="showAbout = true; closeMobileMenu()"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M12 17v-5m0-4h.01M22 12a10 10 0 1 1-20 0a10 10 0 0 1 20 0Z"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.8"
+              />
+            </svg>
           </button>
-        </nav>
+
+          <div class="menu-shell">
+            <button
+              class="icon-button"
+              :aria-expanded="showMobileMenu"
+              aria-label="Open navigation menu"
+              @click="showMobileMenu = !showMobileMenu"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M4 7h16M4 12h16M4 17h16"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-width="1.8"
+                />
+              </svg>
+            </button>
+
+            <div v-if="showMobileMenu" class="menu-panel">
+              <NuxtLink to="/games" class="menu-link" @click="closeMobileMenu">
+                Past Games
+              </NuxtLink>
+            </div>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -88,7 +123,14 @@ function closeMobileMenu() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 2rem;
+  gap: 1.2rem;
+}
+
+.header-brand,
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
 }
 
 .logo {
@@ -105,45 +147,15 @@ function closeMobileMenu() {
   letter-spacing: -0.02em;
 }
 
-.menu-toggle {
-  display: none;
-  background: none;
-  border: none;
-  padding: 0.5rem;
-  cursor: pointer;
-  color: var(--color-gold);
-}
-
-.menu-icon {
-  display: block;
-  width: 24px;
-  height: 2px;
-  background: currentColor;
-  position: relative;
-}
-
-.menu-icon::before,
-.menu-icon::after {
-  content: '';
-  position: absolute;
-  width: 100%;
-  height: 2px;
-  background: currentColor;
-  left: 0;
-}
-
-.menu-icon::before {
-  top: -7px;
-}
-
-.menu-icon::after {
-  bottom: -7px;
-}
-
-.nav {
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
+.road-chip {
+  margin: 0;
+  padding: 0.3rem 0.7rem;
+  border-radius: var(--radius-full);
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.22);
+  background: rgb(var(--color-gold-rgb) / 0.08);
+  color: rgb(var(--color-gold-rgb) / 0.86);
+  font-size: 0.84rem;
+  font-weight: 700;
 }
 
 .nav-link {
@@ -160,6 +172,10 @@ function closeMobileMenu() {
   font-family: inherit;
 }
 
+.nav-link--compact {
+  padding-inline: 0.75rem;
+}
+
 .nav-link:hover {
   color: var(--color-gold);
   background: rgb(var(--color-gold-rgb) / 0.1);
@@ -168,6 +184,61 @@ function closeMobileMenu() {
 .nav-link.router-link-active {
   color: var(--color-gold);
   background: rgb(var(--color-gold-rgb) / 0.15);
+}
+
+.icon-button {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-full);
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.18);
+  background: rgb(var(--color-gold-rgb) / 0.06);
+  color: rgb(var(--color-gold-rgb) / 0.78);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.icon-button svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.icon-button:hover,
+.icon-button[aria-expanded='true'] {
+  color: var(--color-gold);
+  background: rgb(var(--color-gold-rgb) / 0.12);
+  border-color: rgb(var(--color-gold-rgb) / 0.3);
+}
+
+.menu-shell {
+  position: relative;
+}
+
+.menu-panel {
+  position: absolute;
+  top: calc(100% + 0.55rem);
+  right: 0;
+  width: 180px;
+  padding: 0.45rem;
+  border-radius: var(--radius-lg);
+  background: var(--gradient-card-overlay);
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.24);
+  box-shadow: var(--shadow-xl);
+}
+
+.menu-link {
+  display: block;
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  color: rgb(var(--color-gold-rgb) / 0.86);
+  font-weight: 600;
+}
+
+.menu-link:hover {
+  background: rgb(var(--color-gold-rgb) / 0.1);
 }
 
 /* About Dialog Styles */
@@ -247,37 +318,36 @@ function closeMobileMenu() {
 }
 
 @media (max-width: 768px) {
-  .menu-toggle {
-    display: block;
+  .header-content,
+  .header-actions {
+    gap: 0.55rem;
   }
 
-  .nav {
-    position: fixed;
-    top: 60px;
-    right: 0;
-    bottom: 0;
-    width: min(280px, 80vw);
-    background: var(--color-bg-base);
-    border-left: 1px solid rgb(var(--color-gold-rgb) / 0.2);
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0;
-    padding: 1rem;
-    transform: translateX(100%);
-    transition: transform var(--transition-normal);
+  .header-brand {
+    min-width: 0;
   }
 
-  .nav--open {
-    transform: translateX(0);
+  .logo-text {
+    font-size: 1.3rem;
   }
 
-  .nav-link {
-    padding: 0.8rem 1rem;
-    text-align: left;
+  .road-chip {
+    max-width: 110px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .header-content {
     padding: 0.8rem 0.9rem;
+  }
+
+  .nav-link--compact {
+    padding-inline: 0.55rem;
+  }
+
+  .menu-panel {
+    width: min(220px, calc(100vw - 1.8rem));
   }
 }
 </style>

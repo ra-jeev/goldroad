@@ -93,8 +93,8 @@ defineProps<{
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgb(var(--color-gold-rgb) / 0.48);
-  opacity: 0.82;
+  color: var(--color-gold);
+  opacity: 0.56;
 }
 
 .road--closed {
@@ -103,7 +103,6 @@ defineProps<{
 
 .road--active {
   opacity: 1;
-  color: rgb(var(--color-gold-rgb) / 0.95);
   transform: scale(1.04);
   filter: drop-shadow(0 0 4px rgb(var(--color-gold-rgb) / 0.55));
 }
