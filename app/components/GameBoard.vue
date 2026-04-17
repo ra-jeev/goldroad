@@ -25,10 +25,26 @@ const emit = defineEmits<{
   select: [tileIndex: number];
 }>();
 
-const TILE_PX = 50;
-const GAP_PX = 14;
-const CELL = TILE_PX + GAP_PX;
-const ROAD_THICK = 6;
+const BOARD_CELL = '(var(--tile-size) + var(--tile-gap))';
+const ROAD_OFFSET = '((var(--tile-size) - var(--road-thickness)) / 2)';
+
+function buildRoadStyle(row: number, col: number, orientation: 'h' | 'v'): Record<string, string> {
+  if (orientation === 'h') {
+    return {
+      left: `calc(${col} * ${BOARD_CELL} + var(--tile-size))`,
+      top: `calc(${row} * ${BOARD_CELL} + ${ROAD_OFFSET})`,
+      width: 'var(--tile-gap)',
+      height: 'var(--road-thickness)',
+    };
+  }
+
+  return {
+    left: `calc(${col} * ${BOARD_CELL} + ${ROAD_OFFSET})`,
+    top: `calc(${row} * ${BOARD_CELL} + var(--tile-size))`,
+    width: 'var(--road-thickness)',
+    height: 'var(--tile-gap)',
+  };
+}
 
 const edgeMap = computed(() => buildEdgeMap(props.board));
 
@@ -74,39 +90,33 @@ const allRoads = computed<RoadData[]>(() => {
       if (col < cols - 1) {
         const rightIdx = idx + 1;
         const type = getEdgeType(idx, rightIdx, em);
-        if (type === 'blocked') {
-          continue;
-        }
-        const edgeKey = `${idx}-${rightIdx}`;
-        const hit = trav.has(edgeKey);
-        const hasVisitedEndpoint = props.visitedSet.has(idx) || props.visitedSet.has(rightIdx)
-        const isCurrentActiveRoad = (
-          props.currentTileIndex === idx && props.activeSet.has(rightIdx)
-        ) || (
-          props.currentTileIndex === rightIdx && props.activeSet.has(idx)
-        )
-        const state = hit
-          ? 'traversed'
-          : isCurrentActiveRoad
-            ? 'active'
-            : hasVisitedEndpoint
-              ? 'closed'
-              : 'default'
+        if (type !== 'blocked') {
+          const edgeKey = `${idx}-${rightIdx}`;
+          const hit = trav.has(edgeKey);
+          const hasVisitedEndpoint = props.visitedSet.has(idx) || props.visitedSet.has(rightIdx)
+          const isCurrentActiveRoad = (
+            props.currentTileIndex === idx && props.activeSet.has(rightIdx)
+          ) || (
+            props.currentTileIndex === rightIdx && props.activeSet.has(idx)
+          )
+          const state = hit
+            ? 'traversed'
+            : isCurrentActiveRoad
+              ? 'active'
+              : hasVisitedEndpoint
+                ? 'closed'
+                : 'default'
 
-        roads.push({
-          key: `h-${idx}`,
-          orientation: 'h',
-          type,
-          state,
-          traversed: hit,
-          arrowDir: hit ? trav.get(edgeKey)! : null,
-          style: {
-            left: `${col * CELL + TILE_PX}px`,
-            top: `${row * CELL + (TILE_PX - ROAD_THICK) / 2}px`,
-            width: `${GAP_PX}px`,
-            height: `${ROAD_THICK}px`,
-          },
-        });
+          roads.push({
+            key: `h-${idx}`,
+            orientation: 'h',
+            type,
+            state,
+            traversed: hit,
+            arrowDir: hit ? trav.get(edgeKey)! : null,
+            style: buildRoadStyle(row, col, 'h'),
+          });
+        }
       }
 
       if (row < rows - 1) {
@@ -138,12 +148,7 @@ const allRoads = computed<RoadData[]>(() => {
           state,
           traversed: hit,
           arrowDir: hit ? trav.get(edgeKey)! : null,
-          style: {
-            left: `${col * CELL + (TILE_PX - ROAD_THICK) / 2}px`,
-            top: `${row * CELL + TILE_PX}px`,
-            width: `${ROAD_THICK}px`,
-            height: `${GAP_PX}px`,
-          },
+          style: buildRoadStyle(row, col, 'v'),
         });
       }
     }
