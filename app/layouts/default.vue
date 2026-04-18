@@ -1,17 +1,13 @@
 <script setup lang="ts">
 const showMobileMenu = ref(false)
-const showAbout = ref(false)
 const route = useRoute()
 const currentRoadLabel = useState<string | null>('current-road-label', () => null)
+const { openHowToPlay, closeHowToPlay } = useHowToPlaySheet()
 
 watch(() => route.fullPath, () => {
-  closeAbout()
+  closeHowToPlay()
   closeMobileMenu()
 })
-
-function closeAbout() {
-  showAbout.value = false
-}
 
 function closeMobileMenu() {
   showMobileMenu.value = false
@@ -37,12 +33,12 @@ function closeMobileMenu() {
 
           <button
             class="icon-button"
-            aria-label="About Goldroad"
-            @click="showAbout = true; closeMobileMenu()"
+            aria-label="Open How to Play"
+            @click="openHowToPlay(); closeMobileMenu()"
           >
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path
-                d="M12 17v-5m0-4h.01M22 12a10 10 0 1 1-20 0a10 10 0 0 1 20 0Z"
+                d="M9.2 9a2.8 2.8 0 1 1 5.23 1.4c-.33.5-.86.92-1.4 1.3c-.78.56-1.53 1.1-1.53 2.3m.01 3h.01M22 12a10 10 0 1 1-20 0a10 10 0 0 1 20 0Z"
                 fill="none"
                 stroke="currentColor"
                 stroke-linecap="round"
@@ -82,22 +78,7 @@ function closeMobileMenu() {
 
     <NuxtPage />
 
-    <!-- About Dialog -->
-    <div v-if="showAbout" class="overlay-backdrop" @click.self="closeAbout">
-      <section class="overlay-card" aria-label="About Goldroad">
-        <div class="overlay-header">
-          <button class="close-btn" aria-label="Close" @click="closeAbout">✕</button>
-          <div>
-            <p class="eyebrow">Info</p>
-            <h2>About Goldroad</h2>
-          </div>
-        </div>
-        <div class="overlay-body">
-          <p>Goldroad is a daily puzzle game where you navigate a grid to collect coins and reach the destination.</p>
-          <p>Each day brings a new challenge. Plan your route carefully to maximize your score!</p>
-        </div>
-      </section>
-    </div>
+    <GameHelpSheet />
   </div>
 </template>
 
@@ -239,82 +220,6 @@ function closeMobileMenu() {
 
 .menu-link:hover {
   background: rgb(var(--color-gold-rgb) / 0.1);
-}
-
-/* About Dialog Styles */
-.overlay-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgb(0 0 0 / 0.75);
-  backdrop-filter: blur(4px);
-  display: grid;
-  place-items: center;
-  z-index: 200;
-  padding: 1rem;
-}
-
-.overlay-card {
-  width: min(100%, 500px);
-  border-radius: var(--radius-lg);
-  padding: 1.5rem;
-  background: var(--gradient-card-overlay);
-  border: 1px solid rgb(var(--color-gold-rgb) / 0.38);
-  box-shadow: var(--shadow-xl);
-}
-
-.overlay-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 1rem;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  color: var(--color-gold-muted);
-  font-size: 1.5rem;
-  cursor: pointer;
-  padding: 0;
-  width: 2rem;
-  height: 2rem;
-  display: grid;
-  place-items: center;
-  border-radius: var(--radius-sm);
-  transition: all var(--transition-fast);
-  order: 2;
-}
-
-.close-btn:hover {
-  color: var(--color-gold);
-  background: rgb(var(--color-gold-rgb) / 0.1);
-}
-
-.eyebrow {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--color-gold-muted);
-  margin: 0;
-}
-
-.overlay-card h2 {
-  font-size: 1.5rem;
-  margin: 0.25rem 0 0;
-  color: var(--color-gold);
-}
-
-.overlay-body {
-  color: var(--color-gold-muted);
-  line-height: 1.6;
-}
-
-.overlay-body p {
-  margin: 0 0 1rem;
-}
-
-.overlay-body p:last-child {
-  margin-bottom: 0;
 }
 
 @media (max-width: 768px) {

@@ -19,6 +19,7 @@ const {
   lastMedal,
   lastSolved,
   hintUsage,
+  expeditionJustUnlocked,
   maxScore,
   totalCoins,
   availableGames,
@@ -26,6 +27,7 @@ const {
   isExpeditionUnlocked,
   classicSolvedToday,
   attemptNumber,
+  nextResetCountdown,
   roadHeading,
   canSwitchToExpedition,
   selectMode,
@@ -80,6 +82,9 @@ onUnmounted(() => {
           :status="status"
           :hint-message="hintMessage"
           :attempt-number="attemptNumber"
+          :medal="lastMedal"
+          :next-reset-countdown="nextResetCountdown"
+          :expedition-just-unlocked="expeditionJustUnlocked"
           :hint-usage="hintUsage"
           :ended="ended"
           :solved="lastSolved"

@@ -43,7 +43,11 @@ export const UI_COPY = {
     openHint: 'Hint',
     openHelp: 'How to Play',
     switchToExpedition: 'Play Expedition',
+    viewStats: 'View Stats',
     attemptLabel: 'Attempt',
+    expeditionUnlocked: 'Expedition unlocked',
+    medalAwarded: (medal: string) => `${medal} medal`,
+    nextRoadCountdown: (countdown: string) => `Next road in ${countdown} · 00:00 UTC`,
     hintTitle: 'Hints',
     helpTitle: 'How To Play',
     hintRows: {

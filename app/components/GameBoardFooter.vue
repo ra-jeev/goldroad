@@ -1,11 +1,15 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import type { Medal } from '../../shared/types/game'
 import { UI_COPY } from '../content/uiCopy'
 
 const props = defineProps<{
   status: string
   hintMessage: string | null
   attemptNumber: number
+  medal: Medal | null
+  nextResetCountdown: string
+  expeditionJustUnlocked: boolean
   hintUsage: {
     level1: number
     level2: number
@@ -26,10 +30,12 @@ const emit = defineEmits<{
 }>()
 
 const showHints = ref(false)
-const showHelp = ref(false)
+const { openHowToPlay } = useHowToPlaySheet()
 
 const busy = computed(() => props.loading || props.submitting)
 const footerMessage = computed(() => props.hintMessage ?? props.status)
+const showSolvedMeta = computed(() => props.ended && props.solved)
+const retryButtonStyle = computed(() => (props.canSwitchToExpedition || showSolvedMeta.value ? 'secondary' : 'primary'))
 
 function requestHint(level: 1 | 2 | 3) {
   showHints.value = false
@@ -40,7 +46,22 @@ function requestHint(level: 1 | 2 | 3) {
 <template>
   <section class="board-footer-card">
     <div class="footer-top">
-      <p class="footer-message">{{ footerMessage }}</p>
+      <div class="footer-copy">
+        <p class="footer-message">{{ footerMessage }}</p>
+
+        <div v-if="showSolvedMeta" class="meta-row">
+          <span v-if="medal" class="meta-pill">
+            {{ UI_COPY.boardFooter.medalAwarded(UI_COPY.boardHeader.medals[medal]) }}
+          </span>
+          <span class="meta-pill meta-pill--countdown">
+            {{ UI_COPY.boardFooter.nextRoadCountdown(nextResetCountdown) }}
+          </span>
+          <span v-if="expeditionJustUnlocked" class="meta-pill meta-pill--accent">
+            {{ UI_COPY.boardFooter.expeditionUnlocked }}
+          </span>
+        </div>
+      </div>
+
       <span v-if="attemptNumber > 1" class="attempt-pill">
         {{ UI_COPY.boardFooter.attemptLabel }} #{{ attemptNumber }}
       </span>
@@ -60,12 +81,20 @@ function requestHint(level: 1 | 2 | 3) {
       <button
         v-if="canRetry"
         type="button"
-        :class="canSwitchToExpedition ? 'secondary' : 'primary'"
+        :class="retryButtonStyle"
         :disabled="busy"
         @click="emit('retry')"
       >
         {{ UI_COPY.boardFooter.retryRoad }}
       </button>
+
+      <NuxtLink
+        v-if="showSolvedMeta && !canSwitchToExpedition"
+        to="/stats"
+        class="link-button primary"
+      >
+        {{ UI_COPY.boardFooter.viewStats }}
+      </NuxtLink>
 
       <button
         v-if="!ended"
@@ -77,12 +106,12 @@ function requestHint(level: 1 | 2 | 3) {
         {{ UI_COPY.boardFooter.openHint }}
       </button>
 
-      <button type="button" class="ghost" @click="showHelp = true">
+      <button type="button" class="ghost" @click="openHowToPlay()">
         {{ UI_COPY.boardFooter.openHelp }}
       </button>
     </div>
 
-    <div v-if="showHints || showHelp" class="sheet-backdrop" @click.self="showHints = false; showHelp = false">
+    <div v-if="showHints" class="sheet-backdrop" @click.self="showHints = false">
       <section v-if="showHints" class="sheet-card" aria-label="Hints">
         <div class="sheet-header">
           <h2>{{ UI_COPY.boardFooter.hintTitle }}</h2>
@@ -106,34 +135,6 @@ function requestHint(level: 1 | 2 | 3) {
           </button>
         </div>
       </section>
-
-      <section v-if="showHelp" class="sheet-card" aria-label="How to play">
-        <div class="sheet-header">
-          <h2>{{ UI_COPY.boardFooter.helpTitle }}</h2>
-          <button type="button" class="close-button" @click="showHelp = false">
-            {{ UI_COPY.sidebar.close }}
-          </button>
-        </div>
-
-        <article class="help-section">
-          <h3>{{ UI_COPY.helpSheet.sections.howToPlay.title }}</h3>
-          <ul>
-            <li v-for="item in UI_COPY.helpSheet.sections.howToPlay.items" :key="item">{{ item }}</li>
-          </ul>
-        </article>
-
-        <article class="help-section">
-          <h3>{{ UI_COPY.helpSheet.sections.about.title }}</h3>
-          <p>{{ UI_COPY.helpSheet.sections.about.body }}</p>
-        </article>
-
-        <article class="help-section">
-          <h3>{{ UI_COPY.helpSheet.sections.updates.title }}</h3>
-          <ul>
-            <li v-for="item in UI_COPY.helpSheet.sections.updates.items" :key="item">{{ item }}</li>
-          </ul>
-        </article>
-      </section>
     </div>
   </section>
 </template>
@@ -155,11 +156,42 @@ function requestHint(level: 1 | 2 | 3) {
   line-height: var(--line-height-snug);
 }
 
+.footer-copy {
+  display: grid;
+  gap: 0.55rem;
+}
+
 .footer-top {
   display: flex;
   align-items: start;
   justify-content: space-between;
   gap: 0.8rem;
+}
+
+.meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.meta-pill {
+  padding: 0.24rem 0.55rem;
+  border-radius: var(--radius-full);
+  background: rgb(var(--color-gold-rgb) / 0.12);
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.24);
+  color: rgb(var(--color-gold-rgb) / 0.9);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.meta-pill--countdown {
+  color: rgb(var(--color-gold-rgb) / 0.82);
+}
+
+.meta-pill--accent {
+  color: var(--color-active);
+  border-color: rgb(var(--color-active-rgb) / 0.35);
+  background: rgb(var(--color-active-rgb) / 0.14);
 }
 
 .attempt-pill {
@@ -179,13 +211,18 @@ function requestHint(level: 1 | 2 | 3) {
   gap: 0.6rem;
 }
 
-button {
+button,
+.link-button {
   border: 0;
   border-radius: var(--radius-sm);
   padding: 0.75rem 1rem;
   font-weight: 700;
   cursor: pointer;
   transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .primary {
@@ -206,7 +243,8 @@ button {
   background: rgb(var(--color-gold-rgb) / 0.08);
 }
 
-button:hover:not(:disabled) {
+button:hover:not(:disabled),
+.link-button:hover {
   transform: translateY(-1px);
   box-shadow: var(--shadow-sm);
 }
@@ -263,30 +301,18 @@ button:disabled {
   text-align: left;
 }
 
-.hint-buttons small,
-.help-section p,
-.help-section li {
+.hint-buttons small {
   color: rgb(var(--color-gold-rgb) / 0.84);
-}
-
-.help-section {
-  margin-top: 1rem;
-}
-
-.help-section ul {
-  margin: 0.6rem 0 0;
-  padding-left: 1.1rem;
-}
-
-.help-section p {
-  margin: 0.6rem 0 0;
-  line-height: var(--line-height-base);
 }
 
 @media (max-width: 760px) {
   .footer-top,
   .action-row {
     display: grid;
+  }
+
+  .meta-row {
+    gap: 0.35rem;
   }
 }
 </style>
