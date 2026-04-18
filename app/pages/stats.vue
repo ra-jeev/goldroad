@@ -1,9 +1,26 @@
 <script setup lang="ts">
+import type { CommunityRoadStats, Medal } from '../../shared/types/game'
+import { UI_COPY } from '../content/uiCopy'
+
 const localStats = useLocalPlayerStats()
 const localProgress = useLocalGameProgress()
+const statsApi = useStatsApi()
 const summary = localStats.summary
 const recentDays = localStats.recentDays
+const communityOverview = ref<Awaited<ReturnType<typeof statsApi.getOverview>> | null>(null)
+const communityError = ref<string | null>(null)
 const loading = ref(true)
+
+type CurrentComparisonCard = {
+  key: string
+  modeLabel: string
+  gameNo: number
+  localStatus: string
+  localDetail: string
+  globalHeadline: string
+  globalDetail: string
+  globalMedals: string
+}
 
 function getStoredPlayerUUID(): string | null {
   if (typeof window === 'undefined') return null
@@ -23,7 +40,57 @@ function hintTotal(hints: { level1: number; level2: number; level3: number }): n
   return hints.level1 + hints.level2 + hints.level3
 }
 
-onMounted(() => {
+function formatMedal(medal: Medal | null): string {
+  return medal ? UI_COPY.boardHeader.medals[medal] : 'Solved'
+}
+
+function describeLocalStatus(globalStat: CommunityRoadStats) {
+  const progress = localProgress.getGameProgress(globalStat.gameNo, globalStat.puzzleType)
+  const hints = hintTotal(progress.hints)
+
+  if (progress.solved) {
+    return {
+      status: formatMedal(progress.medal),
+      detail: `Solved in ${progress.firstSolvedAttempt ?? progress.attempts} attempt${(progress.firstSolvedAttempt ?? progress.attempts) === 1 ? '' : 's'} · ${hints} hints`,
+    }
+  }
+
+  if (progress.attempts > 0 || hints > 0) {
+    return {
+      status: `Attempt ${progress.attempts || 1}`,
+      detail: `Best score ${progress.bestScore} · ${hints} hint${hints === 1 ? '' : 's'}`,
+    }
+  }
+
+  return {
+    status: 'Unplayed',
+    detail: 'No local runs recorded yet',
+  }
+}
+
+const currentComparisonCards = computed<CurrentComparisonCard[]>(() => {
+  const current = communityOverview.value?.current
+  if (!current) return []
+
+  return (['classic', 'expedition'] as const)
+    .map((mode) => current[mode])
+    .filter((entry): entry is CommunityRoadStats => Boolean(entry))
+    .map((entry) => {
+      const local = describeLocalStatus(entry)
+      return {
+        key: `${entry.puzzleType}:${entry.gameNo}`,
+        modeLabel: entry.puzzleType === 'classic' ? 'Classic' : 'Expedition',
+        gameNo: entry.gameNo,
+        localStatus: local.status,
+        localDetail: local.detail,
+        globalHeadline: `${entry.solveRate}% exact solve rate`,
+        globalDetail: `${entry.plays} play${entry.plays === 1 ? '' : 's'} · ${entry.exactSolves} exact solve${entry.exactSolves === 1 ? '' : 's'}`,
+        globalMedals: `${entry.gold} gold · ${entry.silver} silver · ${entry.bronze} bronze`,
+      }
+    })
+})
+
+onMounted(async () => {
   const playerUUID = getStoredPlayerUUID()
   if (playerUUID) {
     localStats.load(playerUUID)
@@ -36,6 +103,12 @@ onMounted(() => {
         localProgress.state.value.games,
       )
     }
+  }
+
+  try {
+    communityOverview.value = await statsApi.getOverview()
+  } catch {
+    communityError.value = 'Community comparison is unavailable right now.'
   }
 
   loading.value = false
@@ -54,12 +127,50 @@ onMounted(() => {
         <h2>Loading stats…</h2>
       </section>
 
-      <section v-else-if="!summary.modeSessionsPlayed" class="empty-state">
-        <h2>No stats yet</h2>
-        <p>Finish a road or use a hint and this page will start filling in automatically.</p>
-      </section>
-
       <template v-else>
+        <section v-if="currentComparisonCards.length" class="compare-section">
+          <div class="compare-header">
+            <div>
+              <h2>Today Against The Field</h2>
+              <p>These global counts come from server-side session stats for the current active roads.</p>
+            </div>
+          </div>
+
+          <div class="compare-grid">
+            <article v-for="card in currentComparisonCards" :key="card.key" class="compare-card">
+              <div class="compare-card-top">
+                <div>
+                  <p class="compare-eyebrow">{{ card.modeLabel }}</p>
+                  <h3>Road {{ card.gameNo }}</h3>
+                </div>
+                <span class="compare-rate">{{ card.globalHeadline }}</span>
+              </div>
+
+              <div class="compare-columns">
+                <section class="compare-block">
+                  <span class="compare-label">You</span>
+                  <strong>{{ card.localStatus }}</strong>
+                  <p>{{ card.localDetail }}</p>
+                </section>
+
+                <section class="compare-block compare-block--global">
+                  <span class="compare-label">Global</span>
+                  <strong>{{ card.globalDetail }}</strong>
+                  <p>{{ card.globalMedals }}</p>
+                </section>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <p v-if="communityError" class="community-error">{{ communityError }}</p>
+
+        <section v-if="!summary.modeSessionsPlayed" class="empty-state">
+          <h2>No local stats yet</h2>
+          <p>Finish a road or use a hint and your personal history will start filling in below the global comparison.</p>
+        </section>
+
+        <template v-else>
         <div class="stats-grid">
           <div class="stat-card">
             <div class="stat-value">{{ summary.roadDaysPlayed }}</div>
@@ -167,6 +278,7 @@ onMounted(() => {
             </article>
           </div>
         </section>
+        </template>
       </template>
     </div>
   </div>
@@ -187,6 +299,101 @@ onMounted(() => {
   margin-bottom: 2rem;
   display: grid;
   gap: 0.45rem;
+}
+
+.compare-section {
+  margin-bottom: 2rem;
+}
+
+.compare-header {
+  margin-bottom: 1rem;
+}
+
+.compare-header h2,
+.compare-card h3 {
+  margin: 0;
+  color: var(--color-gold);
+}
+
+.compare-header p,
+.community-error,
+.compare-eyebrow,
+.compare-block p {
+  margin: 0;
+  color: rgb(var(--color-gold-rgb) / 0.76);
+}
+
+.compare-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.compare-card {
+  display: grid;
+  gap: 1rem;
+  padding: 1.2rem;
+  border-radius: var(--radius-lg);
+  background: var(--gradient-card-status);
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.2);
+}
+
+.compare-card-top {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.compare-eyebrow {
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.compare-rate {
+  padding: 0.24rem 0.55rem;
+  border-radius: var(--radius-full);
+  background: rgb(var(--color-gold-rgb) / 0.12);
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.22);
+  color: rgb(var(--color-gold-rgb) / 0.88);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.compare-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+
+.compare-block {
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.95rem 1rem;
+  border-radius: var(--radius-md);
+  background: rgb(var(--color-gold-rgb) / 0.06);
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.14);
+}
+
+.compare-block--global {
+  background: rgb(var(--color-gold-rgb) / 0.08);
+}
+
+.compare-label {
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgb(var(--color-gold-rgb) / 0.72);
+}
+
+.compare-block strong {
+  color: var(--color-gold);
+  font-size: 1.1rem;
+}
+
+.community-error {
+  margin-bottom: 1rem;
 }
 
 .page-header h1 {
@@ -410,6 +617,7 @@ onMounted(() => {
     grid-template-columns: repeat(2, 1fr);
   }
 
+  .compare-columns,
   .secondary-grid,
   .history-modes,
   .history-header {

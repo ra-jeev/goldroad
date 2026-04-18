@@ -205,6 +205,24 @@ export const PastGameSummarySchema = z.object({
   playableAt: z.string().datetime({ offset: true }),
 })
 
+export const CommunityRoadStatsSchema = z.object({
+  gameNo: z.number().int().positive(),
+  puzzleType: PuzzleTypeSchema,
+  plays: z.number().int().min(0),
+  exactSolves: z.number().int().min(0),
+  solveRate: z.number().min(0).max(100),
+  gold: z.number().int().min(0),
+  silver: z.number().int().min(0),
+  bronze: z.number().int().min(0),
+})
+
+export const StatsOverviewSchema = z.object({
+  current: z.object({
+    classic: CommunityRoadStatsSchema.nullable(),
+    expedition: CommunityRoadStatsSchema.nullable(),
+  }),
+})
+
 // ---------------------------------------------------------------------------
 // API payloads
 // ---------------------------------------------------------------------------
@@ -284,6 +302,8 @@ export type HintResult = z.infer<typeof HintResultSchema>
 export type PublicGame = z.infer<typeof PublicGameSchema>
 export type CurrentGamesResponse = z.infer<typeof CurrentGamesResponseSchema>
 export type PastGameSummary = z.infer<typeof PastGameSummarySchema>
+export type CommunityRoadStats = z.infer<typeof CommunityRoadStatsSchema>
+export type StatsOverview = z.infer<typeof StatsOverviewSchema>
 
 export type SessionEndPayload = z.infer<typeof SessionEndPayloadSchema>
 export type HintRequestPayload = z.infer<typeof HintRequestPayloadSchema>

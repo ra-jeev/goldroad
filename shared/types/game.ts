@@ -22,6 +22,8 @@ export type {
   PublicGame,
   CurrentGamesResponse,
   PastGameSummary,
+  CommunityRoadStats,
+  StatsOverview,
   SessionEndPayload,
   HintRequestPayload,
 } from '../validators/game'
