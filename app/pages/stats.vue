@@ -20,6 +20,8 @@ type CurrentComparisonCard = {
   globalHeadline: string
   globalDetail: string
   globalMedals: string
+  comparisonHeadline: string
+  comparisonDetail: string
 }
 
 function getStoredPlayerUUID(): string | null {
@@ -38,6 +40,11 @@ function formatDay(day: string): string {
 
 function hintTotal(hints: { level1: number; level2: number; level3: number }): number {
   return hints.level1 + hints.level2 + hints.level3
+}
+
+function toPercent(value: number, total: number): number {
+  if (total <= 0) return 0
+  return Math.max(0, Math.min(100, Math.round((value / total) * 100)))
 }
 
 function formatMedal(medal: Medal | null): string {
@@ -68,6 +75,63 @@ function describeLocalStatus(globalStat: CommunityRoadStats) {
   }
 }
 
+function buildComparisonInsight(globalStat: CommunityRoadStats) {
+  const progress = localProgress.getGameProgress(globalStat.gameNo, globalStat.puzzleType)
+
+  if (globalStat.plays === 0) {
+    return {
+      headline: 'No community runs recorded yet',
+      detail: 'This road has not posted enough server-side run data to compare against yet.',
+    }
+  }
+
+  const exactSolveRate = toPercent(globalStat.exactSolves, globalStat.plays)
+  const unfinishedRuns = Math.max(globalStat.plays - globalStat.exactSolves, 0)
+  const silverOrBetter = Math.min(globalStat.gold + globalStat.silver, globalStat.plays)
+  const bronzeOrBetter = Math.min(silverOrBetter + globalStat.bronze, globalStat.plays)
+  const nonMedalSolves = Math.max(globalStat.exactSolves - globalStat.gold - globalStat.silver - globalStat.bronze, 0)
+
+  if (progress.solved) {
+    if (progress.medal === 'gold') {
+      return {
+        headline: `Ahead of ${toPercent(globalStat.plays - globalStat.gold, globalStat.plays)}% of recorded runs`,
+        detail: `${toPercent(globalStat.gold, globalStat.plays)}% of runs have also landed Gold so far.`,
+      }
+    }
+
+    if (progress.medal === 'silver') {
+      return {
+        headline: `Ahead of ${toPercent(globalStat.plays - silverOrBetter, globalStat.plays)}% of recorded runs`,
+        detail: `${toPercent(silverOrBetter, globalStat.plays)}% of runs have reached Silver or better so far.`,
+      }
+    }
+
+    if (progress.medal === 'bronze') {
+      return {
+        headline: `Ahead of ${toPercent(globalStat.plays - bronzeOrBetter, globalStat.plays)}% of recorded runs`,
+        detail: `${toPercent(bronzeOrBetter, globalStat.plays)}% of runs have reached the medal band so far.`,
+      }
+    }
+
+    return {
+      headline: `Ahead of ${toPercent(unfinishedRuns, globalStat.plays)}% of recorded runs`,
+      detail: `${toPercent(nonMedalSolves, globalStat.plays)}% of runs exact-solve outside the medal band.`,
+    }
+  }
+
+  if (progress.attempts > 0 || hintTotal(progress.hints) > 0) {
+    return {
+      headline: `${100 - exactSolveRate}% of recorded runs are still unsolved`,
+      detail: `${exactSolveRate}% of runs exact-solve this road so far.`,
+    }
+  }
+
+  return {
+    headline: `${exactSolveRate}% exact solve rate so far`,
+    detail: `${toPercent(unfinishedRuns, globalStat.plays)}% of recorded runs have not exact-solved this road yet.`,
+  }
+}
+
 const currentComparisonCards = computed<CurrentComparisonCard[]>(() => {
   const current = communityOverview.value?.current
   if (!current) return []
@@ -77,6 +141,7 @@ const currentComparisonCards = computed<CurrentComparisonCard[]>(() => {
     .filter((entry): entry is CommunityRoadStats => Boolean(entry))
     .map((entry) => {
       const local = describeLocalStatus(entry)
+      const comparison = buildComparisonInsight(entry)
       return {
         key: `${entry.puzzleType}:${entry.gameNo}`,
         modeLabel: entry.puzzleType === 'classic' ? 'Classic' : 'Expedition',
@@ -86,6 +151,8 @@ const currentComparisonCards = computed<CurrentComparisonCard[]>(() => {
         globalHeadline: `${entry.solveRate}% exact solve rate`,
         globalDetail: `${entry.plays} play${entry.plays === 1 ? '' : 's'} · ${entry.exactSolves} exact solve${entry.exactSolves === 1 ? '' : 's'}`,
         globalMedals: `${entry.gold} gold · ${entry.silver} silver · ${entry.bronze} bronze`,
+        comparisonHeadline: comparison.headline,
+        comparisonDetail: comparison.detail,
       }
     })
 })
@@ -158,6 +225,11 @@ onMounted(async () => {
                   <strong>{{ card.globalDetail }}</strong>
                   <p>{{ card.globalMedals }}</p>
                 </section>
+              </div>
+
+              <div class="compare-insight">
+                <strong>{{ card.comparisonHeadline }}</strong>
+                <p>{{ card.comparisonDetail }}</p>
               </div>
             </article>
           </div>
@@ -390,6 +462,23 @@ onMounted(async () => {
 .compare-block strong {
   color: var(--color-gold);
   font-size: 1.1rem;
+}
+
+.compare-insight {
+  display: grid;
+  gap: 0.25rem;
+  padding-top: 0.25rem;
+  border-top: 1px solid rgb(var(--color-gold-rgb) / 0.14);
+}
+
+.compare-insight strong {
+  color: var(--color-gold-bright);
+  font-size: 1rem;
+}
+
+.compare-insight p {
+  margin: 0;
+  color: rgb(var(--color-gold-rgb) / 0.74);
 }
 
 .community-error {
