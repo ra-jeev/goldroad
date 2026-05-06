@@ -1,10 +1,32 @@
 <script setup lang="ts">
-// TODO: Implement games archive composable
-const games = ref([
-  // Placeholder data
-])
+const gamesApi = useGamesApi()
+const games = ref<Array<Awaited<ReturnType<typeof gamesApi.getPastGames>>['games'][number]>>([])
+const loading = ref(true)
+const error = ref<string | null>(null)
 
-const loading = ref(false)
+function formatDate(value: string): string {
+  return new Intl.DateTimeFormat(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(new Date(value))
+}
+
+function formatDifficulty(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1)
+}
+
+onMounted(async () => {
+  try {
+    const response = await gamesApi.getPastGames(60)
+    games.value = response.games
+  } catch {
+    error.value = 'Past games are unavailable right now.'
+  } finally {
+    loading.value = false
+  }
+})
 </script>
 
 <template>
@@ -19,30 +41,42 @@ const loading = ref(false)
         <p>Loading games...</p>
       </div>
 
+      <div v-else-if="error" class="empty-state">
+        <p>{{ error }}</p>
+      </div>
+
       <div v-else-if="games.length === 0" class="empty-state">
         <p>No past games available yet.</p>
-        <p class="hint">Complete today's puzzle to start building your archive!</p>
+        <p class="hint">Older roads will appear here once the archive data is available.</p>
       </div>
 
       <div v-else class="games-grid">
-        <!-- Game cards will go here -->
-        <div class="game-card">
+        <article v-for="game in games" :key="game.gameNo" class="game-card">
           <div class="game-header">
-            <h3>Road #1</h3>
-            <span class="game-date">Jan 1, 2026</span>
+            <div>
+              <h3>Road {{ game.gameNo }}</h3>
+              <span class="game-date">{{ formatDate(game.playableAt) }}</span>
+            </div>
+
+            <span class="difficulty-pill">{{ formatDifficulty(game.difficultyBand) }}</span>
           </div>
+
           <div class="game-stats">
             <div class="game-stat">
-              <span class="label">Score</span>
-              <span class="value">1250</span>
+              <span class="label">Target</span>
+              <span class="value">{{ game.maxScore }}</span>
             </div>
+
             <div class="game-stat">
-              <span class="label">Tier</span>
-              <span class="value tier-gold">Gold</span>
+              <span class="label">Board Coins</span>
+              <span class="value">{{ game.totalCoins }}</span>
             </div>
           </div>
-          <button class="replay-btn">Replay</button>
-        </div>
+
+          <NuxtLink :to="`/games/${game.gameNo}`" class="replay-btn">
+            Replay Road
+          </NuxtLink>
+        </article>
       </div>
     </div>
   </div>
@@ -100,6 +134,8 @@ const loading = ref(false)
   border: 1px solid rgb(var(--color-gold-rgb) / 0.2);
   border-radius: var(--radius-lg);
   padding: 1.5rem;
+  display: grid;
+  gap: 1rem;
   transition: all var(--transition-fast);
 }
 
@@ -112,7 +148,7 @@ const loading = ref(false)
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  margin-bottom: 1rem;
+  gap: 1rem;
 }
 
 .game-header h3 {
@@ -122,14 +158,29 @@ const loading = ref(false)
 }
 
 .game-date {
+  display: block;
+  margin-top: 0.35rem;
   color: var(--color-gold-muted);
   font-size: 0.85rem;
+}
+
+.difficulty-pill {
+  align-self: start;
+  padding: 0.28rem 0.65rem;
+  border-radius: var(--radius-full);
+  background: rgb(var(--color-gold-rgb) / 0.12);
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.24);
+  color: rgb(var(--color-gold-rgb) / 0.88);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .game-stats {
   display: flex;
   gap: 1.5rem;
-  margin-bottom: 1rem;
+  flex-wrap: wrap;
 }
 
 .game-stat {
@@ -151,10 +202,6 @@ const loading = ref(false)
   color: var(--color-gold);
 }
 
-.tier-gold {
-  color: var(--color-gold-bright);
-}
-
 .replay-btn {
   width: 100%;
   padding: 0.7rem;
@@ -163,7 +210,8 @@ const loading = ref(false)
   border-radius: var(--radius-md);
   color: var(--color-gold);
   font-weight: 600;
-  cursor: pointer;
+  text-align: center;
+  text-decoration: none;
   transition: all var(--transition-fast);
 }
 
