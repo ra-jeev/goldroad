@@ -18,6 +18,8 @@
 		"test:api": "node scripts/check-api-routes.mjs"
 	},
 	"dependencies": {
+		"@vueuse/core": "^14.3.0",
+		"@vueuse/nuxt": "^14.3.0",
 		"drizzle-orm": "^0.45.2",
 		"nuxt": "^4.4.2",
 		"vue": "^3.5.31",
