@@ -1,4 +1,5 @@
 import { computed } from 'vue';
+import { StorageSerializers, useStorage } from '@vueuse/core';
 import type { PuzzleType } from '../../shared/types/game';
 
 const STORAGE_KEY = 'goldroad-state-v2';
@@ -15,6 +16,8 @@ const LEGACY_STORAGE_PREFIXES = [
   'goldroad-classic-gold-',
   'goldroad-classic-completed-',
 ] as const;
+
+export type LocalProgressScope = 'live' | 'replay';
 
 export type LocalPuzzleProgress = {
   attempts: number;
@@ -62,12 +65,17 @@ type GoldroadLocalState = {
   settings: Record<string, never>;
   currentRoadContext: CurrentRoadContext;
   puzzleProgressByKey: Record<string, PuzzleProgressRecord>;
+  replayProgressByKey: Record<string, PuzzleProgressRecord>;
   historyByDay: Record<string, HistoryDayRecord>;
   tutorialState: TutorialState;
 };
 
 function isPuzzleType(value: unknown): value is PuzzleType {
   return value === 'classic' || value === 'expedition';
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
 }
 
 function isNullableString(value: unknown): value is string | null {
@@ -79,26 +87,32 @@ function isNullableNumber(value: unknown): value is number | null {
 }
 
 function isNumberArray(value: unknown): value is number[] {
-  return Array.isArray(value) && value.every((entry) => typeof entry === 'number');
-}
-
-function isValidLocalPuzzleProgress(value: unknown): value is LocalPuzzleProgress {
-  if (!value || typeof value !== 'object') return false;
-  const candidate = value as LocalPuzzleProgress;
   return (
-    typeof candidate.attempts === 'number' &&
-    typeof candidate.solved === 'boolean' &&
-    typeof candidate.hintsUsed === 'number' &&
-    isNullableNumber(candidate.solveTimeMs) &&
-    isNumberArray(candidate.guidePath)
+    Array.isArray(value) && value.every((entry) => typeof entry === 'number')
   );
 }
 
-function isValidPuzzleProgressRecord(value: unknown): value is PuzzleProgressRecord {
-  if (!value || typeof value !== 'object') return false;
-  const candidate = value as PuzzleProgressRecord;
+function isValidLocalPuzzleProgress(
+  value: unknown,
+): value is LocalPuzzleProgress {
+  if (!isPlainObject(value)) return false;
+
   return (
-    isValidLocalPuzzleProgress(candidate) &&
+    typeof value.attempts === 'number' &&
+    typeof value.solved === 'boolean' &&
+    typeof value.hintsUsed === 'number' &&
+    isNullableNumber(value.solveTimeMs) &&
+    isNumberArray(value.guidePath)
+  );
+}
+
+function isValidPuzzleProgressRecord(
+  value: unknown,
+): value is PuzzleProgressRecord {
+  if (!isPlainObject(value) || !isValidLocalPuzzleProgress(value)) return false;
+
+  const candidate = value as Partial<PuzzleProgressRecord>;
+  return (
     typeof candidate.day === 'string' &&
     typeof candidate.gameNo === 'number' &&
     isPuzzleType(candidate.puzzleType) &&
@@ -106,68 +120,65 @@ function isValidPuzzleProgressRecord(value: unknown): value is PuzzleProgressRec
   );
 }
 
-function isValidHistoryModeRecord(value: unknown): value is HistoryModeRecord {
-  if (!value || typeof value !== 'object') return false;
-  const candidate = value as HistoryModeRecord;
+function isValidPuzzleProgressMap(
+  value: unknown,
+): value is Record<string, PuzzleProgressRecord> {
   return (
-    typeof candidate.attempts === 'number' &&
-    typeof candidate.solved === 'boolean' &&
-    typeof candidate.hintsUsed === 'number' &&
-    isNullableNumber(candidate.solveTimeMs) &&
-    typeof candidate.updatedAt === 'string'
+    isPlainObject(value) &&
+    Object.values(value).every(isValidPuzzleProgressRecord)
+  );
+}
+
+function isValidHistoryModeRecord(value: unknown): value is HistoryModeRecord {
+  if (!isPlainObject(value)) return false;
+
+  return (
+    typeof value.attempts === 'number' &&
+    typeof value.solved === 'boolean' &&
+    typeof value.hintsUsed === 'number' &&
+    isNullableNumber(value.solveTimeMs) &&
+    typeof value.updatedAt === 'string'
   );
 }
 
 function isValidHistoryDayRecord(value: unknown): value is HistoryDayRecord {
-  if (!value || typeof value !== 'object') return false;
-  const candidate = value as HistoryDayRecord;
+  if (!isPlainObject(value) || !isPlainObject(value.modes)) return false;
+
   return (
-    typeof candidate.day === 'string' &&
-    typeof candidate.gameNo === 'number' &&
-    !!candidate.modes &&
-    typeof candidate.modes === 'object' &&
-    Object.entries(candidate.modes).every(([puzzleType, modeRecord]) => {
+    typeof value.day === 'string' &&
+    typeof value.gameNo === 'number' &&
+    Object.entries(value.modes).every(([puzzleType, modeRecord]) => {
       if (!isPuzzleType(puzzleType)) return false;
       return modeRecord === undefined || isValidHistoryModeRecord(modeRecord);
     })
   );
 }
 
-function isValidCurrentRoadContext(value: unknown): value is CurrentRoadContext {
-  if (!value || typeof value !== 'object') return false;
-  const candidate = value as CurrentRoadContext;
+function isValidHistoryByDayMap(
+  value: unknown,
+): value is Record<string, HistoryDayRecord> {
   return (
-    isNullableNumber(candidate.currentGameNo) &&
-    isNullableString(candidate.currentDay) &&
-    (candidate.selectedMode === null || isPuzzleType(candidate.selectedMode))
+    isPlainObject(value) && Object.values(value).every(isValidHistoryDayRecord)
+  );
+}
+
+function isValidCurrentRoadContext(
+  value: unknown,
+): value is CurrentRoadContext {
+  if (!isPlainObject(value)) return false;
+
+  return (
+    isNullableNumber(value.currentGameNo) &&
+    isNullableString(value.currentDay) &&
+    (value.selectedMode === null || isPuzzleType(value.selectedMode))
   );
 }
 
 function isValidTutorialState(value: unknown): value is TutorialState {
-  if (!value || typeof value !== 'object') return false;
-  const candidate = value as TutorialState;
-  return (
-    typeof candidate.completed === 'boolean' &&
-    isNullableString(candidate.lastSeenAt)
-  );
-}
+  if (!isPlainObject(value)) return false;
 
-function isValidGoldroadLocalState(value: unknown): value is GoldroadLocalState {
-  if (!value || typeof value !== 'object') return false;
-  const candidate = value as GoldroadLocalState;
   return (
-    candidate.version === STORAGE_VERSION &&
-    typeof candidate.playerUUID === 'string' &&
-    !!candidate.settings &&
-    typeof candidate.settings === 'object' &&
-    isValidCurrentRoadContext(candidate.currentRoadContext) &&
-    !!candidate.puzzleProgressByKey &&
-    typeof candidate.puzzleProgressByKey === 'object' &&
-    Object.values(candidate.puzzleProgressByKey).every(isValidPuzzleProgressRecord) &&
-    !!candidate.historyByDay &&
-    typeof candidate.historyByDay === 'object' &&
-    Object.values(candidate.historyByDay).every(isValidHistoryDayRecord) &&
-    isValidTutorialState(candidate.tutorialState)
+    typeof value.completed === 'boolean' && isNullableString(value.lastSeenAt)
   );
 }
 
@@ -222,6 +233,7 @@ function createEmptyState(playerUUID = createPlayerUUID()): GoldroadLocalState {
       selectedMode: null,
     },
     puzzleProgressByKey: {},
+    replayProgressByKey: {},
     historyByDay: {},
     tutorialState: {
       completed: false,
@@ -230,8 +242,8 @@ function createEmptyState(playerUUID = createPlayerUUID()): GoldroadLocalState {
   };
 }
 
-function toLocalPuzzleProgress(
-  progress: PuzzleProgressRecord | LocalPuzzleProgress,
+function cloneLocalPuzzleProgress(
+  progress: LocalPuzzleProgress,
 ): LocalPuzzleProgress {
   return {
     attempts: progress.attempts,
@@ -240,6 +252,86 @@ function toLocalPuzzleProgress(
     solveTimeMs: progress.solveTimeMs,
     guidePath: [...progress.guidePath],
   };
+}
+
+function clonePuzzleProgressRecord(
+  progress: PuzzleProgressRecord,
+): PuzzleProgressRecord {
+  return {
+    ...cloneLocalPuzzleProgress(progress),
+    day: progress.day,
+    gameNo: progress.gameNo,
+    puzzleType: progress.puzzleType,
+    updatedAt: progress.updatedAt,
+  };
+}
+
+function clonePuzzleProgressMap(
+  value: Record<string, PuzzleProgressRecord>,
+): Record<string, PuzzleProgressRecord> {
+  return Object.fromEntries(
+    Object.entries(value).map(([key, progress]) => [
+      key,
+      clonePuzzleProgressRecord(progress),
+    ]),
+  );
+}
+
+function cloneHistoryModeRecord(value: HistoryModeRecord): HistoryModeRecord {
+  return {
+    attempts: value.attempts,
+    solved: value.solved,
+    hintsUsed: value.hintsUsed,
+    solveTimeMs: value.solveTimeMs,
+    updatedAt: value.updatedAt,
+  };
+}
+
+function cloneHistoryDayRecord(value: HistoryDayRecord): HistoryDayRecord {
+  return {
+    day: value.day,
+    gameNo: value.gameNo,
+    modes: Object.fromEntries(
+      Object.entries(value.modes).map(([puzzleType, modeRecord]) => [
+        puzzleType,
+        modeRecord ? cloneHistoryModeRecord(modeRecord) : undefined,
+      ]),
+    ) as HistoryDayRecord['modes'],
+  };
+}
+
+function cloneHistoryByDayMap(
+  value: Record<string, HistoryDayRecord>,
+): Record<string, HistoryDayRecord> {
+  return Object.fromEntries(
+    Object.entries(value).map(([day, record]) => [
+      day,
+      cloneHistoryDayRecord(record),
+    ]),
+  );
+}
+
+function cloneState(value: GoldroadLocalState): GoldroadLocalState {
+  return {
+    version: STORAGE_VERSION,
+    playerUUID: value.playerUUID,
+    settings: {},
+    currentRoadContext: {
+      ...value.currentRoadContext,
+    },
+    puzzleProgressByKey: clonePuzzleProgressMap(value.puzzleProgressByKey),
+    replayProgressByKey: clonePuzzleProgressMap(value.replayProgressByKey),
+    historyByDay: cloneHistoryByDayMap(value.historyByDay),
+    tutorialState: {
+      ...value.tutorialState,
+    },
+  };
+}
+
+function toLocalPuzzleProgress(
+  progress: PuzzleProgressRecord,
+): LocalPuzzleProgress {
+  return cloneLocalPuzzleProgress(progress);
 }
 
 function upsertHistoryEntry(
@@ -268,6 +360,30 @@ function upsertHistoryEntry(
   };
 }
 
+function normalizeStoredState(value: unknown): GoldroadLocalState | null {
+  if (!isPlainObject(value)) return null;
+  if (value.version !== STORAGE_VERSION) return null;
+  if (typeof value.playerUUID !== 'string') return null;
+  if (!isPlainObject(value.settings)) return null;
+  if (!isValidCurrentRoadContext(value.currentRoadContext)) return null;
+  if (!isValidPuzzleProgressMap(value.puzzleProgressByKey)) return null;
+  if (!isValidHistoryByDayMap(value.historyByDay)) return null;
+  if (!isValidTutorialState(value.tutorialState)) return null;
+
+  return {
+    version: STORAGE_VERSION,
+    playerUUID: value.playerUUID,
+    settings: {},
+    currentRoadContext: value.currentRoadContext,
+    puzzleProgressByKey: value.puzzleProgressByKey,
+    replayProgressByKey: isValidPuzzleProgressMap(value.replayProgressByKey)
+      ? value.replayProgressByKey
+      : {},
+    historyByDay: value.historyByDay,
+    tutorialState: value.tutorialState,
+  };
+}
+
 function removeLegacyKeys() {
   if (typeof window === 'undefined') return;
 
@@ -276,7 +392,9 @@ function removeLegacyKeys() {
     if (!key || key === STORAGE_KEY) continue;
 
     if (
-      LEGACY_STORAGE_KEYS.includes(key as (typeof LEGACY_STORAGE_KEYS)[number]) ||
+      LEGACY_STORAGE_KEYS.includes(
+        key as (typeof LEGACY_STORAGE_KEYS)[number],
+      ) ||
       LEGACY_STORAGE_PREFIXES.some((prefix) => key.startsWith(prefix))
     ) {
       window.localStorage.removeItem(key);
@@ -284,47 +402,67 @@ function removeLegacyKeys() {
   }
 }
 
+function getProgressMap(
+  nextState: GoldroadLocalState,
+  scope: LocalProgressScope,
+): Record<string, PuzzleProgressRecord> {
+  return scope === 'live'
+    ? nextState.puzzleProgressByKey
+    : nextState.replayProgressByKey;
+}
+
+function setProgressMap(
+  nextState: GoldroadLocalState,
+  scope: LocalProgressScope,
+  progressMap: Record<string, PuzzleProgressRecord>,
+) {
+  if (scope === 'live') {
+    nextState.puzzleProgressByKey = progressMap;
+    return;
+  }
+
+  nextState.replayProgressByKey = progressMap;
+}
+
 export function getRoadDayKeyFromPlayableAt(playableAt: string): string {
   return playableAt.split('T')[0] ?? playableAt;
 }
 
 export function useGoldroadLocalState() {
+  const storedState = useStorage<GoldroadLocalState | null>(
+    STORAGE_KEY,
+    null,
+    undefined,
+    {
+      serializer: StorageSerializers.object,
+      writeDefaults: false,
+    },
+  );
   const state = useState<GoldroadLocalState | null>(
     'goldroad-local-state',
     () => null,
   );
 
-  function persist() {
-    if (typeof window === 'undefined' || !state.value) return;
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state.value));
+  function commit(nextState: GoldroadLocalState) {
+    const snapshot = cloneState(nextState);
+    state.value = snapshot;
+    storedState.value = snapshot;
+    return snapshot;
   }
 
   function load() {
     if (typeof window === 'undefined') {
-      state.value = createEmptyState(FALLBACK_UUID);
+      if (!state.value) {
+        state.value = createEmptyState(FALLBACK_UUID);
+      }
       return state.value;
     }
 
     removeLegacyKeys();
 
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      state.value = createEmptyState();
-      persist();
-      return state.value;
-    }
-
-    try {
-      const parsed = JSON.parse(raw) as unknown;
-      state.value = isValidGoldroadLocalState(parsed)
-        ? parsed
-        : createEmptyState();
-    } catch {
-      state.value = createEmptyState();
-    }
-
-    persist();
-    return state.value;
+    const normalized =
+      normalizeStoredState(storedState.value) ?? createEmptyState();
+    return commit(normalized);
   }
 
   function ensureLoaded(): GoldroadLocalState {
@@ -338,55 +476,69 @@ export function useGoldroadLocalState() {
     return state.value ?? createEmptyState(FALLBACK_UUID);
   }
 
-  function updatePuzzleProgress(
-    gameNo: number,
-    puzzleType: PuzzleType,
-    day: string,
-    updater: (progress: PuzzleProgressRecord) => PuzzleProgressRecord,
-  ): LocalPuzzleProgress {
-    const nextState = ensureLoaded();
-    const key = buildPuzzleKey(gameNo, puzzleType);
-    const existing = nextState.puzzleProgressByKey[key];
+  function updatePuzzleProgress(options: {
+    gameNo: number;
+    puzzleType: PuzzleType;
+    day: string;
+    scope: LocalProgressScope;
+    updater: (progress: PuzzleProgressRecord) => PuzzleProgressRecord;
+  }): LocalPuzzleProgress {
+    const nextState = cloneState(ensureLoaded());
+    const key = buildPuzzleKey(options.gameNo, options.puzzleType);
+    const progressMap = getProgressMap(nextState, options.scope);
+    const existing = progressMap[key];
     const current =
-      existing && existing.day === day
-        ? existing
-        : createPuzzleProgressRecord(gameNo, puzzleType, day);
-    const updated = updater({
-      ...current,
-      guidePath: [...current.guidePath],
+      existing && existing.day === options.day
+        ? clonePuzzleProgressRecord(existing)
+        : createPuzzleProgressRecord(
+            options.gameNo,
+            options.puzzleType,
+            options.day,
+          );
+    const updated = options.updater(current);
+
+    setProgressMap(nextState, options.scope, {
+      ...progressMap,
+      [key]: clonePuzzleProgressRecord(updated),
     });
 
-    nextState.puzzleProgressByKey[key] = updated;
-    upsertHistoryEntry(nextState, updated);
+    if (options.scope === 'live') {
+      upsertHistoryEntry(nextState, updated);
+    }
 
-    state.value = {
-      ...nextState,
-      currentRoadContext: {
-        ...nextState.currentRoadContext,
-      },
-      puzzleProgressByKey: {
-        ...nextState.puzzleProgressByKey,
-      },
-      historyByDay: {
-        ...nextState.historyByDay,
-      },
-      tutorialState: {
-        ...nextState.tutorialState,
-      },
-    };
-    persist();
-
+    commit(nextState);
     return toLocalPuzzleProgress(updated);
+  }
+
+  function clearPuzzleProgress(
+    gameNo: number,
+    puzzleType: PuzzleType,
+    scope: LocalProgressScope,
+  ) {
+    const nextState = cloneState(ensureLoaded());
+    const key = buildPuzzleKey(gameNo, puzzleType);
+    const progressMap = getProgressMap(nextState, scope);
+    if (!(key in progressMap)) {
+      return createEmptyLocalPuzzleProgress();
+    }
+
+    const { [key]: _removed, ...rest } = progressMap;
+    setProgressMap(nextState, scope, rest);
+    commit(nextState);
+    return createEmptyLocalPuzzleProgress();
   }
 
   function getPuzzleProgress(
     gameNo: number,
     puzzleType: PuzzleType,
+    scope: LocalProgressScope = 'live',
   ): LocalPuzzleProgress {
     const nextState = ensureLoaded();
     const key = buildPuzzleKey(gameNo, puzzleType);
-    const progress = nextState.puzzleProgressByKey[key];
-    return progress ? toLocalPuzzleProgress(progress) : createEmptyLocalPuzzleProgress();
+    const progress = getProgressMap(nextState, scope)[key];
+    return progress
+      ? toLocalPuzzleProgress(progress)
+      : createEmptyLocalPuzzleProgress();
   }
 
   function recordHint(options: {
@@ -394,12 +546,14 @@ export function useGoldroadLocalState() {
     puzzleType: PuzzleType;
     day: string;
     guidePath: number[];
+    scope?: LocalProgressScope;
   }): LocalPuzzleProgress {
-    return updatePuzzleProgress(
-      options.gameNo,
-      options.puzzleType,
-      options.day,
-      (progress) => {
+    return updatePuzzleProgress({
+      gameNo: options.gameNo,
+      puzzleType: options.puzzleType,
+      day: options.day,
+      scope: options.scope ?? 'live',
+      updater: (progress) => {
         if (progress.solved) {
           return progress;
         }
@@ -414,7 +568,7 @@ export function useGoldroadLocalState() {
           updatedAt: nowIso(),
         };
       },
-    );
+    });
   }
 
   function recordRun(options: {
@@ -424,48 +578,41 @@ export function useGoldroadLocalState() {
     attemptNumber: number;
     solved: boolean;
     solveTimeMs?: number | null;
+    scope?: LocalProgressScope;
   }): LocalPuzzleProgress {
-    return updatePuzzleProgress(
-      options.gameNo,
-      options.puzzleType,
-      options.day,
-      (progress) => ({
+    const scope = options.scope ?? 'live';
+    if (scope === 'replay' && options.solved) {
+      return clearPuzzleProgress(options.gameNo, options.puzzleType, scope);
+    }
+
+    return updatePuzzleProgress({
+      gameNo: options.gameNo,
+      puzzleType: options.puzzleType,
+      day: options.day,
+      scope,
+      updater: (progress) => ({
         ...progress,
         attempts: progress.solved
           ? progress.attempts
           : Math.max(progress.attempts, options.attemptNumber),
         solved: progress.solved || options.solved,
         solveTimeMs:
-          progress.solveTimeMs ?? (options.solved ? options.solveTimeMs ?? null : null),
+          progress.solveTimeMs ??
+          (options.solved ? (options.solveTimeMs ?? null) : null),
         guidePath: options.solved ? [] : [...progress.guidePath],
         updatedAt: nowIso(),
       }),
-    );
+    });
   }
 
   function setCurrentRoadContext(update: Partial<CurrentRoadContext>) {
-    const nextState = ensureLoaded();
+    const nextState = cloneState(ensureLoaded());
     nextState.currentRoadContext = {
       ...nextState.currentRoadContext,
       ...update,
     };
 
-    state.value = {
-      ...nextState,
-      currentRoadContext: {
-        ...nextState.currentRoadContext,
-      },
-      puzzleProgressByKey: {
-        ...nextState.puzzleProgressByKey,
-      },
-      historyByDay: {
-        ...nextState.historyByDay,
-      },
-      tutorialState: {
-        ...nextState.tutorialState,
-      },
-    };
-    persist();
+    commit(nextState);
   }
 
   return {

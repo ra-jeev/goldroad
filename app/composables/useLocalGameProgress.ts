@@ -2,6 +2,7 @@ import { computed } from 'vue';
 import type { PuzzleType } from '../../shared/types/game';
 import {
   useGoldroadLocalState,
+  type LocalProgressScope,
   type LocalPuzzleProgress,
 } from './useGoldroadLocalState';
 
@@ -17,8 +18,9 @@ export function useLocalGameProgress() {
   function getGameProgress(
     gameNo: number,
     puzzleType: PuzzleType,
+    scope: LocalProgressScope = 'live',
   ): LocalGameProgressRecord {
-    return localState.getPuzzleProgress(gameNo, puzzleType);
+    return localState.getPuzzleProgress(gameNo, puzzleType, scope);
   }
 
   function recordHint(
@@ -26,12 +28,14 @@ export function useLocalGameProgress() {
     puzzleType: PuzzleType,
     day: string,
     guidePath: number[],
+    scope: LocalProgressScope = 'live',
   ) {
     return localState.recordHint({
       gameNo,
       puzzleType,
       day,
       guidePath,
+      scope,
     });
   }
 
@@ -42,6 +46,7 @@ export function useLocalGameProgress() {
     attemptNumber: number,
     solved: boolean,
     solveTimeMs: number | null = null,
+    scope: LocalProgressScope = 'live',
   ) {
     return localState.recordRun({
       gameNo,
@@ -50,6 +55,7 @@ export function useLocalGameProgress() {
       attemptNumber,
       solved,
       solveTimeMs,
+      scope,
     });
   }
 

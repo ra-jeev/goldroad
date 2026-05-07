@@ -17,7 +17,10 @@ import type {
   PuzzleType,
 } from '../../shared/types/game';
 import { UI_COPY } from '../content/uiCopy';
-import { getRoadDayKeyFromPlayableAt } from './useGoldroadLocalState';
+import {
+  getRoadDayKeyFromPlayableAt,
+  type LocalProgressScope,
+} from './useGoldroadLocalState';
 
 type EntryType = 'live' | 'archive';
 
@@ -72,6 +75,8 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
   const hintsUsed = ref(0);
 
   const playerUUID = localProgress.playerUUID;
+  const progressScope: LocalProgressScope =
+    options.entryType === 'live' ? 'live' : 'replay';
   const maxScore = computed(() => game.value?.maxScore ?? 0);
   const totalCoins = computed(() => game.value?.totalCoins ?? 0);
   const completionPercent = computed(() => {
@@ -186,6 +191,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     const progress = localProgress.getGameProgress(
       next.gameNo,
       next.puzzleType,
+      progressScope,
     );
     const progressAttemptNumber = progress.solved
       ? Math.max(progress.attempts, 1)
@@ -332,6 +338,8 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
       getRoadDayKeyFromPlayableAt(game.value.playableAt),
       attemptNumber.value,
       solved,
+      null,
+      progressScope,
     );
     if (solved) {
       guidePath.value = [];
@@ -455,6 +463,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     const existingProgress = localProgress.getGameProgress(
       game.value.gameNo,
       game.value.puzzleType,
+      progressScope,
     );
 
     if (existingProgress.solved) {
@@ -476,6 +485,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
       game.value.puzzleType,
       getRoadDayKeyFromPlayableAt(game.value.playableAt),
       res.hint.guidePath,
+      progressScope,
     );
 
     hintsUsed.value = progress.hintsUsed;
