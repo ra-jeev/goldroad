@@ -1,113 +1,159 @@
-import { computed, ref } from 'vue'
-import type { PuzzleType } from '../../shared/types/game'
-import type { LocalGameProgressRecord } from './useLocalGameProgress'
+import { computed, ref } from 'vue';
+import { calcMedalForAttempt } from '../../lib/gameTiers';
+import type { PuzzleType } from '../../shared/types/game';
+import type { LocalGameProgressRecord } from './useLocalGameProgress';
 
-const STORAGE_KEY = 'goldroad-player-stats-v1'
+const STORAGE_KEY = 'goldroad-player-stats-v1';
 
 type StatsModeRecord = LocalGameProgressRecord & {
-  updatedAt: string
-}
+  updatedAt: string;
+};
 
 type StatsDayRecord = {
-  day: string
-  gameNo: number
-  modes: Partial<Record<PuzzleType, StatsModeRecord>>
-}
+  day: string;
+  gameNo: number;
+  modes: Partial<Record<PuzzleType, StatsModeRecord>>;
+};
 
 type PlayerStatsState = {
-  playerUUID: string
-  days: Record<string, StatsDayRecord>
-}
+  playerUUID: string;
+  days: Record<string, StatsDayRecord>;
+};
 
 function createEmptyState(playerUUID: string): PlayerStatsState {
   return {
     playerUUID,
     days: {},
-  }
+  };
+}
+
+function isValidProgressRecord(
+  value: unknown,
+): value is LocalGameProgressRecord {
+  if (!value || typeof value !== 'object') return false;
+  const candidate = value as LocalGameProgressRecord;
+  return (
+    typeof candidate.attempts === 'number' &&
+    typeof candidate.solved === 'boolean' &&
+    typeof candidate.hintsUsed === 'number' &&
+    Array.isArray(candidate.guidePath) &&
+    candidate.guidePath.every((tileIndex) => typeof tileIndex === 'number')
+  );
+}
+
+function isValidStatsModeRecord(value: unknown): value is StatsModeRecord {
+  if (!value || typeof value !== 'object') return false;
+  const candidate = value as StatsModeRecord;
+  return (
+    isValidProgressRecord(candidate) && typeof candidate.updatedAt === 'string'
+  );
 }
 
 function isValidState(value: unknown): value is PlayerStatsState {
-  if (!value || typeof value !== 'object') return false
-  const candidate = value as PlayerStatsState
-  return typeof candidate.playerUUID === 'string'
-    && !!candidate.days
-    && typeof candidate.days === 'object'
+  if (!value || typeof value !== 'object') return false;
+  const candidate = value as PlayerStatsState;
+  return (
+    typeof candidate.playerUUID === 'string' &&
+    !!candidate.days &&
+    typeof candidate.days === 'object' &&
+    Object.values(candidate.days).every((dayRecord) => {
+      if (!dayRecord || typeof dayRecord !== 'object') return false;
+      const candidateDay = dayRecord as StatsDayRecord;
+      return (
+        typeof candidateDay.day === 'string' &&
+        typeof candidateDay.gameNo === 'number' &&
+        !!candidateDay.modes &&
+        typeof candidateDay.modes === 'object' &&
+        Object.values(candidateDay.modes).every(
+          (modeRecord) =>
+            modeRecord === undefined || isValidStatsModeRecord(modeRecord),
+        )
+      );
+    })
+  );
 }
 
 function getTodayKey(): string {
-  return new Date().toISOString().split('T')[0]!
+  return new Date().toISOString().split('T')[0]!;
 }
 
-function copyProgress(progress: LocalGameProgressRecord): LocalGameProgressRecord {
+function copyProgress(
+  progress: LocalGameProgressRecord,
+): LocalGameProgressRecord {
   return {
     ...progress,
-    hints: { ...progress.hints },
-  }
+    guidePath: [...progress.guidePath],
+  };
 }
 
-function getHintTotal(progress: Pick<LocalGameProgressRecord, 'hints'>): number {
-  return progress.hints.level1 + progress.hints.level2 + progress.hints.level3
+function getHintTotal(
+  progress: Pick<LocalGameProgressRecord, 'hintsUsed'>,
+): number {
+  return progress.hintsUsed;
 }
 
-function parseGameKey(key: string): { puzzleType: PuzzleType; gameNo: number } | null {
-  const [puzzleType, rawGameNo] = key.split(':')
-  if ((puzzleType !== 'classic' && puzzleType !== 'expedition') || !rawGameNo) return null
+function parseGameKey(
+  key: string,
+): { puzzleType: PuzzleType; gameNo: number } | null {
+  const [puzzleType, rawGameNo] = key.split(':');
+  if ((puzzleType !== 'classic' && puzzleType !== 'expedition') || !rawGameNo)
+    return null;
 
-  const gameNo = Number(rawGameNo)
-  if (!Number.isFinite(gameNo)) return null
+  const gameNo = Number(rawGameNo);
+  if (!Number.isFinite(gameNo)) return null;
 
   return {
     puzzleType,
     gameNo,
-  }
+  };
 }
 
 function getUtcDayStamp(day: string): number {
-  return Date.parse(`${day}T00:00:00.000Z`)
+  return Date.parse(`${day}T00:00:00.000Z`);
 }
 
 export function useLocalPlayerStats() {
-  const state = ref<PlayerStatsState | null>(null)
+  const state = ref<PlayerStatsState | null>(null);
 
   function persist() {
-    if (typeof window === 'undefined' || !state.value) return
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state.value))
+    if (typeof window === 'undefined' || !state.value) return;
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state.value));
   }
 
   function load(playerUUID: string) {
     if (typeof window === 'undefined') {
-      state.value = createEmptyState(playerUUID)
-      return
+      state.value = createEmptyState(playerUUID);
+      return;
     }
 
-    const raw = window.localStorage.getItem(STORAGE_KEY)
+    const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) {
-      state.value = createEmptyState(playerUUID)
-      persist()
-      return
+      state.value = createEmptyState(playerUUID);
+      persist();
+      return;
     }
 
     try {
-      const parsed = JSON.parse(raw) as unknown
+      const parsed = JSON.parse(raw) as unknown;
       if (!isValidState(parsed) || parsed.playerUUID !== playerUUID) {
-        state.value = createEmptyState(playerUUID)
-        persist()
-        return
+        state.value = createEmptyState(playerUUID);
+        persist();
+        return;
       }
 
-      state.value = parsed
+      state.value = parsed;
     } catch {
-      state.value = createEmptyState(playerUUID)
-      persist()
+      state.value = createEmptyState(playerUUID);
+      persist();
     }
   }
 
   function ensureLoaded(playerUUID: string): PlayerStatsState {
     if (!state.value || state.value.playerUUID !== playerUUID) {
-      load(playerUUID)
+      load(playerUUID);
     }
 
-    return state.value ?? createEmptyState(playerUUID)
+    return state.value ?? createEmptyState(playerUUID);
   }
 
   function recordProgress(
@@ -117,12 +163,12 @@ export function useLocalPlayerStats() {
     puzzleType: PuzzleType,
     progress: LocalGameProgressRecord,
   ) {
-    const nextState = ensureLoaded(playerUUID)
+    const nextState = ensureLoaded(playerUUID);
     const currentDay = nextState.days[day] ?? {
       day,
       gameNo,
       modes: {},
-    }
+    };
 
     nextState.days[day] = {
       ...currentDay,
@@ -134,15 +180,15 @@ export function useLocalPlayerStats() {
           updatedAt: new Date().toISOString(),
         },
       },
-    }
+    };
 
     state.value = {
       ...nextState,
       days: {
         ...nextState.days,
       },
-    }
-    persist()
+    };
+    persist();
   }
 
   function syncCurrentDay(
@@ -151,90 +197,138 @@ export function useLocalPlayerStats() {
     games: Record<string, LocalGameProgressRecord>,
   ) {
     for (const [gameKey, progress] of Object.entries(games)) {
-      const parsed = parseGameKey(gameKey)
-      if (!parsed) continue
-      recordProgress(playerUUID, day, parsed.gameNo, parsed.puzzleType, progress)
+      const parsed = parseGameKey(gameKey);
+      if (!parsed) continue;
+      recordProgress(
+        playerUUID,
+        day,
+        parsed.gameNo,
+        parsed.puzzleType,
+        progress,
+      );
     }
   }
 
   const recentDays = computed(() => {
-    if (!state.value) return [] as StatsDayRecord[]
+    if (!state.value) return [] as StatsDayRecord[];
 
-    return Object.values(state.value.days)
-      .sort((left, right) => right.day.localeCompare(left.day))
-  })
+    return Object.values(state.value.days).sort((left, right) =>
+      right.day.localeCompare(left.day),
+    );
+  });
 
   const summary = computed(() => {
-    const days = recentDays.value
+    const days = recentDays.value;
     const modeEntries = days.flatMap((entry) => {
-      const records: Array<StatsModeRecord & { day: string; gameNo: number; puzzleType: PuzzleType }> = []
+      const records: Array<
+        StatsModeRecord & {
+          day: string;
+          gameNo: number;
+          puzzleType: PuzzleType;
+        }
+      > = [];
       if (entry.modes.classic) {
-        records.push({ ...entry.modes.classic, day: entry.day, gameNo: entry.gameNo, puzzleType: 'classic' })
+        records.push({
+          ...entry.modes.classic,
+          day: entry.day,
+          gameNo: entry.gameNo,
+          puzzleType: 'classic',
+        });
       }
       if (entry.modes.expedition) {
-        records.push({ ...entry.modes.expedition, day: entry.day, gameNo: entry.gameNo, puzzleType: 'expedition' })
+        records.push({
+          ...entry.modes.expedition,
+          day: entry.day,
+          gameNo: entry.gameNo,
+          puzzleType: 'expedition',
+        });
       }
-      return records
-    })
+      return records;
+    });
 
-    const activeModes = modeEntries.filter((entry) => entry.attempts > 0 || getHintTotal(entry) > 0)
-    const solvedModes = activeModes.filter((entry) => entry.solved)
+    const activeModes = modeEntries.filter(
+      (entry) => entry.attempts > 0 || getHintTotal(entry) > 0,
+    );
+    const solvedModes = activeModes.filter((entry) => entry.solved);
     const medalCounts = {
-      gold: solvedModes.filter((entry) => entry.medal === 'gold').length,
-      silver: solvedModes.filter((entry) => entry.medal === 'silver').length,
-      bronze: solvedModes.filter((entry) => entry.medal === 'bronze').length,
-    }
+      gold: solvedModes.filter(
+        (entry) => calcMedalForAttempt(entry.attempts, entry.solved) === 'gold',
+      ).length,
+      silver: solvedModes.filter(
+        (entry) =>
+          calcMedalForAttempt(entry.attempts, entry.solved) === 'silver',
+      ).length,
+      bronze: solvedModes.filter(
+        (entry) =>
+          calcMedalForAttempt(entry.attempts, entry.solved) === 'bronze',
+      ).length,
+    };
 
     const classicSolvedDays = new Set(
       days
         .filter((entry) => entry.modes.classic?.solved)
         .map((entry) => entry.day),
-    )
+    );
 
-    const dayKeysAsc = [...classicSolvedDays].sort()
-    let bestClassicStreak = 0
-    let runningClassicStreak = 0
-    let previousSolvedDay: string | null = null
+    const dayKeysAsc = [...classicSolvedDays].sort();
+    let bestClassicStreak = 0;
+    let runningClassicStreak = 0;
+    let previousSolvedDay: string | null = null;
 
     for (const day of dayKeysAsc) {
       if (!previousSolvedDay) {
-        runningClassicStreak = 1
+        runningClassicStreak = 1;
       } else {
-        const previousStamp = getUtcDayStamp(previousSolvedDay)
-        const currentStamp = getUtcDayStamp(day)
-        runningClassicStreak = currentStamp - previousStamp === 86400000
-          ? runningClassicStreak + 1
-          : 1
+        const previousStamp = getUtcDayStamp(previousSolvedDay);
+        const currentStamp = getUtcDayStamp(day);
+        runningClassicStreak =
+          currentStamp - previousStamp === 86400000
+            ? runningClassicStreak + 1
+            : 1;
       }
 
-      bestClassicStreak = Math.max(bestClassicStreak, runningClassicStreak)
-      previousSolvedDay = day
+      bestClassicStreak = Math.max(bestClassicStreak, runningClassicStreak);
+      previousSolvedDay = day;
     }
 
-    let currentClassicStreak = 0
-    let cursor = getUtcDayStamp(getTodayKey())
-    while (classicSolvedDays.has(new Date(cursor).toISOString().split('T')[0]!)) {
-      currentClassicStreak += 1
-      cursor -= 86400000
+    let currentClassicStreak = 0;
+    let cursor = getUtcDayStamp(getTodayKey());
+    while (
+      classicSolvedDays.has(new Date(cursor).toISOString().split('T')[0]!)
+    ) {
+      currentClassicStreak += 1;
+      cursor -= 86400000;
     }
 
-    const totalHints = activeModes.reduce((sum, entry) => sum + getHintTotal(entry), 0)
+    const totalHints = activeModes.reduce(
+      (sum, entry) => sum + getHintTotal(entry),
+      0,
+    );
     const averageSolvedAttempts = solvedModes.length
-      ? (solvedModes.reduce((sum, entry) => sum + (entry.firstSolvedAttempt ?? entry.attempts), 0) / solvedModes.length).toFixed(1)
-      : '—'
+      ? (
+          solvedModes.reduce((sum, entry) => sum + entry.attempts, 0) /
+          solvedModes.length
+        ).toFixed(1)
+      : '—';
 
     return {
-      roadDaysPlayed: days.filter((entry) => Object.values(entry.modes).some((mode) => mode && (mode.attempts > 0 || getHintTotal(mode) > 0))).length,
+      roadDaysPlayed: days.filter((entry) =>
+        Object.values(entry.modes).some(
+          (mode) => mode && (mode.attempts > 0 || getHintTotal(mode) > 0),
+        ),
+      ).length,
       modeSessionsPlayed: activeModes.length,
       exactSolves: solvedModes.length,
-      solveRate: activeModes.length ? Math.round((solvedModes.length / activeModes.length) * 100) : 0,
+      solveRate: activeModes.length
+        ? Math.round((solvedModes.length / activeModes.length) * 100)
+        : 0,
       currentClassicStreak,
       bestClassicStreak,
       totalHints,
       averageSolvedAttempts,
       medalCounts,
-    }
-  })
+    };
+  });
 
   return {
     state,
@@ -243,5 +337,5 @@ export function useLocalPlayerStats() {
     syncCurrentDay,
     recentDays,
     summary,
-  }
+  };
 }
