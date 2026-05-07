@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { EdgeType } from '../../shared/types/game';
 
-type RoadVisualType = 'open' | Exclude<EdgeType, 'blocked'>;
+type RoadVisualType = 'open' | Exclude<EdgeType, 'missing'>;
 
 defineProps<{
   type: RoadVisualType;
@@ -15,7 +15,12 @@ defineProps<{
 
 <template>
   <span
-    :class="['road', `road--${type}`, `road--${state}`, { 'road--traversed': traversed }]"
+    :class="[
+      'road',
+      `road--${type}`,
+      `road--${state}`,
+      { 'road--traversed': traversed },
+    ]"
     :style="style"
   >
     <!-- Toll/Bonus indicators - always show, even when traversed -->
@@ -89,7 +94,10 @@ defineProps<{
 .road {
   position: absolute;
   pointer-events: none;
-  transition: color var(--transition-base), opacity var(--transition-base), transform var(--transition-fast);
+  transition:
+    color var(--transition-base),
+    opacity var(--transition-base),
+    transform var(--transition-fast);
   display: flex;
   align-items: center;
   justify-content: center;

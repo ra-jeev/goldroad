@@ -1,46 +1,38 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import type { Medal } from '../../shared/types/game'
-import { UI_COPY } from '../content/uiCopy'
+import { computed } from 'vue';
+import type { Medal } from '../../shared/types/game';
+import { UI_COPY } from '../content/uiCopy';
 
 const props = defineProps<{
-  status: string
-  hintMessage: string | null
-  attemptNumber: number
-  medal: Medal | null
-  nextResetCountdown: string
-  expeditionJustUnlocked: boolean
-  hintUsage: {
-    level1: number
-    level2: number
-    level3: number
-  }
-  ended: boolean
-  solved: boolean
-  canRetry: boolean
-  canSwitchToExpedition: boolean
-  loading: boolean
-  submitting: boolean
-}>()
+  status: string;
+  hintMessage: string | null;
+  attemptNumber: number;
+  medal: Medal | null;
+  nextResetCountdown: string;
+  expeditionJustUnlocked: boolean;
+  hintsUsed: number;
+  ended: boolean;
+  solved: boolean;
+  canRetry: boolean;
+  canSwitchToExpedition: boolean;
+  loading: boolean;
+  submitting: boolean;
+}>();
 
 const emit = defineEmits<{
-  hint: [level: 1 | 2 | 3]
-  retry: []
-  switchExpedition: []
-}>()
+  hint: [];
+  retry: [];
+  switchExpedition: [];
+}>();
 
-const showHints = ref(false)
-const { openHowToPlay } = useHowToPlaySheet()
+const { openHowToPlay } = useHowToPlaySheet();
 
-const busy = computed(() => props.loading || props.submitting)
-const footerMessage = computed(() => props.hintMessage ?? props.status)
-const showSolvedMeta = computed(() => props.ended && props.solved)
-const retryButtonStyle = computed(() => (props.canSwitchToExpedition || showSolvedMeta.value ? 'secondary' : 'primary'))
-
-function requestHint(level: 1 | 2 | 3) {
-  showHints.value = false
-  emit('hint', level)
-}
+const busy = computed(() => props.loading || props.submitting);
+const footerMessage = computed(() => props.hintMessage ?? props.status);
+const showSolvedMeta = computed(() => props.ended && props.solved);
+const retryButtonStyle = computed(() =>
+  props.canSwitchToExpedition || showSolvedMeta.value ? 'secondary' : 'primary',
+);
 </script>
 
 <template>
@@ -51,12 +43,19 @@ function requestHint(level: 1 | 2 | 3) {
 
         <div v-if="showSolvedMeta" class="meta-row">
           <span v-if="medal" class="meta-pill">
-            {{ UI_COPY.boardFooter.medalAwarded(UI_COPY.boardHeader.medals[medal]) }}
+            {{
+              UI_COPY.boardFooter.medalAwarded(
+                UI_COPY.boardHeader.medals[medal],
+              )
+            }}
           </span>
           <span class="meta-pill meta-pill--countdown">
             {{ UI_COPY.boardFooter.nextRoadCountdown(nextResetCountdown) }}
           </span>
-          <span v-if="expeditionJustUnlocked" class="meta-pill meta-pill--accent">
+          <span
+            v-if="expeditionJustUnlocked"
+            class="meta-pill meta-pill--accent"
+          >
             {{ UI_COPY.boardFooter.expeditionUnlocked }}
           </span>
         </div>
@@ -99,42 +98,17 @@ function requestHint(level: 1 | 2 | 3) {
       <button
         v-if="!ended"
         type="button"
-        class="ghost"
+        class="ghost ghost--hint"
         :disabled="busy"
-        @click="showHints = true"
+        @click="emit('hint')"
       >
-        {{ UI_COPY.boardFooter.openHint }}
+        <span>{{ UI_COPY.boardFooter.openHint }}</span>
+        <small>{{ UI_COPY.boardFooter.hintUsedLabel(hintsUsed) }}</small>
       </button>
 
       <button type="button" class="ghost" @click="openHowToPlay()">
         {{ UI_COPY.boardFooter.openHelp }}
       </button>
-    </div>
-
-    <div v-if="showHints" class="sheet-backdrop" @click.self="showHints = false">
-      <section v-if="showHints" class="sheet-card" aria-label="Hints">
-        <div class="sheet-header">
-          <h2>{{ UI_COPY.boardFooter.hintTitle }}</h2>
-          <button type="button" class="close-button" @click="showHints = false">
-            {{ UI_COPY.sidebar.close }}
-          </button>
-        </div>
-
-        <div class="hint-buttons">
-          <button type="button" class="secondary" :disabled="busy" @click="requestHint(1)">
-            <span>{{ UI_COPY.boardFooter.hintRows.level1Title }}</span>
-            <small>{{ UI_COPY.boardFooter.hintRows.level1Desc }} · Used {{ hintUsage.level1 }}</small>
-          </button>
-          <button type="button" class="secondary" :disabled="busy" @click="requestHint(2)">
-            <span>{{ UI_COPY.boardFooter.hintRows.level2Title }}</span>
-            <small>{{ UI_COPY.boardFooter.hintRows.level2Desc }} · Used {{ hintUsage.level2 }}</small>
-          </button>
-          <button type="button" class="secondary" :disabled="busy" @click="requestHint(3)">
-            <span>{{ UI_COPY.boardFooter.hintRows.level3Title }}</span>
-            <small>{{ UI_COPY.boardFooter.hintRows.level3Desc }} · Used {{ hintUsage.level3 }}</small>
-          </button>
-        </div>
-      </section>
     </div>
   </section>
 </template>
@@ -218,7 +192,9 @@ button,
   padding: 0.75rem 1rem;
   font-weight: 700;
   cursor: pointer;
-  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  transition:
+    transform var(--transition-fast),
+    box-shadow var(--transition-fast);
   text-decoration: none;
   display: inline-flex;
   align-items: center;
@@ -232,8 +208,7 @@ button,
 }
 
 .secondary,
-.ghost,
-.close-button {
+.ghost {
   color: var(--color-gold);
   background: rgb(var(--color-gold-rgb) / 0.12);
   border: 1px solid rgb(var(--color-gold-rgb) / 0.28);
@@ -241,6 +216,18 @@ button,
 
 .ghost {
   background: rgb(var(--color-gold-rgb) / 0.08);
+}
+
+.ghost--hint {
+  display: grid;
+  gap: 0.15rem;
+  text-align: left;
+}
+
+.ghost--hint small {
+  color: rgb(var(--color-gold-rgb) / 0.74);
+  font-size: 0.72rem;
+  font-weight: 600;
 }
 
 button:hover:not(:disabled),
@@ -252,57 +239,6 @@ button:hover:not(:disabled),
 button:disabled {
   opacity: 0.4;
   cursor: not-allowed;
-}
-
-.sheet-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 60;
-  display: grid;
-  place-items: center;
-  padding: 1rem;
-  background: rgb(0 0 0 / 0.6);
-  backdrop-filter: blur(4px);
-}
-
-.sheet-card {
-  width: min(100%, 520px);
-  max-height: min(80dvh, 680px);
-  overflow: auto;
-  border-radius: var(--radius-lg);
-  padding: 1rem;
-  background: var(--gradient-card-overlay);
-  border: 1px solid rgb(var(--color-gold-rgb) / 0.35);
-  box-shadow: var(--shadow-xl);
-}
-
-.sheet-header {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  align-items: start;
-}
-
-.sheet-header h2,
-.help-section h3 {
-  margin: 0;
-  color: var(--color-gold);
-}
-
-.hint-buttons {
-  display: grid;
-  gap: 0.6rem;
-  margin-top: 0.9rem;
-}
-
-.hint-buttons button {
-  display: grid;
-  gap: 0.22rem;
-  text-align: left;
-}
-
-.hint-buttons small {
-  color: rgb(var(--color-gold-rgb) / 0.84);
 }
 
 @media (max-width: 760px) {

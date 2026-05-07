@@ -1,16 +1,22 @@
 <script setup lang="ts">
-const showMobileMenu = ref(false)
-const route = useRoute()
-const currentRoadLabel = useState<string | null>('current-road-label', () => null)
-const { openHowToPlay, closeHowToPlay } = useHowToPlaySheet()
+const showMobileMenu = ref(false);
+const route = useRoute();
+const currentRoadLabel = useState<string | null>(
+  'current-road-label',
+  () => null,
+);
+const { openHowToPlay, closeHowToPlay } = useHowToPlaySheet();
 
-watch(() => route.fullPath, () => {
-  closeHowToPlay()
-  closeMobileMenu()
-})
+watch(
+  () => route.fullPath,
+  () => {
+    closeHowToPlay();
+    closeMobileMenu();
+  },
+);
 
 function closeMobileMenu() {
-  showMobileMenu.value = false
+  showMobileMenu.value = false;
 }
 </script>
 
@@ -23,18 +29,27 @@ function closeMobileMenu() {
             <span class="logo-text">Goldroad</span>
           </NuxtLink>
 
-          <p v-if="currentRoadLabel" class="road-chip">{{ currentRoadLabel }}</p>
+          <p v-if="currentRoadLabel" class="road-chip">
+            {{ currentRoadLabel }}
+          </p>
         </div>
 
         <div class="header-actions">
-          <NuxtLink to="/stats" class="nav-link nav-link--compact" @click="closeMobileMenu">
+          <NuxtLink
+            to="/stats"
+            class="nav-link nav-link--compact"
+            @click="closeMobileMenu"
+          >
             Stats
           </NuxtLink>
 
           <button
             class="icon-button"
             aria-label="Open How to Play"
-            @click="openHowToPlay(); closeMobileMenu()"
+            @click="
+              openHowToPlay();
+              closeMobileMenu();
+            "
           >
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path
@@ -76,7 +91,7 @@ function closeMobileMenu() {
       </div>
     </header>
 
-    <NuxtPage />
+    <slot />
 
     <GameHelpSheet />
   </div>

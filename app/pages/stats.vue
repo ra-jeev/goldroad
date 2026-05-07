@@ -1,32 +1,35 @@
 <script setup lang="ts">
-import type { CommunityRoadStats, Medal } from '../../shared/types/game'
-import { UI_COPY } from '../content/uiCopy'
+import { calcMedalForAttempt } from '../../lib/gameTiers';
+import type { CommunityRoadStats, Medal } from '../../shared/types/game';
+import { UI_COPY } from '../content/uiCopy';
 
-const localStats = useLocalPlayerStats()
-const localProgress = useLocalGameProgress()
-const statsApi = useStatsApi()
-const summary = localStats.summary
-const recentDays = localStats.recentDays
-const communityOverview = ref<Awaited<ReturnType<typeof statsApi.getOverview>> | null>(null)
-const communityError = ref<string | null>(null)
-const loading = ref(true)
+const localStats = useLocalPlayerStats();
+const localProgress = useLocalGameProgress();
+const statsApi = useStatsApi();
+const summary = localStats.summary;
+const recentDays = localStats.recentDays;
+const communityOverview = ref<Awaited<
+  ReturnType<typeof statsApi.getOverview>
+> | null>(null);
+const communityError = ref<string | null>(null);
+const loading = ref(true);
 
 type CurrentComparisonCard = {
-  key: string
-  modeLabel: string
-  gameNo: number
-  localStatus: string
-  localDetail: string
-  globalHeadline: string
-  globalDetail: string
-  globalMedals: string
-  comparisonHeadline: string
-  comparisonDetail: string
-}
+  key: string;
+  modeLabel: string;
+  gameNo: number;
+  localStatus: string;
+  localDetail: string;
+  globalHeadline: string;
+  globalDetail: string;
+  globalMedals: string;
+  comparisonHeadline: string;
+  comparisonDetail: string;
+};
 
 function getStoredPlayerUUID(): string | null {
-  if (typeof window === 'undefined') return null
-  return window.localStorage.getItem('goldroad-player-uuid')
+  if (typeof window === 'undefined') return null;
+  return window.localStorage.getItem('goldroad-player-uuid');
 }
 
 function formatDay(day: string): string {
@@ -35,113 +38,134 @@ function formatDay(day: string): string {
     day: 'numeric',
     year: 'numeric',
     timeZone: 'UTC',
-  }).format(new Date(`${day}T00:00:00.000Z`))
+  }).format(new Date(`${day}T00:00:00.000Z`));
 }
 
-function hintTotal(hints: { level1: number; level2: number; level3: number }): number {
-  return hints.level1 + hints.level2 + hints.level3
+function hintTotal(progress: { hintsUsed: number }): number {
+  return progress.hintsUsed;
 }
 
 function toPercent(value: number, total: number): number {
-  if (total <= 0) return 0
-  return Math.max(0, Math.min(100, Math.round((value / total) * 100)))
+  if (total <= 0) return 0;
+  return Math.max(0, Math.min(100, Math.round((value / total) * 100)));
 }
 
 function formatMedal(medal: Medal | null): string {
-  return medal ? UI_COPY.boardHeader.medals[medal] : 'Solved'
+  return medal ? UI_COPY.boardHeader.medals[medal] : 'Solved';
 }
 
 function describeLocalStatus(globalStat: CommunityRoadStats) {
-  const progress = localProgress.getGameProgress(globalStat.gameNo, globalStat.puzzleType)
-  const hints = hintTotal(progress.hints)
+  const progress = localProgress.getGameProgress(
+    globalStat.gameNo,
+    globalStat.puzzleType,
+  );
+  const hints = hintTotal(progress);
+  const medal = calcMedalForAttempt(progress.attempts, progress.solved);
 
   if (progress.solved) {
     return {
-      status: formatMedal(progress.medal),
-      detail: `Solved in ${progress.firstSolvedAttempt ?? progress.attempts} attempt${(progress.firstSolvedAttempt ?? progress.attempts) === 1 ? '' : 's'} · ${hints} hints`,
-    }
+      status: formatMedal(medal),
+      detail: `Solved in ${progress.attempts} attempt${progress.attempts === 1 ? '' : 's'} · ${hints} hint${hints === 1 ? '' : 's'}`,
+    };
   }
 
   if (progress.attempts > 0 || hints > 0) {
     return {
       status: `Attempt ${progress.attempts || 1}`,
-      detail: `Best score ${progress.bestScore} · ${hints} hint${hints === 1 ? '' : 's'}`,
-    }
+      detail: `${hints} hint${hints === 1 ? '' : 's'}${progress.guidePath.length ? ' · retry guide ready' : ''}`,
+    };
   }
 
   return {
     status: 'Unplayed',
     detail: 'No local runs recorded yet',
-  }
+  };
 }
 
 function buildComparisonInsight(globalStat: CommunityRoadStats) {
-  const progress = localProgress.getGameProgress(globalStat.gameNo, globalStat.puzzleType)
+  const progress = localProgress.getGameProgress(
+    globalStat.gameNo,
+    globalStat.puzzleType,
+  );
+  const medal = calcMedalForAttempt(progress.attempts, progress.solved);
 
   if (globalStat.plays === 0) {
     return {
       headline: 'No community runs recorded yet',
-      detail: 'This road has not posted enough server-side run data to compare against yet.',
-    }
+      detail:
+        'This road has not posted enough server-side run data to compare against yet.',
+    };
   }
 
-  const exactSolveRate = toPercent(globalStat.exactSolves, globalStat.plays)
-  const unfinishedRuns = Math.max(globalStat.plays - globalStat.exactSolves, 0)
-  const silverOrBetter = Math.min(globalStat.gold + globalStat.silver, globalStat.plays)
-  const bronzeOrBetter = Math.min(silverOrBetter + globalStat.bronze, globalStat.plays)
-  const nonMedalSolves = Math.max(globalStat.exactSolves - globalStat.gold - globalStat.silver - globalStat.bronze, 0)
+  const exactSolveRate = toPercent(globalStat.exactSolves, globalStat.plays);
+  const unfinishedRuns = Math.max(globalStat.plays - globalStat.exactSolves, 0);
+  const silverOrBetter = Math.min(
+    globalStat.gold + globalStat.silver,
+    globalStat.plays,
+  );
+  const bronzeOrBetter = Math.min(
+    silverOrBetter + globalStat.bronze,
+    globalStat.plays,
+  );
+  const nonMedalSolves = Math.max(
+    globalStat.exactSolves -
+      globalStat.gold -
+      globalStat.silver -
+      globalStat.bronze,
+    0,
+  );
 
   if (progress.solved) {
-    if (progress.medal === 'gold') {
+    if (medal === 'gold') {
       return {
         headline: `Ahead of ${toPercent(globalStat.plays - globalStat.gold, globalStat.plays)}% of recorded runs`,
         detail: `${toPercent(globalStat.gold, globalStat.plays)}% of runs have also landed Gold so far.`,
-      }
+      };
     }
 
-    if (progress.medal === 'silver') {
+    if (medal === 'silver') {
       return {
         headline: `Ahead of ${toPercent(globalStat.plays - silverOrBetter, globalStat.plays)}% of recorded runs`,
         detail: `${toPercent(silverOrBetter, globalStat.plays)}% of runs have reached Silver or better so far.`,
-      }
+      };
     }
 
-    if (progress.medal === 'bronze') {
+    if (medal === 'bronze') {
       return {
         headline: `Ahead of ${toPercent(globalStat.plays - bronzeOrBetter, globalStat.plays)}% of recorded runs`,
         detail: `${toPercent(bronzeOrBetter, globalStat.plays)}% of runs have reached the medal band so far.`,
-      }
+      };
     }
 
     return {
       headline: `Ahead of ${toPercent(unfinishedRuns, globalStat.plays)}% of recorded runs`,
       detail: `${toPercent(nonMedalSolves, globalStat.plays)}% of runs exact-solve outside the medal band.`,
-    }
+    };
   }
 
-  if (progress.attempts > 0 || hintTotal(progress.hints) > 0) {
+  if (progress.attempts > 0 || hintTotal(progress) > 0) {
     return {
       headline: `${100 - exactSolveRate}% of recorded runs are still unsolved`,
       detail: `${exactSolveRate}% of runs exact-solve this road so far.`,
-    }
+    };
   }
 
   return {
     headline: `${exactSolveRate}% exact solve rate so far`,
     detail: `${toPercent(unfinishedRuns, globalStat.plays)}% of recorded runs have not exact-solved this road yet.`,
-  }
+  };
 }
 
 const currentComparisonCards = computed<CurrentComparisonCard[]>(() => {
-  const current = communityOverview.value?.current
-  if (!current) return []
+  const current = communityOverview.value?.current;
+  if (!current) return [];
 
   return (['classic', 'expedition'] as const)
     .map((mode) => current[mode])
     .filter((entry): entry is CommunityRoadStats => Boolean(entry))
     .map((entry) => {
-      const local = describeLocalStatus(entry)
-      const comparison = buildComparisonInsight(entry)
+      const local = describeLocalStatus(entry);
+      const comparison = buildComparisonInsight(entry);
       return {
         key: `${entry.puzzleType}:${entry.gameNo}`,
         modeLabel: entry.puzzleType === 'classic' ? 'Classic' : 'Expedition',
@@ -153,33 +177,33 @@ const currentComparisonCards = computed<CurrentComparisonCard[]>(() => {
         globalMedals: `${entry.gold} gold · ${entry.silver} silver · ${entry.bronze} bronze`,
         comparisonHeadline: comparison.headline,
         comparisonDetail: comparison.detail,
-      }
-    })
-})
+      };
+    });
+});
 
 onMounted(async () => {
-  const playerUUID = getStoredPlayerUUID()
+  const playerUUID = getStoredPlayerUUID();
   if (playerUUID) {
-    localStats.load(playerUUID)
-    localProgress.load(playerUUID)
+    localStats.load(playerUUID);
+    localProgress.load(playerUUID);
 
     if (localProgress.state.value) {
       localStats.syncCurrentDay(
         playerUUID,
         localProgress.state.value.day,
         localProgress.state.value.games,
-      )
+      );
     }
   }
 
   try {
-    communityOverview.value = await statsApi.getOverview()
+    communityOverview.value = await statsApi.getOverview();
   } catch {
-    communityError.value = 'Community comparison is unavailable right now.'
+    communityError.value = 'Community comparison is unavailable right now.';
   }
 
-  loading.value = false
-})
+  loading.value = false;
+});
 </script>
 
 <template>
@@ -187,7 +211,10 @@ onMounted(async () => {
     <div class="container">
       <header class="page-header">
         <h1>Your Stats</h1>
-        <p class="subtitle">Local progress, medals, streaks, and hint usage across your recent roads.</p>
+        <p class="subtitle">
+          Local progress, medals, streaks, and hint usage across your recent
+          roads.
+        </p>
       </header>
 
       <section v-if="loading" class="empty-state">
@@ -199,12 +226,19 @@ onMounted(async () => {
           <div class="compare-header">
             <div>
               <h2>Today Against The Field</h2>
-              <p>These global counts come from server-side session stats for the current active roads.</p>
+              <p>
+                These global counts come from server-side session stats for the
+                current active roads.
+              </p>
             </div>
           </div>
 
           <div class="compare-grid">
-            <article v-for="card in currentComparisonCards" :key="card.key" class="compare-card">
+            <article
+              v-for="card in currentComparisonCards"
+              :key="card.key"
+              class="compare-card"
+            >
               <div class="compare-card-top">
                 <div>
                   <p class="compare-eyebrow">{{ card.modeLabel }}</p>
@@ -235,121 +269,138 @@ onMounted(async () => {
           </div>
         </section>
 
-        <p v-if="communityError" class="community-error">{{ communityError }}</p>
+        <p v-if="communityError" class="community-error">
+          {{ communityError }}
+        </p>
 
         <section v-if="!summary.modeSessionsPlayed" class="empty-state">
           <h2>No local stats yet</h2>
-          <p>Finish a road or use a hint and your personal history will start filling in below the global comparison.</p>
+          <p>
+            Finish a road or use a hint and your personal history will start
+            filling in below the global comparison.
+          </p>
         </section>
 
         <template v-else>
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-value">{{ summary.roadDaysPlayed }}</div>
-            <div class="stat-label">Road Days</div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-value">{{ summary.exactSolves }}</div>
-            <div class="stat-label">Exact Solves</div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-value">{{ summary.currentClassicStreak }}</div>
-            <div class="stat-label">Classic Streak</div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-value">{{ summary.totalHints }}</div>
-            <div class="stat-label">Hints Used</div>
-          </div>
-        </div>
-
-        <div class="secondary-grid">
-          <article class="detail-card">
-            <span class="detail-label">Solve Rate</span>
-            <strong>{{ summary.solveRate }}%</strong>
-          </article>
-
-          <article class="detail-card">
-            <span class="detail-label">Best Classic Streak</span>
-            <strong>{{ summary.bestClassicStreak }}</strong>
-          </article>
-
-          <article class="detail-card">
-            <span class="detail-label">Mode Sessions</span>
-            <strong>{{ summary.modeSessionsPlayed }}</strong>
-          </article>
-
-          <article class="detail-card">
-            <span class="detail-label">Avg Solve Attempt</span>
-            <strong>{{ summary.averageSolvedAttempts }}</strong>
-          </article>
-        </div>
-
-        <section class="tier-section">
-          <h2>Medal Breakdown</h2>
-          <div class="tier-grid">
-            <div class="tier-card tier-gold">
-              <div class="tier-count">{{ summary.medalCounts.gold }}</div>
-              <div class="tier-label">Gold</div>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-value">{{ summary.roadDaysPlayed }}</div>
+              <div class="stat-label">Road Days</div>
             </div>
 
-            <div class="tier-card tier-silver">
-              <div class="tier-count">{{ summary.medalCounts.silver }}</div>
-              <div class="tier-label">Silver</div>
+            <div class="stat-card">
+              <div class="stat-value">{{ summary.exactSolves }}</div>
+              <div class="stat-label">Exact Solves</div>
             </div>
 
-            <div class="tier-card tier-bronze">
-              <div class="tier-count">{{ summary.medalCounts.bronze }}</div>
-              <div class="tier-label">Bronze</div>
+            <div class="stat-card">
+              <div class="stat-value">{{ summary.currentClassicStreak }}</div>
+              <div class="stat-label">Classic Streak</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-value">{{ summary.totalHints }}</div>
+              <div class="stat-label">Hints Used</div>
             </div>
           </div>
-        </section>
 
-        <section class="history-section">
-          <div class="history-header">
-            <h2>Recent Road Log</h2>
-            <p>Each day tracks Classic and Expedition separately.</p>
-          </div>
+          <div class="secondary-grid">
+            <article class="detail-card">
+              <span class="detail-label">Solve Rate</span>
+              <strong>{{ summary.solveRate }}%</strong>
+            </article>
 
-          <div class="history-list">
-            <article v-for="entry in recentDays" :key="entry.day" class="history-card">
-              <div class="history-top">
-                <div>
-                  <p class="history-day">{{ formatDay(entry.day) }}</p>
-                  <h3>Road {{ entry.gameNo }}</h3>
-                </div>
-              </div>
+            <article class="detail-card">
+              <span class="detail-label">Best Classic Streak</span>
+              <strong>{{ summary.bestClassicStreak }}</strong>
+            </article>
 
-              <div class="history-modes">
-                <section v-if="entry.modes.classic" class="mode-card">
-                  <div class="mode-head">
-                    <strong>Classic</strong>
-                    <span class="mode-badge" :class="{ 'mode-badge--solved': entry.modes.classic.solved }">
-                      {{ entry.modes.classic.solved ? 'Solved' : 'Tried' }}
-                    </span>
-                  </div>
-                  <p>Attempts: {{ entry.modes.classic.attempts }}</p>
-                  <p>Best score: {{ entry.modes.classic.bestScore }}</p>
-                  <p>Hints: {{ hintTotal(entry.modes.classic.hints) }}</p>
-                </section>
+            <article class="detail-card">
+              <span class="detail-label">Mode Sessions</span>
+              <strong>{{ summary.modeSessionsPlayed }}</strong>
+            </article>
 
-                <section v-if="entry.modes.expedition" class="mode-card">
-                  <div class="mode-head">
-                    <strong>Expedition</strong>
-                    <span class="mode-badge" :class="{ 'mode-badge--solved': entry.modes.expedition.solved }">
-                      {{ entry.modes.expedition.solved ? 'Solved' : 'Tried' }}
-                    </span>
-                  </div>
-                  <p>Attempts: {{ entry.modes.expedition.attempts }}</p>
-                  <p>Best score: {{ entry.modes.expedition.bestScore }}</p>
-                  <p>Hints: {{ hintTotal(entry.modes.expedition.hints) }}</p>
-                </section>
-              </div>
+            <article class="detail-card">
+              <span class="detail-label">Avg Solve Attempt</span>
+              <strong>{{ summary.averageSolvedAttempts }}</strong>
             </article>
           </div>
-        </section>
+
+          <section class="tier-section">
+            <h2>Medal Breakdown</h2>
+            <div class="tier-grid">
+              <div class="tier-card tier-gold">
+                <div class="tier-count">{{ summary.medalCounts.gold }}</div>
+                <div class="tier-label">Gold</div>
+              </div>
+
+              <div class="tier-card tier-silver">
+                <div class="tier-count">{{ summary.medalCounts.silver }}</div>
+                <div class="tier-label">Silver</div>
+              </div>
+
+              <div class="tier-card tier-bronze">
+                <div class="tier-count">{{ summary.medalCounts.bronze }}</div>
+                <div class="tier-label">Bronze</div>
+              </div>
+            </div>
+          </section>
+
+          <section class="history-section">
+            <div class="history-header">
+              <h2>Recent Road Log</h2>
+              <p>Each day tracks Classic and Expedition separately.</p>
+            </div>
+
+            <div class="history-list">
+              <article
+                v-for="entry in recentDays"
+                :key="entry.day"
+                class="history-card"
+              >
+                <div class="history-top">
+                  <div>
+                    <p class="history-day">{{ formatDay(entry.day) }}</p>
+                    <h3>Road {{ entry.gameNo }}</h3>
+                  </div>
+                </div>
+
+                <div class="history-modes">
+                  <section v-if="entry.modes.classic" class="mode-card">
+                    <div class="mode-head">
+                      <strong>Classic</strong>
+                      <span
+                        class="mode-badge"
+                        :class="{
+                          'mode-badge--solved': entry.modes.classic.solved,
+                        }"
+                      >
+                        {{ entry.modes.classic.solved ? 'Solved' : 'Tried' }}
+                      </span>
+                    </div>
+                    <p>Attempts: {{ entry.modes.classic.attempts }}</p>
+                    <p>Hints: {{ hintTotal(entry.modes.classic) }}</p>
+                  </section>
+
+                  <section v-if="entry.modes.expedition" class="mode-card">
+                    <div class="mode-head">
+                      <strong>Expedition</strong>
+                      <span
+                        class="mode-badge"
+                        :class="{
+                          'mode-badge--solved': entry.modes.expedition.solved,
+                        }"
+                      >
+                        {{ entry.modes.expedition.solved ? 'Solved' : 'Tried' }}
+                      </span>
+                    </div>
+                    <p>Attempts: {{ entry.modes.expedition.attempts }}</p>
+                    <p>Hints: {{ hintTotal(entry.modes.expedition) }}</p>
+                  </section>
+                </div>
+              </article>
+            </div>
+          </section>
         </template>
       </template>
     </div>

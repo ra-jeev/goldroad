@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onUnmounted, watchEffect } from 'vue'
+import { onUnmounted, watchEffect } from 'vue';
 
 const {
   game,
@@ -18,7 +18,7 @@ const {
   status,
   lastMedal,
   lastSolved,
-  hintUsage,
+  hintsUsed,
   expeditionJustUnlocked,
   maxScore,
   totalCoins,
@@ -35,17 +35,20 @@ const {
   switchToExpedition,
   moveTo,
   requestHint,
-} = useGoldroadGame()
+} = useGoldroadGame();
 
-const currentRoadLabel = useState<string | null>('current-road-label', () => null)
+const currentRoadLabel = useState<string | null>(
+  'current-road-label',
+  () => null,
+);
 
 watchEffect(() => {
-  currentRoadLabel.value = game.value ? roadHeading.value : null
-})
+  currentRoadLabel.value = game.value ? roadHeading.value : null;
+});
 
 onUnmounted(() => {
-  currentRoadLabel.value = null
-})
+  currentRoadLabel.value = null;
+});
 </script>
 
 <template>
@@ -85,7 +88,7 @@ onUnmounted(() => {
           :medal="lastMedal"
           :next-reset-countdown="nextResetCountdown"
           :expedition-just-unlocked="expeditionJustUnlocked"
-          :hint-usage="hintUsage"
+          :hints-used="hintsUsed"
           :ended="ended"
           :solved="lastSolved"
           :can-retry="ended || moves > 1"

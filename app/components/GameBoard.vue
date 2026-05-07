@@ -7,7 +7,7 @@ import GameTile from './GameTile.vue';
 import BoardRoad from './BoardRoad.vue';
 import { UI_COPY } from '../content/uiCopy';
 
-type RoadVisualType = 'open' | Exclude<EdgeType, 'blocked'>;
+type RoadVisualType = 'open' | Exclude<EdgeType, 'missing'>;
 
 const props = defineProps<{
   board: Board;
@@ -28,7 +28,11 @@ const emit = defineEmits<{
 const BOARD_CELL = '(var(--tile-size) + var(--tile-gap))';
 const ROAD_OFFSET = '((var(--tile-size) - var(--road-thickness)) / 2)';
 
-function buildRoadStyle(row: number, col: number, orientation: 'h' | 'v'): Record<string, string> {
+function buildRoadStyle(
+  row: number,
+  col: number,
+  orientation: 'h' | 'v',
+): Record<string, string> {
   if (orientation === 'h') {
     return {
       left: `calc(${col} * ${BOARD_CELL} + var(--tile-size))`,
@@ -90,22 +94,21 @@ const allRoads = computed<RoadData[]>(() => {
       if (col < cols - 1) {
         const rightIdx = idx + 1;
         const type = getEdgeType(idx, rightIdx, em);
-        if (type !== 'blocked') {
+        if (type !== 'missing') {
           const edgeKey = `${idx}-${rightIdx}`;
           const hit = trav.has(edgeKey);
-          const hasVisitedEndpoint = props.visitedSet.has(idx) || props.visitedSet.has(rightIdx)
-          const isCurrentActiveRoad = (
-            props.currentTileIndex === idx && props.activeSet.has(rightIdx)
-          ) || (
-            props.currentTileIndex === rightIdx && props.activeSet.has(idx)
-          )
+          const hasVisitedEndpoint =
+            props.visitedSet.has(idx) || props.visitedSet.has(rightIdx);
+          const isCurrentActiveRoad =
+            (props.currentTileIndex === idx && props.activeSet.has(rightIdx)) ||
+            (props.currentTileIndex === rightIdx && props.activeSet.has(idx));
           const state = hit
             ? 'traversed'
             : isCurrentActiveRoad
               ? 'active'
               : hasVisitedEndpoint
                 ? 'closed'
-                : 'default'
+                : 'default';
 
           roads.push({
             key: `h-${idx}`,
@@ -122,24 +125,23 @@ const allRoads = computed<RoadData[]>(() => {
       if (row < rows - 1) {
         const downIdx = idx + cols;
         const type = getEdgeType(idx, downIdx, em);
-        if (type === 'blocked') {
+        if (type === 'missing') {
           continue;
         }
         const edgeKey = `${idx}-${downIdx}`;
         const hit = trav.has(edgeKey);
-        const hasVisitedEndpoint = props.visitedSet.has(idx) || props.visitedSet.has(downIdx)
-        const isCurrentActiveRoad = (
-          props.currentTileIndex === idx && props.activeSet.has(downIdx)
-        ) || (
-          props.currentTileIndex === downIdx && props.activeSet.has(idx)
-        )
+        const hasVisitedEndpoint =
+          props.visitedSet.has(idx) || props.visitedSet.has(downIdx);
+        const isCurrentActiveRoad =
+          (props.currentTileIndex === idx && props.activeSet.has(downIdx)) ||
+          (props.currentTileIndex === downIdx && props.activeSet.has(idx));
         const state = hit
           ? 'traversed'
           : isCurrentActiveRoad
             ? 'active'
             : hasVisitedEndpoint
               ? 'closed'
-              : 'default'
+              : 'default';
 
         roads.push({
           key: `v-${idx}`,
@@ -163,11 +165,15 @@ const allRoads = computed<RoadData[]>(() => {
     <div v-if="puzzleType === 'expedition'" class="board-info">
       <div class="info-item info-toll">
         <span class="info-icon">⊝</span>
-        <span class="info-label">{{ UI_COPY.board.info.toll }}: -{{ board.tollValue }}</span>
+        <span class="info-label"
+          >{{ UI_COPY.board.info.toll }}: -{{ board.tollValue }}</span
+        >
       </div>
       <div class="info-item info-bonus">
         <span class="info-icon">⊕</span>
-        <span class="info-label">{{ UI_COPY.board.info.bonus }}: +{{ board.bonusValue }}</span>
+        <span class="info-label"
+          >{{ UI_COPY.board.info.bonus }}: +{{ board.bonusValue }}</span
+        >
       </div>
       <p class="kbd-note">{{ UI_COPY.board.keyboardHint }}</p>
     </div>

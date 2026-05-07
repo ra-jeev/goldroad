@@ -1,8 +1,10 @@
 <script setup lang="ts">
-const gamesApi = useGamesApi()
-const games = ref<Array<Awaited<ReturnType<typeof gamesApi.getPastGames>>['games'][number]>>([])
-const loading = ref(true)
-const error = ref<string | null>(null)
+const gamesApi = useGamesApi();
+const games = ref<
+  Array<Awaited<ReturnType<typeof gamesApi.getPastGames>>['games'][number]>
+>([]);
+const loading = ref(true);
+const error = ref<string | null>(null);
 
 function formatDate(value: string): string {
   return new Intl.DateTimeFormat(undefined, {
@@ -10,23 +12,23 @@ function formatDate(value: string): string {
     day: 'numeric',
     year: 'numeric',
     timeZone: 'UTC',
-  }).format(new Date(value))
+  }).format(new Date(value));
 }
 
 function formatDifficulty(value: string): string {
-  return value.charAt(0).toUpperCase() + value.slice(1)
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 onMounted(async () => {
   try {
-    const response = await gamesApi.getPastGames(60)
-    games.value = response.games
+    const response = await gamesApi.getPastGames(60);
+    games.value = response.games;
   } catch {
-    error.value = 'Past games are unavailable right now.'
+    error.value = 'Past games are unavailable right now.';
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-})
+});
 </script>
 
 <template>
@@ -34,7 +36,7 @@ onMounted(async () => {
     <div class="container">
       <header class="page-header">
         <h1>Past Games</h1>
-        <p class="subtitle">Browse and replay previous puzzles</p>
+        <p class="subtitle">Browse and replay previous road days</p>
       </header>
 
       <div v-if="loading" class="loading-state">
@@ -47,7 +49,9 @@ onMounted(async () => {
 
       <div v-else-if="games.length === 0" class="empty-state">
         <p>No past games available yet.</p>
-        <p class="hint">Older roads will appear here once the archive data is available.</p>
+        <p class="hint">
+          Older roads will appear here once the archive data is available.
+        </p>
       </div>
 
       <div v-else class="games-grid">
@@ -58,23 +62,56 @@ onMounted(async () => {
               <span class="game-date">{{ formatDate(game.playableAt) }}</span>
             </div>
 
-            <span class="difficulty-pill">{{ formatDifficulty(game.difficultyBand) }}</span>
+            <span class="day-pill">{{
+              game.expedition ? 'Classic + Expedition' : 'Classic'
+            }}</span>
           </div>
 
-          <div class="game-stats">
-            <div class="game-stat">
-              <span class="label">Target</span>
-              <span class="value">{{ game.maxScore }}</span>
-            </div>
+          <div class="mode-list">
+            <section v-if="game.classic" class="mode-card">
+              <div class="mode-head">
+                <strong>Classic</strong>
+                <span class="difficulty-pill">{{
+                  formatDifficulty(game.classic.difficultyBand)
+                }}</span>
+              </div>
+              <div class="mode-stats">
+                <div class="game-stat">
+                  <span class="label">Target</span>
+                  <span class="value">{{ game.classic.maxScore }}</span>
+                </div>
+                <div class="game-stat">
+                  <span class="label">Board Coins</span>
+                  <span class="value">{{ game.classic.totalCoins }}</span>
+                </div>
+              </div>
+            </section>
 
-            <div class="game-stat">
-              <span class="label">Board Coins</span>
-              <span class="value">{{ game.totalCoins }}</span>
-            </div>
+            <section
+              v-if="game.expedition"
+              class="mode-card mode-card--expedition"
+            >
+              <div class="mode-head">
+                <strong>Expedition</strong>
+                <span class="difficulty-pill">{{
+                  formatDifficulty(game.expedition.difficultyBand)
+                }}</span>
+              </div>
+              <div class="mode-stats">
+                <div class="game-stat">
+                  <span class="label">Target</span>
+                  <span class="value">{{ game.expedition.maxScore }}</span>
+                </div>
+                <div class="game-stat">
+                  <span class="label">Board Coins</span>
+                  <span class="value">{{ game.expedition.totalCoins }}</span>
+                </div>
+              </div>
+            </section>
           </div>
 
           <NuxtLink :to="`/games/${game.gameNo}`" class="replay-btn">
-            Replay Road
+            Replay Road Day
           </NuxtLink>
         </article>
       </div>
@@ -125,7 +162,7 @@ onMounted(async () => {
 
 .games-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 1rem;
 }
 
@@ -164,6 +201,7 @@ onMounted(async () => {
   font-size: 0.85rem;
 }
 
+.day-pill,
 .difficulty-pill {
   align-self: start;
   padding: 0.28rem 0.65rem;
@@ -173,11 +211,40 @@ onMounted(async () => {
   color: rgb(var(--color-gold-rgb) / 0.88);
   font-size: 0.78rem;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.03em;
 }
 
-.game-stats {
+.mode-list {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.mode-card {
+  display: grid;
+  gap: 0.7rem;
+  padding: 0.9rem 1rem;
+  border-radius: var(--radius-md);
+  background: rgb(var(--color-gold-rgb) / 0.06);
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.14);
+}
+
+.mode-card--expedition {
+  border-color: rgb(var(--color-active-rgb) / 0.2);
+  background: rgb(var(--color-active-rgb) / 0.08);
+}
+
+.mode-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.mode-head strong {
+  color: var(--color-gold);
+}
+
+.mode-stats {
   display: flex;
   gap: 1.5rem;
   flex-wrap: wrap;
@@ -231,6 +298,11 @@ onMounted(async () => {
 
   .games-grid {
     grid-template-columns: 1fr;
+  }
+
+  .game-header,
+  .mode-head {
+    display: grid;
   }
 }
 </style>
