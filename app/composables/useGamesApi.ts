@@ -1,24 +1,7 @@
 import type {
-  Board,
+  CurrentGamesResponse,
   DifficultyBand,
-  PuzzleType,
 } from '../../shared/types/game';
-
-interface GamePayload {
-  gameNo: number;
-  puzzleType: PuzzleType;
-  board: Board;
-  maxScore: number;
-  totalCoins: number;
-  difficultyBand: DifficultyBand;
-  playableAt: string;
-  nextGameAt: string | null;
-}
-
-interface CurrentGamesResponse {
-  classic: GamePayload | null;
-  expedition: GamePayload | null;
-}
 
 interface PastRoadModeSummary {
   maxScore: number;
@@ -36,6 +19,10 @@ interface PastGamesResponse {
   }>;
 }
 
+interface RandomRoadResponse {
+  gameNo: number;
+}
+
 export function useGamesApi() {
   const api = useApi();
 
@@ -44,7 +31,7 @@ export function useGamesApi() {
   }
 
   function getAnotherGame(playerId?: string) {
-    return api.get<GamePayload>('/api/games/another', {
+    return api.get<RandomRoadResponse>('/api/games/another', {
       playerId,
     });
   }

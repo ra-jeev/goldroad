@@ -27,11 +27,6 @@ type CurrentComparisonCard = {
   comparisonDetail: string;
 };
 
-function getStoredPlayerUUID(): string | null {
-  if (typeof window === 'undefined') return null;
-  return window.localStorage.getItem('goldroad-player-uuid');
-}
-
 function formatDay(day: string): string {
   return new Intl.DateTimeFormat(undefined, {
     month: 'short',
@@ -182,19 +177,8 @@ const currentComparisonCards = computed<CurrentComparisonCard[]>(() => {
 });
 
 onMounted(async () => {
-  const playerUUID = getStoredPlayerUUID();
-  if (playerUUID) {
-    localStats.load(playerUUID);
-    localProgress.load(playerUUID);
-
-    if (localProgress.state.value) {
-      localStats.syncCurrentDay(
-        playerUUID,
-        localProgress.state.value.day,
-        localProgress.state.value.games,
-      );
-    }
-  }
+  localProgress.load();
+  localStats.load();
 
   try {
     communityOverview.value = await statsApi.getOverview();

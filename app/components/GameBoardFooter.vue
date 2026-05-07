@@ -3,21 +3,34 @@ import { computed } from 'vue';
 import type { Medal } from '../../shared/types/game';
 import { UI_COPY } from '../content/uiCopy';
 
-const props = defineProps<{
-  status: string;
-  hintMessage: string | null;
-  attemptNumber: number;
-  medal: Medal | null;
-  nextResetCountdown: string;
-  expeditionJustUnlocked: boolean;
-  hintsUsed: number;
-  ended: boolean;
-  solved: boolean;
-  canRetry: boolean;
-  canSwitchToExpedition: boolean;
-  loading: boolean;
-  submitting: boolean;
-}>();
+const props = withDefaults(
+  defineProps<{
+    status: string;
+    hintMessage: string | null;
+    attemptNumber: number;
+    medal: Medal | null;
+    nextResetCountdown?: string;
+    showNextResetCountdown?: boolean;
+    expeditionJustUnlocked: boolean;
+    hintsUsed: number;
+    ended: boolean;
+    solved: boolean;
+    canRetry: boolean;
+    canSwitchToExpedition: boolean;
+    loading: boolean;
+    submitting: boolean;
+    showStatsLink?: boolean;
+    secondaryLinkTo?: string | null;
+    secondaryLinkLabel?: string | null;
+  }>(),
+  {
+    nextResetCountdown: '00:00:00',
+    showNextResetCountdown: true,
+    showStatsLink: true,
+    secondaryLinkTo: null,
+    secondaryLinkLabel: null,
+  },
+);
 
 const emit = defineEmits<{
   hint: [];
@@ -33,6 +46,18 @@ const showSolvedMeta = computed(() => props.ended && props.solved);
 const retryButtonStyle = computed(() =>
   props.canSwitchToExpedition || showSolvedMeta.value ? 'secondary' : 'primary',
 );
+const showCountdownPill = computed(
+  () => showSolvedMeta.value && props.showNextResetCountdown,
+);
+const showStatsLink = computed(
+  () =>
+    props.showStatsLink && showSolvedMeta.value && !props.canSwitchToExpedition,
+);
+const showSecondaryLink = computed(() =>
+  Boolean(props.secondaryLinkTo && props.secondaryLinkLabel),
+);
+const secondaryLinkTo = computed(() => props.secondaryLinkTo ?? '/');
+const secondaryLinkLabel = computed(() => props.secondaryLinkLabel ?? '');
 </script>
 
 <template>
@@ -49,7 +74,7 @@ const retryButtonStyle = computed(() =>
               )
             }}
           </span>
-          <span class="meta-pill meta-pill--countdown">
+          <span v-if="showCountdownPill" class="meta-pill meta-pill--countdown">
             {{ UI_COPY.boardFooter.nextRoadCountdown(nextResetCountdown) }}
           </span>
           <span
@@ -87,11 +112,7 @@ const retryButtonStyle = computed(() =>
         {{ UI_COPY.boardFooter.retryRoad }}
       </button>
 
-      <NuxtLink
-        v-if="showSolvedMeta && !canSwitchToExpedition"
-        to="/stats"
-        class="link-button primary"
-      >
+      <NuxtLink v-if="showStatsLink" to="/stats" class="link-button primary">
         {{ UI_COPY.boardFooter.viewStats }}
       </NuxtLink>
 
@@ -109,6 +130,14 @@ const retryButtonStyle = computed(() =>
       <button type="button" class="ghost" @click="openHowToPlay()">
         {{ UI_COPY.boardFooter.openHelp }}
       </button>
+
+      <NuxtLink
+        v-if="showSecondaryLink"
+        :to="secondaryLinkTo"
+        class="link-button secondary"
+      >
+        {{ secondaryLinkLabel }}
+      </NuxtLink>
     </div>
   </section>
 </template>

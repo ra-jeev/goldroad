@@ -158,9 +158,9 @@ export const UI_COPY = {
       `You reached the exit ${delta} short of the target.`,
     destinationOver: (delta: number) =>
       `You reached the exit ${delta} over the target.`,
-    alreadySolved: 'Already solved today. You can replay or switch modes.',
+    alreadySolved: 'Already solved. You can replay or switch modes.',
     alreadySolvedWithMedal: (medal: string) =>
-      `Already solved today with ${medal.toLowerCase()}. You can replay or switch modes.`,
+      `Already solved with ${medal.toLowerCase()}. You can replay or switch modes.`,
     deadEnd: 'Dead end before the exit. Retry this road.',
     hintNextStep:
       'Hint applied. The highlighted guide shows the next correct move.',

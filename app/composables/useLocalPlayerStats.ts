@@ -1,11 +1,13 @@
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 import { calcMedalForAttempt } from '../../lib/gameTiers';
 import type { PuzzleType } from '../../shared/types/game';
-import type { LocalGameProgressRecord } from './useLocalGameProgress';
+import { useGoldroadLocalState } from './useGoldroadLocalState';
 
-const STORAGE_KEY = 'goldroad-player-stats-v1';
-
-type StatsModeRecord = LocalGameProgressRecord & {
+type StatsModeRecord = {
+  attempts: number;
+  solved: boolean;
+  hintsUsed: number;
+  solveTimeMs: number | null;
   updatedAt: string;
 };
 
@@ -15,97 +17,8 @@ type StatsDayRecord = {
   modes: Partial<Record<PuzzleType, StatsModeRecord>>;
 };
 
-type PlayerStatsState = {
-  playerUUID: string;
-  days: Record<string, StatsDayRecord>;
-};
-
-function createEmptyState(playerUUID: string): PlayerStatsState {
-  return {
-    playerUUID,
-    days: {},
-  };
-}
-
-function isValidProgressRecord(
-  value: unknown,
-): value is LocalGameProgressRecord {
-  if (!value || typeof value !== 'object') return false;
-  const candidate = value as LocalGameProgressRecord;
-  return (
-    typeof candidate.attempts === 'number' &&
-    typeof candidate.solved === 'boolean' &&
-    typeof candidate.hintsUsed === 'number' &&
-    Array.isArray(candidate.guidePath) &&
-    candidate.guidePath.every((tileIndex) => typeof tileIndex === 'number')
-  );
-}
-
-function isValidStatsModeRecord(value: unknown): value is StatsModeRecord {
-  if (!value || typeof value !== 'object') return false;
-  const candidate = value as StatsModeRecord;
-  return (
-    isValidProgressRecord(candidate) && typeof candidate.updatedAt === 'string'
-  );
-}
-
-function isValidState(value: unknown): value is PlayerStatsState {
-  if (!value || typeof value !== 'object') return false;
-  const candidate = value as PlayerStatsState;
-  return (
-    typeof candidate.playerUUID === 'string' &&
-    !!candidate.days &&
-    typeof candidate.days === 'object' &&
-    Object.values(candidate.days).every((dayRecord) => {
-      if (!dayRecord || typeof dayRecord !== 'object') return false;
-      const candidateDay = dayRecord as StatsDayRecord;
-      return (
-        typeof candidateDay.day === 'string' &&
-        typeof candidateDay.gameNo === 'number' &&
-        !!candidateDay.modes &&
-        typeof candidateDay.modes === 'object' &&
-        Object.values(candidateDay.modes).every(
-          (modeRecord) =>
-            modeRecord === undefined || isValidStatsModeRecord(modeRecord),
-        )
-      );
-    })
-  );
-}
-
 function getTodayKey(): string {
   return new Date().toISOString().split('T')[0]!;
-}
-
-function copyProgress(
-  progress: LocalGameProgressRecord,
-): LocalGameProgressRecord {
-  return {
-    ...progress,
-    guidePath: [...progress.guidePath],
-  };
-}
-
-function getHintTotal(
-  progress: Pick<LocalGameProgressRecord, 'hintsUsed'>,
-): number {
-  return progress.hintsUsed;
-}
-
-function parseGameKey(
-  key: string,
-): { puzzleType: PuzzleType; gameNo: number } | null {
-  const [puzzleType, rawGameNo] = key.split(':');
-  if ((puzzleType !== 'classic' && puzzleType !== 'expedition') || !rawGameNo)
-    return null;
-
-  const gameNo = Number(rawGameNo);
-  if (!Number.isFinite(gameNo)) return null;
-
-  return {
-    puzzleType,
-    gameNo,
-  };
 }
 
 function getUtcDayStamp(day: string): number {
@@ -113,108 +26,18 @@ function getUtcDayStamp(day: string): number {
 }
 
 export function useLocalPlayerStats() {
-  const state = ref<PlayerStatsState | null>(null);
+  const localState = useGoldroadLocalState();
 
-  function persist() {
-    if (typeof window === 'undefined' || !state.value) return;
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state.value));
-  }
-
-  function load(playerUUID: string) {
-    if (typeof window === 'undefined') {
-      state.value = createEmptyState(playerUUID);
-      return;
-    }
-
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      state.value = createEmptyState(playerUUID);
-      persist();
-      return;
-    }
-
-    try {
-      const parsed = JSON.parse(raw) as unknown;
-      if (!isValidState(parsed) || parsed.playerUUID !== playerUUID) {
-        state.value = createEmptyState(playerUUID);
-        persist();
-        return;
-      }
-
-      state.value = parsed;
-    } catch {
-      state.value = createEmptyState(playerUUID);
-      persist();
-    }
-  }
-
-  function ensureLoaded(playerUUID: string): PlayerStatsState {
-    if (!state.value || state.value.playerUUID !== playerUUID) {
-      load(playerUUID);
-    }
-
-    return state.value ?? createEmptyState(playerUUID);
-  }
-
-  function recordProgress(
-    playerUUID: string,
-    day: string,
-    gameNo: number,
-    puzzleType: PuzzleType,
-    progress: LocalGameProgressRecord,
-  ) {
-    const nextState = ensureLoaded(playerUUID);
-    const currentDay = nextState.days[day] ?? {
-      day,
-      gameNo,
-      modes: {},
-    };
-
-    nextState.days[day] = {
-      ...currentDay,
-      gameNo,
-      modes: {
-        ...currentDay.modes,
-        [puzzleType]: {
-          ...copyProgress(progress),
-          updatedAt: new Date().toISOString(),
-        },
-      },
-    };
-
-    state.value = {
-      ...nextState,
-      days: {
-        ...nextState.days,
-      },
-    };
-    persist();
-  }
-
-  function syncCurrentDay(
-    playerUUID: string,
-    day: string,
-    games: Record<string, LocalGameProgressRecord>,
-  ) {
-    for (const [gameKey, progress] of Object.entries(games)) {
-      const parsed = parseGameKey(gameKey);
-      if (!parsed) continue;
-      recordProgress(
-        playerUUID,
-        day,
-        parsed.gameNo,
-        parsed.puzzleType,
-        progress,
-      );
-    }
+  function load() {
+    localState.load();
   }
 
   const recentDays = computed(() => {
-    if (!state.value) return [] as StatsDayRecord[];
+    const historyByDay = localState.state.value?.historyByDay ?? {};
 
-    return Object.values(state.value.days).sort((left, right) =>
+    return Object.values(historyByDay).sort((left, right) =>
       right.day.localeCompare(left.day),
-    );
+    ) as StatsDayRecord[];
   });
 
   const summary = computed(() => {
@@ -227,6 +50,7 @@ export function useLocalPlayerStats() {
           puzzleType: PuzzleType;
         }
       > = [];
+
       if (entry.modes.classic) {
         records.push({
           ...entry.modes.classic,
@@ -235,6 +59,7 @@ export function useLocalPlayerStats() {
           puzzleType: 'classic',
         });
       }
+
       if (entry.modes.expedition) {
         records.push({
           ...entry.modes.expedition,
@@ -243,11 +68,12 @@ export function useLocalPlayerStats() {
           puzzleType: 'expedition',
         });
       }
+
       return records;
     });
 
     const activeModes = modeEntries.filter(
-      (entry) => entry.attempts > 0 || getHintTotal(entry) > 0,
+      (entry) => entry.attempts > 0 || entry.hintsUsed > 0,
     );
     const solvedModes = activeModes.filter((entry) => entry.solved);
     const medalCounts = {
@@ -301,7 +127,7 @@ export function useLocalPlayerStats() {
     }
 
     const totalHints = activeModes.reduce(
-      (sum, entry) => sum + getHintTotal(entry),
+      (sum, entry) => sum + entry.hintsUsed,
       0,
     );
     const averageSolvedAttempts = solvedModes.length
@@ -314,7 +140,7 @@ export function useLocalPlayerStats() {
     return {
       roadDaysPlayed: days.filter((entry) =>
         Object.values(entry.modes).some(
-          (mode) => mode && (mode.attempts > 0 || getHintTotal(mode) > 0),
+          (mode) => mode && (mode.attempts > 0 || mode.hintsUsed > 0),
         ),
       ).length,
       modeSessionsPlayed: activeModes.length,
@@ -331,10 +157,8 @@ export function useLocalPlayerStats() {
   });
 
   return {
-    state,
+    state: computed(() => localState.state.value?.historyByDay ?? {}),
     load,
-    recordProgress,
-    syncCurrentDay,
     recentDays,
     summary,
   };

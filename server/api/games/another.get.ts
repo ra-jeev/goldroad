@@ -1,91 +1,72 @@
-import { and, desc, eq, inArray, lt, sql } from 'drizzle-orm'
-import { games, playerGameSession } from '../../db/schema'
-import { useDb } from '../../db/client'
-import { parsePublicGameRow } from '../../utils/apiGames'
+import { and, desc, eq, inArray, lt } from 'drizzle-orm';
+import { games, playerGameSession } from '../../db/schema';
+import { useDb } from '../../db/client';
 
-const RECENT_POOL_SIZE = 30
+const RECENT_POOL_SIZE = 30;
 
 export default defineEventHandler(async (event) => {
-  const db = useDb(event)
-  const query = getQuery(event)
-  const playerId = typeof query.playerId === 'string' ? query.playerId : null
+  const db = useDb(event);
+  const query = getQuery(event);
+  const playerId = typeof query.playerId === 'string' ? query.playerId : null;
 
   const currentRows = await db
     .select({ gameNo: games.gameNo })
     .from(games)
     .where(eq(games.current, true))
-    .limit(1)
+    .limit(1);
 
-  const currentGameNo = currentRows[0]?.gameNo
+  const currentGameNo = currentRows[0]?.gameNo;
 
-  const baseCandidates = await db
-    .select({
-      gameNo: games.gameNo,
-      puzzleType: games.puzzleType,
-      boardJson: games.boardJson,
-      maxScore: games.maxScore,
-      totalCoins: games.totalCoins,
-      difficultyBand: games.difficultyBand,
-      playableAt: games.playableAt,
-      nextGameAt: games.nextGameAt,
-    })
+  const candidateRows = await db
+    .select({ gameNo: games.gameNo })
     .from(games)
     .where(
       currentGameNo !== undefined
         ? and(eq(games.active, true), lt(games.gameNo, currentGameNo))
         : eq(games.active, true),
     )
+    .groupBy(games.gameNo)
     .orderBy(desc(games.gameNo))
-    .limit(RECENT_POOL_SIZE)
+    .limit(RECENT_POOL_SIZE);
 
-  if (!baseCandidates.length) {
-    throw createError({ statusCode: 404, statusMessage: 'No past game available' })
+  if (!candidateRows.length) {
+    throw createError({
+      statusCode: 404,
+      statusMessage: 'No past game available',
+    });
   }
 
-  let candidatePool = baseCandidates
+  let candidateGameNos = candidateRows.map((row) => row.gameNo);
 
   if (playerId) {
-    const gameNos = baseCandidates.map(g => g.gameNo)
     const playedRows = await db
       .select({ gameNo: playerGameSession.gameNo })
       .from(playerGameSession)
-      .where(and(eq(playerGameSession.playerId, playerId), inArray(playerGameSession.gameNo, gameNos)))
+      .where(
+        and(
+          eq(playerGameSession.playerId, playerId),
+          inArray(playerGameSession.gameNo, candidateGameNos),
+        ),
+      );
 
-    const playedSet = new Set(playedRows.map(r => r.gameNo))
-    const unplayed = baseCandidates.filter(g => !playedSet.has(g.gameNo))
-    if (unplayed.length) candidatePool = unplayed
+    const playedSet = new Set(playedRows.map((row) => row.gameNo));
+    const unplayedGameNos = candidateGameNos.filter(
+      (gameNo) => !playedSet.has(gameNo),
+    );
+    if (unplayedGameNos.length) {
+      candidateGameNos = unplayedGameNos;
+    }
   }
 
-  const randomPick = await db
-    .select({
-      gameNo: games.gameNo,
-      puzzleType: games.puzzleType,
-      boardJson: games.boardJson,
-      maxScore: games.maxScore,
-      totalCoins: games.totalCoins,
-      difficultyBand: games.difficultyBand,
-      playableAt: games.playableAt,
-      nextGameAt: games.nextGameAt,
-    })
-    .from(games)
-    .where(inArray(games.gameNo, candidatePool.map(g => g.gameNo)))
-    .orderBy(sql`RANDOM()`)
-    .limit(1)
+  const randomIndex = Math.floor(Math.random() * candidateGameNos.length);
+  const gameNo = candidateGameNos[randomIndex] ?? candidateGameNos[0];
 
-  const selected = randomPick[0] ?? candidatePool[0]
-  if (!selected) {
-    throw createError({ statusCode: 404, statusMessage: 'No game available in candidate pool' })
+  if (gameNo === undefined) {
+    throw createError({
+      statusCode: 404,
+      statusMessage: 'No game available in candidate pool',
+    });
   }
 
-  const game = parsePublicGameRow(selected)
-  return {
-    gameNo: game.gameNo,
-    puzzleType: game.puzzleType,
-    board: game.board,
-    maxScore: game.maxScore,
-    totalCoins: game.totalCoins,
-    difficultyBand: game.difficultyBand,
-    playableAt: game.playableAt,
-    nextGameAt: game.nextGameAt,
-  }
-})
+  return { gameNo };
+});
