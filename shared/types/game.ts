@@ -3,7 +3,7 @@
  * Types are the source of truth via Zod schemas; TS types are inferred.
  */
 
-import type { EdgeType } from '../validators/game'
+import type { EdgeType } from '../validators/game';
 
 export type {
   Direction,
@@ -12,12 +12,12 @@ export type {
   OutcomeTier,
   DifficultyBand,
   PuzzleType,
+  RunEndReason,
   EdgePair,
   Board,
   PathResult,
-  HintLevel1Result,
-  HintLevel2Result,
-  HintLevel3Result,
+  HintNextStepResult,
+  HintDivergedResult,
   HintResult,
   PublicGame,
   CurrentGamesResponse,
@@ -26,11 +26,11 @@ export type {
   StatsOverview,
   SessionEndPayload,
   HintRequestPayload,
-} from '../validators/game'
+} from '../validators/game';
 
 /**
- * Fast O(1) edge-type lookup built from Board.blocked/toll/bonus.
+ * Fast O(1) edge-type lookup built from Board.missingEdges/tollEdges/bonusEdges.
  * Key format: "{fromId}->{toId}". Both directions are stored.
  * (Runtime utility, not validated)
  */
-export type EdgeMap = Map<string, EdgeType>
+export type EdgeMap = Map<string, EdgeType>;
