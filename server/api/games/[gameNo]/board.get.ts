@@ -1,15 +1,18 @@
-import { and, eq } from 'drizzle-orm'
-import { games } from '../../../db/schema'
-import { useDb } from '../../../db/client'
-import { parsePublicGameRow } from '../../../utils/apiGames'
+import { and, eq } from 'drizzle-orm';
+import { games } from '../../../db/schema';
+import { useDb } from '../../../db/client';
+import { parsePublicGameRow } from '../../../utils/apiGames';
 
 export default defineEventHandler(async (event) => {
-  const db = useDb(event)
+  const db = useDb(event);
 
-  const gameNoRaw = getRouterParam(event, 'gameNo')
-  const gameNo = Number.parseInt(gameNoRaw ?? '', 10)
+  const gameNoRaw = getRouterParam(event, 'gameNo');
+  const gameNo = Number.parseInt(gameNoRaw ?? '', 10);
   if (!Number.isInteger(gameNo) || gameNo <= 0) {
-    throw createError({ statusCode: 400, statusMessage: 'Invalid gameNo param' })
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Invalid gameNo param',
+    });
   }
 
   const rows = await db
@@ -25,22 +28,45 @@ export default defineEventHandler(async (event) => {
     })
     .from(games)
     .where(and(eq(games.gameNo, gameNo), eq(games.active, true)))
-    .limit(1)
+    .limit(2);
 
-  const row = rows[0]
-  if (!row) {
-    throw createError({ statusCode: 404, statusMessage: `Game ${gameNo} not found` })
+  if (rows.length === 0) {
+    throw createError({
+      statusCode: 404,
+      statusMessage: `Game ${gameNo} not found`,
+    });
   }
 
-  const game = parsePublicGameRow(row)
+  const parsedGames = rows.map((row) => parsePublicGameRow(row));
+  const classic = parsedGames.find((entry) => entry.puzzleType === 'classic');
+  const expedition = parsedGames.find(
+    (entry) => entry.puzzleType === 'expedition',
+  );
+
   return {
-    gameNo: game.gameNo,
-    puzzleType: game.puzzleType,
-    board: game.board,
-    maxScore: game.maxScore,
-    totalCoins: game.totalCoins,
-    difficultyBand: game.difficultyBand,
-    playableAt: game.playableAt,
-    nextGameAt: game.nextGameAt,
-  }
-})
+    classic: classic
+      ? {
+          gameNo: classic.gameNo,
+          puzzleType: classic.puzzleType,
+          board: classic.board,
+          maxScore: classic.maxScore,
+          totalCoins: classic.totalCoins,
+          difficultyBand: classic.difficultyBand,
+          playableAt: classic.playableAt,
+          nextGameAt: classic.nextGameAt,
+        }
+      : null,
+    expedition: expedition
+      ? {
+          gameNo: expedition.gameNo,
+          puzzleType: expedition.puzzleType,
+          board: expedition.board,
+          maxScore: expedition.maxScore,
+          totalCoins: expedition.totalCoins,
+          difficultyBand: expedition.difficultyBand,
+          playableAt: expedition.playableAt,
+          nextGameAt: expedition.nextGameAt,
+        }
+      : null,
+  };
+});
