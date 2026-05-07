@@ -1,81 +1,89 @@
-import { and, eq, sql } from 'drizzle-orm'
-import { dailyGameStats, games, playerGameSession } from '../../db/schema'
-import { useDb } from '../../db/client'
-import { HintRequestPayloadSchema } from '../../db/validators'
-import { computeHint } from '../../utils/hints'
-import { parseHintGameRow } from '../../utils/apiGames'
+import { and, eq, sql } from 'drizzle-orm';
+import { dailyGameStats, games, playerGameSession } from '../../db/schema';
+import { useDb } from '../../db/client';
+import { HintRequestPayloadSchema } from '../../db/validators';
+import { computeHint } from '../../utils/hints';
+import { parseHintGameRow } from '../../utils/apiGames';
 
 export default defineEventHandler(async (event) => {
-  const db = useDb(event)
-  const body = await readBody(event)
-  const payload = HintRequestPayloadSchema.parse(body)
+  const db = useDb(event);
+  const body = await readBody(event);
+  const payload = HintRequestPayloadSchema.parse(body);
 
   const rows = await db
     .select({
+      maxScore: games.maxScore,
       boardJson: games.boardJson,
       optimalPathsJson: games.optimalPathsJson,
     })
     .from(games)
-    .where(and(eq(games.gameNo, payload.gameNo), eq(games.active, true)))
-    .limit(1)
+    .where(
+      and(
+        eq(games.gameNo, payload.gameNo),
+        eq(games.puzzleType, payload.puzzleType),
+        eq(games.active, true),
+      ),
+    )
+    .limit(1);
 
-  const row = rows[0]
+  const row = rows[0];
   if (!row) {
-    throw createError({ statusCode: 404, statusMessage: `Game ${payload.gameNo} not found` })
+    throw createError({
+      statusCode: 404,
+      statusMessage: `Game ${payload.gameNo} not found`,
+    });
   }
 
-  const parsed = parseHintGameRow(row)
-  const hint = computeHint(
-    parsed.optimalPaths,
-    payload.currentTileIndex,
-    parsed.board.cols,
-    payload.level,
-  )
+  const parsed = parseHintGameRow(row);
+  const hint = computeHint(parsed.optimalPaths, payload.pathHistory);
+  const startedAt = new Date().toISOString();
+  const attemptsBeforeFirstHint = Math.max(0, payload.attemptNumber - 1);
+  const firstHintMoveIndex = Math.max(0, payload.pathHistory.length - 1);
 
-  const sessionWhere = and(
-    eq(playerGameSession.sessionId, payload.sessionId),
-    eq(playerGameSession.playerId, payload.playerUUID),
-    eq(playerGameSession.gameNo, payload.gameNo),
-  )
-
-  if (payload.level === 1) {
-    await db
-      .update(playerGameSession)
-      .set({ hintsLevel1: sql`${playerGameSession.hintsLevel1} + 1` })
-      .where(sessionWhere)
-  } else if (payload.level === 2) {
-    await db
-      .update(playerGameSession)
-      .set({ hintsLevel2: sql`${playerGameSession.hintsLevel2} + 1` })
-      .where(sessionWhere)
-  } else {
-    await db
-      .update(playerGameSession)
-      .set({ hintsLevel3: sql`${playerGameSession.hintsLevel3} + 1` })
-      .where(sessionWhere)
-  }
+  await db
+    .insert(playerGameSession)
+    .values({
+      playerId: payload.playerUUID,
+      gameNo: payload.gameNo,
+      puzzleType: payload.puzzleType,
+      sessionId: payload.sessionId,
+      startedAt,
+      attempts: payload.attemptNumber,
+      maxScore: row.maxScore,
+      completed: false,
+      gold: false,
+      hintsUsed: 1,
+      attemptsBeforeFirstHint,
+      firstHintMoveIndex,
+      pastRoadViewed: false,
+    })
+    .onConflictDoUpdate({
+      target: playerGameSession.sessionId,
+      set: {
+        attempts: payload.attemptNumber,
+        hintsUsed: sql`${playerGameSession.hintsUsed} + 1`,
+        attemptsBeforeFirstHint: sql`COALESCE(${playerGameSession.attemptsBeforeFirstHint}, ${attemptsBeforeFirstHint})`,
+        firstHintMoveIndex: sql`COALESCE(${playerGameSession.firstHintMoveIndex}, ${firstHintMoveIndex})`,
+      },
+    });
 
   await db
     .insert(dailyGameStats)
     .values({
       gameNo: payload.gameNo,
       puzzleType: payload.puzzleType,
-      hintLevel1Uses: payload.level === 1 ? 1 : 0,
-      hintLevel2Uses: payload.level === 2 ? 1 : 0,
-      hintLevel3Uses: payload.level === 3 ? 1 : 0,
+      hintUses: 1,
     })
     .onConflictDoUpdate({
       target: [dailyGameStats.gameNo, dailyGameStats.puzzleType],
       set: {
-        hintLevel1Uses: payload.level === 1 ? sql`${dailyGameStats.hintLevel1Uses} + 1` : dailyGameStats.hintLevel1Uses,
-        hintLevel2Uses: payload.level === 2 ? sql`${dailyGameStats.hintLevel2Uses} + 1` : dailyGameStats.hintLevel2Uses,
-        hintLevel3Uses: payload.level === 3 ? sql`${dailyGameStats.hintLevel3Uses} + 1` : dailyGameStats.hintLevel3Uses,
+        hintUses: sql`${dailyGameStats.hintUses} + 1`,
         updatedAt: sql`(datetime('now'))`,
       },
-    })
+    });
 
   return {
     ok: true,
     hint,
-  }
-})
+  };
+});

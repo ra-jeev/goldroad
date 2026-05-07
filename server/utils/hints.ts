@@ -1,135 +1,82 @@
 /**
  * Server-side hint computation.
  *
- * The optimal paths are NEVER sent to the client. When a hint is requested,
- * the client sends its current tile id and the desired level; the server
- * looks up the stored optimalPaths for that game and returns only the
- * minimal information needed for that hint level.
+ * The optimal paths remain server-side. The client sends its committed
+ * `pathHistory`, and the server returns only the next actionable hint result.
  *
- * Hint levels:
- *   1 — Nudge:   recommend a direction from the player's current tile.
- *   2 — Branch:  reveal 2–3 upcoming tiles on the optimal path.
- *   3 — Rescue:  reveal the exact next optimal step (locks out Gold tier).
+ * Hint behavior:
+ *   - If the current path is still a valid prefix of an optimal path, return
+ *     the next correct tile.
+ *   - If the current path has diverged, return the divergence tile and the
+ *     next tile the player should have taken on the best matching optimal path.
  */
 
-import type { Direction, HintResult } from '../../shared/types/game'
-import { getDirection, parseTileIndex } from '../../shared/utils/puzzleEngine'
+import type { HintResult } from '../../shared/types/game';
 
-/**
- * Compute a hint given the server-stored optimal paths and the player's
- * current position. When multiple optimal paths exist, chooses the one
- * closest to the player's current position.
- *
- * @param optimalPaths  All gold paths from start → end (server-side only).
- * @param currentId     The tile the player is currently on.
- * @param level         Hint level requested (1 | 2 | 3).
- */
 export function computeHint(
   optimalPaths: number[][],
-  currentId: number,
-  cols: number,
-  level: 1 | 2 | 3,
+  pathHistory: number[],
 ): HintResult {
-  // Find the optimal path that contains the current tile, or the nearest one
-  let bestPath = optimalPaths[0]!
-  let bestIndex = -1
-  
-  // First, check if player is on any optimal path
+  const bestPath = pickBestMatchingPath(optimalPaths, pathHistory);
+  const matchedPrefixLength = getCommonPrefixLength(bestPath, pathHistory);
+
+  if (
+    matchedPrefixLength === pathHistory.length &&
+    matchedPrefixLength < bestPath.length
+  ) {
+    return {
+      kind: 'next-step',
+      nextTileIndex: bestPath[matchedPrefixLength]!,
+      guidePath: bestPath.slice(0, matchedPrefixLength + 1),
+    };
+  }
+
+  if (matchedPrefixLength === 0) {
+    return {
+      kind: 'diverged',
+      divergenceTileIndex: bestPath[0]!,
+      correctTileIndex: bestPath[1] ?? bestPath[0]!,
+      guidePath: bestPath.slice(0, Math.min(bestPath.length, 2)),
+    };
+  }
+
+  return {
+    kind: 'diverged',
+    divergenceTileIndex: bestPath[matchedPrefixLength - 1]!,
+    correctTileIndex:
+      bestPath[matchedPrefixLength] ?? bestPath[bestPath.length - 1]!,
+    guidePath: bestPath.slice(
+      0,
+      Math.min(bestPath.length, matchedPrefixLength + 1),
+    ),
+  };
+}
+
+function pickBestMatchingPath(
+  optimalPaths: number[][],
+  pathHistory: number[],
+): number[] {
+  let bestPath = optimalPaths[0] ?? [];
+  let bestPrefixLength = -1;
+
   for (const path of optimalPaths) {
-    const idx = path.indexOf(currentId)
-    if (idx !== -1 && idx < path.length - 1) {
-      bestPath = path
-      bestIndex = idx
-      break
+    const prefixLength = getCommonPrefixLength(path, pathHistory);
+    if (prefixLength > bestPrefixLength) {
+      bestPath = path;
+      bestPrefixLength = prefixLength;
     }
   }
-  
-  // If not on any optimal path, find the nearest one
-  if (bestIndex === -1) {
-    let minDist = Infinity
-    for (const path of optimalPaths) {
-      const dist = minDistanceToPath(currentId, path, cols)
-      if (dist < minDist) {
-        minDist = dist
-        bestPath = path
-      }
-    }
-  }
-  
-  const currentIndex = bestPath.indexOf(currentId)
-  const onPath = currentIndex !== -1 && currentIndex < bestPath.length - 1
 
-  if (level === 1) {
-    // Nudge: direction toward the next tile on the optimal path.
-    if (onPath) {
-      const nextId = bestPath[currentIndex + 1]!
-      return {
-        level: 1,
-        direction: getDirection(currentId, nextId, cols),
-        fromTileIndex: currentId,
-        nextTileIndex: nextId,
-      }
-    }
-    // Off-path: nudge toward the nearest tile on the optimal path.
-    return { level: 1, direction: nearestOptimalDirection(currentId, bestPath, cols), fromTileIndex: currentId }
-  }
-
-  if (level === 2) {
-    // Branch: next 2–3 tiles on the optimal path from the current position.
-    // If the player is off-path, show tiles from the start of the optimal path.
-    const startIndex = onPath ? currentIndex + 1 : 0
-    const tileIndexes = bestPath.slice(startIndex, startIndex + 3)
-    return { level: 2, tileIndexes }
-  }
-
-  // Level 3 — Rescue: exact next step.
-  if (onPath) {
-    return { level: 3, nextTileIndex: bestPath[currentIndex + 1]! }
-  }
-  // If the player is completely off-path, guide back to the start of the route.
-  return { level: 3, nextTileIndex: bestPath[0]! }
+  return bestPath;
 }
 
-/**
- * Calculate minimum Manhattan distance from a tile to any tile in a path.
- */
-function minDistanceToPath(tileId: number, path: number[], cols: number): number {
-  const [tr, tc] = parseTileIndex(tileId, cols)
-  let minDist = Infinity
-  
-  for (const pathId of path) {
-    const [pr, pc] = parseTileIndex(pathId, cols)
-    const dist = Math.abs(pr - tr) + Math.abs(pc - tc)
-    if (dist < minDist) {
-      minDist = dist
-    }
-  }
-  
-  return minDist
-}
+function getCommonPrefixLength(left: number[], right: number[]): number {
+  const max = Math.min(left.length, right.length);
+  let idx = 0;
 
-/**
- * Approximate best direction from `currentId` toward the nearest tile
- * on the optimal path. Used when the player has strayed off the gold route.
- *
- * Ties are broken by whichever optimal tile appears earliest in the path.
- */
-function nearestOptimalDirection(currentId: number, optimalPath: number[], cols: number): Direction {
-  const [cr, cc] = parseTileIndex(currentId, cols)
-  let bestDir: Direction = 'top'
-  let bestDist = Infinity
-
-  for (const pathId of optimalPath) {
-    const [pr, pc] = parseTileIndex(pathId, cols)
-    const dist = Math.abs(pr - cr) + Math.abs(pc - cc)
-    if (dist < bestDist) {
-      bestDist = dist
-      if (pr < cr)      bestDir = 'top'
-      else if (pr > cr) bestDir = 'bottom'
-      else if (pc < cc) bestDir = 'left'
-      else              bestDir = 'right'
-    }
+  while (idx < max && left[idx] === right[idx]) {
+    idx += 1;
   }
 
-  return bestDir
+  return idx;
 }
