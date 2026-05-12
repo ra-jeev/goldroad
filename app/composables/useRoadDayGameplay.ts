@@ -83,10 +83,6 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     options.entryType === 'live' ? 'live' : 'replay';
   const maxScore = computed(() => game.value?.maxScore ?? 0);
   const totalCoins = computed(() => game.value?.totalCoins ?? 0);
-  const completionPercent = computed(() => {
-    if (!maxScore.value) return 0;
-    return Math.min(100, Math.round((score.value / maxScore.value) * 100));
-  });
   const roadHeading = computed(() =>
     game.value ? `Road ${game.value.gameNo}` : 'Road ...',
   );
@@ -724,7 +720,6 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     playerUUID,
     maxScore,
     totalCoins,
-    completionPercent,
     roadHeading,
     isExpeditionUnlocked,
     classicSolvedToday,

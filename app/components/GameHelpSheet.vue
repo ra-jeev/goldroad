@@ -1,11 +1,15 @@
 <script setup lang="ts">
-import { UI_COPY } from '../content/uiCopy'
+import { UI_COPY } from '../content/uiCopy';
 
-const { isHowToPlayOpen, closeHowToPlay } = useHowToPlaySheet()
+const { isHowToPlayOpen, closeHowToPlay } = useHowToPlaySheet();
 </script>
 
 <template>
-  <div v-if="isHowToPlayOpen" class="sheet-backdrop" @click.self="closeHowToPlay">
+  <div
+    v-if="isHowToPlayOpen"
+    class="sheet-backdrop"
+    @click.self="closeHowToPlay"
+  >
     <section class="sheet-card" aria-label="How to play">
       <div class="sheet-header">
         <div>
@@ -14,14 +18,19 @@ const { isHowToPlayOpen, closeHowToPlay } = useHowToPlaySheet()
         </div>
 
         <button type="button" class="close-button" @click="closeHowToPlay">
-          {{ UI_COPY.sidebar.close }}
+          {{ UI_COPY.helpSheet.close }}
         </button>
       </div>
 
       <article class="help-section">
         <h3>{{ UI_COPY.helpSheet.sections.howToPlay.title }}</h3>
         <ul>
-          <li v-for="item in UI_COPY.helpSheet.sections.howToPlay.items" :key="item">{{ item }}</li>
+          <li
+            v-for="item in UI_COPY.helpSheet.sections.howToPlay.items"
+            :key="item"
+          >
+            {{ item }}
+          </li>
         </ul>
       </article>
 
@@ -33,7 +42,12 @@ const { isHowToPlayOpen, closeHowToPlay } = useHowToPlaySheet()
       <article class="help-section">
         <h3>{{ UI_COPY.helpSheet.sections.updates.title }}</h3>
         <ul>
-          <li v-for="item in UI_COPY.helpSheet.sections.updates.items" :key="item">{{ item }}</li>
+          <li
+            v-for="item in UI_COPY.helpSheet.sections.updates.items"
+            :key="item"
+          >
+            {{ item }}
+          </li>
         </ul>
       </article>
     </section>

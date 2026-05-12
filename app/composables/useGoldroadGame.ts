@@ -17,25 +17,6 @@ export function useGoldroadGame() {
       gameplay.lastSolved.value &&
       Boolean(gameplay.availableGames.value.expedition),
   );
-  const uiLabels = computed(() => ({
-    roadHeading: gameplay.roadHeading.value,
-    modeLabel:
-      gameplay.selectedMode.value === 'expedition'
-        ? UI_COPY.modeSelector.expeditionBadge
-        : UI_COPY.modeSelector.classicBadge,
-    runStateHeading: gameplay.ended.value
-      ? UI_COPY.sidebar.routeComplete
-      : UI_COPY.sidebar.routeActive,
-    difficultyLabel: gameplay.game.value?.difficultyBand ?? '—',
-    hintDisplayMessage:
-      gameplay.hintMessage.value ?? UI_COPY.sidebar.defaultHintInline,
-    hasHintMessage: Boolean(gameplay.hintMessage.value),
-    progressText: `${gameplay.completionPercent.value}%`,
-    completionHeading: gameplay.lastTier.value
-      ? UI_COPY.completion.tiers[gameplay.lastTier.value]
-      : UI_COPY.completion.headingFallback,
-    completionOutcome: gameplay.lastTier.value ?? '—',
-  }));
 
   function getNextUtcMidnight(): Date {
     const now = new Date();
@@ -94,28 +75,6 @@ export function useGoldroadGame() {
     }
   }
 
-  async function playAnother() {
-    if (!gameplay.playerUUID.value) return;
-
-    gameplay.loading.value = true;
-    gameplay.status.value = UI_COPY.runtime.findingAnotherRoad;
-    try {
-      const payload = await gamesApi.getAnotherGame(gameplay.playerUUID.value);
-      await navigateTo(`/games/${payload.gameNo}`);
-    } finally {
-      gameplay.loading.value = false;
-    }
-  }
-
-  async function handlePlayAnother() {
-    if (canSwitchToExpedition.value) {
-      gameplay.switchToExpedition();
-      return;
-    }
-
-    await playAnother();
-  }
-
   onMounted(async () => {
     updateNextResetCountdown();
     countdownTimer = setInterval(updateNextResetCountdown, 1000);
@@ -131,10 +90,7 @@ export function useGoldroadGame() {
 
   return {
     ...gameplay,
-    uiLabels,
     nextResetCountdown,
     canSwitchToExpedition,
-    loadCurrentGame,
-    playAnother: handlePlayAnother,
   };
 }

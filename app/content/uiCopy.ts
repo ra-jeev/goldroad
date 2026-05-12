@@ -1,19 +1,6 @@
-import type { Medal, OutcomeTier } from '../../shared/types/game';
+import type { Medal } from '../../shared/types/game';
 
 export const UI_COPY = {
-  modeSelector: {
-    heading: 'Choose Your Daily Puzzle',
-    classicTitle: 'Classic',
-    expeditionTitle: 'Expedition',
-    classicBadge: 'Classic Mode',
-    expeditionBadge: 'Expedition Mode',
-    playButton: 'Play',
-    replayButton: 'Replay',
-    lockedLabel: 'Locked',
-    unlockHint: 'Solve Classic exactly to unlock Expedition!',
-    unlockedLabel: '✨ Unlocked',
-    completedLabel: 'Completed',
-  },
   board: {
     keyboardHint: 'Click tiles or use arrow keys',
     info: {
@@ -54,6 +41,7 @@ export const UI_COPY = {
     hintUsedLabel: (count: number) => `Used ${count}`,
   },
   helpSheet: {
+    close: 'Close',
     sections: {
       howToPlay: {
         title: 'How to Play',
@@ -81,69 +69,7 @@ export const UI_COPY = {
       },
     },
   },
-  sidebar: {
-    eyebrow: 'Daily Challenge',
-    heroCopy:
-      'The goal is not to collect everything. The goal is to discover the best legal route.',
-    reloadToday: 'Reload Today',
-    retryRoad: 'Retry Road',
-    legend: 'Legend',
-    hints: 'Hints',
-    metrics: {
-      score: 'Score',
-      boardCoins: 'Board Coins',
-      moves: 'Moves',
-      progress: 'Progress',
-    },
-    runStatusEyebrow: 'Run Status',
-    routeActive: 'Route Active',
-    routeComplete: 'Route Complete',
-    defaultHintInline:
-      'Use hints only when you need help. They stay tucked away until you ask for them.',
-    openHints: 'Open Hints',
-    openLegend: 'Open Legend',
-    overlayHelpEyebrow: 'Help',
-    close: 'Close',
-    hintsTitle: 'Hints',
-    legendTitle: 'Legend',
-    hintRows: {
-      level1Title: 'Hint',
-      level1Desc: 'Highlights the next correct move',
-      level2Title: 'Hint',
-      level2Desc: 'Extends the highlighted guide path',
-      level3Title: 'Hint',
-      level3Desc: 'Extends the highlighted guide path',
-    },
-    hintFallback: 'Hints appear here after you request one.',
-    legendRows: {
-      legalMove: 'Legal next move',
-      visitedTile: 'Visited tile',
-      blockedRoad: 'Missing road',
-      tollRoad: 'Toll road',
-      bonusRoad: 'Bonus road',
-      start: 'Start',
-      end: 'End',
-    },
-  },
-  completion: {
-    eyebrow: 'Run Complete',
-    headingFallback: 'Road complete',
-    labels: {
-      finalScore: 'Final score',
-      goldTarget: 'Gold target',
-      moves: 'Moves',
-      outcome: 'Outcome',
-      playAnother: 'Play Another',
-      retryRoad: 'Retry Road',
-    },
-    tiers: {
-      gold: 'Perfect route',
-      silver: 'Excellent route',
-      bronze: 'Strong route',
-      finished: 'Finished route',
-      unfinished: 'Unfinished route',
-    } as Record<OutcomeTier, string>,
-  },
+
   runtime: {
     loadingGame: 'Loading game...',
     loadingTodaysRoad: "Loading today's road...",
