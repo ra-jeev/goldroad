@@ -90,7 +90,7 @@ function describeLocalStatus(globalStat: CommunityRoadStats) {
   if (progress.solved) {
     return {
       status: formatMedal(medal),
-      detail: `Solved in ${progress.attempts} attempt${progress.attempts === 1 ? '' : 's'} · ${hints} hint${hints === 1 ? '' : 's'}`,
+      detail: `Solved in ${progress.attempts} attempt${progress.attempts === 1 ? '' : 's'} · ${hints} hint${hints === 1 ? '' : 's'}${progress.solveTimeMs !== null ? ` · ${formatDurationMs(progress.solveTimeMs)}` : ''}`,
     };
   }
 
@@ -476,6 +476,18 @@ onMounted(async () => {
               <span class="detail-label">Avg Solve Attempt</span>
               <strong>{{ summary.averageSolvedAttempts }}</strong>
             </article>
+
+            <article class="detail-card">
+              <span class="detail-label">Avg Solve Time</span>
+              <strong>{{
+                formatDurationMs(summary.averageSolveTimeMs)
+              }}</strong>
+            </article>
+
+            <article class="detail-card">
+              <span class="detail-label">Best Solve Time</span>
+              <strong>{{ formatDurationMs(summary.bestSolveTimeMs) }}</strong>
+            </article>
           </div>
 
           <section class="tier-section">
@@ -532,6 +544,10 @@ onMounted(async () => {
                     </div>
                     <p>Attempts: {{ entry.modes.classic.attempts }}</p>
                     <p>Hints: {{ hintTotal(entry.modes.classic) }}</p>
+                    <p v-if="entry.modes.classic.solveTimeMs !== null">
+                      Time:
+                      {{ formatDurationMs(entry.modes.classic.solveTimeMs) }}
+                    </p>
                   </section>
 
                   <section v-if="entry.modes.expedition" class="mode-card">
@@ -548,6 +564,10 @@ onMounted(async () => {
                     </div>
                     <p>Attempts: {{ entry.modes.expedition.attempts }}</p>
                     <p>Hints: {{ hintTotal(entry.modes.expedition) }}</p>
+                    <p v-if="entry.modes.expedition.solveTimeMs !== null">
+                      Time:
+                      {{ formatDurationMs(entry.modes.expedition.solveTimeMs) }}
+                    </p>
                   </section>
                 </div>
               </article>

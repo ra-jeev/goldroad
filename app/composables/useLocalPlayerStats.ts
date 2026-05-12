@@ -136,6 +136,18 @@ export function useLocalPlayerStats() {
           solvedModes.length
         ).toFixed(1)
       : '—';
+    const solvedDurations = solvedModes
+      .map((entry) => entry.solveTimeMs)
+      .filter((value): value is number => value !== null);
+    const averageSolveTimeMs = solvedDurations.length
+      ? Math.round(
+          solvedDurations.reduce((sum, value) => sum + value, 0) /
+            solvedDurations.length,
+        )
+      : null;
+    const bestSolveTimeMs = solvedDurations.length
+      ? Math.min(...solvedDurations)
+      : null;
 
     return {
       roadDaysPlayed: days.filter((entry) =>
@@ -152,6 +164,8 @@ export function useLocalPlayerStats() {
       bestClassicStreak,
       totalHints,
       averageSolvedAttempts,
+      averageSolveTimeMs,
+      bestSolveTimeMs,
       medalCounts,
     };
   });

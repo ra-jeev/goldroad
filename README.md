@@ -22,6 +22,7 @@ These rules are the current source of truth:
 - Solving means reaching the exit with the exact target score.
 - Gold, Silver, and Bronze are based on solve attempt counts 1, 2, and 3.
 - Personal stats stay local to the browser.
+- Active solve timing starts when an unsolved board is visible and pauses while the tab is hidden.
 - Global comparison is powered by anonymous analytics only.
 - Auth, account sync, and push notifications are intentionally out of scope.
 
@@ -57,7 +58,7 @@ The current implementation stores browser-local state in one versioned local-sto
 That root object holds the local player experience data for:
 - anonymous player id
 - current road context
-- live daily puzzle progress
+- live daily puzzle progress, including active solve timing state
 - replay-only progress for archive and random roads
 - local history used by the stats page
 - lightweight settings and tutorial state

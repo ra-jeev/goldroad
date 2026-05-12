@@ -39,6 +39,24 @@ export function useLocalGameProgress() {
     });
   }
 
+  function setSolveTimerState(
+    gameNo: number,
+    puzzleType: PuzzleType,
+    day: string,
+    activeTimeMs: number,
+    timerStartedAt: string | null,
+    scope: LocalProgressScope = 'live',
+  ) {
+    return localState.setSolveTimerState({
+      gameNo,
+      puzzleType,
+      day,
+      activeTimeMs,
+      timerStartedAt,
+      scope,
+    });
+  }
+
   function recordRun(
     gameNo: number,
     puzzleType: PuzzleType,
@@ -47,6 +65,8 @@ export function useLocalGameProgress() {
     solved: boolean,
     solveTimeMs: number | null = null,
     scope: LocalProgressScope = 'live',
+    activeTimeMs?: number,
+    timerStartedAt?: string | null,
   ) {
     return localState.recordRun({
       gameNo,
@@ -56,6 +76,8 @@ export function useLocalGameProgress() {
       solved,
       solveTimeMs,
       scope,
+      activeTimeMs,
+      timerStartedAt,
     });
   }
 
@@ -66,6 +88,7 @@ export function useLocalGameProgress() {
     load,
     getGameProgress,
     recordHint,
+    setSolveTimerState,
     recordRun,
     setCurrentRoadContext: localState.setCurrentRoadContext,
   };
