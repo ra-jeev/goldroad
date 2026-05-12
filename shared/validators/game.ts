@@ -216,6 +216,17 @@ export const PastGameSummarySchema = z.object({
   playableAt: z.string().datetime({ offset: true }),
 });
 
+export const CommunityBehaviorStatsSchema = z.object({
+  hintUsers: z.number().int().min(0),
+  totalHints: z.number().int().min(0),
+  hintUseRate: z.number().min(0).max(100),
+  averageAttemptsBeforeFirstHint: z.number().nullable(),
+  averageFirstHintMoveIndex: z.number().nullable(),
+  averageDeadEndCount: z.number().nullable(),
+  averageWrongExitCount: z.number().nullable(),
+  averageSolveTimeMs: z.number().nullable(),
+});
+
 export const CommunityRoadStatsSchema = z.object({
   gameNo: z.number().int().positive(),
   puzzleType: PuzzleTypeSchema,
@@ -225,13 +236,18 @@ export const CommunityRoadStatsSchema = z.object({
   gold: z.number().int().min(0),
   silver: z.number().int().min(0),
   bronze: z.number().int().min(0),
+  behavior: CommunityBehaviorStatsSchema,
+});
+
+export const StatsRoadDaySchema = z.object({
+  gameNo: z.number().int().positive().nullable(),
+  classic: CommunityRoadStatsSchema.nullable(),
+  expedition: CommunityRoadStatsSchema.nullable(),
 });
 
 export const StatsOverviewSchema = z.object({
-  current: z.object({
-    classic: CommunityRoadStatsSchema.nullable(),
-    expedition: CommunityRoadStatsSchema.nullable(),
-  }),
+  current: StatsRoadDaySchema,
+  yesterday: StatsRoadDaySchema,
 });
 
 // ---------------------------------------------------------------------------
@@ -250,6 +266,7 @@ export const SessionEndPayloadSchema = z
     solved: z.boolean(),
     endReason: RunEndReasonSchema,
     hintsUsed: z.number().int().min(0).default(0),
+    solveTimeMs: z.number().int().min(0).nullable().optional(),
   })
   .superRefine((payload, ctx) => {
     if (payload.solved && payload.endReason !== 'solved') {
@@ -302,7 +319,11 @@ export type HintResult = z.infer<typeof HintResultSchema>;
 export type PublicGame = z.infer<typeof PublicGameSchema>;
 export type CurrentGamesResponse = z.infer<typeof CurrentGamesResponseSchema>;
 export type PastGameSummary = z.infer<typeof PastGameSummarySchema>;
+export type CommunityBehaviorStats = z.infer<
+  typeof CommunityBehaviorStatsSchema
+>;
 export type CommunityRoadStats = z.infer<typeof CommunityRoadStatsSchema>;
+export type StatsRoadDay = z.infer<typeof StatsRoadDaySchema>;
 export type StatsOverview = z.infer<typeof StatsOverviewSchema>;
 
 export type SessionEndPayload = z.infer<typeof SessionEndPayloadSchema>;

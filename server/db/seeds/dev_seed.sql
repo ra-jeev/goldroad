@@ -1,8 +1,7 @@
 -- Local development seed data for GoldRoad API testing.
 -- Generated from the current puzzle generator to keep maxScore/path consistent.
 
-DELETE FROM player_game_session;
-DELETE FROM daily_game_stats;
+DELETE FROM player_road_analytics;
 DELETE FROM games;
 
 INSERT INTO games (

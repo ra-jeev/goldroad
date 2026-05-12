@@ -16,6 +16,7 @@ export interface SessionEndRequest {
   solved: boolean;
   endReason: RunEndReason;
   hintsUsed?: number;
+  solveTimeMs?: number | null;
 }
 
 export interface HintRequest {

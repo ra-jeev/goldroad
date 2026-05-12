@@ -376,7 +376,6 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
 
     setupGame(game.value, {
       attemptNumber: nextAttemptNumber,
-      preserveSession: true,
     });
   }
 

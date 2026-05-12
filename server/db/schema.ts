@@ -1,10 +1,9 @@
 /**
  * Drizzle schema for GoldRoad v2 — targeting Cloudflare D1 (SQLite dialect).
  *
- * Three tables:
- *   games               — puzzle definitions + aggregate outcome counts
- *   player_game_session — anonymous per-session analytics rows
- *   daily_game_stats    — pre-aggregated daily counters (fast reads for stats page)
+ * Two active tables:
+ *   games                 — puzzle definitions + lightweight aggregate counts
+ *   player_road_analytics — anonymous per-player-per-road analytics rows
  *
  * The optimal paths (gold routes) are stored in `games.optimal_paths_json` and are
  * NEVER returned to the client — only used server-side for hint computation.
@@ -12,8 +11,8 @@
 
 import { sql } from 'drizzle-orm';
 import {
+  index,
   integer,
-  real,
   sqliteTable,
   text,
   uniqueIndex,
@@ -57,7 +56,10 @@ export const games = sqliteTable(
     playableAt: text('playable_at').notNull(), // ISO-8601
     nextGameAt: text('next_game_at'), // ISO-8601, null until rotation
 
-    // Aggregate outcome counts — incremented by /api/session/end
+    /**
+     * Lightweight aggregate counts derived from per-player analytics.
+     * These are updated only when a player's aggregate row changes meaningfully.
+     */
     playsCount: integer('plays_count').notNull().default(0),
     goldCount: integer('gold_count').notNull().default(0),
     silverCount: integer('silver_count').notNull().default(0),
@@ -72,7 +74,6 @@ export const games = sqliteTable(
       .default(sql`(datetime('now'))`),
   },
   (table) => ({
-    // Composite unique constraint: one classic and one expedition per gameNo
     gameNoPuzzleTypeIdx: uniqueIndex('games_game_no_puzzle_type_unique').on(
       table.gameNo,
       table.puzzleType,
@@ -81,100 +82,59 @@ export const games = sqliteTable(
 );
 
 // ---------------------------------------------------------------------------
-// player_game_session
+// player_road_analytics
 // ---------------------------------------------------------------------------
 
-export const playerGameSession = sqliteTable('player_game_session', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-
-  /** Random UUID stored in the player's localStorage. Not linked to any account. */
-  playerId: text('player_id').notNull(),
-  gameNo: integer('game_no').notNull(),
-  puzzleType: text('puzzle_type', {
-    enum: ['classic', 'expedition'],
-  }).notNull(),
-
-  /** Per-tab session UUID — allows multiple device sessions per player per game. */
-  sessionId: text('session_id').notNull().unique(),
-
-  startedAt: text('started_at').notNull(), // ISO-8601
-  finishedAt: text('finished_at'), // null until run ends
-
-  attempts: integer('attempts').notNull().default(1),
-  maxScore: integer('max_score').notNull(),
-
-  /** Final tier of the best completed run this session. */
-  outcomeTier: text('outcome_tier', {
-    enum: ['gold', 'silver', 'bronze', 'finished', 'unfinished'],
-  }),
-
-  completed: integer('completed', { mode: 'boolean' }).notNull().default(false),
-  gold: integer('gold', { mode: 'boolean' }).notNull().default(false),
-
-  /** Total number of hints used for this puzzle session. */
-  hintsUsed: integer('hints_used').notNull().default(0),
-
-  /** Number of completed attempts before the player asked for the first hint. */
-  attemptsBeforeFirstHint: integer('attempts_before_first_hint'),
-
-  /** Move index from the start tile (start tile = 0) when the first hint was requested. */
-  firstHintMoveIndex: integer('first_hint_move_index'),
-
-  deadEndCount: integer('dead_end_count').notNull().default(0),
-  wrongExitCount: integer('wrong_exit_count').notNull().default(0),
-
-  /** Whether the player opened the Past Roads list during this session. */
-  pastRoadViewed: integer('past_road_viewed', { mode: 'boolean' })
-    .notNull()
-    .default(false),
-
-  createdAt: text('created_at')
-    .notNull()
-    .default(sql`(datetime('now'))`),
-});
-
-// ---------------------------------------------------------------------------
-// daily_game_stats
-// ---------------------------------------------------------------------------
-
-/**
- * Pre-aggregated counters for the Yesterday's Performance block on the Stats
- * page. Updated by /api/session/end and /api/session/hint — fast to query with
- * a single row lookup.
- */
-export const dailyGameStats = sqliteTable(
-  'daily_game_stats',
+export const playerRoadAnalytics = sqliteTable(
+  'player_road_analytics',
   {
     id: integer('id').primaryKey({ autoIncrement: true }),
+
+    /** Random UUID stored in the player's localStorage. Not linked to any account. */
+    playerId: text('player_id').notNull(),
     gameNo: integer('game_no').notNull(),
     puzzleType: text('puzzle_type', {
       enum: ['classic', 'expedition'],
     }).notNull(),
 
-    plays: integer('plays').notNull().default(0),
-    completions: integer('completions').notNull().default(0),
-    goldCompletions: integer('gold_completions').notNull().default(0),
-    silverCompletions: integer('silver_completions').notNull().default(0),
-    bronzeCompletions: integer('bronze_completions').notNull().default(0),
-    totalAttempts: integer('total_attempts').notNull().default(0),
+    /** Attempts taken to solve once solved, otherwise the furthest attempt reached so far. */
+    attempts: integer('attempts').notNull().default(0),
+    solved: integer('solved', { mode: 'boolean' }).notNull().default(false),
 
-    hintUses: integer('hint_uses').notNull().default(0),
+    /** Total number of hints requested before the puzzle was solved. */
+    hintsUsed: integer('hints_used').notNull().default(0),
+
+    /** Number of completed attempts before the player asked for the first hint. */
+    attemptsBeforeFirstHint: integer('attempts_before_first_hint'),
+
+    /** Move index from the start tile (start tile = 0) when the first hint was requested. */
+    firstHintMoveIndex: integer('first_hint_move_index'),
+
+    /** Active solve duration in milliseconds for the exact solve, when available. */
+    solveTimeMs: integer('solve_time_ms'),
+
     deadEndCount: integer('dead_end_count').notNull().default(0),
     wrongExitCount: integer('wrong_exit_count').notNull().default(0),
 
-    /** Stored as a float (0–100). Recomputed on each /api/session/end write. */
-    completionRate: real('completion_rate'),
-    pastRoadsOpened: integer('past_roads_opened').notNull().default(0),
+    lastPlayedAt: text('last_played_at').notNull(),
+    solvedAt: text('solved_at'),
+    solveSessionId: text('solve_session_id'),
 
+    createdAt: text('created_at')
+      .notNull()
+      .default(sql`(datetime('now'))`),
     updatedAt: text('updated_at')
       .notNull()
       .default(sql`(datetime('now'))`),
   },
   (table) => ({
-    // Composite unique constraint: one stats row per gameNo + puzzleType
-    gameNoPuzzleTypeIdx: uniqueIndex(
-      'daily_game_stats_game_no_puzzle_type_unique',
-    ).on(table.gameNo, table.puzzleType),
+    playerGameModeIdx: uniqueIndex(
+      'player_road_analytics_player_game_mode_unique',
+    ).on(table.playerId, table.gameNo, table.puzzleType),
+    gameModeIdx: index('player_road_analytics_game_mode_idx').on(
+      table.gameNo,
+      table.puzzleType,
+    ),
   }),
 );
 
@@ -184,6 +144,5 @@ export const dailyGameStats = sqliteTable(
 
 export type Game = typeof games.$inferSelect;
 export type NewGame = typeof games.$inferInsert;
-export type PlayerGameSession = typeof playerGameSession.$inferSelect;
-export type NewPlayerGameSession = typeof playerGameSession.$inferInsert;
-export type DailyGameStats = typeof dailyGameStats.$inferSelect;
+export type PlayerRoadAnalytics = typeof playerRoadAnalytics.$inferSelect;
+export type NewPlayerRoadAnalytics = typeof playerRoadAnalytics.$inferInsert;

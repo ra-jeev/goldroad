@@ -1,5 +1,5 @@
-import { and, desc, eq, inArray, lt } from 'drizzle-orm';
-import { games, playerGameSession } from '../../db/schema';
+import { and, desc, eq, inArray, lt, lte } from 'drizzle-orm';
+import { games, playerRoadAnalytics } from '../../db/schema';
 import { useDb } from '../../db/client';
 
 const RECENT_POOL_SIZE = 30;
@@ -9,10 +9,18 @@ export default defineEventHandler(async (event) => {
   const query = getQuery(event);
   const playerId = typeof query.playerId === 'string' ? query.playerId : null;
 
+  const nowIso = new Date().toISOString();
+
   const currentRows = await db
     .select({ gameNo: games.gameNo })
     .from(games)
-    .where(eq(games.current, true))
+    .where(
+      and(
+        eq(games.active, true),
+        eq(games.current, true),
+        lte(games.playableAt, nowIso),
+      ),
+    )
     .limit(1);
 
   const currentGameNo = currentRows[0]?.gameNo;
@@ -40,12 +48,12 @@ export default defineEventHandler(async (event) => {
 
   if (playerId) {
     const playedRows = await db
-      .select({ gameNo: playerGameSession.gameNo })
-      .from(playerGameSession)
+      .select({ gameNo: playerRoadAnalytics.gameNo })
+      .from(playerRoadAnalytics)
       .where(
         and(
-          eq(playerGameSession.playerId, playerId),
-          inArray(playerGameSession.gameNo, candidateGameNos),
+          eq(playerRoadAnalytics.playerId, playerId),
+          inArray(playerRoadAnalytics.gameNo, candidateGameNos),
         ),
       );
 
