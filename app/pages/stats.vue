@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { calcMedalForAttempt } from '../../lib/gameTiers';
-import type { CommunityRoadStats, Medal } from '../../shared/types/game';
+import type {
+  CommunityRoadStats,
+  Medal,
+  PuzzleType,
+} from '../../shared/types/game';
 import { UI_COPY } from '../content/uiCopy';
 
 const localStats = useLocalPlayerStats();
@@ -13,8 +17,9 @@ const communityOverview = ref<Awaited<
 > | null>(null);
 const communityError = ref<string | null>(null);
 const loading = ref(true);
+const yesterdayMode = ref<PuzzleType>('classic');
 
-type CurrentComparisonCard = {
+type ComparisonCard = {
   key: string;
   modeLabel: string;
   gameNo: number;
@@ -23,8 +28,13 @@ type CurrentComparisonCard = {
   globalHeadline: string;
   globalDetail: string;
   globalMedals: string;
+  globalBehavior: string;
   comparisonHeadline: string;
   comparisonDetail: string;
+};
+
+type YesterdayComparisonCard = ComparisonCard & {
+  behaviorRows: string[];
 };
 
 function formatDay(day: string): string {
@@ -34,6 +44,10 @@ function formatDay(day: string): string {
     year: 'numeric',
     timeZone: 'UTC',
   }).format(new Date(`${day}T00:00:00.000Z`));
+}
+
+function formatModeLabel(mode: PuzzleType): string {
+  return mode === 'classic' ? 'Classic' : 'Expedition';
 }
 
 function hintTotal(progress: { hintsUsed: number }): number {
@@ -47,6 +61,22 @@ function toPercent(value: number, total: number): number {
 
 function formatMedal(medal: Medal | null): string {
   return medal ? UI_COPY.boardHeader.medals[medal] : 'Solved';
+}
+
+function formatAverage(value: number | null, digits = 1): string {
+  if (value === null) return '—';
+  return value.toFixed(digits).replace(/\.0$/, '');
+}
+
+function formatDurationMs(value: number | null): string {
+  if (value === null) return '—';
+
+  const totalSeconds = Math.max(0, Math.round(value / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return minutes > 0
+    ? `${minutes}m ${String(seconds).padStart(2, '0')}s`
+    : `${seconds}s`;
 }
 
 function describeLocalStatus(globalStat: CommunityRoadStats) {
@@ -88,7 +118,7 @@ function buildComparisonInsight(globalStat: CommunityRoadStats) {
     return {
       headline: 'No community runs recorded yet',
       detail:
-        'This road has not posted enough server-side run data to compare against yet.',
+        'This road has not posted enough anonymous analytics to compare against yet.',
     };
   }
 
@@ -151,29 +181,83 @@ function buildComparisonInsight(globalStat: CommunityRoadStats) {
   };
 }
 
-const currentComparisonCards = computed<CurrentComparisonCard[]>(() => {
+function buildBehaviorRows(globalStat: CommunityRoadStats): string[] {
+  const rows = [
+    `${globalStat.behavior.hintUsers} hint user${globalStat.behavior.hintUsers === 1 ? '' : 's'} · ${globalStat.behavior.totalHints} total hints`,
+    `First hint avg: attempt ${formatAverage(globalStat.behavior.averageAttemptsBeforeFirstHint)} · move ${formatAverage(globalStat.behavior.averageFirstHintMoveIndex)}`,
+    `Avg dead ends ${formatAverage(globalStat.behavior.averageDeadEndCount)} · wrong exits ${formatAverage(globalStat.behavior.averageWrongExitCount)}`,
+  ];
+
+  if (globalStat.behavior.averageSolveTimeMs !== null) {
+    rows.push(
+      `Avg solve time ${formatDurationMs(globalStat.behavior.averageSolveTimeMs)}`,
+    );
+  }
+
+  return rows;
+}
+
+function toComparisonCard(globalStat: CommunityRoadStats): ComparisonCard {
+  const local = describeLocalStatus(globalStat);
+  const comparison = buildComparisonInsight(globalStat);
+
+  return {
+    key: `${globalStat.puzzleType}:${globalStat.gameNo}`,
+    modeLabel: formatModeLabel(globalStat.puzzleType),
+    gameNo: globalStat.gameNo,
+    localStatus: local.status,
+    localDetail: local.detail,
+    globalHeadline: `${globalStat.solveRate}% exact solve rate`,
+    globalDetail: `${globalStat.plays} play${globalStat.plays === 1 ? '' : 's'} · ${globalStat.exactSolves} exact solve${globalStat.exactSolves === 1 ? '' : 's'}`,
+    globalMedals: `${globalStat.gold} gold · ${globalStat.silver} silver · ${globalStat.bronze} bronze`,
+    globalBehavior: `${globalStat.behavior.hintUseRate}% used hints · ${globalStat.behavior.totalHints} total hints`,
+    comparisonHeadline: comparison.headline,
+    comparisonDetail: comparison.detail,
+  };
+}
+
+const currentComparisonCards = computed<ComparisonCard[]>(() => {
   const current = communityOverview.value?.current;
   if (!current) return [];
 
   return (['classic', 'expedition'] as const)
     .map((mode) => current[mode])
     .filter((entry): entry is CommunityRoadStats => Boolean(entry))
-    .map((entry) => {
-      const local = describeLocalStatus(entry);
-      const comparison = buildComparisonInsight(entry);
-      return {
-        key: `${entry.puzzleType}:${entry.gameNo}`,
-        modeLabel: entry.puzzleType === 'classic' ? 'Classic' : 'Expedition',
-        gameNo: entry.gameNo,
-        localStatus: local.status,
-        localDetail: local.detail,
-        globalHeadline: `${entry.solveRate}% exact solve rate`,
-        globalDetail: `${entry.plays} play${entry.plays === 1 ? '' : 's'} · ${entry.exactSolves} exact solve${entry.exactSolves === 1 ? '' : 's'}`,
-        globalMedals: `${entry.gold} gold · ${entry.silver} silver · ${entry.bronze} bronze`,
-        comparisonHeadline: comparison.headline,
-        comparisonDetail: comparison.detail,
-      };
-    });
+    .map((entry) => toComparisonCard(entry));
+});
+
+const yesterdayAvailableModes = computed<PuzzleType[]>(() => {
+  const yesterday = communityOverview.value?.yesterday;
+  if (!yesterday) return [];
+
+  return (['classic', 'expedition'] as const).filter((mode) =>
+    Boolean(yesterday[mode]),
+  );
+});
+
+watchEffect(() => {
+  const availableModes = yesterdayAvailableModes.value;
+  if (!availableModes.length) return;
+  if (!availableModes.includes(yesterdayMode.value)) {
+    yesterdayMode.value = availableModes[0]!;
+  }
+});
+
+const yesterdayComparisonCard = computed<YesterdayComparisonCard | null>(() => {
+  const yesterday = communityOverview.value?.yesterday;
+  if (!yesterday || yesterday.gameNo === null) return null;
+
+  const selectedEntry =
+    yesterday[yesterdayMode.value] ??
+    (yesterdayAvailableModes.value.length
+      ? yesterday[yesterdayAvailableModes.value[0]!]
+      : null);
+  if (!selectedEntry) return null;
+
+  return {
+    ...toComparisonCard(selectedEntry),
+    behaviorRows: buildBehaviorRows(selectedEntry),
+  };
 });
 
 onMounted(async () => {
@@ -211,8 +295,8 @@ onMounted(async () => {
             <div>
               <h2>Today Against The Field</h2>
               <p>
-                These global counts come from server-side session stats for the
-                current active roads.
+                These global counts come from anonymous per-road analytics for
+                the current active roads.
               </p>
             </div>
           </div>
@@ -242,6 +326,7 @@ onMounted(async () => {
                   <span class="compare-label">Global</span>
                   <strong>{{ card.globalDetail }}</strong>
                   <p>{{ card.globalMedals }}</p>
+                  <p class="compare-subline">{{ card.globalBehavior }}</p>
                 </section>
               </div>
 
@@ -251,6 +336,89 @@ onMounted(async () => {
               </div>
             </article>
           </div>
+        </section>
+
+        <section
+          v-if="yesterdayComparisonCard"
+          class="compare-section compare-section--featured"
+        >
+          <div class="compare-header compare-header--featured">
+            <div>
+              <h2>Yesterday Against The Field</h2>
+              <p>
+                One road card with a mode toggle, using the new anonymous
+                analytics model.
+              </p>
+            </div>
+
+            <div
+              v-if="yesterdayAvailableModes.length > 1"
+              class="mode-toggle"
+              role="tablist"
+              aria-label="Yesterday mode toggle"
+            >
+              <button
+                v-for="mode in yesterdayAvailableModes"
+                :key="mode"
+                type="button"
+                class="mode-toggle-button"
+                :class="{
+                  'mode-toggle-button--active': yesterdayMode === mode,
+                }"
+                @click="yesterdayMode = mode"
+              >
+                {{ formatModeLabel(mode) }}
+              </button>
+            </div>
+          </div>
+
+          <article class="compare-card compare-card--featured">
+            <div class="compare-card-top">
+              <div>
+                <p class="compare-eyebrow">
+                  {{ yesterdayComparisonCard.modeLabel }}
+                </p>
+                <h3>Road {{ yesterdayComparisonCard.gameNo }}</h3>
+              </div>
+              <span class="compare-rate">
+                {{ yesterdayComparisonCard.globalHeadline }}
+              </span>
+            </div>
+
+            <div class="compare-columns">
+              <section class="compare-block">
+                <span class="compare-label">You</span>
+                <strong>{{ yesterdayComparisonCard.localStatus }}</strong>
+                <p>{{ yesterdayComparisonCard.localDetail }}</p>
+              </section>
+
+              <section class="compare-block compare-block--global">
+                <span class="compare-label">Global</span>
+                <strong>{{ yesterdayComparisonCard.globalDetail }}</strong>
+                <p>{{ yesterdayComparisonCard.globalMedals }}</p>
+                <p class="compare-subline">
+                  {{ yesterdayComparisonCard.globalBehavior }}
+                </p>
+              </section>
+            </div>
+
+            <div class="compare-insight">
+              <strong>{{ yesterdayComparisonCard.comparisonHeadline }}</strong>
+              <p>{{ yesterdayComparisonCard.comparisonDetail }}</p>
+            </div>
+
+            <div class="compare-behavior">
+              <span class="compare-label">Field Behavior</span>
+              <ul class="behavior-list">
+                <li
+                  v-for="row in yesterdayComparisonCard.behaviorRows"
+                  :key="row"
+                >
+                  {{ row }}
+                </li>
+              </ul>
+            </div>
+          </article>
         </section>
 
         <p v-if="communityError" class="community-error">
@@ -416,6 +584,13 @@ onMounted(async () => {
   margin-bottom: 1rem;
 }
 
+.compare-header--featured {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
 .compare-header h2,
 .compare-card h3 {
   margin: 0;
@@ -443,6 +618,11 @@ onMounted(async () => {
   border-radius: var(--radius-lg);
   background: var(--gradient-card-status);
   border: 1px solid rgb(var(--color-gold-rgb) / 0.2);
+}
+
+.compare-card--featured {
+  border-color: rgb(var(--color-active-rgb) / 0.24);
+  box-shadow: 0 0 0 1px rgb(var(--color-active-rgb) / 0.08) inset;
 }
 
 .compare-card-top {
@@ -499,6 +679,10 @@ onMounted(async () => {
   font-size: 1.1rem;
 }
 
+.compare-subline {
+  color: rgb(var(--color-gold-rgb) / 0.7);
+}
+
 .compare-insight {
   display: grid;
   gap: 0.25rem;
@@ -514,6 +698,52 @@ onMounted(async () => {
 .compare-insight p {
   margin: 0;
   color: rgb(var(--color-gold-rgb) / 0.74);
+}
+
+.compare-behavior {
+  display: grid;
+  gap: 0.55rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid rgb(var(--color-gold-rgb) / 0.14);
+}
+
+.behavior-list {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0;
+  padding-left: 1rem;
+  color: rgb(var(--color-gold-rgb) / 0.78);
+}
+
+.mode-toggle {
+  display: inline-flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.mode-toggle-button {
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.2);
+  background: rgb(var(--color-gold-rgb) / 0.08);
+  color: rgb(var(--color-gold-rgb) / 0.8);
+  border-radius: var(--radius-full);
+  padding: 0.45rem 0.8rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform var(--transition-fast),
+    background var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.mode-toggle-button:hover {
+  transform: translateY(-1px);
+}
+
+.mode-toggle-button--active {
+  color: var(--color-text-on-gold);
+  background: var(--gradient-button-primary);
+  border-color: rgb(var(--color-gold-rgb) / 0.5);
 }
 
 .community-error {
@@ -744,9 +974,14 @@ onMounted(async () => {
   .compare-columns,
   .secondary-grid,
   .history-modes,
-  .history-header {
+  .history-header,
+  .compare-header--featured {
     grid-template-columns: 1fr;
     display: grid;
+  }
+
+  .mode-toggle {
+    justify-content: start;
   }
 }
 </style>
