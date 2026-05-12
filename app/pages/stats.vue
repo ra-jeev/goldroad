@@ -18,6 +18,8 @@ const communityOverview = ref<Awaited<
 const communityError = ref<string | null>(null);
 const loading = ref(true);
 const yesterdayMode = ref<PuzzleType>('classic');
+const HISTORY_PREVIEW_COUNT = 14;
+const showFullHistory = ref(false);
 
 type ComparisonCard = {
   key: string;
@@ -35,6 +37,13 @@ type ComparisonCard = {
 
 type YesterdayComparisonCard = ComparisonCard & {
   behaviorRows: string[];
+};
+
+type HistoryModeRecord = {
+  attempts: number;
+  solved: boolean;
+  hintsUsed: number;
+  solveTimeMs: number | null;
 };
 
 function formatDay(day: string): string {
@@ -77,6 +86,26 @@ function formatDurationMs(value: number | null): string {
   return minutes > 0
     ? `${minutes}m ${String(seconds).padStart(2, '0')}s`
     : `${seconds}s`;
+}
+
+function getHistoryModeMedal(record: HistoryModeRecord): Medal | null {
+  return calcMedalForAttempt(record.attempts, record.solved);
+}
+
+function formatHistoryModeResult(record: HistoryModeRecord): string {
+  if (!record.solved) return 'Tried';
+  return formatMedal(getHistoryModeMedal(record));
+}
+
+function historyModeBadgeClass(record: HistoryModeRecord) {
+  const medal = getHistoryModeMedal(record);
+
+  return {
+    'mode-badge--solved': record.solved,
+    'mode-badge--gold': medal === 'gold',
+    'mode-badge--silver': medal === 'silver',
+    'mode-badge--bronze': medal === 'bronze',
+  };
 }
 
 function describeLocalStatus(globalStat: CommunityRoadStats) {
@@ -260,6 +289,32 @@ const yesterdayComparisonCard = computed<YesterdayComparisonCard | null>(() => {
   };
 });
 
+const modeSummaryCards = computed(() =>
+  (['classic', 'expedition'] as const).map((mode) => ({
+    key: mode,
+    label: formatModeLabel(mode),
+    stats: summary.value.modeBreakdown[mode],
+  })),
+);
+
+const hiddenHistoryCount = computed(() =>
+  Math.max(recentDays.value.length - HISTORY_PREVIEW_COUNT, 0),
+);
+
+const visibleRecentDays = computed(() =>
+  showFullHistory.value
+    ? recentDays.value
+    : recentDays.value.slice(0, HISTORY_PREVIEW_COUNT),
+);
+
+const historyToggleLabel = computed(() => {
+  if (showFullHistory.value) {
+    return 'Show fewer roads';
+  }
+
+  return `Show ${hiddenHistoryCount.value} older road${hiddenHistoryCount.value === 1 ? '' : 's'}`;
+});
+
 onMounted(async () => {
   localProgress.load();
   localStats.load();
@@ -434,61 +489,161 @@ onMounted(async () => {
         </section>
 
         <template v-else>
-          <div class="stats-grid">
-            <div class="stat-card">
-              <div class="stat-value">{{ summary.roadDaysPlayed }}</div>
-              <div class="stat-label">Road Days</div>
+          <section class="overview-section">
+            <div class="section-header">
+              <h2>All-Time Snapshot</h2>
+              <p>Derived from the local history stored on this device.</p>
             </div>
 
-            <div class="stat-card">
-              <div class="stat-value">{{ summary.exactSolves }}</div>
-              <div class="stat-label">Exact Solves</div>
+            <div class="stats-grid">
+              <div class="stat-card">
+                <div class="stat-value">{{ summary.roadDaysPlayed }}</div>
+                <div class="stat-label">Road Days</div>
+              </div>
+
+              <div class="stat-card">
+                <div class="stat-value">{{ summary.exactSolves }}</div>
+                <div class="stat-label">Exact Solves</div>
+              </div>
+
+              <div class="stat-card">
+                <div class="stat-value">{{ summary.currentClassicStreak }}</div>
+                <div class="stat-label">Classic Solve Streak</div>
+              </div>
+
+              <div class="stat-card">
+                <div class="stat-value">
+                  {{ summary.currentExpeditionStreak }}
+                </div>
+                <div class="stat-label">Expedition Solve Streak</div>
+              </div>
+
+              <div class="stat-card">
+                <div class="stat-value">{{ summary.totalHints }}</div>
+                <div class="stat-label">Hints Used</div>
+              </div>
             </div>
 
-            <div class="stat-card">
-              <div class="stat-value">{{ summary.currentClassicStreak }}</div>
-              <div class="stat-label">Classic Streak</div>
+            <div class="secondary-grid">
+              <article class="detail-card">
+                <span class="detail-label">Solve Rate</span>
+                <strong>{{ summary.solveRate }}%</strong>
+              </article>
+
+              <article class="detail-card">
+                <span class="detail-label">Best Classic Solve Streak</span>
+                <strong>{{ summary.bestClassicStreak }}</strong>
+              </article>
+
+              <article class="detail-card">
+                <span class="detail-label">Best Expedition Solve Streak</span>
+                <strong>{{ summary.bestExpeditionStreak }}</strong>
+              </article>
+
+              <article class="detail-card">
+                <span class="detail-label">Mode Sessions</span>
+                <strong>{{ summary.modeSessionsPlayed }}</strong>
+              </article>
+
+              <article class="detail-card">
+                <span class="detail-label">Avg Solve Attempt</span>
+                <strong>{{ summary.averageSolvedAttempts }}</strong>
+              </article>
+
+              <article class="detail-card">
+                <span class="detail-label">Avg Solve Time</span>
+                <strong>{{
+                  formatDurationMs(summary.averageSolveTimeMs)
+                }}</strong>
+              </article>
+
+              <article class="detail-card">
+                <span class="detail-label">Best Solve Time</span>
+                <strong>{{ formatDurationMs(summary.bestSolveTimeMs) }}</strong>
+              </article>
+            </div>
+          </section>
+
+          <section class="mode-breakdown-section">
+            <div class="section-header">
+              <h2>Mode Breakdown</h2>
+              <p>
+                Classic and Expedition keep separate streaks, hints, medals, and
+                timing.
+              </p>
             </div>
 
-            <div class="stat-card">
-              <div class="stat-value">{{ summary.totalHints }}</div>
-              <div class="stat-label">Hints Used</div>
+            <div class="mode-breakdown-grid">
+              <article
+                v-for="card in modeSummaryCards"
+                :key="card.key"
+                class="mode-summary-card"
+              >
+                <div class="mode-summary-header">
+                  <div>
+                    <p class="compare-eyebrow">{{ card.label }}</p>
+                    <h3>
+                      {{ card.stats.exactSolves }} exact solve{{
+                        card.stats.exactSolves === 1 ? '' : 's'
+                      }}
+                    </h3>
+                  </div>
+                  <span class="compare-rate">
+                    {{ card.stats.solveRate }}% solve rate
+                  </span>
+                </div>
+
+                <div class="mode-summary-stats">
+                  <div class="mode-summary-item">
+                    <span>Sessions</span>
+                    <strong>{{ card.stats.sessionsPlayed }}</strong>
+                  </div>
+
+                  <div class="mode-summary-item">
+                    <span>Current solve streak</span>
+                    <strong>{{ card.stats.currentStreak }}</strong>
+                  </div>
+
+                  <div class="mode-summary-item">
+                    <span>Best solve streak</span>
+                    <strong>{{ card.stats.bestStreak }}</strong>
+                  </div>
+
+                  <div class="mode-summary-item">
+                    <span>Hints used</span>
+                    <strong>{{ card.stats.totalHints }}</strong>
+                  </div>
+
+                  <div class="mode-summary-item">
+                    <span>Avg attempt</span>
+                    <strong>{{ card.stats.averageSolvedAttempts }}</strong>
+                  </div>
+
+                  <div class="mode-summary-item">
+                    <span>Avg time</span>
+                    <strong>{{
+                      formatDurationMs(card.stats.averageSolveTimeMs)
+                    }}</strong>
+                  </div>
+                </div>
+
+                <div class="mode-summary-footer">
+                  <div class="mode-summary-item">
+                    <span>Best time</span>
+                    <strong>{{
+                      formatDurationMs(card.stats.bestSolveTimeMs)
+                    }}</strong>
+                  </div>
+
+                  <div class="mode-summary-medals">
+                    <span>{{ card.stats.medalCounts.gold }} gold</span>
+                    <span>{{ card.stats.medalCounts.silver }} silver</span>
+                    <span>{{ card.stats.medalCounts.bronze }} bronze</span>
+                  </div>
+                </div>
+              </article>
             </div>
-          </div>
-
-          <div class="secondary-grid">
-            <article class="detail-card">
-              <span class="detail-label">Solve Rate</span>
-              <strong>{{ summary.solveRate }}%</strong>
-            </article>
-
-            <article class="detail-card">
-              <span class="detail-label">Best Classic Streak</span>
-              <strong>{{ summary.bestClassicStreak }}</strong>
-            </article>
-
-            <article class="detail-card">
-              <span class="detail-label">Mode Sessions</span>
-              <strong>{{ summary.modeSessionsPlayed }}</strong>
-            </article>
-
-            <article class="detail-card">
-              <span class="detail-label">Avg Solve Attempt</span>
-              <strong>{{ summary.averageSolvedAttempts }}</strong>
-            </article>
-
-            <article class="detail-card">
-              <span class="detail-label">Avg Solve Time</span>
-              <strong>{{
-                formatDurationMs(summary.averageSolveTimeMs)
-              }}</strong>
-            </article>
-
-            <article class="detail-card">
-              <span class="detail-label">Best Solve Time</span>
-              <strong>{{ formatDurationMs(summary.bestSolveTimeMs) }}</strong>
-            </article>
-          </div>
+          </section>
 
           <section class="tier-section">
             <h2>Medal Breakdown</h2>
@@ -513,12 +668,15 @@ onMounted(async () => {
           <section class="history-section">
             <div class="history-header">
               <h2>Recent Road Log</h2>
-              <p>Each day tracks Classic and Expedition separately.</p>
+              <p>
+                Latest first. Classic and Expedition keep separate run
+                summaries.
+              </p>
             </div>
 
             <div class="history-list">
               <article
-                v-for="entry in recentDays"
+                v-for="entry in visibleRecentDays"
                 :key="entry.day"
                 class="history-card"
               >
@@ -535,11 +693,9 @@ onMounted(async () => {
                       <strong>Classic</strong>
                       <span
                         class="mode-badge"
-                        :class="{
-                          'mode-badge--solved': entry.modes.classic.solved,
-                        }"
+                        :class="historyModeBadgeClass(entry.modes.classic)"
                       >
-                        {{ entry.modes.classic.solved ? 'Solved' : 'Tried' }}
+                        {{ formatHistoryModeResult(entry.modes.classic) }}
                       </span>
                     </div>
                     <p>Attempts: {{ entry.modes.classic.attempts }}</p>
@@ -555,11 +711,9 @@ onMounted(async () => {
                       <strong>Expedition</strong>
                       <span
                         class="mode-badge"
-                        :class="{
-                          'mode-badge--solved': entry.modes.expedition.solved,
-                        }"
+                        :class="historyModeBadgeClass(entry.modes.expedition)"
                       >
-                        {{ entry.modes.expedition.solved ? 'Solved' : 'Tried' }}
+                        {{ formatHistoryModeResult(entry.modes.expedition) }}
                       </span>
                     </div>
                     <p>Attempts: {{ entry.modes.expedition.attempts }}</p>
@@ -571,6 +725,16 @@ onMounted(async () => {
                   </section>
                 </div>
               </article>
+            </div>
+
+            <div v-if="hiddenHistoryCount" class="history-footer">
+              <button
+                type="button"
+                class="history-toggle"
+                @click="showFullHistory = !showFullHistory"
+              >
+                {{ historyToggleLabel }}
+              </button>
             </div>
           </section>
         </template>
@@ -600,7 +764,13 @@ onMounted(async () => {
   margin-bottom: 2rem;
 }
 
-.compare-header {
+.overview-section,
+.mode-breakdown-section {
+  margin-bottom: 2rem;
+}
+
+.compare-header,
+.section-header {
   margin-bottom: 1rem;
 }
 
@@ -612,12 +782,15 @@ onMounted(async () => {
 }
 
 .compare-header h2,
-.compare-card h3 {
+.compare-card h3,
+.section-header h2,
+.mode-summary-header h3 {
   margin: 0;
   color: var(--color-gold);
 }
 
 .compare-header p,
+.section-header p,
 .community-error,
 .compare-eyebrow,
 .compare-block p {
@@ -810,6 +983,12 @@ onMounted(async () => {
   margin-bottom: 2rem;
 }
 
+.mode-breakdown-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
 .stat-card {
   background: var(--gradient-card-status);
   border: 1px solid rgb(var(--color-gold-rgb) / 0.2);
@@ -849,6 +1028,70 @@ onMounted(async () => {
 .detail-label {
   color: rgb(var(--color-gold-rgb) / 0.72);
   font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.mode-summary-card {
+  display: grid;
+  gap: 1rem;
+  padding: 1.2rem;
+  border-radius: var(--radius-lg);
+  background: var(--gradient-card-status);
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.18);
+}
+
+.mode-summary-header,
+.mode-summary-footer {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.mode-summary-header {
+  align-items: start;
+}
+
+.mode-summary-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.mode-summary-item {
+  display: grid;
+  gap: 0.28rem;
+  padding: 0.9rem 1rem;
+  border-radius: var(--radius-md);
+  background: rgb(var(--color-gold-rgb) / 0.06);
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.14);
+}
+
+.mode-summary-item span {
+  color: rgb(var(--color-gold-rgb) / 0.72);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.mode-summary-item strong {
+  color: var(--color-gold);
+  font-size: 1.2rem;
+}
+
+.mode-summary-footer {
+  padding-top: 0.35rem;
+  border-top: 1px solid rgb(var(--color-gold-rgb) / 0.14);
+}
+
+.mode-summary-medals {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: end;
+  gap: 0.75rem;
+  color: rgb(var(--color-gold-rgb) / 0.72);
+  font-size: 0.78rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
@@ -978,6 +1221,50 @@ onMounted(async () => {
   border: 1px solid rgb(var(--color-active-rgb) / 0.24);
 }
 
+.mode-badge--gold {
+  color: var(--color-gold-bright);
+  background: rgb(var(--color-gold-rgb) / 0.16);
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.3);
+}
+
+.mode-badge--silver {
+  color: rgb(226 232 240 / 0.94);
+  background: rgb(226 232 240 / 0.12);
+  border: 1px solid rgb(226 232 240 / 0.28);
+}
+
+.mode-badge--bronze {
+  color: rgb(233 179 120 / 0.94);
+  background: rgb(205 127 50 / 0.14);
+  border: 1px solid rgb(205 127 50 / 0.3);
+}
+
+.history-footer {
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.history-toggle {
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.2);
+  background: rgb(var(--color-gold-rgb) / 0.08);
+  color: rgb(var(--color-gold-rgb) / 0.84);
+  border-radius: var(--radius-full);
+  padding: 0.55rem 0.95rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform var(--transition-fast),
+    background var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.history-toggle:hover {
+  transform: translateY(-1px);
+  background: rgb(var(--color-gold-rgb) / 0.12);
+}
+
 @media (max-width: 768px) {
   .shell {
     padding: 0.9rem;
@@ -995,9 +1282,19 @@ onMounted(async () => {
   .secondary-grid,
   .history-modes,
   .history-header,
-  .compare-header--featured {
+  .compare-header--featured,
+  .mode-summary-header,
+  .mode-summary-footer {
     grid-template-columns: 1fr;
     display: grid;
+  }
+
+  .mode-summary-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .mode-summary-medals {
+    justify-content: start;
   }
 
   .mode-toggle {
