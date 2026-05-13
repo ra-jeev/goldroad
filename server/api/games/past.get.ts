@@ -1,8 +1,9 @@
-import { and, desc, eq, lt } from 'drizzle-orm';
+import { and, desc, eq, lt, lte } from 'drizzle-orm';
 import { games } from '../../db/schema';
 import { useDb } from '../../db/client';
+import { RECENT_ARCHIVE_DAY_LIMIT } from '../../../shared/utils/archive';
 
-const DEFAULT_LIMIT = 30;
+const DEFAULT_LIMIT = RECENT_ARCHIVE_DAY_LIMIT;
 
 export default defineEventHandler(async (event) => {
   const db = useDb(event);
@@ -11,12 +12,20 @@ export default defineEventHandler(async (event) => {
   const parsedLimit = Number.parseInt(String(query.limit ?? DEFAULT_LIMIT), 10);
   const limit = Number.isNaN(parsedLimit)
     ? DEFAULT_LIMIT
-    : Math.max(1, Math.min(100, parsedLimit));
+    : Math.max(1, Math.min(RECENT_ARCHIVE_DAY_LIMIT, parsedLimit));
+
+  const nowIso = new Date().toISOString();
 
   const currentRows = await db
     .select({ gameNo: games.gameNo })
     .from(games)
-    .where(eq(games.current, true))
+    .where(
+      and(
+        eq(games.active, true),
+        eq(games.current, true),
+        lte(games.playableAt, nowIso),
+      ),
+    )
     .limit(1);
 
   const currentGameNo = currentRows[0]?.gameNo;
@@ -33,8 +42,12 @@ export default defineEventHandler(async (event) => {
     .from(games)
     .where(
       currentGameNo !== undefined
-        ? and(eq(games.active, true), lt(games.gameNo, currentGameNo))
-        : eq(games.active, true),
+        ? and(
+            eq(games.active, true),
+            lte(games.playableAt, nowIso),
+            lt(games.gameNo, currentGameNo),
+          )
+        : and(eq(games.active, true), lte(games.playableAt, nowIso)),
     )
     .orderBy(desc(games.gameNo))
     .limit(limit * 2);

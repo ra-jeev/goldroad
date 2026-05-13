@@ -1,8 +1,10 @@
-import { and, desc, eq, inArray, lt, lte } from 'drizzle-orm';
+import { and, desc, eq, lt, lte } from 'drizzle-orm';
 import { games, playerRoadAnalytics } from '../../db/schema';
 import { useDb } from '../../db/client';
-
-const RECENT_POOL_SIZE = 30;
+import {
+  getDeepArchiveCutoffGameNo,
+  hasDeepArchiveRoads,
+} from '../../../shared/utils/archive';
 
 export default defineEventHandler(async (event) => {
   const db = useDb(event);
@@ -25,22 +27,25 @@ export default defineEventHandler(async (event) => {
 
   const currentGameNo = currentRows[0]?.gameNo;
 
+  if (!hasDeepArchiveRoads(currentGameNo)) {
+    throw createError({
+      statusCode: 404,
+      statusMessage: 'No deep-archive road available yet',
+    });
+  }
+
+  const cutoffGameNo = getDeepArchiveCutoffGameNo(currentGameNo);
   const candidateRows = await db
     .select({ gameNo: games.gameNo })
     .from(games)
-    .where(
-      currentGameNo !== undefined
-        ? and(eq(games.active, true), lt(games.gameNo, currentGameNo))
-        : eq(games.active, true),
-    )
+    .where(and(eq(games.active, true), lt(games.gameNo, cutoffGameNo)))
     .groupBy(games.gameNo)
-    .orderBy(desc(games.gameNo))
-    .limit(RECENT_POOL_SIZE);
+    .orderBy(desc(games.gameNo));
 
   if (!candidateRows.length) {
     throw createError({
       statusCode: 404,
-      statusMessage: 'No past game available',
+      statusMessage: 'No deep-archive road available',
     });
   }
 
@@ -53,7 +58,7 @@ export default defineEventHandler(async (event) => {
       .where(
         and(
           eq(playerRoadAnalytics.playerId, playerId),
-          inArray(playerRoadAnalytics.gameNo, candidateGameNos),
+          lt(playerRoadAnalytics.gameNo, cutoffGameNo),
         ),
       );
 

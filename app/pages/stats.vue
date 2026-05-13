@@ -6,10 +6,17 @@ import type {
   PuzzleType,
 } from '../../shared/types/game';
 import { UI_COPY } from '../content/uiCopy';
+import { useRoadResultShare } from '../composables/useRoadResultShare';
+import {
+  RECENT_ARCHIVE_DAY_LIMIT,
+  hasDeepArchiveRoads,
+} from '../../shared/utils/archive';
 
 const localStats = useLocalPlayerStats();
 const localProgress = useLocalGameProgress();
 const statsApi = useStatsApi();
+const gamesApi = useGamesApi();
+const roadResultShare = useRoadResultShare();
 const summary = localStats.summary;
 const recentDays = localStats.recentDays;
 const communityOverview = ref<Awaited<
@@ -20,6 +27,13 @@ const loading = ref(true);
 const yesterdayMode = ref<PuzzleType>('classic');
 const HISTORY_PREVIEW_COUNT = 14;
 const showFullHistory = ref(false);
+const sharingLatestResult = ref(false);
+const findingRandomRoad = ref(false);
+const randomRoadError = ref<string | null>(null);
+const shareFeedback = ref<{
+  kind: 'success' | 'error';
+  message: string;
+} | null>(null);
 
 type ComparisonCard = {
   key: string;
@@ -44,6 +58,13 @@ type HistoryModeRecord = {
   solved: boolean;
   hintsUsed: number;
   solveTimeMs: number | null;
+  updatedAt: string;
+};
+
+type ShareableRoadResult = HistoryModeRecord & {
+  day: string;
+  gameNo: number;
+  puzzleType: PuzzleType;
 };
 
 function formatDay(day: string): string {
@@ -55,12 +76,26 @@ function formatDay(day: string): string {
   }).format(new Date(`${day}T00:00:00.000Z`));
 }
 
+function formatTimestamp(value: string): string {
+  return new Intl.DateTimeFormat(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(value));
+}
+
 function formatModeLabel(mode: PuzzleType): string {
   return mode === 'classic' ? 'Classic' : 'Expedition';
 }
 
 function hintTotal(progress: { hintsUsed: number }): number {
   return progress.hintsUsed;
+}
+
+function formatAttemptLabel(attempts: number): string {
+  return `${attempts} attempt${attempts === 1 ? '' : 's'}`;
 }
 
 function toPercent(value: number, total: number): number {
@@ -106,6 +141,34 @@ function historyModeBadgeClass(record: HistoryModeRecord) {
     'mode-badge--silver': medal === 'silver',
     'mode-badge--bronze': medal === 'bronze',
   };
+}
+
+function hasShareableResult(record: HistoryModeRecord): boolean {
+  return record.attempts > 0;
+}
+
+function formatShareResultStatus(result: ShareableRoadResult): string {
+  const medal = calcMedalForAttempt(result.attempts, result.solved);
+
+  if (result.solved) {
+    return `${formatMedal(medal)} in ${formatAttemptLabel(result.attempts)}`;
+  }
+
+  return `${formatAttemptLabel(result.attempts)} and still chasing the exact solve`;
+}
+
+function formatShareResultDetail(result: ShareableRoadResult): string {
+  const parts = [
+    result.solved && result.solveTimeMs !== null
+      ? `Solve time ${formatDurationMs(result.solveTimeMs)}`
+      : null,
+    result.hintsUsed > 0
+      ? `${result.hintsUsed} hint${result.hintsUsed === 1 ? '' : 's'}`
+      : null,
+    `Last played ${formatTimestamp(result.updatedAt)}`,
+  ].filter((value): value is string => Boolean(value));
+
+  return parts.join(' · ');
 }
 
 function describeLocalStatus(globalStat: CommunityRoadStats) {
@@ -288,6 +351,122 @@ const yesterdayComparisonCard = computed<YesterdayComparisonCard | null>(() => {
     behaviorRows: buildBehaviorRows(selectedEntry),
   };
 });
+
+const currentGameNo = computed(
+  () =>
+    communityOverview.value?.current.gameNo ??
+    localProgress.currentRoadContext.value.currentGameNo ??
+    null,
+);
+
+const canExploreDeepArchive = computed(() =>
+  hasDeepArchiveRoads(currentGameNo.value),
+);
+
+const latestShareableResult = computed<ShareableRoadResult | null>(() => {
+  const shareableResults = recentDays.value
+    .flatMap((entry) => {
+      const results: ShareableRoadResult[] = [];
+
+      if (entry.modes.classic && hasShareableResult(entry.modes.classic)) {
+        results.push({
+          ...entry.modes.classic,
+          day: entry.day,
+          gameNo: entry.gameNo,
+          puzzleType: 'classic',
+        });
+      }
+
+      if (
+        entry.modes.expedition &&
+        hasShareableResult(entry.modes.expedition)
+      ) {
+        results.push({
+          ...entry.modes.expedition,
+          day: entry.day,
+          gameNo: entry.gameNo,
+          puzzleType: 'expedition',
+        });
+      }
+
+      return results;
+    })
+    .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
+
+  return shareableResults[0] ?? null;
+});
+
+const latestShareSummary = computed(() => {
+  const result = latestShareableResult.value;
+  if (!result) return null;
+
+  return {
+    eyebrow: 'Latest attempted result',
+    title: `Road ${result.gameNo} · ${formatModeLabel(result.puzzleType)}`,
+    status: formatShareResultStatus(result),
+    detail: formatShareResultDetail(result),
+    buttonLabel: result.solved ? 'Share latest result' : 'Share latest attempt',
+  };
+});
+
+watch(shareFeedback, (nextFeedback, _previousFeedback, onCleanup) => {
+  if (!nextFeedback) return;
+
+  const timer = window.setTimeout(() => {
+    shareFeedback.value = null;
+  }, 3200);
+
+  onCleanup(() => {
+    window.clearTimeout(timer);
+  });
+});
+
+async function shareLatestResult() {
+  const result = latestShareableResult.value;
+  if (!result || sharingLatestResult.value) return;
+
+  sharingLatestResult.value = true;
+
+  try {
+    const shareResult = await roadResultShare.shareRoadResult({
+      gameNo: result.gameNo,
+      puzzleType: result.puzzleType,
+      attempts: result.attempts,
+      solved: result.solved,
+      solveTimeMs: result.solveTimeMs,
+      hintsUsed: result.hintsUsed,
+    });
+
+    if (shareResult.outcome === 'cancelled' || !shareResult.message) {
+      return;
+    }
+
+    shareFeedback.value = {
+      kind: shareResult.outcome === 'unavailable' ? 'error' : 'success',
+      message: shareResult.message,
+    };
+  } finally {
+    sharingLatestResult.value = false;
+  }
+}
+
+async function goToRandomOlderRoad() {
+  if (!canExploreDeepArchive.value || findingRandomRoad.value) return;
+
+  findingRandomRoad.value = true;
+  randomRoadError.value = null;
+
+  try {
+    const response = await gamesApi.getAnotherGame(
+      localProgress.playerUUID.value,
+    );
+    await navigateTo(`/games/${response.gameNo}`);
+  } catch {
+    randomRoadError.value = 'A random older road is unavailable right now.';
+  } finally {
+    findingRandomRoad.value = false;
+  }
+}
 
 const modeSummaryCards = computed(() =>
   (['classic', 'expedition'] as const).map((mode) => ({
@@ -479,6 +658,118 @@ onMounted(async () => {
         <p v-if="communityError" class="community-error">
           {{ communityError }}
         </p>
+
+        <section
+          v-if="latestShareSummary || canExploreDeepArchive"
+          class="actions-section"
+        >
+          <div class="section-header">
+            <h2>Share & Explore</h2>
+            <p>
+              Bring your latest result with you or jump beyond the recent
+              archive.
+            </p>
+          </div>
+
+          <div class="actions-grid">
+            <article v-if="latestShareSummary" class="action-card">
+              <div class="action-header">
+                <div>
+                  <p class="compare-eyebrow">
+                    {{ latestShareSummary.eyebrow }}
+                  </p>
+                  <h3>{{ latestShareSummary.title }}</h3>
+                </div>
+              </div>
+
+              <div class="action-body">
+                <strong class="action-status">
+                  {{ latestShareSummary.status }}
+                </strong>
+                <p class="action-detail">{{ latestShareSummary.detail }}</p>
+              </div>
+
+              <div class="action-footer">
+                <button
+                  type="button"
+                  class="action-button"
+                  :disabled="sharingLatestResult"
+                  @click="shareLatestResult"
+                >
+                  {{
+                    sharingLatestResult
+                      ? 'Preparing share…'
+                      : latestShareSummary.buttonLabel
+                  }}
+                </button>
+
+                <p class="action-hint">
+                  Uses native share when available, or copies the text if not.
+                </p>
+
+                <p
+                  v-if="shareFeedback"
+                  class="action-feedback"
+                  :class="{
+                    'action-feedback--error': shareFeedback.kind === 'error',
+                  }"
+                  aria-live="polite"
+                >
+                  {{ shareFeedback.message }}
+                </p>
+              </div>
+            </article>
+
+            <article v-if="canExploreDeepArchive" class="action-card">
+              <div class="action-header">
+                <div>
+                  <p class="compare-eyebrow">Random older road</p>
+                  <h3>Go beyond the recent archive</h3>
+                </div>
+                <span class="compare-rate">
+                  Older than the latest {{ RECENT_ARCHIVE_DAY_LIMIT }}
+                </span>
+              </div>
+
+              <div class="action-body">
+                <strong class="action-status">
+                  Jump to a random road day from the deeper archive.
+                </strong>
+                <p class="action-detail">
+                  It still opens the normal replay flow with both Classic and
+                  Expedition ready.
+                </p>
+              </div>
+
+              <div class="action-footer action-footer--split">
+                <button
+                  type="button"
+                  class="action-button"
+                  :disabled="findingRandomRoad"
+                  @click="goToRandomOlderRoad"
+                >
+                  {{
+                    findingRandomRoad
+                      ? 'Finding an older road…'
+                      : 'Play a Random Older Road'
+                  }}
+                </button>
+
+                <NuxtLink to="/games" class="action-link">
+                  Browse Recent Archive
+                </NuxtLink>
+              </div>
+
+              <p
+                v-if="randomRoadError"
+                class="action-feedback action-feedback--error"
+                aria-live="polite"
+              >
+                {{ randomRoadError }}
+              </p>
+            </article>
+          </div>
+        </section>
 
         <section v-if="!summary.modeSessionsPlayed" class="empty-state">
           <h2>No local stats yet</h2>
@@ -760,7 +1051,8 @@ onMounted(async () => {
   gap: 0.45rem;
 }
 
-.compare-section {
+.compare-section,
+.actions-section {
   margin-bottom: 2rem;
 }
 
@@ -784,7 +1076,8 @@ onMounted(async () => {
 .compare-header h2,
 .compare-card h3,
 .section-header h2,
-.mode-summary-header h3 {
+.mode-summary-header h3,
+.action-card h3 {
   margin: 0;
   color: var(--color-gold);
 }
@@ -798,13 +1091,15 @@ onMounted(async () => {
   color: rgb(var(--color-gold-rgb) / 0.76);
 }
 
-.compare-grid {
+.compare-grid,
+.actions-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 1rem;
 }
 
-.compare-card {
+.compare-card,
+.action-card {
   display: grid;
   gap: 1rem;
   padding: 1.2rem;
@@ -891,6 +1186,101 @@ onMounted(async () => {
 .compare-insight p {
   margin: 0;
   color: rgb(var(--color-gold-rgb) / 0.74);
+}
+
+.action-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.action-body,
+.action-footer {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.action-footer {
+  align-content: start;
+}
+
+.action-footer--split {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.action-status {
+  color: var(--color-gold-bright);
+  font-size: 1.05rem;
+}
+
+.action-detail,
+.action-hint,
+.action-feedback {
+  margin: 0;
+  color: rgb(var(--color-gold-rgb) / 0.76);
+}
+
+.action-hint,
+.action-feedback {
+  font-size: 0.88rem;
+}
+
+.action-feedback {
+  color: rgb(var(--color-active-rgb) / 0.9);
+}
+
+.action-feedback--error {
+  color: rgb(248 113 113 / 0.95);
+}
+
+.action-button,
+.action-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border-radius: var(--radius-full);
+  padding: 0.65rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition:
+    transform var(--transition-fast),
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    opacity var(--transition-fast);
+}
+
+.action-button {
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.5);
+  background: var(--gradient-button-primary);
+  color: var(--color-text-on-gold);
+  cursor: pointer;
+}
+
+.action-button:hover,
+.action-link:hover {
+  transform: translateY(-1px);
+}
+
+.action-button:disabled {
+  opacity: 0.75;
+  cursor: wait;
+  transform: none;
+}
+
+.action-link {
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.2);
+  background: rgb(var(--color-gold-rgb) / 0.08);
+  color: rgb(var(--color-gold-rgb) / 0.84);
+}
+
+.action-link:hover {
+  background: rgb(var(--color-gold-rgb) / 0.12);
 }
 
 .compare-behavior {
@@ -1284,7 +1674,9 @@ onMounted(async () => {
   .history-header,
   .compare-header--featured,
   .mode-summary-header,
-  .mode-summary-footer {
+  .mode-summary-footer,
+  .action-header,
+  .action-footer--split {
     grid-template-columns: 1fr;
     display: grid;
   }

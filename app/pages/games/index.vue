@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { RECENT_ARCHIVE_DAY_LIMIT } from '../../../shared/utils/archive';
+
 const gamesApi = useGamesApi();
 const games = ref<
   Array<Awaited<ReturnType<typeof gamesApi.getPastGames>>['games'][number]>
@@ -21,7 +23,7 @@ function formatDifficulty(value: string): string {
 
 onMounted(async () => {
   try {
-    const response = await gamesApi.getPastGames(60);
+    const response = await gamesApi.getPastGames();
     games.value = response.games;
   } catch {
     error.value = 'Past games are unavailable right now.';
@@ -36,7 +38,9 @@ onMounted(async () => {
     <div class="container">
       <header class="page-header">
         <h1>Past Games</h1>
-        <p class="subtitle">Browse and replay previous road days</p>
+        <p class="subtitle">
+          Browse and replay the latest {{ RECENT_ARCHIVE_DAY_LIMIT }} road days
+        </p>
       </header>
 
       <div v-if="loading" class="loading-state">

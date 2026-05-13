@@ -1,0 +1,182 @@
+import { calcMedalForAttempt } from '../../lib/gameTiers';
+import type { PuzzleType } from '../../shared/types/game';
+
+export type ShareRoadResultInput = {
+  gameNo: number;
+  puzzleType: PuzzleType;
+  attempts: number;
+  solved: boolean;
+  solveTimeMs: number | null;
+  hintsUsed: number;
+};
+
+export type ShareRoadResultResponse = {
+  outcome: 'shared' | 'copied' | 'cancelled' | 'unavailable';
+  message: string | null;
+};
+
+function formatModeLabel(mode: PuzzleType): string {
+  return mode === 'classic' ? 'Classic' : 'Expedition';
+}
+
+function formatDurationMs(value: number | null): string {
+  if (value === null) return '—';
+
+  const totalSeconds = Math.max(0, Math.round(value / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+
+  return minutes > 0
+    ? `${minutes}m ${String(seconds).padStart(2, '0')}s`
+    : `${seconds}s`;
+}
+
+function formatAttemptLabel(attempts: number): string {
+  return `${attempts} attempt${attempts === 1 ? '' : 's'}`;
+}
+
+function formatResultLine(input: ShareRoadResultInput): string {
+  const medal = calcMedalForAttempt(input.attempts, input.solved);
+
+  if (input.solved && medal === 'gold') {
+    return `Gold in ${formatAttemptLabel(input.attempts)}`;
+  }
+
+  if (input.solved && medal === 'silver') {
+    return `Silver in ${formatAttemptLabel(input.attempts)}`;
+  }
+
+  if (input.solved && medal === 'bronze') {
+    return `Bronze in ${formatAttemptLabel(input.attempts)}`;
+  }
+
+  if (input.solved) {
+    return `Solved in ${formatAttemptLabel(input.attempts)}`;
+  }
+
+  return `Still chasing the exact solve after ${formatAttemptLabel(input.attempts)}`;
+}
+
+function buildRoadPath(input: ShareRoadResultInput): string {
+  return `/games/${input.gameNo}`;
+}
+
+function isAbortError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === 'AbortError';
+}
+
+async function copyText(text: string): Promise<boolean> {
+  if (!import.meta.client) return false;
+
+  if (window.navigator.clipboard) {
+    try {
+      await window.navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      // Fall through to the textarea fallback below.
+    }
+  }
+
+  const textarea = document.createElement('textarea');
+  textarea.style.position = 'fixed';
+  textarea.style.width = '1px';
+  textarea.style.height = '1px';
+  textarea.style.padding = '0';
+  textarea.style.border = 'none';
+  textarea.style.outline = 'none';
+  textarea.style.boxShadow = 'none';
+  textarea.style.background = 'transparent';
+  textarea.style.opacity = '0';
+  textarea.value = text;
+  document.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
+
+  const copied = document.execCommand('copy');
+  textarea.remove();
+  return copied;
+}
+
+export function buildRoadResultShareText(input: ShareRoadResultInput): {
+  title: string;
+  text: string;
+  urlPath: string;
+} {
+  const title = `GoldRoad Road ${input.gameNo} · ${formatModeLabel(input.puzzleType)}`;
+  const resultLine = formatResultLine(input);
+  const timeLine =
+    input.solved && input.solveTimeMs !== null
+      ? `Solve time: ${formatDurationMs(input.solveTimeMs)}`
+      : null;
+  const hintLine =
+    input.hintsUsed > 0 ? `Hints used: ${input.hintsUsed}` : null;
+
+  return {
+    title,
+    text: [
+      'GoldRoad',
+      `Road ${input.gameNo} · ${formatModeLabel(input.puzzleType)}`,
+      resultLine,
+      timeLine,
+      hintLine,
+    ]
+      .filter((line): line is string => Boolean(line))
+      .join('\n'),
+    urlPath: buildRoadPath(input),
+  };
+}
+
+export function useRoadResultShare() {
+  async function shareRoadResult(
+    input: ShareRoadResultInput,
+  ): Promise<ShareRoadResultResponse> {
+    if (!import.meta.client) {
+      return {
+        outcome: 'unavailable',
+        message: 'Sharing is only available in the browser.',
+      };
+    }
+
+    const payload = buildRoadResultShareText(input);
+    const url = new URL(payload.urlPath, window.location.origin).toString();
+    const textWithUrl = `${payload.text}\n${url}`;
+
+    if (typeof navigator !== 'undefined' && 'share' in navigator) {
+      try {
+        await navigator.share({
+          title: payload.title,
+          text: payload.text,
+          url,
+        });
+
+        return {
+          outcome: 'shared',
+          message: 'Result shared.',
+        };
+      } catch (error) {
+        if (isAbortError(error)) {
+          return {
+            outcome: 'cancelled',
+            message: null,
+          };
+        }
+      }
+    }
+
+    if (await copyText(textWithUrl)) {
+      return {
+        outcome: 'copied',
+        message: 'Result copied to your clipboard.',
+      };
+    }
+
+    return {
+      outcome: 'unavailable',
+      message: 'Unable to share this result right now.',
+    };
+  }
+
+  return {
+    shareRoadResult,
+  };
+}
