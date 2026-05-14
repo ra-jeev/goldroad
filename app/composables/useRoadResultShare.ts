@@ -54,7 +54,7 @@ function formatResultLine(input: ShareRoadResultInput): string {
     return `Solved in ${formatAttemptLabel(input.attempts)}`;
   }
 
-  return `Still chasing the exact solve after ${formatAttemptLabel(input.attempts)}`;
+  return `Still chasing the solve after ${formatAttemptLabel(input.attempts)}`;
 }
 
 function buildRoadPath(input: ShareRoadResultInput): string {

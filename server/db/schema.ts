@@ -110,7 +110,7 @@ export const playerRoadAnalytics = sqliteTable(
     /** Move index from the start tile (start tile = 0) when the first hint was requested. */
     firstHintMoveIndex: integer('first_hint_move_index'),
 
-    /** Active solve duration in milliseconds for the exact solve, when available. */
+    /** Active solve duration in milliseconds for solved runs, when available. */
     solveTimeMs: integer('solve_time_ms'),
 
     deadEndCount: integer('dead_end_count').notNull().default(0),

@@ -154,7 +154,7 @@ function formatShareResultStatus(result: ShareableRoadResult): string {
     return `${formatMedal(medal)} in ${formatAttemptLabel(result.attempts)}`;
   }
 
-  return `${formatAttemptLabel(result.attempts)} and still chasing the exact solve`;
+  return `${formatAttemptLabel(result.attempts)} and still chasing the solve`;
 }
 
 function formatShareResultDetail(result: ShareableRoadResult): string {
@@ -256,20 +256,20 @@ function buildComparisonInsight(globalStat: CommunityRoadStats) {
 
     return {
       headline: `Ahead of ${toPercent(unfinishedRuns, globalStat.plays)}% of recorded runs`,
-      detail: `${toPercent(nonMedalSolves, globalStat.plays)}% of runs exact-solve outside the medal band.`,
+      detail: `${toPercent(nonMedalSolves, globalStat.plays)}% of runs solve outside the medal band.`,
     };
   }
 
   if (progress.attempts > 0 || hintTotal(progress) > 0) {
     return {
       headline: `${100 - exactSolveRate}% of recorded runs are still unsolved`,
-      detail: `${exactSolveRate}% of runs exact-solve this road so far.`,
+      detail: `${exactSolveRate}% of runs solve this road so far.`,
     };
   }
 
   return {
-    headline: `${exactSolveRate}% exact solve rate so far`,
-    detail: `${toPercent(unfinishedRuns, globalStat.plays)}% of recorded runs have not exact-solved this road yet.`,
+    headline: `${exactSolveRate}% solve rate so far`,
+    detail: `${toPercent(unfinishedRuns, globalStat.plays)}% of recorded runs have not solved this road yet.`,
   };
 }
 
@@ -299,8 +299,8 @@ function toComparisonCard(globalStat: CommunityRoadStats): ComparisonCard {
     gameNo: globalStat.gameNo,
     localStatus: local.status,
     localDetail: local.detail,
-    globalHeadline: `${globalStat.solveRate}% exact solve rate`,
-    globalDetail: `${globalStat.plays} play${globalStat.plays === 1 ? '' : 's'} · ${globalStat.exactSolves} exact solve${globalStat.exactSolves === 1 ? '' : 's'}`,
+    globalHeadline: `${globalStat.solveRate}% solve rate`,
+    globalDetail: `${globalStat.plays} play${globalStat.plays === 1 ? '' : 's'} · ${globalStat.exactSolves} solve${globalStat.exactSolves === 1 ? '' : 's'}`,
     globalMedals: `${globalStat.gold} gold · ${globalStat.silver} silver · ${globalStat.bronze} bronze`,
     globalBehavior: `${globalStat.behavior.hintUseRate}% used hints · ${globalStat.behavior.totalHints} total hints`,
     comparisonHeadline: comparison.headline,
@@ -794,7 +794,7 @@ onMounted(async () => {
 
               <div class="stat-card">
                 <div class="stat-value">{{ summary.exactSolves }}</div>
-                <div class="stat-label">Exact Solves</div>
+                <div class="stat-label">Solves</div>
               </div>
 
               <div class="stat-card">
@@ -874,7 +874,7 @@ onMounted(async () => {
                   <div>
                     <p class="compare-eyebrow">{{ card.label }}</p>
                     <h3>
-                      {{ card.stats.exactSolves }} exact solve{{
+                      {{ card.stats.exactSolves }} solve{{
                         card.stats.exactSolves === 1 ? '' : 's'
                       }}
                     </h3>

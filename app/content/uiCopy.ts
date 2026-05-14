@@ -13,7 +13,7 @@ export const UI_COPY = {
     expedition: 'Expedition',
     solvedBadge: 'Solved',
     lockedBadge: 'Locked',
-    unlockHint: 'Solve Classic exactly to unlock Expedition.',
+    unlockHint: 'Solve Classic to unlock Expedition.',
     metrics: {
       score: 'Score',
       boardCoins: 'Board Coins',
@@ -46,13 +46,13 @@ export const UI_COPY = {
       howToPlay: {
         title: 'How to Play',
         items: [
-          'Reach the end tile with the exact target score.',
+          'Reach the end tile with the target score.',
           'You cannot revisit a tile during the same run.',
           'Only up, down, left, and right moves are legal.',
           'Some roads are missing. Muted roads are currently unavailable from your committed path.',
           'Retry restarts the same road and increases your try count.',
           'Hints highlight the board and do not reduce your score or medal.',
-          'Solving Classic exactly unlocks Expedition for the day.',
+          'Solving Classic unlocks Expedition for the day.',
         ],
       },
       about: {
@@ -62,7 +62,7 @@ export const UI_COPY = {
       updates: {
         title: 'Milestone 1',
         items: [
-          'Exact-score solves are back at the center of the game.',
+          'Target-score solving is back at the center of the game.',
           'Gold, silver, and bronze are based on solve attempts 1, 2, and 3.',
           'Hints now act as recovery tools instead of score penalties.',
         ],
@@ -77,9 +77,9 @@ export const UI_COPY = {
     preRun: (maxScore: number) =>
       `Target ${maxScore}. Start from the marked tile.`,
     needMore: (delta: number) => `Need ${delta} more before the exit.`,
-    exactNowFinish: 'Exact score reached. Reach the exit.',
+    exactNowFinish: 'Target reached. Reach the exit.',
     overBy: (delta: number) => `Over by ${delta}.`,
-    destinationSolved: 'Exact solve. You reached the exit on target.',
+    destinationSolved: 'Solved. You reached the exit on target.',
     destinationShort: (delta: number) =>
       `You reached the exit ${delta} short of the target.`,
     destinationOver: (delta: number) =>
@@ -91,6 +91,6 @@ export const UI_COPY = {
     hintNextStep:
       'Hint applied. The highlighted guide shows the next correct move.',
     hintDiverged:
-      'Hint applied. The exact route broke at the highlighted turn. Retry and follow the highlighted branch.',
+      'Hint applied. The target route broke at the highlighted turn. Retry and follow the highlighted branch.',
   },
 } as const;

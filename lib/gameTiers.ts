@@ -1,7 +1,7 @@
 /**
- * Exact-solve and legacy outcome helpers.
+ * Solve and legacy outcome helpers.
  *
- * The exact-solve helpers are the new contract for milestone 1.
+ * Target-score solve helpers are the new contract for milestone 1.
  * The ratio-tier helpers remain temporarily so the existing UI can be
  * migrated incrementally without a breaking all-at-once change.
  */
@@ -9,17 +9,17 @@
 import type { Medal, OutcomeTier } from '../shared/types/game'
 import { MEDAL_ATTEMPTS, TIER_THRESHOLDS, HINT_GOLD_LOCK_LEVEL } from './gameConstants'
 
-/** Whether a run ends on the exact target score required for a solve. */
+/** Whether a run reaches the target score required for a solve. */
 export function isExactSolve(score: number, maxScore: number): boolean {
   return score === maxScore
 }
 
 /**
- * Tries-based medal assignment for the FIRST exact solve of a puzzle.
+ * Tries-based medal assignment for the first solve of a puzzle.
  * Returns null for unsolved runs or solves on attempt 4+.
  */
-export function calcMedalForAttempt(attemptNumber: number, solvedExact: boolean): Medal | null {
-  if (!solvedExact) return null
+export function calcMedalForAttempt(attemptNumber: number, solved: boolean): Medal | null {
+  if (!solved) return null
   if (attemptNumber === MEDAL_ATTEMPTS.GOLD) return 'gold'
   if (attemptNumber === MEDAL_ATTEMPTS.SILVER) return 'silver'
   if (attemptNumber === MEDAL_ATTEMPTS.BRONZE) return 'bronze'

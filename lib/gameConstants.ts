@@ -29,7 +29,7 @@ export const OTHER_ELEMENTS_HEIGHT = 52 + 62 + 28 + 2 * 24 + 2 * 16
 // Medals and outcome tiers
 // ---------------------------------------------------------------------------
 
-/** First exact-solve attempt thresholds for tries-based medals. */
+/** First solve attempt thresholds for tries-based medals. */
 export const MEDAL_ATTEMPTS = {
   GOLD: 1,
   SILVER: 2,
