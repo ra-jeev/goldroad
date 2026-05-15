@@ -19,6 +19,7 @@ const {
   lastMedal,
   lastSolved,
   hintsUsed,
+  trackingDisabled,
   expeditionJustUnlocked,
   maxScore,
   totalCoins,
@@ -91,10 +92,13 @@ onUnmounted(() => {
           :hints-used="hintsUsed"
           :ended="ended"
           :solved="lastSolved"
-          :can-retry="ended || moves > 1"
-          :can-switch-to-expedition="canSwitchToExpedition"
+          :can-retry="ended || moves > 1 || lastSolved"
+          :can-switch-to-expedition="
+            canSwitchToExpedition && (ended || moves <= 1 || lastSolved)
+          "
           :loading="loading"
           :submitting="submitting"
+          :tracking-disabled="trackingDisabled"
           @retry="retryCurrentGame"
           @hint="requestHint"
           @switch-expedition="switchToExpedition"
@@ -111,19 +115,24 @@ onUnmounted(() => {
 <style scoped>
 .shell {
   min-height: calc(100dvh - 60px);
-  padding: 1.3rem;
+  padding: clamp(0.85rem, 2.5vw, 1.45rem);
+  display: grid;
+  align-items: center;
 }
 
 .layout {
-  max-width: 960px;
+  max-width: 1040px;
+  width: 100%;
   margin: 0 auto;
 }
 
 .board-column {
   display: grid;
-  gap: 0.9rem;
-  max-width: 760px;
+  justify-items: center;
+  gap: clamp(0.7rem, 1.8vh, 1rem);
+  max-width: 620px;
   margin: 0 auto;
+  text-align: center;
 }
 
 .board-column > * {
@@ -152,7 +161,7 @@ onUnmounted(() => {
 
 @media (max-width: 980px) {
   .shell {
-    padding: 0.9rem;
+    padding: 0.75rem;
   }
 }
 </style>

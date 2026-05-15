@@ -20,60 +20,57 @@ const emit = defineEmits<{
 }>()
 
 const metrics = computed(() => {
-  const items: Array<{ label: string; value: string }> = [
+  return [
     { label: UI_COPY.boardHeader.metrics.score, value: `${props.score}/${props.maxScore}` },
     { label: UI_COPY.boardHeader.metrics.boardCoins, value: `${props.totalCoins}` },
   ]
-
-  if (props.solved && props.medal) {
-    items.push({ label: UI_COPY.boardHeader.metrics.medal, value: UI_COPY.boardHeader.medals[props.medal] })
-  }
-
-  return items
 })
 </script>
 
 <template>
-  <section class="board-header-card">
-    <div class="header-row header-row--top">
-      <div class="mode-switch" role="tablist" aria-label="Puzzle mode">
-        <button
-          type="button"
-          class="mode-chip"
-          :class="{ 'mode-chip--active': selectedMode === 'classic' }"
-          @click="emit('selectMode', 'classic')"
-        >
-          {{ UI_COPY.boardHeader.classic }}
-          <span v-if="classicSolved" class="chip-badge">
-            {{ UI_COPY.boardHeader.solvedBadge }}
-          </span>
-        </button>
+  <section class="board-header-card" aria-label="Road controls">
+    <div class="mode-switch" role="tablist" aria-label="Puzzle mode">
+      <button
+        type="button"
+        class="mode-option"
+        :class="{ 'mode-option--active': selectedMode === 'classic' }"
+        :aria-selected="selectedMode === 'classic'"
+        role="tab"
+        :title="
+          classicSolved
+            ? UI_COPY.boardHeader.solvedBadge
+            : UI_COPY.boardHeader.classic
+        "
+        @click="emit('selectMode', 'classic')"
+      >
+        {{ UI_COPY.boardHeader.classic }}
+      </button>
 
-        <button
-          v-if="hasExpedition"
-          type="button"
-          class="mode-chip"
-          :class="{ 'mode-chip--active': selectedMode === 'expedition' }"
-          :disabled="!isExpeditionUnlocked"
-          @click="emit('selectMode', 'expedition')"
-        >
-          {{ UI_COPY.boardHeader.expedition }}
-          <span v-if="!isExpeditionUnlocked" class="chip-badge chip-badge--locked">
-            {{ UI_COPY.boardHeader.lockedBadge }}
-          </span>
-        </button>
-      </div>
-
-      <div class="metric-row">
-        <article v-for="metric in metrics" :key="metric.label" class="metric-chip">
-          <span>{{ metric.label }}</span>
-          <strong>{{ metric.value }}</strong>
-        </article>
-      </div>
+      <button
+        v-if="hasExpedition"
+        type="button"
+        class="mode-option"
+        :class="{ 'mode-option--active': selectedMode === 'expedition' }"
+        :aria-selected="selectedMode === 'expedition'"
+        :disabled="!isExpeditionUnlocked"
+        role="tab"
+        :title="
+          isExpeditionUnlocked
+            ? UI_COPY.boardHeader.expedition
+            : UI_COPY.boardHeader.unlockHint
+        "
+        @click="emit('selectMode', 'expedition')"
+      >
+        {{ UI_COPY.boardHeader.expedition }}
+      </button>
     </div>
 
-    <p v-if="hasExpedition && !isExpeditionUnlocked" class="unlock-hint">
-      {{ UI_COPY.boardHeader.unlockHint }}
+    <p class="metric-line" aria-label="Road score">
+      <span v-for="(metric, index) in metrics" :key="metric.label">
+        <span class="metric-label">{{ metric.label }}</span>
+        <strong>{{ metric.value }}</strong>
+        <span v-if="index < metrics.length - 1" class="metric-separator">·</span>
+      </span>
     </p>
   </section>
 </template>
@@ -81,106 +78,79 @@ const metrics = computed(() => {
 <style scoped>
 .board-header-card {
   display: grid;
-  gap: 0.55rem;
-  padding: 0.9rem 1rem;
-  border-radius: var(--radius-xl);
-  background: var(--gradient-card-status);
-  border: 1px solid rgb(var(--color-gold-rgb) / 0.32);
-  box-shadow: var(--shadow-border-dark), var(--shadow-lg);
-}
-
-.header-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.8rem;
+  justify-items: center;
+  gap: 0.45rem;
+  padding: 0.25rem 0;
+  text-align: center;
 }
 
 .mode-switch {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.55rem;
-}
-
-.mode-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  border: 1px solid rgb(var(--color-gold-rgb) / 0.28);
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(5.4rem, max-content);
+  width: fit-content;
+  padding: 0.16rem;
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.22);
   border-radius: var(--radius-full);
-  padding: 0.45rem 0.8rem;
-  background: rgb(var(--color-gold-rgb) / 0.08);
-  color: rgb(var(--color-gold-rgb) / 0.82);
-  font-weight: 700;
+  background: rgb(0 0 0 / 0.28);
 }
 
-.mode-chip--active {
+.mode-option {
+  min-height: 1.85rem;
+  border: 0;
+  border-radius: var(--radius-full);
+  padding: 0.28rem 0.72rem;
+  background: transparent;
+  color: rgb(var(--color-gold-rgb) / 0.62);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.mode-option--active {
   background: rgb(var(--color-gold-rgb) / 0.18);
   color: var(--color-gold);
-  border-color: rgb(var(--color-gold-rgb) / 0.45);
+  box-shadow: inset 0 0 0 1px rgb(var(--color-gold-rgb) / 0.26);
 }
 
-.mode-chip:disabled {
-  opacity: 0.55;
+.mode-option:disabled {
+  color: rgb(var(--color-gold-rgb) / 0.34);
   cursor: not-allowed;
 }
 
-.chip-badge {
-  padding: 0.16rem 0.42rem;
-  border-radius: var(--radius-full);
-  background: rgb(var(--color-gold-rgb) / 0.15);
-  color: var(--color-gold);
-  font-size: 0.72rem;
-}
-
-.chip-badge--locked {
-  color: var(--color-toll);
-}
-
-.unlock-hint,
-.metric-chip span {
+.metric-line {
   margin: 0;
-}
-
-.unlock-hint {
   color: rgb(var(--color-gold-rgb) / 0.76);
-  font-size: 0.88rem;
+  font-size: 0.9rem;
+  font-weight: 700;
 }
 
-.metric-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.55rem;
-  justify-content: end;
+.metric-label {
+  margin-right: 0.25rem;
+  color: rgb(var(--color-gold-rgb) / 0.58);
 }
 
-.metric-chip {
-  min-width: 88px;
-  padding: 0.5rem 0.65rem;
-  border-radius: var(--radius-md);
-  background: rgb(var(--color-gold-rgb) / 0.08);
-  border: 1px solid rgb(var(--color-gold-rgb) / 0.18);
-}
-
-.metric-chip span {
-  display: block;
-  color: rgb(var(--color-gold-rgb) / 0.72);
-  font-size: 0.78rem;
-}
-
-.metric-chip strong {
-  display: block;
-  margin-top: 0.18rem;
+.metric-line strong {
   color: var(--color-gold);
+}
+
+.metric-separator {
+  margin: 0 0.55rem;
+  color: rgb(var(--color-gold-rgb) / 0.36);
 }
 
 @media (max-width: 760px) {
-  .header-row {
-    display: grid;
+  .board-header-card {
+    padding: 0.1rem 0;
   }
 
-  .metric-row {
-    justify-content: start;
+  .metric-line {
+    font-size: 0.84rem;
   }
 }
 </style>

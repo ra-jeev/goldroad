@@ -14,7 +14,7 @@ export function useGoldroadGame() {
   const canSwitchToExpedition = computed(
     () =>
       gameplay.selectedMode.value === 'classic' &&
-      gameplay.lastSolved.value &&
+      gameplay.classicSolvedToday.value &&
       Boolean(gameplay.availableGames.value.expedition),
   );
 

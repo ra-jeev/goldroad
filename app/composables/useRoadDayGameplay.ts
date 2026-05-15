@@ -27,6 +27,7 @@ type EntryType = 'live' | 'archive';
 
 type SetupGameOptions = {
   attemptNumber?: number;
+  replaySolved?: boolean;
 };
 
 type ApplyRoadDayOptions = {
@@ -73,6 +74,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
   const expeditionJustUnlocked = ref(false);
   const sessionId = ref('');
   const hintsUsed = ref(0);
+  const trackingDisabled = ref(false);
   const activeSolveTimeMs = ref(0);
   const solveTimerStartedAtMs = ref<number | null>(null);
   const solveTimerCanResume = ref(false);
@@ -147,6 +149,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     expeditionJustUnlocked.value = false;
     sessionId.value = '';
     hintsUsed.value = 0;
+    trackingDisabled.value = false;
     activeSolveTimeMs.value = 0;
     solveTimerStartedAtMs.value = null;
     solveTimerCanResume.value = false;
@@ -217,6 +220,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
   }
 
   function persistSolveTimerState(continueRunning: boolean): number {
+    if (trackingDisabled.value) return activeSolveTimeMs.value;
     if (!game.value) return activeSolveTimeMs.value;
 
     const dayKey = getProgressDayKey(game.value);
@@ -243,6 +247,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
 
   function startSolveTimer() {
     if (
+      trackingDisabled.value ||
       !game.value ||
       lastSolved.value ||
       solveTimerStartedAtMs.value !== null
@@ -268,6 +273,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
 
   function resumeSolveTimer() {
     if (
+      trackingDisabled.value ||
       !game.value ||
       ended.value ||
       lastSolved.value ||
@@ -286,6 +292,12 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
   }
 
   function stopSolveTimer(): number {
+    if (trackingDisabled.value) {
+      solveTimerStartedAtMs.value = null;
+      solveTimerCanResume.value = false;
+      return 0;
+    }
+
     const elapsed =
       solveTimerStartedAtMs.value === null
         ? activeSolveTimeMs.value
@@ -300,12 +312,14 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
       next.puzzleType,
       progressScope,
     );
-    const progressAttemptNumber = progress.solved
-      ? Math.max(progress.attempts, 1)
-      : progress.attempts + 1;
-    const preservedHintsUsed = progress.hintsUsed;
-    const preservedGuidePath = [...progress.guidePath];
-    const preservedActiveSolveTimeMs = progress.activeTimeMs;
+    const progressAttemptNumber = Math.max(progress.attempts, 0) + 1;
+    const replaySolved = progress.solved && options.replaySolved;
+    const hasSolvedHistory = progress.solved;
+    const preservedHintsUsed = replaySolved ? 0 : progress.hintsUsed;
+    const preservedGuidePath = replaySolved ? [] : [...progress.guidePath];
+    const preservedActiveSolveTimeMs = replaySolved
+      ? 0
+      : progress.activeTimeMs;
     const preservedTimerCanResume = !progress.solved;
     const solvedMedal = progress.solved
       ? calcMedalForAttempt(Math.max(progress.attempts, 1), true)
@@ -324,7 +338,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     hintMessage.value = null;
     hintedTiles.value = new Set();
     expeditionJustUnlocked.value = false;
-    status.value = progress.solved
+    status.value = progress.solved && !replaySolved
       ? solvedMedal
         ? UI_COPY.runtime.alreadySolvedWithMedal(
             UI_COPY.boardHeader.medals[solvedMedal],
@@ -332,17 +346,21 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
         : UI_COPY.runtime.alreadySolved
       : UI_COPY.runtime.preRun(next.maxScore);
     lastTier.value = null;
-    lastMedal.value = solvedMedal;
-    lastSolved.value = progress.solved;
-    attemptNumber.value = options.attemptNumber ?? progressAttemptNumber;
+    lastMedal.value = progress.solved && !replaySolved ? solvedMedal : null;
+    lastSolved.value = progress.solved && !replaySolved;
+    attemptNumber.value = hasSolvedHistory
+      ? 1
+      : (options.attemptNumber ?? progressAttemptNumber);
     hintsUsed.value = preservedHintsUsed;
     guidePath.value = preservedGuidePath;
     sessionId.value = createSessionId();
-    activeSolveTimeMs.value = progress.solved
+    trackingDisabled.value = hasSolvedHistory;
+    activeSolveTimeMs.value = progress.solved && !replaySolved
       ? (progress.solveTimeMs ?? 0)
       : preservedActiveSolveTimeMs;
     solveTimerStartedAtMs.value = null;
-    solveTimerCanResume.value = !progress.solved && preservedTimerCanResume;
+    solveTimerCanResume.value =
+      !progress.solved && preservedTimerCanResume;
 
     const edgeMap = buildEdgeMap(next.board);
     const active = getActiveNeighbors(
@@ -430,13 +448,16 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
       return;
     }
 
-    submitting.value = true;
+    const isUntrackedReplay = trackingDisabled.value;
+    submitting.value = !isUntrackedReplay;
     const expeditionWasUnlocked = isExpeditionUnlocked.value;
     const solved = endReason === 'solved';
     const dayKey = getProgressDayKey(game.value);
-    const elapsedSolveTimeMs = stopSolveTimer();
+    const elapsedSolveTimeMs = isUntrackedReplay ? 0 : stopSolveTimer();
     const solveTimeMs = solved ? elapsedSolveTimeMs : null;
-    const medal = calcMedalForAttempt(attemptNumber.value, solved);
+    const medal = isUntrackedReplay
+      ? null
+      : calcMedalForAttempt(attemptNumber.value, solved);
     const tier: OutcomeTier =
       medal ?? (endReason === 'wrong-exit' ? 'finished' : 'unfinished');
 
@@ -445,12 +466,13 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     lastTier.value = tier;
     expeditionJustUnlocked.value =
       options.entryType === 'live' &&
+      !isUntrackedReplay &&
       selectedMode.value === 'classic' &&
       solved &&
       !expeditionWasUnlocked &&
       Boolean(availableGames.value.expedition);
 
-    if (dayKey) {
+    if (!isUntrackedReplay && dayKey) {
       localProgress.recordRun(
         game.value.gameNo,
         game.value.puzzleType,
@@ -466,6 +488,11 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     if (solved) {
       guidePath.value = [];
       hintedTiles.value = new Set();
+    }
+
+    if (isUntrackedReplay) {
+      submitting.value = false;
+      return;
     }
 
     try {
@@ -488,23 +515,33 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
   }
 
   async function retryCurrentGame() {
-    if (!game.value || loading.value || submitting.value) return;
-    if (!ended.value && moves.value <= 1) return;
+    if (!game.value || loading.value) return;
+    if (submitting.value && !ended.value) return;
+    if (!ended.value && moves.value <= 1 && !lastSolved.value) return;
 
-    const nextAttemptNumber = attemptNumber.value + 1;
+    const nextAttemptNumber = trackingDisabled.value
+      ? attemptNumber.value
+      : attemptNumber.value + 1;
 
-    if (!ended.value) {
+    if (!ended.value && !lastSolved.value && !trackingDisabled.value) {
       await finalizeRun('retry');
     }
 
     setupGame(game.value, {
       attemptNumber: nextAttemptNumber,
+      replaySolved: true,
     });
   }
 
   async function moveTo(tileIndex: number) {
     if (!game.value || ended.value || currentTileIndex.value === null) return;
     if (!activeSet.value.has(tileIndex)) return;
+
+    if (moves.value === 1 && lastSolved.value) {
+      lastSolved.value = false;
+      lastMedal.value = null;
+      lastTier.value = null;
+    }
 
     if (moves.value === 1) {
       startSolveTimer();
@@ -577,7 +614,13 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
   }
 
   async function requestHint() {
-    if (!game.value || ended.value || !playerUUID.value || !sessionId.value) {
+    if (
+      trackingDisabled.value ||
+      !game.value ||
+      ended.value ||
+      !playerUUID.value ||
+      !sessionId.value
+    ) {
       return;
     }
 
@@ -717,6 +760,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     attemptNumber,
     expeditionJustUnlocked,
     hintsUsed,
+    trackingDisabled,
     playerUUID,
     maxScore,
     totalCoins,

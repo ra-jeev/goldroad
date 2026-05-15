@@ -29,6 +29,7 @@ const {
   lastMedal,
   lastSolved,
   hintsUsed,
+  trackingDisabled,
   attemptNumber,
   maxScore,
   totalCoins,
@@ -186,10 +187,11 @@ onUnmounted(() => {
           :hints-used="hintsUsed"
           :ended="ended"
           :solved="lastSolved"
-          :can-retry="ended || moves > 1"
+          :can-retry="ended || moves > 1 || lastSolved"
           :can-switch-to-expedition="false"
           :loading="loading"
           :submitting="submitting"
+          :tracking-disabled="trackingDisabled"
           @retry="retryCurrentGame"
           @hint="requestHint"
         />
@@ -201,19 +203,24 @@ onUnmounted(() => {
 <style scoped>
 .shell {
   min-height: calc(100dvh - 60px);
-  padding: 1.3rem;
+  padding: clamp(0.85rem, 2.5vw, 1.45rem);
+  display: grid;
+  align-items: center;
 }
 
 .layout {
-  max-width: 960px;
+  max-width: 1040px;
+  width: 100%;
   margin: 0 auto;
 }
 
 .board-column {
   display: grid;
-  gap: 0.9rem;
-  max-width: 760px;
+  justify-items: center;
+  gap: clamp(0.7rem, 1.8vh, 1rem);
+  max-width: 620px;
   margin: 0 auto;
+  text-align: center;
 }
 
 .archive-header,
@@ -221,7 +228,7 @@ onUnmounted(() => {
   display: grid;
   gap: 0.8rem;
   padding: 1rem 1.1rem;
-  border-radius: var(--radius-xl);
+  border-radius: 8px;
   background: var(--gradient-card-status);
   border: 1px solid rgb(var(--color-gold-rgb) / 0.28);
   box-shadow: var(--shadow-border-dark), var(--shadow-lg);
@@ -289,7 +296,7 @@ onUnmounted(() => {
 
 @media (max-width: 760px) {
   .shell {
-    padding: 0.9rem;
+    padding: 0.75rem;
   }
 
   .archive-header-top,

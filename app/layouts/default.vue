@@ -107,15 +107,17 @@ function closeMobileMenu() {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgb(var(--color-gold-rgb) / 0.05);
-  backdrop-filter: blur(8px);
-  border-bottom: 1px solid rgb(var(--color-gold-rgb) / 0.15);
+  background:
+    linear-gradient(180deg, rgb(31 17 4 / 0.88), rgb(20 11 3 / 0.72));
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgb(var(--color-gold-rgb) / 0.18);
+  box-shadow: 0 12px 30px rgb(0 0 0 / 0.24);
 }
 
 .header-content {
-  max-width: 1320px;
+  max-width: 1040px;
   margin: 0 auto;
-  padding: 0.8rem 1.3rem;
+  padding: 0.68rem clamp(0.85rem, 2.5vw, 1.45rem);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -137,16 +139,16 @@ function closeMobileMenu() {
 }
 
 .logo-text {
-  font-size: 1.5rem;
+  font-size: 1.42rem;
   font-weight: 700;
   color: var(--color-gold);
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .road-chip {
   margin: 0;
-  padding: 0.3rem 0.7rem;
-  border-radius: var(--radius-full);
+  padding: 0.28rem 0.62rem;
+  border-radius: 8px;
   border: 1px solid rgb(var(--color-gold-rgb) / 0.22);
   background: rgb(var(--color-gold-rgb) / 0.08);
   color: rgb(var(--color-gold-rgb) / 0.86);
@@ -158,9 +160,9 @@ function closeMobileMenu() {
   text-decoration: none;
   color: var(--color-gold-muted);
   font-size: 0.95rem;
-  font-weight: 500;
+  font-weight: 750;
   padding: 0.4rem 0.8rem;
-  border-radius: var(--radius-md);
+  border-radius: 8px;
   transition: all var(--transition-fast);
   background: none;
   border: none;
@@ -183,9 +185,9 @@ function closeMobileMenu() {
 }
 
 .icon-button {
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: var(--radius-full);
+  width: 2.32rem;
+  height: 2.32rem;
+  border-radius: 8px;
   border: 1px solid rgb(var(--color-gold-rgb) / 0.18);
   background: rgb(var(--color-gold-rgb) / 0.06);
   color: rgb(var(--color-gold-rgb) / 0.78);
@@ -218,7 +220,7 @@ function closeMobileMenu() {
   right: 0;
   width: 180px;
   padding: 0.45rem;
-  border-radius: var(--radius-lg);
+  border-radius: 8px;
   background: var(--gradient-card-overlay);
   border: 1px solid rgb(var(--color-gold-rgb) / 0.24);
   box-shadow: var(--shadow-xl);
@@ -227,7 +229,7 @@ function closeMobileMenu() {
 .menu-link {
   display: block;
   padding: 0.75rem 0.9rem;
-  border-radius: var(--radius-md);
+  border-radius: 6px;
   text-decoration: none;
   color: rgb(var(--color-gold-rgb) / 0.86);
   font-weight: 600;

@@ -36,6 +36,7 @@ export const UI_COPY = {
     medalAwarded: (medal: string) => `${medal} medal`,
     nextRoadCountdown: (countdown: string) =>
       `Next road in ${countdown} · 00:00 UTC`,
+    nextRoadShort: (countdown: string) => `Next road in ${countdown}`,
     hintTitle: 'Hint',
     helpTitle: 'How To Play',
     hintUsedLabel: (count: number) => `Used ${count}`,
@@ -79,11 +80,9 @@ export const UI_COPY = {
     needMore: (delta: number) => `Need ${delta} more before the exit.`,
     exactNowFinish: 'Target reached. Reach the exit.',
     overBy: (delta: number) => `Over by ${delta}.`,
-    destinationSolved: 'Solved. You reached the exit on target.',
-    destinationShort: (delta: number) =>
-      `You reached the exit ${delta} short of the target.`,
-    destinationOver: (delta: number) =>
-      `You reached the exit ${delta} over the target.`,
+    destinationSolved: 'Solved on target.',
+    destinationShort: (delta: number) => `Not solved. You were ${delta} short.`,
+    destinationOver: (delta: number) => `Not solved. You were ${delta} over.`,
     alreadySolved: 'Already solved. You can replay or switch modes.',
     alreadySolvedWithMedal: (medal: string) =>
       `Already solved with ${medal.toLowerCase()}. You can replay or switch modes.`,

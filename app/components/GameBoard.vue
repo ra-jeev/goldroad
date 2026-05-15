@@ -162,56 +162,59 @@ const allRoads = computed<RoadData[]>(() => {
 
 <template>
   <section class="board-shell">
-    <div v-if="puzzleType === 'expedition'" class="board-info">
-      <div class="info-item info-toll">
-        <span class="info-icon">⊝</span>
-        <span class="info-label"
-          >{{ UI_COPY.board.info.toll }}: -{{ board.tollValue }}</span
-        >
-      </div>
-      <div class="info-item info-bonus">
-        <span class="info-icon">⊕</span>
-        <span class="info-label"
-          >{{ UI_COPY.board.info.bonus }}: +{{ board.bonusValue }}</span
-        >
-      </div>
-      <p class="kbd-note">{{ UI_COPY.board.keyboardHint }}</p>
-    </div>
-
-    <p v-else class="kbd-note">{{ UI_COPY.board.keyboardHint }}</p>
-
-    <div class="board-wrapper">
+    <div class="board-stage">
       <div
-        class="board"
-        :style="{
-          gridTemplateColumns: `repeat(${board.cols}, var(--tile-size))`,
-        }"
+        v-if="puzzleType === 'expedition'"
+        class="board-info"
+        aria-label="Expedition road values"
       >
-        <GameTile
-          v-for="tile in tiles.flat()"
-          :key="tile.id"
-          :value="tile.value"
-          :is-start="board.start === tile.id"
-          :is-end="board.end === tile.id"
-          :is-current="currentTileIndex === tile.id"
-          :is-active="activeSet.has(tile.id)"
-          :is-done="visitedSet.has(tile.id)"
-          :is-hinted="hintedTiles.has(tile.id)"
-          :disabled="disabled"
-          @select="emit('select', tile.id)"
+        <div class="info-item info-toll">
+          <span class="info-icon">-</span>
+          <span class="info-label"
+            >{{ UI_COPY.board.info.toll }} {{ board.tollValue }}</span
+          >
+        </div>
+        <div class="info-item info-bonus">
+          <span class="info-icon">+</span>
+          <span class="info-label"
+            >{{ UI_COPY.board.info.bonus }} {{ board.bonusValue }}</span
+          >
+        </div>
+      </div>
+
+      <div class="board-wrapper">
+        <div
+          class="board"
+          :style="{
+            gridTemplateColumns: `repeat(${board.cols}, var(--tile-size))`,
+          }"
+        >
+          <GameTile
+            v-for="tile in tiles.flat()"
+            :key="tile.id"
+            :value="tile.value"
+            :is-start="board.start === tile.id"
+            :is-end="board.end === tile.id"
+            :is-current="currentTileIndex === tile.id"
+            :is-active="activeSet.has(tile.id)"
+            :is-done="visitedSet.has(tile.id)"
+            :is-hinted="hintedTiles.has(tile.id)"
+            :disabled="disabled"
+            @select="emit('select', tile.id)"
+          />
+        </div>
+
+        <BoardRoad
+          v-for="road in allRoads"
+          :key="road.key"
+          :type="road.type"
+          :state="road.state"
+          :traversed="road.traversed"
+          :arrow-dir="road.arrowDir"
+          :orientation="road.orientation"
+          :style="road.style"
         />
       </div>
-
-      <BoardRoad
-        v-for="road in allRoads"
-        :key="road.key"
-        :type="road.type"
-        :state="road.state"
-        :traversed="road.traversed"
-        :arrow-dir="road.arrowDir"
-        :orientation="road.orientation"
-        :style="road.style"
-      />
     </div>
   </section>
 </template>
@@ -219,54 +222,59 @@ const allRoads = computed<RoadData[]>(() => {
 <style scoped>
 .board-shell {
   display: grid;
-  gap: 0.7rem;
-  text-align: left;
+  justify-items: center;
 }
 
-.kbd-note {
-  margin: 0;
-  color: rgb(var(--color-gold-rgb) / 0.8);
-  font-size: 0.86rem;
+.board-stage {
+  width: min(100%, 600px);
+  display: grid;
+  justify-items: center;
+  gap: 0.75rem;
+  padding: 0.25rem 0;
 }
 
 .board-info {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
-  justify-content: space-between;
+  gap: 0.45rem;
+  justify-content: center;
   align-items: center;
+  width: 100%;
 }
 
 .info-item {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.4rem 0.8rem;
-  border-radius: var(--radius-full);
-  font-size: 0.9rem;
-  font-weight: 700;
+  gap: 0.36rem;
+  padding: 0.35rem 0.62rem;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 800;
   border: 1px solid;
+  letter-spacing: 0.02em;
 }
 
 .info-toll {
-  background: rgb(205 127 50 / 0.15);
+  background: rgb(205 127 50 / 0.12);
   color: var(--color-toll);
-  border-color: rgb(205 127 50 / 0.4);
+  border-color: rgb(205 127 50 / 0.32);
 }
 
 .info-bonus {
-  background: rgb(255 215 0 / 0.15);
+  background: rgb(255 215 0 / 0.11);
   color: var(--color-bonus);
-  border-color: rgb(255 215 0 / 0.4);
+  border-color: rgb(255 215 0 / 0.28);
 }
 
 .info-icon {
-  font-size: 1.1rem;
+  display: inline-grid;
+  place-items: center;
+  width: 1rem;
+  height: 1rem;
+  border-radius: var(--radius-circle);
+  border: 1px solid currentColor;
+  font-size: 0.82rem;
   line-height: 1;
-}
-
-.info-label {
-  letter-spacing: 0.02em;
 }
 
 .board-wrapper {
@@ -282,7 +290,7 @@ const allRoads = computed<RoadData[]>(() => {
 
 @media (max-width: 760px) {
   .board-info {
-    justify-content: start;
+    justify-content: center;
     gap: 0.6rem;
   }
 

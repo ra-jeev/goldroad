@@ -246,7 +246,7 @@ body {
 /* ── Mode-specific backgrounds ────────────────────────────────── */
 
 body.mode-classic .hero-card,
-body.mode-classic .board-shell {
+body.mode-classic .board-stage {
   --mode-tint-classic: rgb(160 90 0 / 0.22);
   --mode-tint-classic-alt: rgb(90 40 0 / 0.2);
 }
@@ -258,7 +258,7 @@ body.mode-expedition .hero-card {
     linear-gradient(160deg, #0a1419 0%, #051015 62%, #020a0d 100%);
 }
 
-body.mode-expedition .board-shell {
+body.mode-expedition .board-stage {
   background: radial-gradient(ellipse 80% 60% at 18% 10%,
       var(--mode-tint-expedition) 0%,
       transparent 60%),
