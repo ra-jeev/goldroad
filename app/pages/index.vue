@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onUnmounted, watchEffect } from 'vue';
+import { onUnmounted, watch, watchEffect } from 'vue';
 
 const {
   game,
@@ -42,10 +42,40 @@ const currentRoadLabel = useState<string | null>(
   'current-road-label',
   () => null,
 );
+const localState = useGoldroadLocalState();
+const { isTutorialOpen, openTutorial } = useTutorialFlow();
+const checkedFirstRunTutorial = ref(false);
+
+const shouldShowFirstRunTutorial = computed(
+  () =>
+    Boolean(game.value) &&
+    !loading.value &&
+    !localState.tutorialState.value.completed &&
+    !localState.tutorialState.value.lastSeenAt &&
+    !localState.hasAnyLiveProgress.value,
+);
 
 watchEffect(() => {
   currentRoadLabel.value = game.value ? roadHeading.value : null;
 });
+
+watch(
+  shouldShowFirstRunTutorial,
+  (shouldShow) => {
+    if (
+      !import.meta.client ||
+      checkedFirstRunTutorial.value ||
+      !shouldShow ||
+      isTutorialOpen.value
+    ) {
+      return;
+    }
+
+    checkedFirstRunTutorial.value = true;
+    openTutorial();
+  },
+  { immediate: true },
+);
 
 onUnmounted(() => {
   currentRoadLabel.value = null;

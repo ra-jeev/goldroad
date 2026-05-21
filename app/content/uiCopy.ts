@@ -43,17 +43,28 @@ export const UI_COPY = {
   },
   helpSheet: {
     close: 'Close',
+    startTutorial: 'Play Tutorial',
+    intro:
+      'Learn GoldRoad with a short playable tutorial, or use this quick reference when you need a reminder.',
     sections: {
       howToPlay: {
-        title: 'How to Play',
+        title: 'The road',
         items: [
-          'Reach the end tile with the target score.',
+          'Start on the tile with the start icon and reach the tile with the exit icon.',
+          'Your running score must match the target when you reach the exit.',
           'You cannot revisit a tile during the same run.',
           'Only up, down, left, and right moves are legal.',
-          'Some roads are missing. Muted roads are currently unavailable from your committed path.',
-          'Retry restarts the same road and increases your try count.',
-          'Hints highlight the board and do not reduce your score or medal.',
-          'Solving Classic unlocks Expedition for the day.',
+          'Some roads are missing or blocked, so not every neighbor can be reached.',
+          'It may not be possible to collect every coin on the board.',
+        ],
+      },
+      tools: {
+        title: 'Tools',
+        items: [
+          'Retry restarts the same road and increases your attempt count.',
+          'Hints highlight a guide route and do not reduce your score or medal.',
+          'Solving Classic unlocks Expedition for the day when one is available.',
+          'How to Play is always available from the question button in the toolbar.',
         ],
       },
       about: {

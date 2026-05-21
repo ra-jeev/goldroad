@@ -730,15 +730,51 @@ export function useGoldroadLocalState() {
     commit(nextState);
   }
 
+  function markTutorialSeen() {
+    const nextState = cloneState(ensureLoaded());
+    nextState.tutorialState = {
+      ...nextState.tutorialState,
+      lastSeenAt: nowIso(),
+    };
+
+    commit(nextState);
+  }
+
+  function markTutorialCompleted() {
+    const nextState = cloneState(ensureLoaded());
+    nextState.tutorialState = {
+      completed: true,
+      lastSeenAt: nowIso(),
+    };
+
+    commit(nextState);
+  }
+
   return {
     state,
     load,
     playerUUID: computed(() => ensureLoaded().playerUUID),
     currentRoadContext: computed(() => ensureLoaded().currentRoadContext),
+    tutorialState: computed(() => ensureLoaded().tutorialState),
+    hasAnyLiveProgress: computed(() => {
+      const nextState = ensureLoaded();
+      return (
+        Object.keys(nextState.historyByDay).length > 0 ||
+        Object.values(nextState.puzzleProgressByKey).some(
+          (progress) =>
+            progress.attempts > 0 ||
+            progress.solved ||
+            progress.hintsUsed > 0 ||
+            progress.activeTimeMs > 0,
+        )
+      );
+    }),
     getPuzzleProgress,
     recordHint,
     setSolveTimerState,
     recordRun,
     setCurrentRoadContext,
+    markTutorialSeen,
+    markTutorialCompleted,
   };
 }

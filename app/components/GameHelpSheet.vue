@@ -2,6 +2,12 @@
 import { UI_COPY } from '../content/uiCopy';
 
 const { isHowToPlayOpen, closeHowToPlay } = useHowToPlaySheet();
+const { openTutorial } = useTutorialFlow();
+
+function playTutorial() {
+  closeHowToPlay();
+  openTutorial();
+}
 </script>
 
 <template>
@@ -22,11 +28,33 @@ const { isHowToPlayOpen, closeHowToPlay } = useHowToPlaySheet();
         </button>
       </div>
 
+      <p class="sheet-intro">{{ UI_COPY.helpSheet.intro }}</p>
+
+      <button
+        type="button"
+        class="tutorial-link"
+        @click="playTutorial"
+      >
+        {{ UI_COPY.helpSheet.startTutorial }}
+      </button>
+
       <article class="help-section">
         <h3>{{ UI_COPY.helpSheet.sections.howToPlay.title }}</h3>
         <ul>
           <li
             v-for="item in UI_COPY.helpSheet.sections.howToPlay.items"
+            :key="item"
+          >
+            {{ item }}
+          </li>
+        </ul>
+      </article>
+
+      <article class="help-section">
+        <h3>{{ UI_COPY.helpSheet.sections.tools.title }}</h3>
+        <ul>
+          <li
+            v-for="item in UI_COPY.helpSheet.sections.tools.items"
             :key="item"
           >
             {{ item }}
@@ -102,6 +130,26 @@ const { isHowToPlayOpen, closeHowToPlay } = useHowToPlaySheet();
 
 .help-section {
   margin-top: 1rem;
+}
+
+.sheet-intro {
+  margin: 0.8rem 0 0;
+  color: var(--color-gold-bright);
+  line-height: var(--line-height-base);
+}
+
+.tutorial-link {
+  display: inline-flex;
+  margin-top: 0.85rem;
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.34);
+  border-radius: var(--radius-sm);
+  padding: 0.65rem 0.9rem;
+  color: var(--color-gold-bright);
+  background: rgb(var(--color-gold-rgb) / 0.16);
+  font: inherit;
+  font-weight: 800;
+  text-decoration: none;
+  cursor: pointer;
 }
 
 .help-section ul {

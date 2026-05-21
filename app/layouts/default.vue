@@ -6,11 +6,13 @@ const currentRoadLabel = useState<string | null>(
   () => null,
 );
 const { openHowToPlay, closeHowToPlay } = useHowToPlaySheet();
+const { closeTutorial } = useTutorialFlow();
 
 watch(
   () => route.fullPath,
   () => {
     closeHowToPlay();
+    closeTutorial();
     closeMobileMenu();
   },
 );
@@ -94,6 +96,7 @@ function closeMobileMenu() {
     <slot />
 
     <GameHelpSheet />
+    <TutorialDialog />
   </div>
 </template>
 
