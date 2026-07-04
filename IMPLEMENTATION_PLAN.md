@@ -403,7 +403,7 @@ Recommended treatment:
 
 ### Issue P1-10 — Add post-solve celebration and share sheets
 - Priority: `P1`
-- Status: `planned`
+- Status: `done`
 - Goal: restore the v1 solve-moment emotion and share funnel without losing the Expedition handoff.
 - Why it matters: the solve is the emotional peak of the session and the entire share funnel. v1 spent it well (navigate to stats, "+1" medal tick, share button); v2 currently spends it on a quiet footer status line. Navigating away like v1 would kill Expedition momentum, so celebration must float over the board.
 - Design decisions (agreed):
@@ -427,6 +427,12 @@ Recommended treatment:
   - archive/random replays keep celebrations lightweight and do not imply daily-streak credit
 - Dependencies:
   - P1-5
+- Completion notes:
+  - one `SolveCelebrationSheet` component covers all three variants: classic-solve, day-complete, and a lightweight replay-solve for archive/random
+  - celebration-fired tracking lives in `goldroad-state-v2` as `celebratedSolveKeys` (`buildCelebrationKey`, `hasCelebratedSolve`, `markSolveCelebrated`)
+  - relief-tier classic solves flip the CTA hierarchy so Expedition leads and Share goes quiet, per spec
+  - day-complete share text combines both modes; footer gained a persistent quiet Share affordance for already-solved boards
+  - merged alongside P1-13's board-visual changes to the same page shells without conflict (additive changes in both)
 
 ### Issue P1-11 — Restore game sounds
 - Priority: `P1` (launch-blocking)
