@@ -489,7 +489,7 @@ Recommended treatment:
 
 ### Issue P2-1 — Align migration metadata with the current schema
 - Priority: `P2`
-- Status: `planned`
+- Status: `done`
 - Goal: make future schema generation and migration review reliable again.
 - Why it matters: migrations after `0003` exist, but the Drizzle metadata journal currently stops at `0003`, which can confuse future migration generation.
 - Scope:
@@ -502,6 +502,10 @@ Recommended treatment:
   - local migration/setup notes explain when to regenerate seed data
 - Dependencies:
   - P1-9 can land before or alongside this
+- Completion notes:
+  - hand-constructed `meta/0004`–`0006` snapshots and `_journal.json` entries to match migrations 0004–0006, no `.sql` files touched
+  - `pnpm db:generate` verified as a clean no-op; `pnpm db:migrate` + `pnpm db:seed:local` verified from a fresh local D1
+  - added `server/db/README.md` documenting generate-vs-hand-write workflow and when to regenerate seed data
 
 ### Issue P2-2 — Finalize Cloudflare cron and puzzle-pool operations
 - Priority: `P2`
