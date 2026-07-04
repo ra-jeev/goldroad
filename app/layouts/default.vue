@@ -87,6 +87,9 @@ function closeMobileMenu() {
               <NuxtLink to="/games" class="menu-link" @click="closeMobileMenu">
                 Past Games
               </NuxtLink>
+              <NuxtLink to="/about" class="menu-link" @click="closeMobileMenu">
+                About
+              </NuxtLink>
             </div>
           </div>
         </div>
