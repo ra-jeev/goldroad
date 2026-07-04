@@ -3,11 +3,12 @@ import { calcMedalForAttempt } from '../../../lib/gameTiers';
 import { games, playerRoadAnalytics } from '../../db/schema';
 import { useDb } from '../../db/client';
 import { SessionEndPayloadSchema } from '../../db/validators';
+import { parsePayload } from '../../utils/validation';
 
 export default defineEventHandler(async (event) => {
   const db = useDb(event);
   const body = await readBody(event);
-  const payload = SessionEndPayloadSchema.parse(body);
+  const payload = parsePayload(SessionEndPayloadSchema, body);
 
   const gameRows = await db
     .select({
