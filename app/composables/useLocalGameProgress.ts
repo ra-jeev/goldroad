@@ -91,5 +91,7 @@ export function useLocalGameProgress() {
     setSolveTimerState,
     recordRun,
     setCurrentRoadContext: localState.setCurrentRoadContext,
+    hasCelebratedSolve: localState.hasCelebratedSolve,
+    markSolveCelebrated: localState.markSolveCelebrated,
   };
 }

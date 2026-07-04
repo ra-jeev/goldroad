@@ -70,6 +70,7 @@ type GoldroadLocalState = {
   replayProgressByKey: Record<string, PuzzleProgressRecord>;
   historyByDay: Record<string, HistoryDayRecord>;
   tutorialState: TutorialState;
+  celebratedSolveKeys: string[];
 };
 
 function isPuzzleType(value: unknown): value is PuzzleType {
@@ -91,6 +92,12 @@ function isNullableNumber(value: unknown): value is number | null {
 function isNumberArray(value: unknown): value is number[] {
   return (
     Array.isArray(value) && value.every((entry) => typeof entry === 'number')
+  );
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return (
+    Array.isArray(value) && value.every((entry) => typeof entry === 'string')
   );
 }
 
@@ -267,6 +274,14 @@ function buildPuzzleKey(gameNo: number, puzzleType: PuzzleType): string {
   return `${puzzleType}:${gameNo}`;
 }
 
+export function buildCelebrationKey(
+  gameNo: number,
+  puzzleType: PuzzleType,
+  day: string,
+): string {
+  return `${puzzleType}:${gameNo}:${day}`;
+}
+
 function createEmptyLocalPuzzleProgress(): LocalPuzzleProgress {
   return {
     attempts: 0,
@@ -310,6 +325,7 @@ function createEmptyState(playerUUID = createPlayerUUID()): GoldroadLocalState {
       completed: false,
       lastSeenAt: null,
     },
+    celebratedSolveKeys: [],
   };
 }
 
@@ -398,6 +414,7 @@ function cloneState(value: GoldroadLocalState): GoldroadLocalState {
     tutorialState: {
       ...value.tutorialState,
     },
+    celebratedSolveKeys: [...value.celebratedSolveKeys],
   };
 }
 
@@ -451,6 +468,10 @@ function normalizeStoredState(value: unknown): GoldroadLocalState | null {
     value.replayProgressByKey,
   );
 
+  const celebratedSolveKeys = isStringArray(value.celebratedSolveKeys)
+    ? value.celebratedSolveKeys
+    : [];
+
   return {
     version: STORAGE_VERSION,
     playerUUID: value.playerUUID,
@@ -460,6 +481,7 @@ function normalizeStoredState(value: unknown): GoldroadLocalState | null {
     replayProgressByKey: replayProgressByKey ?? {},
     historyByDay: value.historyByDay,
     tutorialState: value.tutorialState,
+    celebratedSolveKeys,
   };
 }
 
@@ -750,6 +772,30 @@ export function useGoldroadLocalState() {
     commit(nextState);
   }
 
+  function hasCelebratedSolve(
+    gameNo: number,
+    puzzleType: PuzzleType,
+    day: string,
+  ): boolean {
+    const key = buildCelebrationKey(gameNo, puzzleType, day);
+    return ensureLoaded().celebratedSolveKeys.includes(key);
+  }
+
+  function markSolveCelebrated(
+    gameNo: number,
+    puzzleType: PuzzleType,
+    day: string,
+  ) {
+    const key = buildCelebrationKey(gameNo, puzzleType, day);
+    const nextState = cloneState(ensureLoaded());
+    if (nextState.celebratedSolveKeys.includes(key)) {
+      return;
+    }
+
+    nextState.celebratedSolveKeys = [...nextState.celebratedSolveKeys, key];
+    commit(nextState);
+  }
+
   return {
     state,
     load,
@@ -776,5 +822,7 @@ export function useGoldroadLocalState() {
     setCurrentRoadContext,
     markTutorialSeen,
     markTutorialCompleted,
+    hasCelebratedSolve,
+    markSolveCelebrated,
   };
 }

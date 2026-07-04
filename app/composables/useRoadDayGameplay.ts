@@ -22,8 +22,48 @@ import {
   getRoadDayKeyFromPlayableAt,
   type LocalProgressScope,
 } from './useGoldroadLocalState';
+import {
+  useRoadResultShare,
+  type ShareRoadResultResponse,
+} from './useRoadResultShare';
 
 type EntryType = 'live' | 'archive';
+
+export type CelebrationTier = 'gold' | 'medal' | 'relief';
+
+export type CelebrationVariant =
+  | 'classic-solve'
+  | 'day-complete'
+  | 'replay-solve';
+
+export type CelebrationModeResult = {
+  puzzleType: PuzzleType;
+  attempts: number;
+  solved: boolean;
+  medal: Medal | null;
+  solveTimeMs: number | null;
+  hintsUsed: number;
+};
+
+export type CelebrationState = {
+  variant: CelebrationVariant;
+  tier: CelebrationTier;
+  gameNo: number;
+  puzzleType: PuzzleType;
+  medal: Medal | null;
+  attemptNumber: number;
+  solveTimeMs: number | null;
+  hintsUsed: number;
+  hasExpedition: boolean;
+  classicResult: CelebrationModeResult | null;
+  expeditionResult: CelebrationModeResult | null;
+};
+
+function celebrationTierForMedal(medal: Medal | null): CelebrationTier {
+  if (medal === 'gold') return 'gold';
+  if (medal) return 'medal';
+  return 'relief';
+}
 
 type SetupGameOptions = {
   attemptNumber?: number;
@@ -45,6 +85,7 @@ function createSessionId(): string {
 export function useRoadDayGameplay(options: { entryType: EntryType }) {
   const sessionApi = useSessionApi();
   const localProgress = useLocalGameProgress();
+  const resultShare = useRoadResultShare();
 
   const availableGames = ref<CurrentGamesResponse>({
     classic: null,
@@ -78,6 +119,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
   const activeSolveTimeMs = ref(0);
   const solveTimerStartedAtMs = ref<number | null>(null);
   const solveTimerCanResume = ref(false);
+  const celebration = ref<CelebrationState | null>(null);
 
   const documentVisibility = useDocumentVisibility();
   const playerUUID = localProgress.playerUUID;
@@ -153,6 +195,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     activeSolveTimeMs.value = 0;
     solveTimerStartedAtMs.value = null;
     solveTimerCanResume.value = false;
+    celebration.value = null;
   }
 
   function clearRoadDay() {
@@ -436,6 +479,203 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     selectMode('expedition');
   }
 
+  function buildModeResult(
+    puzzleType: PuzzleType,
+    result: {
+      attempts: number;
+      solved: boolean;
+      solveTimeMs: number | null;
+      hintsUsed: number;
+    },
+  ): CelebrationModeResult {
+    return {
+      puzzleType,
+      attempts: Math.max(result.attempts, result.solved ? 1 : 0),
+      solved: result.solved,
+      medal: calcMedalForAttempt(Math.max(result.attempts, 1), result.solved),
+      solveTimeMs: result.solveTimeMs,
+      hintsUsed: result.hintsUsed,
+    };
+  }
+
+  function triggerCelebration(params: {
+    medal: Medal | null;
+    solveTimeMs: number | null;
+    isUntrackedReplay: boolean;
+    dayKey: string | null;
+  }) {
+    if (!game.value) return;
+
+    const current = game.value;
+    const mode = current.puzzleType;
+    const tier = celebrationTierForMedal(params.medal);
+    const attempts = attemptNumber.value;
+
+    // Archive / random replays get a lightweight, non-persisted acknowledgment
+    // with no daily-streak or countdown implication.
+    if (options.entryType !== 'live') {
+      celebration.value = {
+        variant: 'replay-solve',
+        tier,
+        gameNo: current.gameNo,
+        puzzleType: mode,
+        medal: params.medal,
+        attemptNumber: attempts,
+        solveTimeMs: params.solveTimeMs,
+        hintsUsed: hintsUsed.value,
+        hasExpedition: false,
+        classicResult: null,
+        expeditionResult: null,
+      };
+      return;
+    }
+
+    // Replaying an already-solved live board never re-pops the celebration.
+    if (params.isUntrackedReplay || !params.dayKey) return;
+    if (
+      localProgress.hasCelebratedSolve(current.gameNo, mode, params.dayKey)
+    ) {
+      return;
+    }
+    localProgress.markSolveCelebrated(current.gameNo, mode, params.dayKey);
+
+    if (mode === 'classic') {
+      celebration.value = {
+        variant: 'classic-solve',
+        tier,
+        gameNo: current.gameNo,
+        puzzleType: mode,
+        medal: params.medal,
+        attemptNumber: attempts,
+        solveTimeMs: params.solveTimeMs,
+        hintsUsed: hintsUsed.value,
+        hasExpedition: Boolean(availableGames.value.expedition),
+        classicResult: null,
+        expeditionResult: null,
+      };
+      return;
+    }
+
+    // Expedition solve completes the day: gather both mode results.
+    const classicGame = availableGames.value.classic;
+    const classicProgress = classicGame
+      ? localProgress.getGameProgress(
+          classicGame.gameNo,
+          'classic',
+          progressScope,
+        )
+      : null;
+
+    celebration.value = {
+      variant: 'day-complete',
+      tier,
+      gameNo: current.gameNo,
+      puzzleType: mode,
+      medal: params.medal,
+      attemptNumber: attempts,
+      solveTimeMs: params.solveTimeMs,
+      hintsUsed: hintsUsed.value,
+      hasExpedition: true,
+      classicResult: classicProgress
+        ? buildModeResult('classic', {
+            attempts: classicProgress.attempts,
+            solved: classicProgress.solved,
+            solveTimeMs: classicProgress.solveTimeMs,
+            hintsUsed: classicProgress.hintsUsed,
+          })
+        : null,
+      expeditionResult: buildModeResult('expedition', {
+        attempts: attempts,
+        solved: true,
+        solveTimeMs: params.solveTimeMs,
+        hintsUsed: hintsUsed.value,
+      }),
+    };
+  }
+
+  function dismissCelebration() {
+    celebration.value = null;
+  }
+
+  function continueToExpedition() {
+    const shouldSwitch =
+      celebration.value?.variant === 'classic-solve' &&
+      Boolean(availableGames.value.expedition) &&
+      isExpeditionUnlocked.value;
+    dismissCelebration();
+    if (shouldSwitch) {
+      switchToExpedition();
+    }
+  }
+
+  async function shareCurrentResult(): Promise<ShareRoadResultResponse | null> {
+    if (!game.value) return null;
+
+    const progress = localProgress.getGameProgress(
+      game.value.gameNo,
+      game.value.puzzleType,
+      progressScope,
+    );
+
+    if (progress.solved) {
+      return resultShare.shareRoadResult({
+        gameNo: game.value.gameNo,
+        puzzleType: game.value.puzzleType,
+        attempts: Math.max(progress.attempts, 1),
+        solved: true,
+        solveTimeMs: progress.solveTimeMs,
+        hintsUsed: progress.hintsUsed,
+      });
+    }
+
+    // Archive replays clear their stored progress on solve, so fall back to the
+    // in-session solve state to keep the footer Share affordance working.
+    if (!lastSolved.value) return null;
+
+    return resultShare.shareRoadResult({
+      gameNo: game.value.gameNo,
+      puzzleType: game.value.puzzleType,
+      attempts: Math.max(attemptNumber.value, 1),
+      solved: true,
+      solveTimeMs: null,
+      hintsUsed: hintsUsed.value,
+    });
+  }
+
+  async function shareCelebrationResult(): Promise<ShareRoadResultResponse | null> {
+    const active = celebration.value;
+    if (!active) return null;
+
+    if (active.variant === 'day-complete') {
+      return resultShare.shareDayResult({
+        gameNo: active.gameNo,
+        classic: active.classicResult
+          ? {
+              attempts: active.classicResult.attempts,
+              solved: active.classicResult.solved,
+              solveTimeMs: active.classicResult.solveTimeMs,
+            }
+          : null,
+        expedition: active.expeditionResult
+          ? {
+              attempts: active.expeditionResult.attempts,
+              solved: active.expeditionResult.solved,
+              solveTimeMs: active.expeditionResult.solveTimeMs,
+            }
+          : null,
+      });
+    }
+
+    return resultShare.shareRoadResult({
+      gameNo: active.gameNo,
+      puzzleType: active.puzzleType,
+      attempts: active.attemptNumber,
+      solved: true,
+      solveTimeMs: active.solveTimeMs,
+      hintsUsed: active.hintsUsed,
+    });
+  }
+
   async function finalizeRun(
     endReason: 'solved' | 'wrong-exit' | 'dead-end' | 'retry',
   ) {
@@ -488,6 +728,12 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     if (solved) {
       guidePath.value = [];
       hintedTiles.value = new Set();
+      triggerCelebration({
+        medal,
+        solveTimeMs,
+        isUntrackedReplay,
+        dayKey,
+      });
     }
 
     if (isUntrackedReplay) {
@@ -767,6 +1013,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     roadHeading,
     isExpeditionUnlocked,
     classicSolvedToday,
+    celebration,
     clearRoadDay,
     applyRoadDay,
     selectMode,
@@ -774,5 +1021,9 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     retryCurrentGame,
     moveTo,
     requestHint,
+    dismissCelebration,
+    continueToExpedition,
+    shareCelebrationResult,
+    shareCurrentResult,
   };
 }

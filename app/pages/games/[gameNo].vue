@@ -33,12 +33,16 @@ const {
   attemptNumber,
   maxScore,
   totalCoins,
+  celebration,
   clearRoadDay,
   applyRoadDay,
   selectMode,
   retryCurrentGame,
   moveTo,
   requestHint,
+  dismissCelebration,
+  shareCelebrationResult,
+  shareCurrentResult,
 } = useRoadDayGameplay({ entryType: 'archive' });
 
 const loadError = ref<string | null>(null);
@@ -192,11 +196,19 @@ onUnmounted(() => {
           :loading="loading"
           :submitting="submitting"
           :tracking-disabled="trackingDisabled"
+          :show-share="lastSolved"
+          :share-handler="shareCurrentResult"
           @retry="retryCurrentGame"
           @hint="requestHint"
         />
       </section>
     </main>
+
+    <SolveCelebrationSheet
+      :celebration="celebration"
+      :share-handler="shareCelebrationResult"
+      @dismiss="dismissCelebration"
+    />
   </div>
 </template>
 

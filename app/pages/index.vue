@@ -31,11 +31,16 @@ const {
   nextResetCountdown,
   roadHeading,
   canSwitchToExpedition,
+  celebration,
   selectMode,
   retryCurrentGame,
   switchToExpedition,
   moveTo,
   requestHint,
+  dismissCelebration,
+  continueToExpedition,
+  shareCelebrationResult,
+  shareCurrentResult,
 } = useGoldroadGame();
 
 const currentRoadLabel = useState<string | null>(
@@ -129,6 +134,8 @@ onUnmounted(() => {
           :loading="loading"
           :submitting="submitting"
           :tracking-disabled="trackingDisabled"
+          :show-share="lastSolved"
+          :share-handler="shareCurrentResult"
           @retry="retryCurrentGame"
           @hint="requestHint"
           @switch-expedition="switchToExpedition"
@@ -139,6 +146,14 @@ onUnmounted(() => {
         <p>{{ status }}</p>
       </section>
     </main>
+
+    <SolveCelebrationSheet
+      :celebration="celebration"
+      :next-reset-countdown="nextResetCountdown"
+      :share-handler="shareCelebrationResult"
+      @dismiss="dismissCelebration"
+      @continue-to-expedition="continueToExpedition"
+    />
   </div>
 </template>
 
