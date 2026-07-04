@@ -367,7 +367,7 @@ Recommended treatment:
 
 ### Issue P1-8 — Add About / Privacy / Contact surfaces
 - Priority: `P1`
-- Status: `planned`
+- Status: `done`
 - Goal: add lightweight public-facing support surfaces without reviving legacy auth or notification complexity.
 - Why it matters: public polish and privacy clarity still matter.
 - Scope:
@@ -379,6 +379,10 @@ Recommended treatment:
   - an Updates section announces v2 as a fresh start: numbering restart, local-first history, and a clean break from v1 accounts and server history
   - the tone keeps the v1 identity (made-with-love footer, contact link)
 - Dependencies: none
+- Completion notes:
+  - `/about` ships About, Updates (typed entry list, newest first), Privacy, and the v1-voice contact footer
+  - nav link added to the mobile menu panel next to Past Games
+  - the pinned Updates entry uses a "Jul 2026" placeholder date — set the real date during P2-4 launch cutover
 
 ### Issue P1-9 — Replace the stale API smoke script and add regression coverage
 - Priority: `P1`

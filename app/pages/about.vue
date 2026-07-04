@@ -75,9 +75,9 @@ const updates: UpdateEntry[] = [
         <h2>Plain language, no fine print</h2>
         <ul class="privacy-list">
           <li>
-            Your personal progress &mdash; attempts, streaks, medals, solve
-            times &mdash; stays on your device in your browser's local
-            storage. It is never sent anywhere.
+            Your personal history &mdash; streaks, medals, and past roads
+            &mdash; lives only on your device, in your browser's local
+            storage. Nothing that identifies you ever leaves it.
           </li>
           <li>
             The server keeps only anonymous, aggregated gameplay analytics:
