@@ -386,7 +386,7 @@ Recommended treatment:
 
 ### Issue P1-9 — Replace the stale API smoke script and add regression coverage
 - Priority: `P1`
-- Status: `planned`
+- Status: `done`
 - Goal: make sure the repo has tests that match the actual contract.
 - Why it matters: hint, archive, and analytics changes touch multiple boundaries.
 - Scope:
@@ -400,6 +400,12 @@ Recommended treatment:
 - Dependencies:
   - P0-2
   - P0-7
+- Completion notes:
+  - `scripts/check-api-routes.ts` (replacing the stale `.mjs`) validates every response against the real Zod schemas and handles the deep-archive 404 branch
+  - 37 vitest tests across hints, pathfinder, puzzleEngine, gameTiers, and stats aggregation
+  - bug fixed in scope: `session/end` and `session/hint` threw raw `ZodError` on bad payloads, surfacing as bare 500s instead of 400s; both now route through a shared `parsePayload` (`server/utils/validation.ts`)
+  - stats aggregation's pure shaping functions extracted (behavior-preserving) into `server/utils/statsAggregation.ts` for testability
+  - found, not fixed (tracked below): `PastGameSummarySchema` in `shared/validators/game.ts` is stale and no longer matches the `/api/games/past` response shape from the P0-4 rework; `computeHint` returns an ambiguous "diverged" result when a hint is requested after the player has already fully traversed the best-matching optimal path (no distinct "already solved" signal)
 
 ### Issue P1-10 — Add post-solve celebration and share sheets
 - Priority: `P1`
@@ -553,6 +559,31 @@ Recommended treatment:
   - the analytics write endpoints (session end, hint) have basic rate limiting against anonymous-UUID spam
 - Dependencies:
   - P2-2 can land alongside or just before this
+
+### Issue P2-5 — Remove the stale `PastGameSummarySchema` validator
+- Priority: `P2`
+- Status: `planned`
+- Goal: delete or correct the leftover flat-shape validator that no longer matches `/api/games/past`.
+- Why it matters: found during P1-9 test writing — `shared/validators/game.ts` exports `PastGameSummarySchema` as `{gameNo, maxScore, totalCoins, playableAt}`, predating the P0-4 dual-puzzle archive rework. The live route returns `{count, games: [{gameNo, playableAt, classic, expedition}]}`. The schema appears unused; a stale exported type is a landmine for the next person who wires it up assuming it's current.
+- Scope:
+  - `shared/validators/game.ts` and any re-exported type in `shared/types/game.ts`
+- Acceptance criteria:
+  - either the schema is removed, or it is corrected to match the current `/api/games/past` response and something references it
+- Dependencies: none
+
+### Issue P2-6 — Give hint requests an explicit "already solved" signal
+- Priority: `P2`
+- Status: `planned`
+- Goal: make `computeHint`'s behavior well-defined when a hint is requested after the player has already fully traversed the best-matching optimal path.
+- Why it matters: found during P1-9 test writing — today this returns a "diverged" result where the divergence tile equals the correct next tile, which is a confusing signal to build UI messaging on. This is a product-behavior decision (what should the hint UI say/do post-solve-equivalent), not just a bug fix.
+- Scope:
+  - `server/utils/hints.ts`
+  - hint response type in `shared/validators/game.ts` if a new result variant is needed
+  - board footer hint messaging if the client needs to handle a new case
+- Acceptance criteria:
+  - a hint request against a fully-traversed optimal path returns an unambiguous result distinct from a genuine divergence
+  - a regression test locks in the chosen behavior
+- Dependencies: none
 
 ### Issue P2-4 — Launch cutover and v1 decommission
 - Priority: `P2` (launch-blocking)
