@@ -4,11 +4,12 @@ import { useDb } from '../../db/client';
 import { HintRequestPayloadSchema } from '../../db/validators';
 import { computeHint } from '../../utils/hints';
 import { parseHintGameRow } from '../../utils/apiGames';
+import { parsePayload } from '../../utils/validation';
 
 export default defineEventHandler(async (event) => {
   const db = useDb(event);
   const body = await readBody(event);
-  const payload = HintRequestPayloadSchema.parse(body);
+  const payload = parsePayload(HintRequestPayloadSchema, body);
 
   const rows = await db
     .select({

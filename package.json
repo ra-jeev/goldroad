@@ -15,7 +15,9 @@
 		"db:migrate": "wrangler d1 migrations apply goldroad --local",
 		"db:studio": "drizzle-kit studio",
 		"db:seed:local": "pnpm exec tsx scripts/generate-dev-seed.ts && wrangler d1 execute goldroad --local --file server/db/seeds/dev_seed.sql",
-		"test:api": "node scripts/check-api-routes.mjs"
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"test:api": "pnpm exec tsx scripts/check-api-routes.ts"
 	},
 	"dependencies": {
 		"@vueuse/core": "^14.3.0",
@@ -34,6 +36,7 @@
 		"nitro-cloudflare-dev": "^0.2.2",
 		"nitropack": "^2.13.3",
 		"tsx": "^4.21.0",
+		"vitest": "^4.1.9",
 		"vue-tsc": "^3.2.6",
 		"wrangler": "^4.79.0"
 	}

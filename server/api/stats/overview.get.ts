@@ -1,98 +1,13 @@
 import { and, desc, eq, lt, lte, sql } from 'drizzle-orm';
 import { games, playerRoadAnalytics } from '../../db/schema';
 import { useDb } from '../../db/client';
-import type {
-  CommunityRoadStats,
-  PuzzleType,
-  StatsOverview,
-  StatsRoadDay,
-} from '../../../shared/types/game';
-
-type AggregatedRoadStatsRow = {
-  gameNo: number;
-  puzzleType: PuzzleType;
-  plays: number;
-  exactSolves: number;
-  gold: number;
-  silver: number;
-  bronze: number;
-  hintUsers: number;
-  totalHints: number;
-  averageAttemptsBeforeFirstHint: number | null;
-  averageFirstHintMoveIndex: number | null;
-  averageDeadEndCount: number | null;
-  averageWrongExitCount: number | null;
-  averageSolveTimeMs: number | null;
-};
-
-function createEmptyStatsRoadDay(gameNo: number | null): StatsRoadDay {
-  return {
-    gameNo,
-    classic: null,
-    expedition: null,
-  };
-}
-
-function roundNullable(value: number | null, digits = 2): number | null {
-  if (value === null || Number.isNaN(value)) return null;
-  return Number(value.toFixed(digits));
-}
-
-function buildEmptyCommunityRoadStats(
-  gameNo: number,
-  puzzleType: PuzzleType,
-): CommunityRoadStats {
-  return {
-    gameNo,
-    puzzleType,
-    plays: 0,
-    exactSolves: 0,
-    solveRate: 0,
-    gold: 0,
-    silver: 0,
-    bronze: 0,
-    behavior: {
-      hintUsers: 0,
-      totalHints: 0,
-      hintUseRate: 0,
-      averageAttemptsBeforeFirstHint: null,
-      averageFirstHintMoveIndex: null,
-      averageDeadEndCount: null,
-      averageWrongExitCount: null,
-      averageSolveTimeMs: null,
-    },
-  };
-}
-
-function toCommunityRoadStats(row: AggregatedRoadStatsRow): CommunityRoadStats {
-  const solveRate =
-    row.plays > 0 ? Math.round((row.exactSolves / row.plays) * 100) : 0;
-  const hintUseRate =
-    row.plays > 0 ? Math.round((row.hintUsers / row.plays) * 100) : 0;
-
-  return {
-    gameNo: row.gameNo,
-    puzzleType: row.puzzleType,
-    plays: row.plays,
-    exactSolves: row.exactSolves,
-    solveRate,
-    gold: row.gold,
-    silver: row.silver,
-    bronze: row.bronze,
-    behavior: {
-      hintUsers: row.hintUsers,
-      totalHints: row.totalHints,
-      hintUseRate,
-      averageAttemptsBeforeFirstHint: roundNullable(
-        row.averageAttemptsBeforeFirstHint,
-      ),
-      averageFirstHintMoveIndex: roundNullable(row.averageFirstHintMoveIndex),
-      averageDeadEndCount: roundNullable(row.averageDeadEndCount),
-      averageWrongExitCount: roundNullable(row.averageWrongExitCount),
-      averageSolveTimeMs: roundNullable(row.averageSolveTimeMs, 0),
-    },
-  };
-}
+import type { StatsOverview, StatsRoadDay } from '../../../shared/types/game';
+import {
+  createEmptyStatsRoadDay,
+  buildEmptyCommunityRoadStats,
+  toCommunityRoadStats,
+  type AggregatedRoadStatsRow,
+} from '../../utils/statsAggregation';
 
 async function getRoadDayStats(
   db: ReturnType<typeof useDb>,

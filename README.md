@@ -94,7 +94,8 @@ Main commands:
 - `pnpm db:generate` — generate Drizzle migrations
 - `pnpm db:migrate` — apply local D1 migrations
 - `pnpm db:seed:local` — generate and load local seed puzzles
-- `pnpm test:api` — run the API smoke checks once a local dev server and suitable seed data are running; this script needs an update before it should be treated as a reliable regression check
+- `pnpm test` — run unit/regression tests (Vitest)
+- `pnpm test:api` — run the API smoke checks against a running `pnpm dev` + seeded DB
 
 ## Docs
 
