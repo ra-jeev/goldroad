@@ -465,7 +465,7 @@ Recommended treatment:
 
 ### Issue P1-13 — Elevate toll/bonus road visuals and page composition
 - Priority: `P1`
-- Status: `planned`
+- Status: `done`
 - Goal: make scoring roads read as first-class game elements and fix the board's page placement.
 - Why it matters: tolls and bonuses change the score — the entire win condition — but render as faint gold line patterns of the same species as open roads. The board column also no longer centers vertically the way v1 did.
 - Design decisions (agreed):
@@ -484,6 +484,11 @@ Recommended treatment:
   - the board column centers vertically like v1 on typical mobile and desktop viewports
   - reduced-motion preference disables the pulse animations
 - Dependencies: none
+- Completion notes:
+  - toll = rust `#d2691e`, bonus = honey-gold `#ffce3a`, distinct from neutral open-road gold and from the end-tile color
+  - cost chips carry sign + number (not color alone), so the signal is color-blind safe
+  - board shell on both current-road and replay pages now centers vertically via flex column
+  - `GameBoardHeader` gained an optional `pulse` prop; `GameBoard` emits `scoringMove` on toll/bonus traversal — additive, no breaking prop changes
 
 ## P2 — polish and operations
 
