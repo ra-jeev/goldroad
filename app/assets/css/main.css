@@ -46,8 +46,19 @@
   --color-active: #4ade80;
   --color-active-rgb: 68 221 25;
   --color-blocked: #8b4513;
-  --color-toll: #cd7f32;
-  --color-bonus: #ffd700;
+
+  /* ── Road edge hierarchy ──────────────────────────────────── */
+  /* open roads = neutral gold (var(--color-gold)); scoring roads
+     separate by hue: toll = cautionary rust, bonus = warm-bright honey.
+     missing roads recede as far as possible. */
+  --color-toll: #d2691e;
+  --color-toll-rgb: 210 105 30;
+  --color-toll-bright: #e8843a;
+  --color-bonus: #ffce3a;
+  --color-bonus-rgb: 255 206 58;
+  --color-bonus-bright: #ffe07a;
+  --road-missing-opacity: 0.32;
+
   --color-hint: #d6336c;
   --color-hint-rgb: 214 51 108;
   --color-focus: #4b9eff;
@@ -205,6 +216,38 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* Cost-chip pop when a scoring edge is first traversed. */
+@keyframes chip-pop {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  35% {
+    transform: translate(-50%, -50%) scale(1.42);
+  }
+
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+/* Score readout pulse in the traversed edge's hue.
+   Consumers set --pulse-color and --pulse-rgb. */
+@keyframes score-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    color: var(--color-gold);
+    text-shadow: none;
+  }
+
+  28% {
+    transform: scale(1.16);
+    color: var(--pulse-color, var(--color-gold));
+    text-shadow: 0 0 12px rgb(var(--pulse-rgb, var(--color-gold-rgb)) / 0.65);
   }
 }
 
