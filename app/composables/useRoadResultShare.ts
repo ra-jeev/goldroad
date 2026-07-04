@@ -15,6 +15,18 @@ export type ShareRoadResultResponse = {
   message: string | null;
 };
 
+export type ShareDayModeResult = {
+  attempts: number;
+  solved: boolean;
+  solveTimeMs: number | null;
+};
+
+export type ShareDayResultInput = {
+  gameNo: number;
+  classic: ShareDayModeResult | null;
+  expedition: ShareDayModeResult | null;
+};
+
 function formatModeLabel(mode: PuzzleType): string {
   return mode === 'classic' ? 'Classic' : 'Expedition';
 }
@@ -35,7 +47,10 @@ function formatAttemptLabel(attempts: number): string {
   return `${attempts} attempt${attempts === 1 ? '' : 's'}`;
 }
 
-function formatResultLine(input: ShareRoadResultInput): string {
+function formatResultLine(input: {
+  attempts: number;
+  solved: boolean;
+}): string {
   const medal = calcMedalForAttempt(input.attempts, input.solved);
 
   if (input.solved && medal === 'gold') {
@@ -126,57 +141,108 @@ export function buildRoadResultShareText(input: ShareRoadResultInput): {
   };
 }
 
-export function useRoadResultShare() {
-  async function shareRoadResult(
-    input: ShareRoadResultInput,
-  ): Promise<ShareRoadResultResponse> {
-    if (!import.meta.client) {
-      return {
-        outcome: 'unavailable',
-        message: 'Sharing is only available in the browser.',
-      };
-    }
+function formatDayModeLine(
+  mode: PuzzleType,
+  result: ShareDayModeResult | null,
+): string {
+  const label = formatModeLabel(mode);
 
-    const payload = buildRoadResultShareText(input);
-    const url = new URL(payload.urlPath, window.location.origin).toString();
-    const textWithUrl = `${payload.text}\n${url}`;
+  if (!result) {
+    return `${label}: not played`;
+  }
 
-    if (typeof navigator !== 'undefined' && 'share' in navigator) {
-      try {
-        await navigator.share({
-          title: payload.title,
-          text: payload.text,
-          url,
-        });
+  const timeSuffix =
+    result.solved && result.solveTimeMs !== null
+      ? ` · ${formatDurationMs(result.solveTimeMs)}`
+      : '';
 
-        return {
-          outcome: 'shared',
-          message: 'Result shared.',
-        };
-      } catch (error) {
-        if (isAbortError(error)) {
-          return {
-            outcome: 'cancelled',
-            message: null,
-          };
-        }
-      }
-    }
+  return `${label}: ${formatResultLine(result)}${timeSuffix}`;
+}
 
-    if (await copyText(textWithUrl)) {
-      return {
-        outcome: 'copied',
-        message: 'Result copied to your clipboard.',
-      };
-    }
+export function buildDayResultShareText(input: ShareDayResultInput): {
+  title: string;
+  text: string;
+  urlPath: string;
+} {
+  const title = `GoldRoad Road ${input.gameNo} · Full day`;
 
+  return {
+    title,
+    text: [
+      'GoldRoad',
+      `Road ${input.gameNo} · Full day`,
+      formatDayModeLine('classic', input.classic),
+      formatDayModeLine('expedition', input.expedition),
+    ].join('\n'),
+    urlPath: `/games/${input.gameNo}`,
+  };
+}
+
+async function deliverShare(payload: {
+  title: string;
+  text: string;
+  urlPath: string;
+}): Promise<ShareRoadResultResponse> {
+  if (!import.meta.client) {
     return {
       outcome: 'unavailable',
-      message: 'Unable to share this result right now.',
+      message: 'Sharing is only available in the browser.',
+    };
+  }
+
+  const url = new URL(payload.urlPath, window.location.origin).toString();
+  const textWithUrl = `${payload.text}\n${url}`;
+
+  if (typeof navigator !== 'undefined' && 'share' in navigator) {
+    try {
+      await navigator.share({
+        title: payload.title,
+        text: payload.text,
+        url,
+      });
+
+      return {
+        outcome: 'shared',
+        message: 'Result shared.',
+      };
+    } catch (error) {
+      if (isAbortError(error)) {
+        return {
+          outcome: 'cancelled',
+          message: null,
+        };
+      }
+    }
+  }
+
+  if (await copyText(textWithUrl)) {
+    return {
+      outcome: 'copied',
+      message: 'Result copied to your clipboard.',
     };
   }
 
   return {
+    outcome: 'unavailable',
+    message: 'Unable to share this result right now.',
+  };
+}
+
+export function useRoadResultShare() {
+  async function shareRoadResult(
+    input: ShareRoadResultInput,
+  ): Promise<ShareRoadResultResponse> {
+    return deliverShare(buildRoadResultShareText(input));
+  }
+
+  async function shareDayResult(
+    input: ShareDayResultInput,
+  ): Promise<ShareRoadResultResponse> {
+    return deliverShare(buildDayResultShareText(input));
+  }
+
+  return {
     shareRoadResult,
+    shareDayResult,
   };
 }

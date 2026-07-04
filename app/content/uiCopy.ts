@@ -30,6 +30,7 @@ export const UI_COPY = {
     openHint: 'Hint',
     openHelp: 'How to Play',
     switchToExpedition: 'Play Expedition',
+    shareResult: 'Share',
     viewStats: 'View Stats',
     attemptLabel: 'Attempt',
     expeditionUnlocked: 'Expedition unlocked',
@@ -80,6 +81,57 @@ export const UI_COPY = {
         ],
       },
     },
+  },
+
+  celebration: {
+    close: 'Close',
+    dismiss: 'Dismiss celebration',
+    share: 'Share result',
+    shareDay: 'Share the day',
+    continueToExpedition: 'Continue to Expedition',
+    viewStats: 'View stats',
+    keepGoing: 'Done for now',
+    solveIncrement: '+1',
+    solved: 'Solved',
+    attemptLabel: (count: number) =>
+      `${count} attempt${count === 1 ? '' : 's'}`,
+    medalLine: (medal: string) => `${medal} medal`,
+    solveTimeLine: (time: string) => `Solve time ${time}`,
+    classic: {
+      gold: {
+        eyebrow: 'Classic solved',
+        title: 'Gold. First try.',
+        body: 'A flawless run. Carry that momentum straight into Expedition.',
+      },
+      medal: {
+        eyebrow: 'Classic solved',
+        title: 'Clean solve.',
+        body: 'Medal secured. There is more road waiting in Expedition.',
+      },
+      relief: {
+        eyebrow: 'Classic solved',
+        title: 'You made it.',
+        body: 'That road put up a fight and you got through it.',
+      },
+    },
+    noExpeditionBody: 'That wraps the Classic road for today.',
+    dayComplete: {
+      eyebrow: 'Day complete',
+      title: "That's the day.",
+      body: 'Classic and Expedition are both done. See you tomorrow.',
+      bothSolved: 'Both roads solved',
+      classicLabel: 'Classic',
+      expeditionLabel: 'Expedition',
+      notPlayed: 'Not played',
+      nextRoad: (countdown: string) => `Next road in ${countdown} · 00:00 UTC`,
+    },
+    replay: {
+      eyebrow: 'Replay',
+      title: 'Solved.',
+      body: "Nice run on this archived road. It won't touch today's streak.",
+    },
+    shareCopied: 'Result copied to your clipboard.',
+    shareUnavailable: 'Unable to share this result right now.',
   },
 
   runtime: {

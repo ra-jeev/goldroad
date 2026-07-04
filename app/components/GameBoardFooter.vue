@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import type { Medal } from '../../shared/types/game';
+import type { ShareRoadResultResponse } from '../composables/useRoadResultShare';
 import { UI_COPY } from '../content/uiCopy';
 
 const props = withDefaults(
@@ -23,6 +24,8 @@ const props = withDefaults(
     showStatsLink?: boolean;
     secondaryLinkTo?: string | null;
     secondaryLinkLabel?: string | null;
+    showShare?: boolean;
+    shareHandler?: (() => Promise<ShareRoadResultResponse | null>) | null;
   }>(),
   {
     nextResetCountdown: '00:00:00',
@@ -31,6 +34,8 @@ const props = withDefaults(
     trackingDisabled: false,
     secondaryLinkTo: null,
     secondaryLinkLabel: null,
+    showShare: false,
+    shareHandler: null,
   },
 );
 
@@ -39,6 +44,36 @@ const emit = defineEmits<{
   retry: [];
   switchExpedition: [];
 }>();
+
+const shareBusy = ref(false);
+const shareMessage = ref<string | null>(null);
+let shareMessageTimer: ReturnType<typeof setTimeout> | null = null;
+
+const showShareAction = computed(
+  () => props.showShare && props.solved && Boolean(props.shareHandler),
+);
+
+async function onShare() {
+  if (!props.shareHandler || shareBusy.value) return;
+
+  shareBusy.value = true;
+  try {
+    const response = await props.shareHandler();
+    if (shareMessageTimer) {
+      clearTimeout(shareMessageTimer);
+      shareMessageTimer = null;
+    }
+    shareMessage.value = response?.message ?? null;
+    if (shareMessage.value) {
+      shareMessageTimer = setTimeout(() => {
+        shareMessage.value = null;
+        shareMessageTimer = null;
+      }, 3000);
+    }
+  } finally {
+    shareBusy.value = false;
+  }
+}
 
 const busy = computed(() => props.loading || props.submitting);
 const retryBusy = computed(
@@ -136,6 +171,17 @@ const quietMetaLine = computed(() => {
       </button>
 
       <button
+        v-if="showShareAction"
+        type="button"
+        class="action-button secondary action-button--text"
+        :disabled="shareBusy"
+        :title="UI_COPY.boardFooter.shareResult"
+        @click="onShare"
+      >
+        {{ UI_COPY.boardFooter.shareResult }}
+      </button>
+
+      <button
         v-if="canRetry"
         type="button"
         :class="['action-button', retryButtonStyle]"
@@ -193,6 +239,10 @@ const quietMetaLine = computed(() => {
         {{ secondaryLinkLabel }}
       </NuxtLink>
     </div>
+
+    <p v-if="shareMessage" class="share-message" role="status" aria-live="polite">
+      {{ shareMessage }}
+    </p>
   </section>
 </template>
 
@@ -234,6 +284,13 @@ const quietMetaLine = computed(() => {
   color: rgb(var(--color-gold-rgb) / 0.62);
   font-size: 0.8rem;
   font-weight: 700;
+}
+
+.share-message {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: rgb(var(--color-gold-rgb) / 0.7);
 }
 
 .attempt-pill {
