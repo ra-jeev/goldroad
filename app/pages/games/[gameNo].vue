@@ -108,6 +108,11 @@ onMounted(() => {
 onUnmounted(() => {
   currentRoadLabel.value = null;
 });
+
+const scorePulse = ref<{ type: 'toll' | 'bonus'; key: number } | null>(null);
+function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
+  scorePulse.value = { type: payload.type, key: (scorePulse.value?.key ?? 0) + 1 };
+}
 </script>
 
 <template>
@@ -158,6 +163,7 @@ onUnmounted(() => {
           :total-coins="totalCoins"
           :medal="lastMedal"
           :solved="lastSolved"
+          :pulse="scorePulse"
           @select-mode="selectMode"
         />
 
@@ -172,6 +178,7 @@ onUnmounted(() => {
           :path-history="pathHistory"
           :disabled="ended || busy"
           @select="moveTo"
+          @scoring-move="onScoringMove"
         />
 
         <GameBoardFooter
@@ -204,8 +211,10 @@ onUnmounted(() => {
 .shell {
   min-height: calc(100dvh - 60px);
   padding: clamp(0.85rem, 2.5vw, 1.45rem);
-  display: grid;
+  display: flex;
+  flex-direction: column;
   align-items: center;
+  justify-content: center;
 }
 
 .layout {

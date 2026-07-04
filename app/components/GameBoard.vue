@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 import { buildEdgeMap, getEdgeType } from '../../shared/utils/puzzleEngine';
 import type { Board, EdgeType, PuzzleType } from '../../shared/types/game';
 import type { TileState } from '../types/game';
@@ -23,6 +23,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   select: [tileIndex: number];
+  scoringMove: [payload: { type: 'toll' | 'bonus' }];
 }>();
 
 const BOARD_CELL = '(var(--tile-size) + var(--tile-gap))';
@@ -78,7 +79,14 @@ interface RoadData {
   state: 'default' | 'closed' | 'active' | 'traversed';
   traversed: boolean;
   arrowDir: string | null;
+  costValue: number | null;
   style: Record<string, string>;
+}
+
+function costFor(type: RoadVisualType): number | null {
+  if (type === 'toll') return props.board.tollValue;
+  if (type === 'bonus') return props.board.bonusValue;
+  return null;
 }
 
 const allRoads = computed<RoadData[]>(() => {
@@ -117,6 +125,7 @@ const allRoads = computed<RoadData[]>(() => {
             state,
             traversed: hit,
             arrowDir: hit ? trav.get(edgeKey)! : null,
+            costValue: costFor(type),
             style: buildRoadStyle(row, col, 'h'),
           });
         }
@@ -150,6 +159,7 @@ const allRoads = computed<RoadData[]>(() => {
           state,
           traversed: hit,
           arrowDir: hit ? trav.get(edgeKey)! : null,
+          costValue: costFor(type),
           style: buildRoadStyle(row, col, 'v'),
         });
       }
@@ -158,6 +168,25 @@ const allRoads = computed<RoadData[]>(() => {
 
   return roads;
 });
+
+// Signal the score readout when a move newly crosses a toll or bonus edge.
+watch(
+  () => props.pathHistory.length,
+  (len, prevLen) => {
+    if (len <= (prevLen ?? 0) || len < 2) {
+      return;
+    }
+    const a = props.pathHistory[len - 2];
+    const b = props.pathHistory[len - 1];
+    if (typeof a !== 'number' || typeof b !== 'number') {
+      return;
+    }
+    const type = getEdgeType(a, b, edgeMap.value);
+    if (type === 'toll' || type === 'bonus') {
+      emit('scoringMove', { type });
+    }
+  },
+);
 </script>
 
 <template>
@@ -212,6 +241,7 @@ const allRoads = computed<RoadData[]>(() => {
           :traversed="road.traversed"
           :arrow-dir="road.arrowDir"
           :orientation="road.orientation"
+          :cost-value="road.costValue"
           :style="road.style"
         />
       </div>
@@ -255,15 +285,15 @@ const allRoads = computed<RoadData[]>(() => {
 }
 
 .info-toll {
-  background: rgb(205 127 50 / 0.12);
-  color: var(--color-toll);
-  border-color: rgb(205 127 50 / 0.32);
+  background: rgb(var(--color-toll-rgb) / 0.14);
+  color: var(--color-toll-bright);
+  border-color: rgb(var(--color-toll-rgb) / 0.4);
 }
 
 .info-bonus {
-  background: rgb(255 215 0 / 0.11);
-  color: var(--color-bonus);
-  border-color: rgb(255 215 0 / 0.28);
+  background: rgb(var(--color-bonus-rgb) / 0.12);
+  color: var(--color-bonus-bright);
+  border-color: rgb(var(--color-bonus-rgb) / 0.34);
 }
 
 .info-icon {

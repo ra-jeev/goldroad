@@ -13,6 +13,7 @@ const props = defineProps<{
   totalCoins: number
   medal: Medal | null
   solved: boolean
+  pulse?: { type: 'toll' | 'bonus'; key: number } | null
 }>()
 
 const emit = defineEmits<{
@@ -24,6 +25,16 @@ const metrics = computed(() => {
     { label: UI_COPY.boardHeader.metrics.score, value: `${props.score}/${props.maxScore}` },
     { label: UI_COPY.boardHeader.metrics.boardCoins, value: `${props.totalCoins}` },
   ]
+})
+
+// A fresh :key each pulse replays the score-pulse animation. Color follows
+// the traversed edge's hue. Disabled under reduced motion via global CSS.
+const pulseKey = computed(() => props.pulse?.key ?? 0)
+const pulseStyle = computed(() => {
+  if (!props.pulse) return undefined
+  return props.pulse.type === 'toll'
+    ? { '--pulse-color': 'var(--color-toll-bright)', '--pulse-rgb': 'var(--color-toll-rgb)' }
+    : { '--pulse-color': 'var(--color-bonus-bright)', '--pulse-rgb': 'var(--color-bonus-rgb)' }
 })
 </script>
 
@@ -65,7 +76,13 @@ const metrics = computed(() => {
       </button>
     </div>
 
-    <p class="metric-line" aria-label="Road score">
+    <p
+      :key="pulseKey"
+      class="metric-line"
+      :class="{ 'metric-line--pulse': pulse }"
+      :style="pulseStyle"
+      aria-label="Road score"
+    >
       <span v-for="(metric, index) in metrics" :key="metric.label">
         <span class="metric-label">{{ metric.label }}</span>
         <strong>{{ metric.value }}</strong>
@@ -137,6 +154,11 @@ const metrics = computed(() => {
 
 .metric-line strong {
   color: var(--color-gold);
+  display: inline-block;
+}
+
+.metric-line--pulse strong {
+  animation: score-pulse 700ms ease;
 }
 
 .metric-separator {
