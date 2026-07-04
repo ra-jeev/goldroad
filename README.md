@@ -5,8 +5,8 @@ GoldRoad is a local-first daily route puzzle built with Nuxt, Cloudflare Workers
 The game is intentionally simple:
 - one current road day at a time
 - two puzzle modes per road day: Classic and Expedition
-- exact-score solves only
-- medals based on the number of attempts needed to exact-solve
+- a puzzle is solved only by reaching the exit on the target score
+- medals based on the number of attempts needed to solve
 - local browser storage for personal progress and history
 - anonymous server analytics for global comparison and product tuning
 
@@ -19,7 +19,7 @@ These rules are the current source of truth:
 - Classic is the primary live daily puzzle.
 - Expedition unlocks from the live Classic solve flow.
 - Past-road replay is day-based and should use the same dual-mode UI model as the live road.
-- Solving means reaching the exit with the exact target score.
+- Solving means reaching the exit with the target score.
 - Gold, Silver, and Bronze are based on solve attempt counts 1, 2, and 3.
 - Personal stats stay local to the browser.
 - Active solve timing starts when an unsolved board is visible and pauses while the tab is hidden.
@@ -35,8 +35,14 @@ The app currently exposes these main surfaces:
 - `/stats` — local stats plus global comparison
 
 Planned surfaces:
-- interactive tutorial / how-to-play experience
-- lightweight About / Privacy / Contact surface
+- lightweight About / Privacy / Contact surface with an Updates section announcing the v2 fresh start
+
+Planned polish (see `IMPLEMENTATION_PLAN.md` for the full issue list):
+- post-solve celebration and share sheets: a Classic-solve sheet that funnels into Expedition, and a day-complete sheet after Expedition
+- game sounds with a mute toggle (launch requirement)
+- PWA installability with new v2-style icons and social link metadata (launch requirement)
+- elevate toll/bonus road visuals with hue and cost chips; re-center the board on the page
+- stats page redesign: one global mode toggle, the tries histogram with your bar highlighted, percentile headline, and a design system shared with the past-roads pages
 
 ## Tech stack
 
@@ -88,7 +94,7 @@ Main commands:
 - `pnpm db:generate` — generate Drizzle migrations
 - `pnpm db:migrate` — apply local D1 migrations
 - `pnpm db:seed:local` — generate and load local seed puzzles
-- `pnpm test:api` — run the API smoke checks
+- `pnpm test:api` — run the API smoke checks once a local dev server and suitable seed data are running; this script needs an update before it should be treated as a reliable regression check
 
 ## Docs
 
@@ -100,4 +106,4 @@ The active root docs are:
 
 ## Legacy reference
 
-The preserved legacy implementation and historical context live under `_working_archive/`. They are reference material only and are no longer the active source of truth for v2.
+The preserved legacy implementation and historical context live under `_archive/`. They are reference material only and are no longer the active source of truth for v2.
