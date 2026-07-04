@@ -29,6 +29,27 @@
       "when": 1775750744940,
       "tag": "0003_mute_impossible_man",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1778156171000,
+      "tag": "0004_hint_analytics_cleanup",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1778156172000,
+      "tag": "0005_run_end_reason_counters",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1778578202000,
+      "tag": "0006_player_road_analytics",
+      "breakpoints": true
     }
   ]
 }
