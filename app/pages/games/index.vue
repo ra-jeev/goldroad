@@ -26,7 +26,7 @@ onMounted(async () => {
     const response = await gamesApi.getPastGames();
     games.value = response.games;
   } catch {
-    error.value = 'Past games are unavailable right now.';
+    error.value = 'Past roads are unavailable right now.';
   } finally {
     loading.value = false;
   }
@@ -37,47 +37,46 @@ onMounted(async () => {
   <div class="shell">
     <div class="container">
       <header class="page-header">
-        <h1>Past Games</h1>
+        <p class="eyebrow">Every road you can revisit</p>
+        <h1>Past roads</h1>
         <p class="subtitle">
-          Browse and replay the latest {{ RECENT_ARCHIVE_DAY_LIMIT }} road days
+          Replay any of the latest {{ RECENT_ARCHIVE_DAY_LIMIT }} road days,
+          Classic and Expedition alike.
         </p>
       </header>
 
-      <div v-if="loading" class="loading-state">
-        <p>Loading games...</p>
-      </div>
+      <section v-if="loading" class="panel panel--state">
+        <p>Gathering the archive…</p>
+      </section>
 
-      <div v-else-if="error" class="empty-state">
+      <section v-else-if="error" class="panel panel--state">
         <p>{{ error }}</p>
-      </div>
+      </section>
 
-      <div v-else-if="games.length === 0" class="empty-state">
-        <p>No past games available yet.</p>
-        <p class="hint">
-          Older roads will appear here once the archive data is available.
-        </p>
-      </div>
+      <section v-else-if="games.length === 0" class="panel panel--state">
+        <h2>No past roads yet</h2>
+        <p>Older roads appear here once the archive fills in.</p>
+      </section>
 
       <div v-else class="games-grid">
-        <article v-for="game in games" :key="game.gameNo" class="game-card">
-          <div class="game-header">
+        <article v-for="game in games" :key="game.gameNo" class="panel game-card">
+          <div class="game-head">
             <div>
-              <h3>Road {{ game.gameNo }}</h3>
-              <span class="game-date">{{ formatDate(game.playableAt) }}</span>
+              <p class="eyebrow">{{ formatDate(game.playableAt) }}</p>
+              <h2>Road {{ game.gameNo }}</h2>
             </div>
-
-            <span class="day-pill">{{
-              game.expedition ? 'Classic + Expedition' : 'Classic'
-            }}</span>
+            <span class="day-pill">
+              {{ game.expedition ? 'Classic + Expedition' : 'Classic' }}
+            </span>
           </div>
 
           <div class="mode-list">
-            <section v-if="game.classic" class="mode-card">
+            <section v-if="game.classic" class="mode-card mode-card--classic">
               <div class="mode-head">
                 <strong>Classic</strong>
-                <span class="difficulty-pill">{{
-                  formatDifficulty(game.classic.difficultyBand)
-                }}</span>
+                <span class="difficulty-pill">
+                  {{ formatDifficulty(game.classic.difficultyBand) }}
+                </span>
               </div>
               <div class="mode-stats">
                 <div class="game-stat">
@@ -85,7 +84,7 @@ onMounted(async () => {
                   <span class="value">{{ game.classic.maxScore }}</span>
                 </div>
                 <div class="game-stat">
-                  <span class="label">Board Coins</span>
+                  <span class="label">Board coins</span>
                   <span class="value">{{ game.classic.totalCoins }}</span>
                 </div>
               </div>
@@ -97,9 +96,9 @@ onMounted(async () => {
             >
               <div class="mode-head">
                 <strong>Expedition</strong>
-                <span class="difficulty-pill">{{
-                  formatDifficulty(game.expedition.difficultyBand)
-                }}</span>
+                <span class="difficulty-pill">
+                  {{ formatDifficulty(game.expedition.difficultyBand) }}
+                </span>
               </div>
               <div class="mode-stats">
                 <div class="game-stat">
@@ -107,15 +106,15 @@ onMounted(async () => {
                   <span class="value">{{ game.expedition.maxScore }}</span>
                 </div>
                 <div class="game-stat">
-                  <span class="label">Board Coins</span>
+                  <span class="label">Board coins</span>
                   <span class="value">{{ game.expedition.totalCoins }}</span>
                 </div>
               </div>
             </section>
           </div>
 
-          <NuxtLink :to="`/games/${game.gameNo}`" class="replay-btn">
-            Replay Road Day
+          <NuxtLink :to="`/games/${game.gameNo}`" class="btn btn--primary">
+            Replay road day
           </NuxtLink>
         </article>
       </div>
@@ -126,107 +125,125 @@ onMounted(async () => {
 <style scoped>
 .shell {
   min-height: calc(100dvh - 60px);
-  padding: 1.3rem;
+  padding: clamp(0.9rem, 2.5vw, 1.4rem);
 }
 
 .container {
-  max-width: 1100px;
+  max-width: 1040px;
   margin: 0 auto;
+  display: grid;
+  gap: clamp(1rem, 2.5vw, 1.5rem);
 }
 
 .page-header {
-  margin-bottom: 2rem;
+  display: grid;
+  gap: 0.25rem;
   text-align: center;
+  justify-items: center;
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgb(var(--color-gold-rgb) / 0.6);
 }
 
 .page-header h1 {
-  font-size: 2.5rem;
-  color: var(--color-gold);
-  margin: 0 0 0.5rem;
+  margin: 0;
+  font-size: clamp(2rem, 6vw, 2.6rem);
+  color: var(--color-gold-bright);
+  line-height: 1.05;
 }
 
 .subtitle {
-  color: var(--color-gold-muted);
-  font-size: 1.1rem;
   margin: 0;
+  max-width: 46ch;
+  color: rgb(var(--color-gold-rgb) / 0.74);
 }
 
-.loading-state,
-.empty-state {
+.panel {
+  border-radius: var(--radius-lg);
+  background: var(--gradient-card-status);
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.18);
+  padding: clamp(1.1rem, 3vw, 1.4rem);
+}
+
+.panel--state {
+  display: grid;
+  gap: 0.4rem;
+  justify-items: center;
   text-align: center;
-  padding: 3rem 1rem;
-  color: var(--color-gold-muted);
+  color: rgb(var(--color-gold-rgb) / 0.8);
 }
 
-.empty-state .hint {
-  margin-top: 0.5rem;
-  font-size: 0.9rem;
-  opacity: 0.7;
+.panel--state h2 {
+  margin: 0;
+  color: var(--color-gold-bright);
+}
+
+.panel--state p {
+  margin: 0;
 }
 
 .games-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 1rem;
 }
 
 .game-card {
-  background: var(--gradient-card-status);
-  border: 1px solid rgb(var(--color-gold-rgb) / 0.2);
-  border-radius: var(--radius-lg);
-  padding: 1.5rem;
   display: grid;
   gap: 1rem;
-  transition: all var(--transition-fast);
+  align-content: start;
+  transition:
+    transform var(--transition-fast),
+    border-color var(--transition-fast);
 }
 
 .game-card:hover {
-  border-color: rgb(var(--color-gold-rgb) / 0.4);
   transform: translateY(-2px);
+  border-color: rgb(var(--color-gold-rgb) / 0.38);
 }
 
-.game-header {
+.game-head {
   display: flex;
+  align-items: start;
   justify-content: space-between;
-  align-items: baseline;
   gap: 1rem;
 }
 
-.game-header h3 {
-  color: var(--color-gold);
-  margin: 0;
-  font-size: 1.3rem;
-}
-
-.game-date {
-  display: block;
-  margin-top: 0.35rem;
-  color: var(--color-gold-muted);
-  font-size: 0.85rem;
+.game-head h2 {
+  margin: 0.1rem 0 0;
+  color: var(--color-gold-bright);
+  font-size: 1.35rem;
 }
 
 .day-pill,
 .difficulty-pill {
   align-self: start;
-  padding: 0.28rem 0.65rem;
+  padding: 0.26rem 0.6rem;
   border-radius: var(--radius-full);
-  background: rgb(var(--color-gold-rgb) / 0.12);
-  border: 1px solid rgb(var(--color-gold-rgb) / 0.24);
-  color: rgb(var(--color-gold-rgb) / 0.88);
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0.03em;
+  background: rgb(var(--color-gold-rgb) / 0.1);
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.22);
+  color: rgb(var(--color-gold-rgb) / 0.86);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 
 .mode-list {
   display: grid;
-  gap: 0.8rem;
+  gap: 0.7rem;
 }
 
 .mode-card {
   display: grid;
-  gap: 0.7rem;
-  padding: 0.9rem 1rem;
+  gap: 0.6rem;
+  padding: 0.85rem 1rem;
   border-radius: var(--radius-md);
   background: rgb(var(--color-gold-rgb) / 0.06);
   border: 1px solid rgb(var(--color-gold-rgb) / 0.14);
@@ -234,7 +251,7 @@ onMounted(async () => {
 
 .mode-card--expedition {
   border-color: rgb(var(--color-active-rgb) / 0.2);
-  background: rgb(var(--color-active-rgb) / 0.08);
+  background: rgb(var(--color-active-rgb) / 0.07);
 }
 
 .mode-head {
@@ -248,6 +265,10 @@ onMounted(async () => {
   color: var(--color-gold);
 }
 
+.mode-card--expedition .mode-head strong {
+  color: #7ff0ad;
+}
+
 .mode-stats {
   display: flex;
   gap: 1.5rem;
@@ -255,58 +276,54 @@ onMounted(async () => {
 }
 
 .game-stat {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
+  display: grid;
+  gap: 0.2rem;
 }
 
 .game-stat .label {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--color-gold-muted);
+  color: rgb(var(--color-gold-rgb) / 0.6);
 }
 
 .game-stat .value {
   font-size: 1.2rem;
-  font-weight: 600;
-  color: var(--color-gold);
+  font-weight: 800;
+  color: var(--color-gold-bright);
+  font-variant-numeric: tabular-nums;
 }
 
-.replay-btn {
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
-  padding: 0.7rem;
-  background: rgb(var(--color-gold-rgb) / 0.15);
-  border: 1px solid rgb(var(--color-gold-rgb) / 0.3);
-  border-radius: var(--radius-md);
-  color: var(--color-gold);
-  font-weight: 600;
-  text-align: center;
+  padding: 0.65rem 1rem;
+  border-radius: var(--radius-full);
+  border: 1px solid transparent;
+  font: inherit;
+  font-weight: 800;
   text-decoration: none;
-  transition: all var(--transition-fast);
+  transition:
+    transform var(--transition-fast),
+    box-shadow var(--transition-fast);
 }
 
-.replay-btn:hover {
-  background: rgb(var(--color-gold-rgb) / 0.25);
-  border-color: rgb(var(--color-gold-rgb) / 0.5);
+.btn--primary {
+  color: var(--color-text-on-gold);
+  background: var(--gradient-button-primary);
+  box-shadow: 0 0 16px rgb(var(--color-gold-rgb) / 0.2);
 }
 
-@media (max-width: 768px) {
-  .shell {
-    padding: 0.9rem;
-  }
+.btn--primary:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
 
-  .page-header h1 {
-    font-size: 2rem;
-  }
-
+@media (max-width: 600px) {
   .games-grid {
     grid-template-columns: 1fr;
-  }
-
-  .game-header,
-  .mode-head {
-    display: grid;
   }
 }
 </style>
