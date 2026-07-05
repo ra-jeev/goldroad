@@ -91,11 +91,18 @@ Main commands:
 - `pnpm typecheck` — run Nuxt type checking
 - `pnpm build` — create a production build
 - `pnpm preview` — preview the Worker build locally
+- `pnpm deploy` — build and deploy the Worker with `pnpm run build && wrangler deploy`
 - `pnpm db:generate` — generate Drizzle migrations
 - `pnpm db:migrate` — apply local D1 migrations
 - `pnpm db:seed:local` — generate and load local seed puzzles
 - `pnpm test` — run unit/regression tests (Vitest)
 - `pnpm test:api` — run the API smoke checks against a running `pnpm dev` + seeded DB
+
+Production deploys use Nitro's `cloudflare_module` preset. `pnpm deploy` should
+be run from the repository root after the target Cloudflare account has a
+`goldroad` D1 database and `wrangler.jsonc` has its real `database_id`. The
+build output deployed by Wrangler is `./.output/server/index.mjs`, with assets
+served from `./.output/public/`.
 
 ## Docs
 
