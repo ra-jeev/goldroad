@@ -49,6 +49,8 @@ Two v1 qualities are launch requirements for v2:
 - game sounds (move/coin, denied move, dead-end, solve) with a persisted mute toggle; audio plays only after user interaction
 - PWA installability: manifest and icon set in the v2 visual style, apple-touch-icon, and Open Graph / social metadata for link unfurls
 
+No service worker or offline app shell is included for the v2 launch. That is a deliberate launch-scope decision; offline shell work is deferred until after launch.
+
 ### 1.6 Local-first scope
 
 The player experience is intentionally local-first:
