@@ -570,7 +570,7 @@ Recommended treatment:
 
 ### Issue P2-3 — Production deployment cleanup
 - Priority: `P2`
-- Status: `planned`
+- Status: `done`
 - Goal: make the deploy path and D1 setup explicit and repeatable.
 - Why it matters: the app should not depend on implied local knowledge to ship.
 - Scope:
@@ -586,6 +586,14 @@ Recommended treatment:
   - the analytics write endpoints (session end, hint) have basic rate limiting against anonymous-UUID spam
 - Dependencies:
   - P2-2 can land alongside or just before this
+- Completion notes:
+  - `wrangler.jsonc`'s `<database_id>` placeholder now carries an impossible-to-miss comment; `server/db/README.md` documents the exact `wrangler d1 create goldroad` step and the local-vs-production migration commands
+  - `README.md` documents the `pnpm deploy` path and build output layout
+  - `session/end.post.ts` and `session/hint.post.ts` both gained `console.error` logging on failure paths (invalid payload, game not found, rate-limited, unexpected 5xx) without logging full payload bodies or full UUIDs
+  - rate limiting via Cloudflare's native Workers Rate Limiting binding (`RATE_LIMITER`, 20 req/60s per `playerUUID`, `wrangler.jsonc` `ratelimits` block), returning `429 {"ok":false,"error":"rate_limited"}` when exceeded
+  - fixed a real type error in the delivered code: the `RateLimitedEvent` type intersected with the strict generated `Env` (all bindings required), which no real `H3Event` structurally satisfies — narrowed it to match the same all-optional-fields pattern already used by `useD1` in `server/db/client.ts`; regenerated `worker-configuration.d.ts` via `pnpm cf-typegen` so `Env` includes `RATE_LIMITER`
+  - verified live under plain `pnpm dev`: hint/session-end endpoints work normally, and hammering the hint endpoint with one `playerUUID` confirmed exactly 20 successful requests then `429` on the 21st
+  - typecheck and 38/38 tests pass on merged `nuxt`
 
 ### Issue P2-5 — Remove the stale `PastGameSummarySchema` validator
 - Priority: `P2`
