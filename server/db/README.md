@@ -5,6 +5,27 @@ live in `server/db/migrations/*.sql`, with Drizzle-kit's bookkeeping in
 `server/db/migrations/meta/` (`_journal.json` + one `NNNN_snapshot.json` per
 applied migration).
 
+## Production D1 setup and deploy path
+
+`wrangler.jsonc` intentionally still contains `database_id: "<database_id>"`
+until the production D1 database exists. Before the first production deploy,
+run `wrangler d1 create goldroad` against the target Cloudflare account and
+paste the returned `database_id` into the `DB` binding in `wrangler.jsonc`.
+
+The production deploy command is `pnpm deploy` from the repository root. The
+script currently runs `pnpm run build && wrangler deploy`; Nuxt/Nitro builds
+the Cloudflare module Worker entry at `./.output/server/index.mjs` and static
+assets at `./.output/public/`, matching the paths configured in
+`wrangler.jsonc`.
+
+Migration flow is explicit:
+- Local development: `pnpm db:migrate`, which applies D1 migrations with
+  `wrangler d1 migrations apply goldroad --local`.
+- Production: after the production `database_id` is set, apply the same
+  checked-in migrations to the real D1 database with
+  `wrangler d1 migrations apply goldroad` before or during the production
+  release process.
+
 ## `pnpm db:generate` vs hand-written SQL
 
 - **Default path — `pnpm db:generate`:** whenever a schema change can be

@@ -54,8 +54,20 @@
 		{
 			"binding": "DB",
 			"database_name": "goldroad",
+			// REQUIRED BEFORE FIRST PRODUCTION DEPLOY: run `wrangler d1 create goldroad`
+			// against the target Cloudflare account, then paste the returned database_id here.
 			"database_id": "<database_id>",
 			"migrations_dir": "server/db/migrations"
+		}
+	],
+	"ratelimits": [
+		{
+			"name": "RATE_LIMITER",
+			"namespace_id": "3003",
+			"simple": {
+				"limit": 20,
+				"period": 60
+			}
 		}
 	]
 }
