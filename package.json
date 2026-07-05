@@ -35,6 +35,7 @@
 		"h3": "^1.15.10",
 		"nitro-cloudflare-dev": "^0.2.2",
 		"nitropack": "^2.13.3",
+		"sharp": "^0.34.5",
 		"tsx": "^4.21.0",
 		"vitest": "^4.1.9",
 		"vue-tsc": "^3.2.6",
