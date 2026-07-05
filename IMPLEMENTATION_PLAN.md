@@ -576,7 +576,7 @@ Recommended treatment:
 
 ### Issue P2-6 — Give hint requests an explicit "already solved" signal
 - Priority: `P2`
-- Status: `planned`
+- Status: `done`
 - Goal: make `computeHint`'s behavior well-defined when a hint is requested after the player has already fully traversed the best-matching optimal path.
 - Why it matters: found during P1-9 test writing — today this returns a "diverged" result where the divergence tile equals the correct next tile, which is a confusing signal to build UI messaging on. This is a product-behavior decision (what should the hint UI say/do post-solve-equivalent), not just a bug fix.
 - Scope:
@@ -587,6 +587,11 @@ Recommended treatment:
   - a hint request against a fully-traversed optimal path returns an unambiguous result distinct from a genuine divergence
   - a regression test locks in the chosen behavior
 - Dependencies: none
+- Completion notes:
+  - added a new `HintAlreadySolvedResult` variant (`{ kind: 'already-solved', guidePath }`) returned by `computeHint` as its own branch, ahead of the old fallback that previously mislabeled this case as `diverged` with the divergence tile equal to the correct tile
+  - same latent bug also existed in `useTutorialPractice.ts`'s duplicate hint logic for the tutorial practice puzzle — fixed there too
+  - new copy: `UI_COPY.runtime.hintAlreadySolved`
+  - regression tests added/updated in `tests/hints.test.ts`; suite is now 38 tests, all passing; `pnpm typecheck` clean
 
 ### Issue P2-4 — Launch cutover and v1 decommission
 - Priority: `P2` (launch-blocking)
