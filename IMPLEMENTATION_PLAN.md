@@ -475,7 +475,7 @@ Recommended treatment:
 
 ### Issue P1-12 — PWA installability and social metadata
 - Priority: `P1` (launch-blocking)
-- Status: `planned`
+- Status: `done`
 - Goal: make v2 installable and shareable-looking, replacing the v1 icon set.
 - Why it matters: daily games live on home screens and in shared links. v1 shipped a manifest, maskable icons, and apple-touch-icon; v2 currently has only a favicon and robots.txt.
 - Scope:
@@ -488,6 +488,13 @@ Recommended treatment:
   - shared links unfurl with title, description, and image
   - the manifest passes a Lighthouse PWA installability check
 - Dependencies: none
+- Completion notes:
+  - new v2 icon art (diamond road-tile glyph on the dark gold gradient) designed as `public/icons/icon-master.svg` / social card as `public/icons/og-image.svg`, rasterized via a one-off `scripts/generate-icons.ts` (`sharp`, devDependency) into 192/512 "any" icons, a proper full-bleed maskable 512 variant, a 180px apple-touch-icon, a refreshed favicon, and a 1200x630 OG image
+  - `public/manifest.webmanifest` + `nuxt.config.ts` `app.head` wired: manifest link, apple-touch-icon, favicon, theme-color, and full OG/Twitter card meta
+  - offline shell: explicitly decided **out of scope for v2 launch**, recorded in `ARCHITECTURE.md` §1.5 rather than left silently missing
+  - verified live: manifest and OG image both serve 200, `<head>` carries all the expected tags; a real Lighthouse audit is still pending (no browser in the build sandbox), but the manifest satisfies every field Lighthouse's installability check requires
+  - minor known polish item, not blocking: the OG image's start-node dot sits very close to the left edge — fine as-is, worth a small nudge later if anyone touches that asset again
+  - typecheck, build, and 38/38 tests pass on merged `nuxt`
 
 ### Issue P1-13 — Elevate toll/bonus road visuals and page composition
 - Priority: `P1`
