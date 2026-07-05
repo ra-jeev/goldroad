@@ -32,6 +32,10 @@ const {
   roadHeading,
   canSwitchToExpedition,
   celebration,
+  successfulMoveSignal,
+  deniedMoveSignal,
+  deadEndSignal,
+  solveCelebrationSignal,
   selectMode,
   retryCurrentGame,
   switchToExpedition,
@@ -48,6 +52,7 @@ const currentRoadLabel = useState<string | null>(
   () => null,
 );
 const localState = useGoldroadLocalState();
+const soundEffects = useSoundEffects();
 const { isTutorialOpen, openTutorial } = useTutorialFlow();
 const checkedFirstRunTutorial = ref(false);
 
@@ -81,6 +86,22 @@ watch(
   },
   { immediate: true },
 );
+
+watch(successfulMoveSignal, () => {
+  soundEffects.playMove();
+}, { flush: 'sync' });
+
+watch(deniedMoveSignal, () => {
+  soundEffects.playDeniedMove();
+}, { flush: 'sync' });
+
+watch(deadEndSignal, () => {
+  soundEffects.playDeadEnd();
+}, { flush: 'sync' });
+
+watch(solveCelebrationSignal, () => {
+  soundEffects.playSolve();
+}, { flush: 'sync' });
 
 onUnmounted(() => {
   currentRoadLabel.value = null;

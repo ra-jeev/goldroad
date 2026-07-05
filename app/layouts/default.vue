@@ -5,6 +5,7 @@ const currentRoadLabel = useState<string | null>(
   'current-road-label',
   () => null,
 );
+const { muted, toggleMuted } = useGoldroadLocalState();
 const { openHowToPlay, closeHowToPlay } = useHowToPlaySheet();
 const { closeTutorial } = useTutorialFlow();
 
@@ -44,6 +45,48 @@ function closeMobileMenu() {
           >
             Stats
           </NuxtLink>
+
+          <button
+            class="icon-button"
+            :aria-label="muted ? 'Unmute sounds' : 'Mute sounds'"
+            :aria-pressed="muted"
+            @click="toggleMuted"
+          >
+            <svg v-if="!muted" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M4 9.5v5h3.8L13 19V5L7.8 9.5H4Z"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.8"
+              />
+              <path
+                d="M16 9a4.5 4.5 0 0 1 0 6M18.4 6.6a8 8 0 0 1 0 10.8"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-width="1.8"
+              />
+            </svg>
+            <svg v-else viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M4 9.5v5h3.8L13 19V5L7.8 9.5H4Z"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.8"
+              />
+              <path
+                d="m17 9 4 4m0-4-4 4"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-width="1.8"
+              />
+            </svg>
+          </button>
 
           <button
             class="icon-button"
@@ -210,7 +253,8 @@ function closeMobileMenu() {
 }
 
 .icon-button:hover,
-.icon-button[aria-expanded='true'] {
+.icon-button[aria-expanded='true'],
+.icon-button[aria-pressed='true'] {
   color: var(--color-gold);
   background: rgb(var(--color-gold-rgb) / 0.12);
   border-color: rgb(var(--color-gold-rgb) / 0.3);

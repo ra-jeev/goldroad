@@ -34,6 +34,10 @@ const {
   maxScore,
   totalCoins,
   celebration,
+  successfulMoveSignal,
+  deniedMoveSignal,
+  deadEndSignal,
+  solveCelebrationSignal,
   clearRoadDay,
   applyRoadDay,
   selectMode,
@@ -45,6 +49,7 @@ const {
   shareCurrentResult,
 } = useRoadDayGameplay({ entryType: 'archive' });
 
+const soundEffects = useSoundEffects();
 const loadError = ref<string | null>(null);
 const busy = computed(() => loading.value || submitting.value);
 const formattedDate = computed(() => {
@@ -104,6 +109,22 @@ watch(
     }
   },
 );
+
+watch(successfulMoveSignal, () => {
+  soundEffects.playMove();
+}, { flush: 'sync' });
+
+watch(deniedMoveSignal, () => {
+  soundEffects.playDeniedMove();
+}, { flush: 'sync' });
+
+watch(deadEndSignal, () => {
+  soundEffects.playDeadEnd();
+}, { flush: 'sync' });
+
+watch(solveCelebrationSignal, () => {
+  soundEffects.playSolve();
+}, { flush: 'sync' });
 
 onMounted(() => {
   void loadReplayGame();
