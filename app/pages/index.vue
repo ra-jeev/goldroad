@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onUnmounted, watch, watchEffect } from 'vue';
+import { onMounted, onUnmounted, watch, watchEffect } from 'vue';
 
 const {
   game,
@@ -54,16 +54,44 @@ const currentRoadLabel = useState<string | null>(
 const localState = useGoldroadLocalState();
 const soundEffects = useSoundEffects();
 const { isTutorialOpen, openTutorial } = useTutorialFlow();
+const {
+  showNotice: showV1WelcomeNotice,
+  ready: v1CheckReady,
+  check: checkV1Notice,
+  dismissNotice: dismissV1Notice,
+} = useV1ReturningPlayerNotice();
+const { acknowledgeLatestUpdate } = useUpdatesNotice();
 const checkedFirstRunTutorial = ref(false);
 
+// A detected v1 player also has no v2 local progress yet, so the ordinary
+// first-run-tutorial trigger below would otherwise fire independently of —
+// and possibly race with — the welcome sheet. Hold off until we know
+// definitively whether this is a returning v1 player, and never auto-open
+// behind their back: the welcome sheet's own CTA is what opens the tutorial
+// for them instead (see onV1ShowWhatsNew/onV1DismissWelcome).
 const shouldShowFirstRunTutorial = computed(
   () =>
     Boolean(game.value) &&
     !loading.value &&
     !localState.tutorialState.value.completed &&
     !localState.tutorialState.value.lastSeenAt &&
-    !localState.hasAnyLiveProgress.value,
+    !localState.hasAnyLiveProgress.value &&
+    v1CheckReady.value &&
+    !showV1WelcomeNotice.value,
 );
+
+function onV1ShowWhatsNew() {
+  checkedFirstRunTutorial.value = true;
+  dismissV1Notice();
+  acknowledgeLatestUpdate();
+  openTutorial();
+}
+
+function onV1DismissWelcome() {
+  checkedFirstRunTutorial.value = true;
+  dismissV1Notice();
+  acknowledgeLatestUpdate();
+}
 
 watchEffect(() => {
   currentRoadLabel.value = game.value ? roadHeading.value : null;
@@ -102,6 +130,10 @@ watch(deadEndSignal, () => {
 watch(solveCelebrationSignal, () => {
   soundEffects.playSolve();
 }, { flush: 'sync' });
+
+onMounted(() => {
+  void checkV1Notice();
+});
 
 onUnmounted(() => {
   currentRoadLabel.value = null;
@@ -181,6 +213,12 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
       :share-handler="shareCelebrationResult"
       @dismiss="dismissCelebration"
       @continue-to-expedition="continueToExpedition"
+    />
+
+    <V1WelcomeSheet
+      :visible="showV1WelcomeNotice"
+      @show-whats-new="onV1ShowWhatsNew"
+      @dismiss="onV1DismissWelcome"
     />
   </div>
 </template>

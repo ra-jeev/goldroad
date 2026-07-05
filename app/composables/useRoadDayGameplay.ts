@@ -126,6 +126,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
   const solveCelebrationSignal = ref(0);
 
   const documentVisibility = useDocumentVisibility();
+  const { isBoardOverlayOpen } = useBoardOverlayGate();
   const playerUUID = localProgress.playerUUID;
   const progressScope: LocalProgressScope =
     options.entryType === 'live' ? 'live' : 'replay';
@@ -169,6 +170,17 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     }
 
     if (visibility === 'visible') {
+      resumeSolveTimer();
+    }
+  });
+
+  watch(isBoardOverlayOpen, (open) => {
+    if (open) {
+      pauseSolveTimerForVisibility();
+      return;
+    }
+
+    if (documentVisibility.value === 'visible') {
       resumeSolveTimer();
     }
   });
@@ -325,7 +337,8 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
       ended.value ||
       lastSolved.value ||
       !solveTimerCanResume.value ||
-      solveTimerStartedAtMs.value !== null
+      solveTimerStartedAtMs.value !== null ||
+      isBoardOverlayOpen.value
     ) {
       return;
     }

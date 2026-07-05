@@ -8,15 +8,7 @@ const currentRoadLabel = useState<string | null>(
 const { muted, toggleMuted } = useGoldroadLocalState();
 const { openHowToPlay, closeHowToPlay } = useHowToPlaySheet();
 const { closeTutorial } = useTutorialFlow();
-const {
-  showNotice: showV1Notice,
-  check: checkV1Notice,
-  dismissNotice: dismissV1Notice,
-} = useV1ReturningPlayerNotice();
-
-onMounted(() => {
-  void checkV1Notice();
-});
+const { hasUnseenUpdate, acknowledgeLatestUpdate } = useUpdatesNotice();
 
 watch(
   () => route.fullPath,
@@ -26,7 +18,7 @@ watch(
     closeMobileMenu();
 
     if (route.path === '/about') {
-      dismissV1Notice();
+      acknowledgeLatestUpdate();
     }
   },
   { immediate: true },
@@ -127,7 +119,7 @@ function closeMobileMenu() {
               class="icon-button"
               :aria-expanded="showMobileMenu"
               :aria-label="
-                showV1Notice
+                hasUnseenUpdate
                   ? 'Open navigation menu — updates available'
                   : 'Open navigation menu'
               "
@@ -142,7 +134,7 @@ function closeMobileMenu() {
                   stroke-width="1.8"
                 />
               </svg>
-              <span v-if="showV1Notice" class="notification-dot" aria-hidden="true" />
+              <span v-if="hasUnseenUpdate" class="notification-dot" aria-hidden="true" />
             </button>
 
             <div v-if="showMobileMenu" class="menu-panel">

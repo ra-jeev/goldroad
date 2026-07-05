@@ -134,6 +134,18 @@ export const UI_COPY = {
     shareUnavailable: 'Unable to share this result right now.',
   },
 
+  v1Welcome: {
+    close: 'Close',
+    eyebrow: 'GoldRoad is back',
+    title: 'Welcome back.',
+    body: [
+      "GoldRoad got a full rewrite. Road numbering restarted, and old accounts and history didn't carry over — a clean break, not a bug.",
+      "There's also something new: a whole second mode called Expedition, with toll and bonus roads that change how you score.",
+    ],
+    primaryCta: "Show me what's new",
+    secondaryCta: "Skip to today's road",
+  },
+
   runtime: {
     loadingGame: 'Loading game...',
     loadingTodaysRoad: "Loading today's road...",

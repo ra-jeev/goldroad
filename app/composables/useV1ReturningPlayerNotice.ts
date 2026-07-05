@@ -55,12 +55,22 @@ async function detectV1Player(): Promise<boolean> {
 export function useV1ReturningPlayerNotice() {
   const localState = useGoldroadLocalState();
   const detectedV1Player = useState('v1-returning-player-detected', () => false);
-  const checked = useState('v1-returning-player-checked', () => false);
+  // Guards against re-entrancy while the async check is in flight — true the
+  // instant `check()` starts, not once it resolves. Use `ready` (below) if
+  // you need to know detection has actually finished.
+  const checkStarted = useState('v1-returning-player-check-started', () => false);
+  // True only once the async check has actually resolved. Consumers that
+  // need to make a decision contingent on "do we know yet whether this is a
+  // returning v1 player" (e.g. gating an unrelated auto-open) should wait on
+  // this rather than on `showNotice` alone, since `showNotice` reads as
+  // false both before detection resolves and after a real negative result.
+  const ready = useState('v1-returning-player-ready', () => false);
 
   async function check() {
-    if (!import.meta.client || checked.value) return;
-    checked.value = true;
+    if (!import.meta.client || checkStarted.value) return;
+    checkStarted.value = true;
     detectedV1Player.value = await detectV1Player();
+    ready.value = true;
   }
 
   const showNotice = computed(
@@ -73,6 +83,7 @@ export function useV1ReturningPlayerNotice() {
 
   return {
     showNotice,
+    ready,
     check,
     dismissNotice,
   };
