@@ -562,13 +562,16 @@ Recommended treatment:
 
 ### Issue P2-5 — Remove the stale `PastGameSummarySchema` validator
 - Priority: `P2`
-- Status: `planned`
+- Status: `done`
 - Goal: delete or correct the leftover flat-shape validator that no longer matches `/api/games/past`.
 - Why it matters: found during P1-9 test writing — `shared/validators/game.ts` exports `PastGameSummarySchema` as `{gameNo, maxScore, totalCoins, playableAt}`, predating the P0-4 dual-puzzle archive rework. The live route returns `{count, games: [{gameNo, playableAt, classic, expedition}]}`. The schema appears unused; a stale exported type is a landmine for the next person who wires it up assuming it's current.
 - Scope:
   - `shared/validators/game.ts` and any re-exported type in `shared/types/game.ts`
 - Acceptance criteria:
   - either the schema is removed, or it is corrected to match the current `/api/games/past` response and something references it
+- Completion notes:
+  - `/api/games/past` never used a Zod validator at all (hand-shaped grouped response); `PastGameSummarySchema`/`PastGameSummary` had zero real consumers, so removed outright along with its re-exports in `server/db/validators.ts` and `shared/types/game.ts`
+  - `pnpm typecheck` clean after removal
 - Dependencies: none
 
 ### Issue P2-6 — Give hint requests an explicit "already solved" signal

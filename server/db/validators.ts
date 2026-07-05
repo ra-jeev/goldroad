@@ -14,7 +14,6 @@ import {
   PathResultSchema,
   HintResultSchema,
   PublicGameSchema,
-  PastGameSummarySchema,
   SessionEndPayloadSchema,
   HintRequestPayloadSchema,
 } from '../../shared/validators/game'
@@ -27,7 +26,6 @@ export {
   PathResultSchema,
   HintResultSchema,
   PublicGameSchema,
-  PastGameSummarySchema,
   SessionEndPayloadSchema,
   HintRequestPayloadSchema,
 }

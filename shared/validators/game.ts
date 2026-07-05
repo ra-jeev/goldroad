@@ -209,13 +209,6 @@ export const CurrentGamesResponseSchema = z.object({
   expedition: PublicGameSchema.nullable(),
 });
 
-export const PastGameSummarySchema = z.object({
-  gameNo: z.number().int().positive(),
-  maxScore: z.number().int().min(1),
-  totalCoins: z.number().int().min(1),
-  playableAt: z.string().datetime({ offset: true }),
-});
-
 export const CommunityBehaviorStatsSchema = z.object({
   hintUsers: z.number().int().min(0),
   totalHints: z.number().int().min(0),
@@ -318,7 +311,6 @@ export type HintResult = z.infer<typeof HintResultSchema>;
 
 export type PublicGame = z.infer<typeof PublicGameSchema>;
 export type CurrentGamesResponse = z.infer<typeof CurrentGamesResponseSchema>;
-export type PastGameSummary = z.infer<typeof PastGameSummarySchema>;
 export type CommunityBehaviorStats = z.infer<
   typeof CommunityBehaviorStatsSchema
 >;
