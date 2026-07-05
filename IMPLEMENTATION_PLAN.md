@@ -313,7 +313,7 @@ Recommended treatment:
 
 ### Issue P1-6 — Redesign the stats page presentation
 - Priority: `P1`
-- Status: `planned`
+- Status: `done`
 - Goal: keep the richer v2 local/global stats model, but make the stats page one coherent, scannable, emotionally rewarding surface — and extend that design system to the past-roads pages.
 - Why it matters: stats is a retention and sharing surface; it should feel rewarding, not like an analytics dashboard. The current page mixes per-card mode toggles, side-by-side mode cards, and split grids with no single pattern.
 - Design decisions (agreed):
@@ -342,6 +342,12 @@ Recommended treatment:
 - Dependencies:
   - P1-4
   - P1-10 so share actions and result framing match the celebration sheets
+- Completion notes:
+  - `app/pages/stats.vue` restructured around the locked order: header strip (medals/streaks) → global Classic/Expedition toggle → today/personal read → community comparison (histogram + percentile) → compressed all-time snapshot behind a "more" affordance → recent road log → share/random-road actions
+  - histogram extracted into a new reusable `app/components/StatsTriesHistogram.vue`
+  - `/games` archive pages (`index.vue` and `[gameNo].vue`) restyled onto the same card/typography system as stats
+  - reused existing data composables (`useLocalPlayerStats`, `useLocalGameProgress`, `useStatsApi`, `useGamesApi`, `useRoadResultShare`) unchanged — this was a presentation restructure, not a data-layer rewrite
+  - verified live: empty-state (no local history) renders a clean first-run prompt rather than a broken/blank page; games archive and archived-road-day replay pages render with matching visual language; `pnpm typecheck` and `pnpm test` (38/38) clean on merged `nuxt`
 
 ### Issue P1-7 — Replace static help with an interactive tutorial
 - Priority: `P1`
