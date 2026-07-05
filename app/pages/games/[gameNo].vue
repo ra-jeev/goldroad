@@ -158,23 +158,22 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
         <header class="archive-header">
           <div class="archive-header-top">
             <NuxtLink to="/games" class="back-link">
-              Back to Past Games
+              ← Past roads
             </NuxtLink>
           </div>
 
           <div class="archive-header-main">
             <div>
+              <p class="eyebrow">Archived replay</p>
               <h1>Road {{ game.gameNo }}</h1>
               <p class="archive-subtitle">
-                {{ formattedDate }} · {{ difficultyLabel }} difficulty ·
-                Archived replay
+                {{ formattedDate }} · {{ difficultyLabel }} difficulty
               </p>
             </div>
           </div>
 
           <p class="archive-note">
-            Replay any archived road day without affecting today's live board
-            state.
+            Replay this road without touching today's live board.
           </p>
         </header>
 
@@ -268,12 +267,14 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
 .archive-header,
 .state-card {
   display: grid;
-  gap: 0.8rem;
-  padding: 1rem 1.1rem;
-  border-radius: 8px;
+  gap: 0.7rem;
+  width: 100%;
+  text-align: left;
+  padding: clamp(1.1rem, 3vw, 1.4rem);
+  border-radius: var(--radius-lg);
   background: var(--gradient-card-status);
-  border: 1px solid rgb(var(--color-gold-rgb) / 0.28);
-  box-shadow: var(--shadow-border-dark), var(--shadow-lg);
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.2);
+  box-shadow: var(--shadow-lg);
 }
 
 .state-card {
@@ -299,8 +300,17 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
   align-items: end;
 }
 
-.archive-header h1 {
+.eyebrow {
   margin: 0;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgb(var(--color-gold-rgb) / 0.6);
+}
+
+.archive-header h1 {
+  margin: 0.1rem 0 0;
   color: var(--color-gold-bright);
 }
 
@@ -311,12 +321,13 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
 }
 
 .archive-note {
-  font-size: 0.92rem;
+  font-size: 0.9rem;
 }
 
 .back-link {
-  color: var(--color-gold-bright);
-  font-weight: 700;
+  color: rgb(var(--color-gold-rgb) / 0.86);
+  font-weight: 800;
+  font-size: 0.86rem;
   text-decoration: none;
 }
 
