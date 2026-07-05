@@ -75,6 +75,7 @@ type GoldroadLocalState = {
   historyByDay: Record<string, HistoryDayRecord>;
   tutorialState: TutorialState;
   celebratedSolveKeys: string[];
+  v1NoticeDismissed: boolean;
 };
 
 function isPuzzleType(value: unknown): value is PuzzleType {
@@ -340,6 +341,7 @@ function createEmptyState(playerUUID = createPlayerUUID()): GoldroadLocalState {
       lastSeenAt: null,
     },
     celebratedSolveKeys: [],
+    v1NoticeDismissed: false,
   };
 }
 
@@ -431,6 +433,7 @@ function cloneState(value: GoldroadLocalState): GoldroadLocalState {
       ...value.tutorialState,
     },
     celebratedSolveKeys: [...value.celebratedSolveKeys],
+    v1NoticeDismissed: value.v1NoticeDismissed,
   };
 }
 
@@ -499,6 +502,10 @@ function normalizeStoredState(value: unknown): GoldroadLocalState | null {
     historyByDay: value.historyByDay,
     tutorialState: value.tutorialState,
     celebratedSolveKeys,
+    v1NoticeDismissed:
+      typeof value.v1NoticeDismissed === 'boolean'
+        ? value.v1NoticeDismissed
+        : false,
   };
 }
 
@@ -813,6 +820,16 @@ export function useGoldroadLocalState() {
     commit(nextState);
   }
 
+  function dismissV1Notice() {
+    const nextState = cloneState(ensureLoaded());
+    if (nextState.v1NoticeDismissed) {
+      return;
+    }
+
+    nextState.v1NoticeDismissed = true;
+    commit(nextState);
+  }
+
   function setMuted(muted: boolean) {
     const nextState = cloneState(ensureLoaded());
     nextState.settings = {
@@ -857,6 +874,8 @@ export function useGoldroadLocalState() {
     markTutorialCompleted,
     hasCelebratedSolve,
     markSolveCelebrated,
+    hasDismissedV1Notice: computed(() => ensureLoaded().v1NoticeDismissed),
+    dismissV1Notice,
     setMuted,
     toggleMuted,
   };

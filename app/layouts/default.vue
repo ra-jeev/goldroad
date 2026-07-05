@@ -8,6 +8,15 @@ const currentRoadLabel = useState<string | null>(
 const { muted, toggleMuted } = useGoldroadLocalState();
 const { openHowToPlay, closeHowToPlay } = useHowToPlaySheet();
 const { closeTutorial } = useTutorialFlow();
+const {
+  showNotice: showV1Notice,
+  check: checkV1Notice,
+  dismissNotice: dismissV1Notice,
+} = useV1ReturningPlayerNotice();
+
+onMounted(() => {
+  void checkV1Notice();
+});
 
 watch(
   () => route.fullPath,
@@ -15,7 +24,12 @@ watch(
     closeHowToPlay();
     closeTutorial();
     closeMobileMenu();
+
+    if (route.path === '/about') {
+      dismissV1Notice();
+    }
   },
+  { immediate: true },
 );
 
 function closeMobileMenu() {
@@ -112,7 +126,11 @@ function closeMobileMenu() {
             <button
               class="icon-button"
               :aria-expanded="showMobileMenu"
-              aria-label="Open navigation menu"
+              :aria-label="
+                showV1Notice
+                  ? 'Open navigation menu — updates available'
+                  : 'Open navigation menu'
+              "
               @click="showMobileMenu = !showMobileMenu"
             >
               <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -124,6 +142,7 @@ function closeMobileMenu() {
                   stroke-width="1.8"
                 />
               </svg>
+              <span v-if="showV1Notice" class="notification-dot" aria-hidden="true" />
             </button>
 
             <div v-if="showMobileMenu" class="menu-panel">
@@ -234,6 +253,7 @@ function closeMobileMenu() {
 }
 
 .icon-button {
+  position: relative;
   width: 2.32rem;
   height: 2.32rem;
   border-radius: 8px;
@@ -245,6 +265,19 @@ function closeMobileMenu() {
   justify-content: center;
   cursor: pointer;
   transition: all var(--transition-fast);
+}
+
+.notification-dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 9px;
+  height: 9px;
+  border-radius: var(--radius-circle);
+  background: var(--color-gold-bright);
+  box-shadow:
+    0 0 0 2px rgb(20 11 3 / 0.92),
+    var(--shadow-glow-gold-soft);
 }
 
 .icon-button svg {

@@ -647,6 +647,11 @@ Recommended treatment:
 - Dependencies:
   - P2-2
   - P2-3
+- Progress notes (issue remains `planned` overall — DNS/Firebase work is real-infrastructure and still outstanding):
+  - the "optional detection of leftover v1 local data" scope bullet is now **done**: `app/composables/useV1ReturningPlayerNotice.ts` detects a returning v1 player via two origin-scoped signals v1 produced unconditionally — a Cache Storage bucket named `audio-cache` (populated on load by v1's sound hook, no user action needed) and a Firebase Auth session persisted in IndexedDB (`firebaseLocalStorageDb`, since v1 auto-signed in every visitor anonymously). Investigated and ruled out: the `LEGACY_STORAGE_KEYS`/`LEGACY_STORAGE_PREFIXES` already handled in `useGoldroadLocalState.ts` are not real v1 keys (they're leftovers from an early v2 storage iteration); the five real v1 localStorage/sessionStorage keys (`sounds`, `isRedirecting`, `registration-token(-sent)`, `game-update-300323`, `howToPlayShown`) were all considered and rejected as primary signals since each depends on a specific action a player may never have taken
+  - detected players see a small notification dot on the nav hamburger button (mirroring v1's own `Toolbar.jsx` `LAST_UPDATE` dot pattern), persisted-dismissed the first time they visit `/about` (`v1NoticeDismissed` in `goldroad-state-v2`, following the same fire-once convention as `celebratedSolveKeys`)
+  - verified live: dot absent with no v1 signal, appears when `audio-cache` is simulated, clears and stays cleared after visiting `/about` and reloading
+  - remaining for this issue: the actual DNS switchover, Firebase/hosting sunset checklist, and launch-day verification pass — tracked in the untracked local `LAUNCH_CUTOVER_NOTES.md` working doc, not this file
 
 ## 5. Docs cleanup plan
 
