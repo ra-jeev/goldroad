@@ -154,5 +154,7 @@ export const UI_COPY = {
       'Hint applied. The highlighted guide shows the next correct move.',
     hintDiverged:
       'Hint applied. The target route broke at the highlighted turn. Retry and follow the highlighted branch.',
+    hintAlreadySolved:
+      'Hint applied. You already found the best route; follow the highlighted road.',
   },
 } as const;

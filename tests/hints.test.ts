@@ -93,34 +93,36 @@ describe('computeHint', () => {
     });
   });
 
-  it('handles a single-tile optimal path gracefully (start === end)', () => {
+  it('returns already-solved for a single-tile optimal path (start === end)', () => {
     const optimalPaths = [[0]];
     const result = computeHint(optimalPaths, [0]);
 
-    // matchedPrefixLength === pathHistory.length === bestPath.length, so the
-    // next-step branch is skipped and this falls into the diverged branch
-    // with divergence === correct tile (documented quirk, see test below).
     expect(result).toEqual({
-      kind: 'diverged',
-      divergenceTileIndex: 0,
-      correctTileIndex: 0,
+      kind: 'already-solved',
       guidePath: [0],
     });
   });
 
-  it('regression: once the player has fully completed the best-matching optimal path, the result degenerates to a no-op divergence rather than a distinct "solved" hint', () => {
-    // This documents current behavior rather than asserting it is desirable —
-    // see report notes. If the client ever requests a hint after already
-    // reaching the exit tile, it gets back a "diverged" result pointing at
-    // itself instead of some explicit "already solved" signal.
+  it('regression: returns already-solved once the player has fully completed the best-matching optimal path', () => {
     const optimalPaths = [[0, 1, 2, 5]];
     const result = computeHint(optimalPaths, [0, 1, 2, 5]);
 
     expect(result).toEqual({
-      kind: 'diverged',
-      divergenceTileIndex: 5,
-      correctTileIndex: 5,
+      kind: 'already-solved',
       guidePath: [0, 1, 2, 5],
+    });
+  });
+
+  it('returns already-solved when the fully completed path is the best match among several optimal paths', () => {
+    const optimalPaths = [
+      [0, 1, 2, 5],
+      [0, 3, 4, 5],
+    ];
+    const result = computeHint(optimalPaths, [0, 3, 4, 5]);
+
+    expect(result).toEqual({
+      kind: 'already-solved',
+      guidePath: [0, 3, 4, 5],
     });
   });
 });

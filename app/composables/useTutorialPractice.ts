@@ -35,6 +35,16 @@ function computeTutorialHint(
     };
   }
 
+  if (
+    matchedPrefixLength === pathHistory.length &&
+    matchedPrefixLength === bestPath.length
+  ) {
+    return {
+      kind: 'already-solved',
+      guidePath: bestPath.slice(),
+    };
+  }
+
   return {
     kind: 'diverged',
     divergenceTileIndex: bestPath[Math.max(0, matchedPrefixLength - 1)] ?? 0,
@@ -210,6 +220,8 @@ export function useTutorialPractice() {
     hintMessage.value =
       hint.kind === 'next-step'
         ? UI_COPY.runtime.hintNextStep
+        : hint.kind === 'already-solved'
+          ? UI_COPY.runtime.hintAlreadySolved
         : UI_COPY.runtime.hintDiverged;
   }
 

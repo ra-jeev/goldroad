@@ -899,7 +899,9 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
       hintMessage.value =
         res.hint.kind === 'next-step'
           ? UI_COPY.runtime.hintNextStep
-          : UI_COPY.runtime.hintDiverged;
+          : res.hint.kind === 'already-solved'
+            ? UI_COPY.runtime.hintAlreadySolved
+            : UI_COPY.runtime.hintDiverged;
       return;
     }
 
@@ -917,7 +919,9 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     hintMessage.value =
       res.hint.kind === 'next-step'
         ? UI_COPY.runtime.hintNextStep
-        : UI_COPY.runtime.hintDiverged;
+        : res.hint.kind === 'already-solved'
+          ? UI_COPY.runtime.hintAlreadySolved
+          : UI_COPY.runtime.hintDiverged;
   }
 
   function handlePageExit() {
