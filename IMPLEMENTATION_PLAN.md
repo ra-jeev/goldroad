@@ -442,7 +442,7 @@ Recommended treatment:
 
 ### Issue P1-11 — Restore game sounds
 - Priority: `P1` (launch-blocking)
-- Status: `planned`
+- Status: `done`
 - Goal: bring back the audio feedback that made v1 tactile — with a mute toggle.
 - Why it matters: v1 had coin, deny, win, and no-moves sounds; v2 has none. For a tap-driven puzzle this is lost game feel, and launch will not happen without it.
 - Scope:
@@ -458,6 +458,14 @@ Recommended treatment:
   - light haptic feedback (`navigator.vibrate`) accompanies moves and solves on supporting devices, following the same mute setting
 - Dependencies:
   - P1-10 for the solve-tier hookup (partial overlap is fine)
+- Completion notes:
+  - reused v1's exact `_archive/frontend/src/assets/audio/*.mp3` set, copied into `public/sounds/` as `move.mp3` (from `coin.mp3`), `deny.mp3`, `dead-end.mp3` (from `no-moves.mp3`), `solve.mp3` (from `win.mp3`)
+  - new `useSoundEffects.ts` composable lazily creates/reuses `HTMLAudioElement`s, gated by a new `settings.muted` field in `goldroad-state-v2` (same extension pattern as `celebratedSolveKeys`)
+  - denied-move taps previously fell through silently in `moveTo()`; added a `deniedMoveSignal` counter so the deny sound has something real to hook into
+  - wrong-exit and dead-end both play the dead-end sound (no 5th sound invented); solve sound fires once per celebration trigger across both classic-solve and day-complete variants
+  - haptics (`navigator.vibrate`) fire on move (short pulse) and solve (short pattern), scoped to the same mute setting, moves/solves only per spec
+  - mute toggle added to the app header reusing the existing `.icon-button` pattern
+  - typecheck clean, 38/38 tests pass on merged `nuxt`
 
 ### Issue P1-12 — PWA installability and social metadata
 - Priority: `P1` (launch-blocking)
