@@ -120,6 +120,10 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
   const solveTimerStartedAtMs = ref<number | null>(null);
   const solveTimerCanResume = ref(false);
   const celebration = ref<CelebrationState | null>(null);
+  const successfulMoveSignal = ref(0);
+  const deniedMoveSignal = ref(0);
+  const deadEndSignal = ref(0);
+  const solveCelebrationSignal = ref(0);
 
   const documentVisibility = useDocumentVisibility();
   const playerUUID = localProgress.playerUUID;
@@ -514,6 +518,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     // Archive / random replays get a lightweight, non-persisted acknowledgment
     // with no daily-streak or countdown implication.
     if (options.entryType !== 'live') {
+      solveCelebrationSignal.value += 1;
       celebration.value = {
         variant: 'replay-solve',
         tier,
@@ -538,6 +543,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
       return;
     }
     localProgress.markSolveCelebrated(current.gameNo, mode, params.dayKey);
+    solveCelebrationSignal.value += 1;
 
     if (mode === 'classic') {
       celebration.value = {
@@ -781,7 +787,10 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
 
   async function moveTo(tileIndex: number) {
     if (!game.value || ended.value || currentTileIndex.value === null) return;
-    if (!activeSet.value.has(tileIndex)) return;
+    if (!activeSet.value.has(tileIndex)) {
+      deniedMoveSignal.value += 1;
+      return;
+    }
 
     if (moves.value === 1 && lastSolved.value) {
       lastSolved.value = false;
@@ -809,6 +818,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     const nextScore = score.value + (board.tiles[tileIndex] ?? 0) + edgeCost;
     score.value = nextScore;
     moves.value += 1;
+    successfulMoveSignal.value += 1;
     hintMessage.value = null;
     syncGuideHighlight();
 
@@ -823,6 +833,9 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
             : UI_COPY.runtime.destinationOver(Math.abs(delta));
       activeSet.value.clear();
       updateTileStates();
+      if (delta !== 0) {
+        deadEndSignal.value += 1;
+      }
       await finalizeRun(delta === 0 ? 'solved' : 'wrong-exit');
       return;
     }
@@ -840,6 +853,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
       ended.value = true;
       status.value = UI_COPY.runtime.deadEnd;
       updateTileStates();
+      deadEndSignal.value += 1;
       await finalizeRun('dead-end');
       return;
     }
@@ -1014,6 +1028,10 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     isExpeditionUnlocked,
     classicSolvedToday,
     celebration,
+    successfulMoveSignal,
+    deniedMoveSignal,
+    deadEndSignal,
+    solveCelebrationSignal,
     clearRoadDay,
     applyRoadDay,
     selectMode,

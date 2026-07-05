@@ -61,10 +61,14 @@ type TutorialState = {
   lastSeenAt: string | null;
 };
 
+type GoldroadSettings = {
+  muted: boolean;
+};
+
 type GoldroadLocalState = {
   version: typeof STORAGE_VERSION;
   playerUUID: string;
-  settings: Record<string, never>;
+  settings: GoldroadSettings;
   currentRoadContext: CurrentRoadContext;
   puzzleProgressByKey: Record<string, PuzzleProgressRecord>;
   replayProgressByKey: Record<string, PuzzleProgressRecord>;
@@ -258,6 +262,14 @@ function isValidTutorialState(value: unknown): value is TutorialState {
   );
 }
 
+function normalizeStoredSettings(value: unknown): GoldroadSettings | null {
+  if (!isPlainObject(value)) return null;
+
+  return {
+    muted: typeof value.muted === 'boolean' ? value.muted : false,
+  };
+}
+
 function createPlayerUUID(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return crypto.randomUUID();
@@ -312,7 +324,9 @@ function createEmptyState(playerUUID = createPlayerUUID()): GoldroadLocalState {
   return {
     version: STORAGE_VERSION,
     playerUUID,
-    settings: {},
+    settings: {
+      muted: false,
+    },
     currentRoadContext: {
       currentGameNo: null,
       currentDay: null,
@@ -404,7 +418,9 @@ function cloneState(value: GoldroadLocalState): GoldroadLocalState {
   return {
     version: STORAGE_VERSION,
     playerUUID: value.playerUUID,
-    settings: {},
+    settings: {
+      muted: value.settings.muted,
+    },
     currentRoadContext: {
       ...value.currentRoadContext,
     },
@@ -454,7 +470,8 @@ function normalizeStoredState(value: unknown): GoldroadLocalState | null {
   if (!isPlainObject(value)) return null;
   if (value.version !== STORAGE_VERSION) return null;
   if (typeof value.playerUUID !== 'string') return null;
-  if (!isPlainObject(value.settings)) return null;
+  const settings = normalizeStoredSettings(value.settings);
+  if (!settings) return null;
   if (!isValidCurrentRoadContext(value.currentRoadContext)) return null;
   if (!isValidHistoryByDayMap(value.historyByDay)) return null;
   if (!isValidTutorialState(value.tutorialState)) return null;
@@ -475,7 +492,7 @@ function normalizeStoredState(value: unknown): GoldroadLocalState | null {
   return {
     version: STORAGE_VERSION,
     playerUUID: value.playerUUID,
-    settings: {},
+    settings,
     currentRoadContext: value.currentRoadContext,
     puzzleProgressByKey,
     replayProgressByKey: replayProgressByKey ?? {},
@@ -796,10 +813,26 @@ export function useGoldroadLocalState() {
     commit(nextState);
   }
 
+  function setMuted(muted: boolean) {
+    const nextState = cloneState(ensureLoaded());
+    nextState.settings = {
+      ...nextState.settings,
+      muted,
+    };
+
+    commit(nextState);
+  }
+
+  function toggleMuted() {
+    const nextState = ensureLoaded();
+    setMuted(!nextState.settings.muted);
+  }
+
   return {
     state,
     load,
     playerUUID: computed(() => ensureLoaded().playerUUID),
+    muted: computed(() => ensureLoaded().settings.muted),
     currentRoadContext: computed(() => ensureLoaded().currentRoadContext),
     tutorialState: computed(() => ensureLoaded().tutorialState),
     hasAnyLiveProgress: computed(() => {
@@ -824,5 +857,7 @@ export function useGoldroadLocalState() {
     markTutorialCompleted,
     hasCelebratedSolve,
     markSolveCelebrated,
+    setMuted,
+    toggleMuted,
   };
 }
