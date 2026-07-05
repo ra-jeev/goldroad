@@ -40,6 +40,16 @@ export function computeHint(
     };
   }
 
+  if (
+    matchedPrefixLength === pathHistory.length &&
+    matchedPrefixLength === bestPath.length
+  ) {
+    return {
+      kind: 'already-solved',
+      guidePath: bestPath.slice(),
+    };
+  }
+
   return {
     kind: 'diverged',
     divergenceTileIndex: bestPath[matchedPrefixLength - 1]!,

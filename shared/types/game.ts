@@ -18,6 +18,7 @@ export type {
   PathResult,
   HintNextStepResult,
   HintDivergedResult,
+  HintAlreadySolvedResult,
   HintResult,
   PublicGame,
   CurrentGamesResponse,

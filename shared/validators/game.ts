@@ -184,9 +184,15 @@ export const HintDivergedResultSchema = z.object({
   guidePath: z.array(z.number().int().min(0)).min(2),
 });
 
+export const HintAlreadySolvedResultSchema = z.object({
+  kind: z.literal('already-solved'),
+  guidePath: z.array(z.number().int().min(0)).min(1),
+});
+
 export const HintResultSchema = z.union([
   HintNextStepResultSchema,
   HintDivergedResultSchema,
+  HintAlreadySolvedResultSchema,
 ]);
 
 // ---------------------------------------------------------------------------
@@ -307,6 +313,9 @@ export type PathResult = z.infer<typeof PathResultSchema>;
 
 export type HintNextStepResult = z.infer<typeof HintNextStepResultSchema>;
 export type HintDivergedResult = z.infer<typeof HintDivergedResultSchema>;
+export type HintAlreadySolvedResult = z.infer<
+  typeof HintAlreadySolvedResultSchema
+>;
 export type HintResult = z.infer<typeof HintResultSchema>;
 
 export type PublicGame = z.infer<typeof PublicGameSchema>;
