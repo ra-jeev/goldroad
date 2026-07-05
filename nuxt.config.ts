@@ -8,6 +8,14 @@ export default defineNuxtConfig({
   nitro: {
     preset: 'cloudflare_module',
 
+    experimental: {
+      tasks: true,
+    },
+
+    scheduledTasks: {
+      '0 0 * * *': 'rotate-road',
+    },
+
     cloudflare: {
       deployConfig: true,
       nodeCompat: true,

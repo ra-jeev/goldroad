@@ -87,6 +87,40 @@ Each road day contains:
 - Expedition unlocks through the live Classic solve flow.
 - The home screen should make both modes feel part of the same day.
 
+### Road rotation and puzzle pool
+
+Road days rotate at `00:00 UTC`. A Nitro scheduled task named `rotate-road`
+runs on the cron expression `0 0 * * *`, which Cloudflare Workers Cron Triggers
+also declares in `wrangler.jsonc` under `triggers.crons`.
+
+The task:
+- checks the current road day's `nextGameAt`
+- flips the old day's Classic and Expedition rows to `current=false` when
+  `nextGameAt` has passed
+- flips the next pre-generated road day to `current=true`
+- replenishes the future pool after rotation
+
+The future pool target is 5 complete road days beyond the current day. This is
+small enough to avoid building a large unused archive ahead of time, but gives
+several missed cron runs or failed generation attempts a buffer before the live
+rotation depends on same-request fallback generation.
+
+Each road day is two `games` rows sharing one `gameNo`: one `classic`, one
+`expedition`. Pool replenishment uses the server-side `generatePuzzle` utility
+and stores `board_json`, `optimal_paths_json`, score metadata, `active=true`,
+`current=false`, and the day's `playable_at`.
+
+If the pool is unexpectedly dry at rotation time, the task generates the next
+day's missing rows before flipping `current`, and logs an error so the rotation
+does not silently stall.
+
+Local testing options:
+- `wrangler dev --test-scheduled`, then request
+  `http://localhost:8787/cdn-cgi/handler/scheduled` to fire the scheduled
+  handler locally.
+- During Nitro dev, inspect `/_nitro/tasks` and call
+  `/_nitro/tasks/rotate-road` to run the task directly.
+
 ### Past road behavior
 
 - Past-road replay is also day-based.
