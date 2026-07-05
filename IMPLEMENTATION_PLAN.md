@@ -540,7 +540,7 @@ Recommended treatment:
 
 ### Issue P2-2 — Finalize Cloudflare cron and puzzle-pool operations
 - Priority: `P2`
-- Status: `planned`
+- Status: `done`
 - Goal: automate active-road rotation and pool replenishment.
 - Why it matters: required for production, but intentionally sequenced after product behavior is stable.
 - Scope:
@@ -554,6 +554,12 @@ Recommended treatment:
   - the system keeps a healthy buffer of future roads
 - Dependencies:
   - core product issues above should be stable first
+- Completion notes:
+  - new Nitro scheduled task `server/tasks/rotate-road.ts` (registered via `nitro.scheduledTasks` in `nuxt.config.ts`, matching Cloudflare Cron Trigger `triggers.crons` in `wrangler.jsonc`, both `'0 0 * * *'` — daily at UTC midnight)
+  - core logic in pure, testable `server/utils/roadOperations.ts`: `rotateRoadAndReplenishPool()` flips `current` flags between road days, maintains a 5-day future buffer via `generatePuzzle`, and falls back to on-the-spot generation (with an error log) if the pool is ever found dry at rotation time
+  - documented in `ARCHITECTURE.md` under "Road rotation and puzzle pool", including two local-testing options
+  - verified: task registers correctly (`/_nitro/tasks` lists it), builds into the worker bundle, and `wrangler dev` confirms the `DB` binding and cron trigger are wired correctly; a full local scheduled-event fire hit a known Miniflare/wrangler tooling bug (`DataCloneError` serializing `ScheduledController` under `--test-scheduled`) unrelated to this code — not something to chase further here
+  - typecheck clean, 38/38 tests pass on merged `nuxt`
 
 ### Issue P2-3 — Production deployment cleanup
 - Priority: `P2`
