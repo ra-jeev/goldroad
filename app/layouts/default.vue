@@ -35,7 +35,7 @@ function closeMobileMenu() {
       <div class="header-content">
         <div class="header-brand">
           <NuxtLink to="/" class="logo" @click="closeMobileMenu">
-            <span class="logo-text">Goldroad</span>
+            <span class="logo-text">GoldRoad</span>
           </NuxtLink>
 
           <p v-if="currentRoadLabel" class="road-chip">
@@ -46,16 +46,30 @@ function closeMobileMenu() {
         <div class="header-actions">
           <NuxtLink
             to="/stats"
-            class="nav-link nav-link--compact"
+            class="icon-button"
+            aria-label="View stats"
+            title="Stats"
+            data-tooltip="Stats"
             @click="closeMobileMenu"
           >
-            Stats
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M5 19V9m7 10V5m7 14v-7M3 19.5h18"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.8"
+              />
+            </svg>
           </NuxtLink>
 
           <button
             class="icon-button"
             :aria-label="muted ? 'Unmute sounds' : 'Mute sounds'"
             :aria-pressed="muted"
+            :title="muted ? 'Unmute sounds' : 'Mute sounds'"
+            :data-tooltip="muted ? 'Unmute' : 'Mute'"
             @click="toggleMuted"
           >
             <svg v-if="!muted" viewBox="0 0 24 24" aria-hidden="true">
@@ -97,6 +111,8 @@ function closeMobileMenu() {
           <button
             class="icon-button"
             aria-label="Open How to Play"
+            title="How to play"
+            data-tooltip="How to play"
             @click="
               openHowToPlay();
               closeMobileMenu();
@@ -123,6 +139,8 @@ function closeMobileMenu() {
                   ? 'Open navigation menu — updates available'
                   : 'Open navigation menu'
               "
+              title="Menu"
+              data-tooltip="Menu"
               @click="showMobileMenu = !showMobileMenu"
             >
               <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -139,7 +157,7 @@ function closeMobileMenu() {
 
             <div v-if="showMobileMenu" class="menu-panel">
               <NuxtLink to="/games" class="menu-link" @click="closeMobileMenu">
-                Past Games
+                Past Roads
               </NuxtLink>
               <NuxtLink to="/about" class="menu-link" @click="closeMobileMenu">
                 About
@@ -206,6 +224,7 @@ function closeMobileMenu() {
 }
 
 .road-chip {
+  flex-shrink: 0;
   margin: 0;
   padding: 0.28rem 0.62rem;
   border-radius: 8px;
@@ -256,7 +275,44 @@ function closeMobileMenu() {
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  text-decoration: none;
   transition: all var(--transition-fast);
+}
+
+@media (hover: hover) {
+  .icon-button[data-tooltip]::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    top: calc(100% + 0.48rem);
+    left: 50%;
+    z-index: 5;
+    transform: translate(-50%, -0.15rem);
+    padding: 0.3rem 0.5rem;
+    border: 1px solid rgb(var(--color-gold-rgb) / 0.2);
+    border-radius: 6px;
+    background: rgb(20 11 3 / 0.97);
+    box-shadow: var(--shadow-sm);
+    color: var(--color-gold-bright);
+    font-size: 0.72rem;
+    font-weight: 750;
+    line-height: 1;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      opacity var(--transition-fast),
+      transform var(--transition-fast);
+  }
+
+  .icon-button[data-tooltip]:hover::after,
+  .icon-button[data-tooltip]:focus-visible::after {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
+
+  .icon-button[aria-expanded='true']::after {
+    display: none;
+  }
 }
 
 .notification-dot {

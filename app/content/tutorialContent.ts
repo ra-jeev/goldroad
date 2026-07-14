@@ -7,16 +7,16 @@ export type TutorialLesson = {
   visual: {
     fromValue: number;
     toValue: number;
+    middleValue?: number;
     edgeType: EdgeType | 'open';
     isStart?: boolean;
     isEnd?: boolean;
-    modifierLabel?: string;
+    isHinted?: boolean;
+    showHintButton?: boolean;
   };
 };
 
 export type TutorialPracticeGame = {
-  title: string;
-  intro: string;
   board: Board;
   maxScore: number;
   totalCoins: number;
@@ -26,11 +26,12 @@ export type TutorialPracticeGame = {
 export const TUTORIAL_LESSONS: TutorialLesson[] = [
   {
     id: 'icons',
-    title: 'Start and exit',
-    body: 'Begin on the tile with the start icon. Solve the road by reaching the tile with the exit icon on the exact target score.',
+    title: 'From the footprints to the flag',
+    body: 'Start on the footprints. Reach the finish flag with a score matching the target.',
     visual: {
       fromValue: 5,
       toValue: 6,
+      middleValue: 3,
       edgeType: 'open',
       isStart: true,
       isEnd: true,
@@ -49,7 +50,7 @@ export const TUTORIAL_LESSONS: TutorialLesson[] = [
   {
     id: 'missing-road',
     title: 'Missing roads',
-    body: "Not every tile connects to its neighbor. Where the road is missing, that move disappears.",
+    body: 'An empty gap means there is no road. You cannot move between those tiles.',
     visual: {
       fromValue: 2,
       toValue: 5,
@@ -59,31 +60,37 @@ export const TUTORIAL_LESSONS: TutorialLesson[] = [
   {
     id: 'toll-road',
     title: 'Toll roads',
-    body: 'A toll road is playable, but it subtracts from your route score when you cross it.',
+    body: 'Two dotted rails mark a toll road. If you cross it, you pay the toll shown above the board.',
     visual: {
       fromValue: 6,
       toValue: 4,
       edgeType: 'toll',
-      modifierLabel: '-1',
     },
   },
   {
     id: 'bonus-road',
     title: 'Bonus roads',
-    body: 'A bonus road is playable and adds extra value to your route score when you cross it.',
+    body: 'Two solid rails mark a bonus road. If you cross it, you get the bonus shown above the board.',
     visual: {
       fromValue: 1,
       toValue: 3,
       edgeType: 'bonus',
-      modifierLabel: '+4',
+    },
+  },
+  {
+    id: 'hint',
+    title: 'Use a hint',
+    body: 'If you get stuck, Hint highlights your next useful move.',
+    visual: {
+      fromValue: 2,
+      toValue: 5,
+      edgeType: 'open',
+      showHintButton: true,
     },
   },
 ];
 
 export const TUTORIAL_PRACTICE_GAME: TutorialPracticeGame = {
-  title: 'Practice road',
-  intro:
-    'Now try a small Expedition road. Retry as much as you like, and use Hint just like you would on the daily puzzle.',
   maxScore: 79,
   totalCoins: 78,
   optimalPaths: [

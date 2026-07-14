@@ -27,6 +27,9 @@ const shareMessage = ref<string | null>(null);
 let shareMessageTimer: ReturnType<typeof setTimeout> | null = null;
 
 const isOpen = computed(() => Boolean(props.celebration));
+const dialog = ref<HTMLElement | null>(null);
+
+useDialogFocusTrap(isOpen, dialog);
 const variant = computed(() => props.celebration?.variant ?? null);
 const tier = computed(() => props.celebration?.tier ?? 'relief');
 const isClassic = computed(() => variant.value === 'classic-solve');
@@ -212,7 +215,9 @@ onBeforeUnmount(() => {
       @click.self="onDismiss"
     >
       <section
+        ref="dialog"
         class="celebration-sheet"
+        tabindex="-1"
         :class="[`celebration-sheet--${tier}`, `celebration-sheet--${variant}`]"
         role="dialog"
         aria-modal="true"

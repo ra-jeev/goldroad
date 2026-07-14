@@ -31,64 +31,56 @@ withDefaults(
   >
     <svg
       v-if="type === 'toll'"
-      :class="['road-icon', { 'road-icon--vertical': orientation === 'v' }]"
+      class="road-icon"
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
+      preserveAspectRatio="none"
+      aria-hidden="true"
     >
       <path
         fill="none"
         stroke="currentColor"
         stroke-linecap="round"
-        stroke-linejoin="round"
-        stroke-width="2"
-        d="M4 12a1 1 0 1 0 2 0a1 1 0 1 0-2 0m7 0a1 1 0 1 0 2 0a1 1 0 1 0-2 0m7 0a1 1 0 1 0 2 0a1 1 0 1 0-2 0"
+        stroke-width="2.2"
+        stroke-dasharray="0.8 4"
+        vector-effect="non-scaling-stroke"
+        :d="orientation === 'h' ? 'M0 8H24M0 16H24' : 'M8 0V24M16 0V24'"
       />
     </svg>
 
     <svg
       v-else-if="type === 'bonus'"
-      :class="['road-icon', { 'road-icon--vertical': orientation === 'v' }]"
+      class="road-icon"
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
+      preserveAspectRatio="none"
+      aria-hidden="true"
     >
       <path
         fill="none"
         stroke="currentColor"
         stroke-linecap="round"
-        stroke-width="2"
-        d="M4 8h16M4 16h16"
+        stroke-width="2.2"
+        vector-effect="non-scaling-stroke"
+        :d="orientation === 'h' ? 'M0 8H24M0 16H24' : 'M8 0V24M16 0V24'"
       />
     </svg>
 
     <svg
-      v-else-if="type === 'missing'"
-      :class="['road-icon', { 'road-icon--vertical': orientation === 'v' }]"
+      v-else-if="type !== 'missing'"
+      class="road-icon"
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
-    >
-      <path
-        fill="none"
-        stroke="currentColor"
-        stroke-dasharray="2 4"
-        stroke-linecap="round"
-        stroke-width="2.4"
-        d="M5 12h14"
-      />
-    </svg>
-
-    <svg
-      v-else
-      :class="['road-icon', { 'road-icon--vertical': orientation === 'v' }]"
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
+      preserveAspectRatio="none"
+      aria-hidden="true"
     >
       <path
         fill="none"
         stroke="currentColor"
         stroke-linecap="round"
-        stroke-linejoin="round"
-        stroke-width="3"
-        d="M5 12h14"
+        stroke-width="2.8"
+        vector-effect="non-scaling-stroke"
+        :d="orientation === 'h' ? 'M0 12H24' : 'M12 0V24'"
       />
     </svg>
 
@@ -119,7 +111,7 @@ withDefaults(
   width: 100%;
   height: 100%;
   color: var(--color-gold);
-  opacity: 0.56;
+  opacity: 0.78;
 }
 
 .road-glyph--closed {
@@ -148,8 +140,7 @@ withDefaults(
 }
 
 .road-glyph--missing {
-  color: rgb(var(--color-gold-rgb) / var(--road-missing-opacity));
-  opacity: 0.55;
+  opacity: 0;
 }
 
 .road-glyph--traversed {
@@ -158,22 +149,16 @@ withDefaults(
 }
 
 .road-icon {
-  width: 18px;
-  height: 18px;
+  width: 100%;
+  height: 100%;
   flex-shrink: 0;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+  overflow: visible;
 }
 
-/* Thicker, larger glyphs give scoring roads extra mass. */
 .road-glyph--toll .road-icon,
 .road-glyph--bonus .road-icon {
-  width: 20px;
-  height: 20px;
   filter: drop-shadow(0 1px 3px rgb(0 0 0 / 0.4));
-}
-
-.road-icon--vertical {
-  transform: rotate(90deg);
 }
 
 .road-arrow {

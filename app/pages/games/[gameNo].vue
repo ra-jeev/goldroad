@@ -150,7 +150,7 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
       <section v-else-if="loadError" class="state-card state-card--error">
         <p>{{ loadError }}</p>
         <NuxtLink to="/games" class="btn btn--secondary">
-          Back to Past Games
+          Back to Past Roads
         </NuxtLink>
       </section>
 
@@ -213,7 +213,7 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
           :show-next-reset-countdown="false"
           :show-stats-link="false"
           secondary-link-to="/games"
-          secondary-link-label="Back to Archive"
+          secondary-link-label="Back to Past Roads"
           :expedition-just-unlocked="false"
           :hints-used="hintsUsed"
           :ended="ended"

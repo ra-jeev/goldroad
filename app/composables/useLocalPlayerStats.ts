@@ -96,7 +96,10 @@ function buildMedalCounts(
   return medalCounts;
 }
 
-function buildStreakSummary(days: string[]): {
+export function buildStreakSummary(
+  days: string[],
+  todayKey = getTodayKey(),
+): {
   currentStreak: number;
   bestStreak: number;
 } {
@@ -122,7 +125,8 @@ function buildStreakSummary(days: string[]): {
   }
 
   let currentStreak = 0;
-  let cursor = getUtcDayStamp(getTodayKey());
+  const todayStamp = getUtcDayStamp(todayKey);
+  let cursor = solvedDaySet.has(todayKey) ? todayStamp : todayStamp - 86400000;
 
   while (solvedDaySet.has(new Date(cursor).toISOString().split('T')[0]!)) {
     currentStreak += 1;

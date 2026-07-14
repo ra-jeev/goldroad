@@ -4,14 +4,14 @@ export const UI_COPY = {
   board: {
     keyboardHint: 'Click tiles or use arrow keys',
     tileLabels: {
-      start: 'Start tile',
-      exit: 'Exit tile',
+      start: 'Start: footprints',
+      exit: 'Finish: flag',
     },
     info: {
       openRoad: 'Open road',
       missingRoad: 'Missing road',
-      toll: 'Toll',
-      bonus: 'Bonus',
+      tollCost: 'Toll cost',
+      roadBonus: 'Road bonus',
     },
   },
   boardHeader: {
@@ -22,7 +22,10 @@ export const UI_COPY = {
     unlockHint: 'Solve Classic to unlock Expedition.',
     metrics: {
       score: 'Score',
-      boardCoins: 'Road Coins',
+      target: 'Target',
+      boardTotal: 'Board total',
+      boardTotalDescription:
+        'The sum of every tile on the board. Your route may leave some tiles out.',
       medal: 'Medal',
     },
     medals: {
@@ -37,21 +40,22 @@ export const UI_COPY = {
     },
   },
   boardFooter: {
-    retryRoad: 'Walk It Again',
+    retryRoad: 'Try again',
     openHint: 'Hint',
     openHelp: 'How to Play',
     switchToExpedition: 'Play Expedition',
     shareResult: 'Share',
     viewStats: 'View Stats',
-    attemptLabel: 'Run',
+    attemptLabel: 'Attempt',
     expeditionUnlocked: 'Expedition unlocked',
     medalAwarded: (medal: string) => `${medal} medal`,
     nextRoadCountdown: (countdown: string) =>
       `Next road in ${countdown} · 00:00 UTC`,
     nextRoadShort: (countdown: string) => `Next road in ${countdown}`,
     hintTitle: 'Hint',
-    helpTitle: 'How To Play',
-    hintUsedLabel: (count: number) => `Used ${count}`,
+    helpTitle: 'How to play',
+    hintUsedLabel: (count: number) =>
+      count === 0 ? 'Hint' : `Hint used ${count} time${count === 1 ? '' : 's'}`,
   },
   statsHistogram: {
     distributionLabel: 'Distribution of how many tries roadgoers took',
@@ -73,12 +77,12 @@ export const UI_COPY = {
       howToPlay: {
         title: 'The road',
         items: [
-          'Start on the tile with the start icon and reach the tile with the exit icon.',
-          'Your running score must match the target when you reach the exit.',
-          'You cannot revisit a tile during the same run.',
+          'You begin on the footprints. Reach the finish flag with your score matching the target.',
+          'Your score changes as you move from tile to tile.',
+          'You cannot revisit a tile during the same attempt.',
           'Only up, down, left, and right moves are legal.',
           "Some roads simply aren't there — where there's no road, there's no way through.",
-          'It may not be possible to collect every coin on the board.',
+          'You may need to leave some tiles out. Board total shows the value of every tile, not the route you must take.',
         ],
       },
       tools: {
@@ -95,7 +99,7 @@ export const UI_COPY = {
         body: 'GoldRoad is a daily route puzzle about finding the best legal path, not collecting every coin on the board.',
       },
       updates: {
-        title: 'Milestone 1',
+        title: 'What’s new',
         items: [
           'Target-score solving is back at the center of the game.',
           'Gold, silver, and bronze are based on solve attempts 1, 2, and 3.',
@@ -115,14 +119,15 @@ export const UI_COPY = {
     keepGoing: 'Done for now',
     solveIncrement: '+1',
     solved: 'Solved',
-    attemptLabel: (count: number) => `${count} run${count === 1 ? '' : 's'}`,
+    attemptLabel: (count: number) =>
+      `${count} attempt${count === 1 ? '' : 's'}`,
     medalLine: (medal: string) => `${medal} medal`,
     solveTimeLine: (time: string) => `Solve time ${time}`,
     classic: {
       gold: {
         eyebrow: 'Classic solved',
         title: 'Gold. First try.',
-        body: 'A flawless run. Carry that momentum straight into Expedition.',
+        body: 'A flawless start. Carry that momentum straight into Expedition.',
       },
       medal: {
         eyebrow: 'Classic solved',
@@ -149,7 +154,7 @@ export const UI_COPY = {
     replay: {
       eyebrow: 'Replay',
       title: 'Solved.',
-      body: "Nice run on this archived road. It won't touch today's streak.",
+      body: "Nicely walked. This replay won't touch today's streak.",
     },
     shareCopied: 'Result copied to your clipboard.',
     shareUnavailable: 'Unable to share this result right now.',
@@ -159,14 +164,14 @@ export const UI_COPY = {
     ariaLabel: 'GoldRoad tutorial',
     eyebrow: 'Tutorial',
     title: 'Learn the road',
+    description: 'Learn the basics, then try a practice road.',
     close: 'Close',
     stepsAriaLabel: 'Tutorial steps',
     guideTab: '1. Guide',
-    practiceTab: '2. Practice',
+    practiceTab: '2. Practice Road',
     lessonsAriaLabel: 'Tutorial lessons',
     continueToPractice: 'Try a practice road',
-    practiceEyebrow: 'Practice',
-    practiceAriaLabel: 'Practice puzzle',
+    practiceAriaLabel: 'Practice road puzzle',
     roadLegendAriaLabel: 'Road legend',
     playToday: 'Play today',
   },
@@ -188,15 +193,15 @@ export const UI_COPY = {
     loadingTodaysRoad: "Loading today's road...",
     findingAnotherRoad: 'Finding another road...',
     preRun: (maxScore: number) =>
-      `Target ${maxScore}. Start from the marked tile.`,
-    needMore: (delta: number) => `${delta} more before the exit — keep walking.`,
-    exactNowFinish: 'Target reached. Reach the exit.',
+      `You’re on the footprints. Reach the finish with a score of ${maxScore}.`,
+    needMore: (delta: number) => `${delta} more before the finish — keep walking.`,
+    exactNowFinish: 'Target reached. Now find the finish.',
     overBy: (delta: number) => `Over by ${delta}.`,
-    destinationSolved: 'Solved on target.',
+    destinationSolved: 'Solved.',
     destinationShort: (delta: number) =>
-      `So close — ${delta} short of the target.`,
+      `You reached the finish ${delta} short of the target.`,
     destinationOver: (delta: number) =>
-      `${delta} over the target. Retry to land it exact.`,
+      `You reached the finish ${delta} over the target. Try another path.`,
     alreadySolved: 'Already solved. You can replay or switch modes.',
     alreadySolvedWithMedal: (medal: string) =>
       `Already solved with ${medal.toLowerCase()}. You can replay or switch modes.`,

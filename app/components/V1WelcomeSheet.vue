@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeUnmount, watch } from 'vue';
+import { onBeforeUnmount, ref, watch } from 'vue';
 import { UI_COPY } from '../content/uiCopy';
 
 const props = defineProps<{
@@ -12,6 +12,10 @@ const emit = defineEmits<{
 }>();
 
 const COPY = UI_COPY.v1Welcome;
+const dialog = ref<HTMLElement | null>(null);
+const isOpen = computed(() => props.visible);
+
+useDialogFocusTrap(isOpen, dialog);
 
 function onDismiss() {
   emit('dismiss');
@@ -52,7 +56,9 @@ onBeforeUnmount(() => {
   <Transition name="v1welcome">
     <div v-if="visible" class="v1welcome-scrim" @click.self="onDismiss">
       <section
+        ref="dialog"
         class="v1welcome-sheet"
+        tabindex="-1"
         role="dialog"
         aria-modal="true"
         aria-labelledby="v1welcome-title"

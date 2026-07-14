@@ -59,6 +59,9 @@ function computeTutorialHint(
 
 export function useTutorialPractice() {
   const board = TUTORIAL_PRACTICE_GAME.board;
+  const initialStatus = UI_COPY.runtime.preRun(
+    TUTORIAL_PRACTICE_GAME.maxScore,
+  );
   const tiles = ref(buildInitialTileStates(board));
   const currentTileIndex = ref<number | null>(null);
   const visited = ref<Set<number>>(new Set());
@@ -71,7 +74,7 @@ export function useTutorialPractice() {
   const solved = ref(false);
   const hintsUsed = ref(0);
   const retryCount = ref(0);
-  const status = ref(TUTORIAL_PRACTICE_GAME.intro);
+  const status = ref(initialStatus);
   const hintMessage = ref<string | null>(null);
 
   const maxScore = computed(() => TUTORIAL_PRACTICE_GAME.maxScore);
@@ -88,10 +91,7 @@ export function useTutorialPractice() {
         tile.done = visited.value.has(tile.id);
         tile.active = activeSet.value.has(tile.id);
         tile.focus = tile.id === currentTileIndex.value;
-        tile.tabIndex =
-          tile.id === currentTileIndex.value || activeSet.value.has(tile.id)
-            ? 0
-            : -1;
+        tile.tabIndex = tile.id === currentTileIndex.value ? 0 : -1;
       }
     }
   }
@@ -117,7 +117,7 @@ export function useTutorialPractice() {
     status.value =
       retryCount.value > 0
         ? 'Fresh try. Watch the score, and use Hint if you want a nudge.'
-        : TUTORIAL_PRACTICE_GAME.intro;
+        : initialStatus;
     hintMessage.value = null;
     syncGuideHighlight();
 
@@ -139,12 +139,18 @@ export function useTutorialPractice() {
     resetPractice();
   }
 
+  function restartPractice() {
+    retryCount.value = 0;
+    hintsUsed.value = 0;
+    resetPractice();
+  }
+
   function updateInRunStatus() {
     const remaining = maxScore.value - score.value;
 
     if (hintsUsed.value === 0 && moves.value >= 4) {
       status.value =
-        'If you are unsure which way to go, the Hint button works here just like it does in the daily puzzle.';
+        'If you are unsure which way to go, Hint can show the next useful move.';
       return;
     }
 
@@ -246,6 +252,7 @@ export function useTutorialPractice() {
     maxScore,
     totalCoins,
     canRetry,
+    restartPractice,
     retryPractice,
     moveTo,
     requestHint,

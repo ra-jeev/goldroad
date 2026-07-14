@@ -115,7 +115,7 @@ const resultLine = computed(() => {
 
   if (medalLabel.value) {
     return props.ended
-      ? `Solved on target · ${medalLabel.value}`
+      ? `Solved · ${medalLabel.value}`
       : `Solved earlier · ${medalLabel.value}`;
   }
 
@@ -184,7 +184,11 @@ const quietMetaLine = computed(() => {
       <button
         v-if="canRetry"
         type="button"
-        :class="['action-button', retryButtonStyle]"
+        :class="[
+          'action-button',
+          retryButtonStyle,
+          { 'action-button--text': ended && !solved },
+        ]"
         :disabled="retryBusy"
         :aria-label="UI_COPY.boardFooter.retryRoad"
         :title="UI_COPY.boardFooter.retryRoad"
@@ -200,6 +204,7 @@ const quietMetaLine = computed(() => {
             stroke-width="2"
           />
         </svg>
+        <span v-if="ended && !solved">{{ UI_COPY.boardFooter.retryRoad }}</span>
       </button>
 
       <NuxtLink
@@ -213,7 +218,7 @@ const quietMetaLine = computed(() => {
       <button
         v-if="showHintAction"
         type="button"
-        class="action-button ghost ghost--hint"
+        class="action-button ghost ghost--hint action-button--text"
         :disabled="busy"
         :aria-label="UI_COPY.boardFooter.openHint"
         :title="UI_COPY.boardFooter.hintUsedLabel(hintsUsed)"
@@ -229,6 +234,7 @@ const quietMetaLine = computed(() => {
             stroke-width="1.8"
           />
         </svg>
+        {{ UI_COPY.boardFooter.openHint }}
       </button>
 
       <NuxtLink

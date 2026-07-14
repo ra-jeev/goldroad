@@ -232,8 +232,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
         tile.done = visited.value.has(tile.id);
         tile.active = activeSet.value.has(tile.id);
         tile.focus = tile.id === current;
-        tile.tabIndex =
-          tile.id === current || activeSet.value.has(tile.id) ? 0 : -1;
+        tile.tabIndex = tile.id === current ? 0 : -1;
       }
     }
   }
@@ -800,6 +799,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
 
   async function moveTo(tileIndex: number) {
     if (!game.value || ended.value || currentTileIndex.value === null) return;
+    if (tileIndex === currentTileIndex.value) return;
     if (!activeSet.value.has(tileIndex)) {
       deniedMoveSignal.value += 1;
       return;
@@ -960,6 +960,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
       !game.value ||
       ended.value ||
       loading.value ||
+      isBoardOverlayOpen.value ||
       currentTileIndex.value === null
     ) {
       return;

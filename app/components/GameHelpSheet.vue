@@ -1,10 +1,13 @@
 <script setup lang="ts">
-import { onBeforeUnmount, watch } from 'vue';
+import { onBeforeUnmount, ref, watch } from 'vue';
 import { UI_COPY } from '../content/uiCopy';
 
 const { isHowToPlayOpen, closeHowToPlay } = useHowToPlaySheet();
 const { openTutorial } = useTutorialFlow();
 const COPY = UI_COPY.helpSheet;
+const dialog = ref<HTMLElement | null>(null);
+
+useDialogFocusTrap(isHowToPlayOpen, dialog);
 
 function playTutorial() {
   closeHowToPlay();
@@ -42,7 +45,9 @@ onBeforeUnmount(() => {
     @click.self="closeHowToPlay"
   >
     <section
+      ref="dialog"
       class="sheet-card"
+      tabindex="-1"
       role="dialog"
       aria-modal="true"
       aria-labelledby="game-help-title"

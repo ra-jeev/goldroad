@@ -22,8 +22,13 @@ const emit = defineEmits<{
 
 const metrics = computed(() => {
   return [
-    { label: UI_COPY.boardHeader.metrics.score, value: `${props.score}/${props.maxScore}` },
-    { label: UI_COPY.boardHeader.metrics.boardCoins, value: `${props.totalCoins}` },
+    { label: UI_COPY.boardHeader.metrics.score, value: `${props.score}` },
+    { label: UI_COPY.boardHeader.metrics.target, value: `${props.maxScore}` },
+    {
+      label: UI_COPY.boardHeader.metrics.boardTotal,
+      value: `${props.totalCoins}`,
+      description: UI_COPY.boardHeader.metrics.boardTotalDescription,
+    },
   ]
 })
 
@@ -91,7 +96,7 @@ const pulseStyle = computed(() => {
       :aria-label="UI_COPY.boardHeader.ariaLabels.roadScore"
     >
       <span v-for="(metric, index) in metrics" :key="metric.label">
-        <span class="metric-label">{{ metric.label }}</span>
+        <span class="metric-label" :title="metric.description">{{ metric.label }}</span>
         <strong>{{ metric.value }}</strong>
         <span v-if="index < metrics.length - 1" class="metric-separator">·</span>
       </span>

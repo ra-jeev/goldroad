@@ -97,7 +97,7 @@
   --tile-size: 50px;
   --tile-gap: 14px;
   --tile-border: 3px;
-  --road-thickness: 10px;
+  --road-thickness: 12px;
 
   /* ── Border radius ────────────────────────────────────────── */
   --radius-xs: 8px;
@@ -234,21 +234,6 @@
   }
 }
 
-/* Cost-chip pop when a scoring edge is first traversed. */
-@keyframes chip-pop {
-  0% {
-    transform: translate(-50%, -50%) scale(1);
-  }
-
-  35% {
-    transform: translate(-50%, -50%) scale(1.42);
-  }
-
-  100% {
-    transform: translate(-50%, -50%) scale(1);
-  }
-}
-
 /* Score readout pulse in the traversed edge's hue.
    Consumers set --pulse-color and --pulse-rgb. */
 @keyframes score-pulse {
@@ -316,23 +301,13 @@ body.mode-expedition .hero-card {
     linear-gradient(160deg, #0a1419 0%, #051015 62%, #020a0d 100%);
 }
 
-body.mode-expedition .board-stage {
-  background: radial-gradient(ellipse 80% 60% at 18% 10%,
-      var(--mode-tint-expedition) 0%,
-      transparent 60%),
-    linear-gradient(175deg, #0d1a1f 0%, #081318 50%, #040d11 100%);
-  border-color: rgb(0 180 200 / 0.4);
-  box-shadow:
-    var(--shadow-border-dark), var(--shadow-2xl),
-    inset 0 1px 0 rgb(0 220 240 / 0.1);
-}
-
 /* ── Responsive ───────────────────────────────────────────────── */
 
 @media (max-width: 760px) {
   :root {
     --tile-size: 42px;
     --tile-gap: 12px;
+    --road-thickness: 10px;
   }
 }
 

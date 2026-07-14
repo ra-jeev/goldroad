@@ -7,13 +7,9 @@ const { isTutorialOpen, closeTutorial, completeTutorial } = useTutorialFlow();
 const practice = useTutorialPractice();
 const COPY = UI_COPY.tutorial;
 const step = ref<'guide' | 'practice'>('guide');
+const dialog = ref<HTMLElement | null>(null);
 
-const legendItems = computed(() => [
-  { label: UI_COPY.board.info.openRoad, type: 'open' as const },
-  { label: UI_COPY.board.info.missingRoad, type: 'missing' as const },
-  { label: `${UI_COPY.board.info.toll} -${practice.board.tollValue}`, type: 'toll' as const },
-  { label: `${UI_COPY.board.info.bonus} +${practice.board.bonusValue}`, type: 'bonus' as const },
-]);
+useDialogFocusTrap(isTutorialOpen, dialog);
 
 function finishTutorial() {
   completeTutorial();
@@ -31,6 +27,7 @@ function onKeydown(event: KeyboardEvent) {
 watch(isTutorialOpen, (open) => {
   if (open) {
     step.value = 'guide';
+    practice.restartPractice();
   }
 
   if (!import.meta.client) return;
@@ -56,7 +53,9 @@ onBeforeUnmount(() => {
     @click.self="closeTutorial"
   >
     <section
+      ref="dialog"
       class="tutorial-panel"
+      tabindex="-1"
       role="dialog"
       aria-modal="true"
       aria-labelledby="tutorial-title"
@@ -66,6 +65,7 @@ onBeforeUnmount(() => {
         <div>
           <p class="eyebrow">{{ COPY.eyebrow }}</p>
           <h2 id="tutorial-title">{{ COPY.title }}</h2>
+          <p class="tutorial-description">{{ COPY.description }}</p>
         </div>
 
         <button
@@ -127,10 +127,12 @@ onBeforeUnmount(() => {
             <TutorialMiniBoard
               :from-value="lesson.visual.fromValue"
               :to-value="lesson.visual.toValue"
+              :middle-value="lesson.visual.middleValue"
               :edge-type="lesson.visual.edgeType"
               :is-start="lesson.visual.isStart"
               :is-end="lesson.visual.isEnd"
-              :modifier-label="lesson.visual.modifierLabel"
+              :is-hinted="lesson.visual.isHinted"
+              :show-hint-button="lesson.visual.showHintButton"
             />
 
             <div>
@@ -157,19 +159,15 @@ onBeforeUnmount(() => {
         aria-labelledby="tutorial-practice-tab"
         :aria-label="COPY.practiceAriaLabel"
       >
-        <div class="practice-heading">
-          <div>
-            <p class="eyebrow">{{ COPY.practiceEyebrow }}</p>
-            <h3>{{ practice.game.title }}</h3>
-          </div>
-
-          <p class="score-line">
-            {{ UI_COPY.boardHeader.metrics.score }}
-            <strong>{{ practice.score.value }}/{{ practice.maxScore.value }}</strong>
-            <span>·</span>
-            {{ UI_COPY.boardHeader.metrics.boardCoins }} <strong>{{ practice.totalCoins.value }}</strong>
-          </p>
-        </div>
+        <p class="score-line practice-score-line">
+          {{ UI_COPY.boardHeader.metrics.score }}
+          <strong>{{ practice.score.value }}</strong>
+          <span>·</span>
+          {{ UI_COPY.boardHeader.metrics.target }}
+          <strong>{{ practice.maxScore.value }}</strong>
+          <span>·</span>
+          {{ UI_COPY.boardHeader.metrics.boardTotal }} <strong>{{ practice.totalCoins.value }}</strong>
+        </p>
 
         <GameBoard
           :board="practice.board"
@@ -183,19 +181,6 @@ onBeforeUnmount(() => {
           :disabled="practice.ended.value"
           @select="practice.moveTo"
         />
-
-        <div class="legend-row" :aria-label="COPY.roadLegendAriaLabel">
-          <div
-            v-for="item in legendItems"
-            :key="item.label"
-            class="legend-item"
-          >
-            <span class="legend-road">
-              <RoadGlyph :type="item.type" state="default" />
-            </span>
-            <span>{{ item.label }}</span>
-          </div>
-        </div>
 
         <GameBoardFooter
           :status="practice.status.value"
@@ -255,8 +240,7 @@ onBeforeUnmount(() => {
   box-shadow: var(--shadow-xl);
 }
 
-.tutorial-top,
-.practice-heading {
+.tutorial-top {
   display: flex;
   justify-content: space-between;
   align-items: start;
@@ -267,10 +251,15 @@ onBeforeUnmount(() => {
   padding-right: 2.6rem;
 }
 
-.tutorial-top h2,
-.practice-heading h3 {
+.tutorial-top h2 {
   margin: 0;
   color: var(--color-gold-bright);
+}
+
+.tutorial-description {
+  margin: 0.35rem 0 0;
+  color: rgb(var(--color-gold-rgb) / 0.72);
+  line-height: var(--line-height-base);
 }
 
 .tutorial-close {
@@ -367,13 +356,17 @@ onBeforeUnmount(() => {
 
 .lesson-card {
   display: grid;
-  grid-template-columns: minmax(9.5rem, auto) 1fr;
+  grid-template-columns: 11.5rem minmax(0, 1fr);
   align-items: center;
   gap: 0.9rem;
   padding: 0.75rem;
   border-radius: var(--radius-md);
   background: rgb(var(--color-gold-rgb) / 0.06);
   border: 1px solid rgb(var(--color-gold-rgb) / 0.14);
+}
+
+.lesson-card > :first-child {
+  justify-self: center;
 }
 
 .lesson-card h3 {
@@ -383,7 +376,6 @@ onBeforeUnmount(() => {
 }
 
 .lesson-card p,
-.practice-message,
 .score-line {
   margin: 0;
   color: rgb(var(--color-gold-rgb) / 0.8);
@@ -393,13 +385,13 @@ onBeforeUnmount(() => {
 .practice-section {
   display: grid;
   justify-items: center;
-  gap: 0.7rem;
+  gap: 1rem;
   padding-top: 0.25rem;
 }
 
-.practice-heading {
+.practice-score-line {
   width: min(100%, 620px);
-  align-items: end;
+  text-align: center;
 }
 
 .score-line {
@@ -413,40 +405,6 @@ onBeforeUnmount(() => {
 .score-line span {
   margin: 0 0.4rem;
   color: rgb(var(--color-gold-rgb) / 0.4);
-}
-
-.practice-message {
-  min-height: 2.7rem;
-  width: min(100%, 620px);
-  text-align: center;
-}
-
-.legend-row {
-  width: min(100%, 620px);
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.5rem;
-}
-
-.legend-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.32rem 0.5rem;
-  border-radius: var(--radius-full);
-  border: 1px solid rgb(var(--color-gold-rgb) / 0.22);
-  background: rgb(var(--color-gold-rgb) / 0.1);
-  color: rgb(var(--color-gold-rgb) / 0.86);
-  font-size: 0.78rem;
-  font-weight: 800;
-}
-
-.legend-road {
-  display: inline-grid;
-  place-items: center;
-  width: 1.7rem;
-  height: 1rem;
 }
 
 @media (max-width: 760px) {
@@ -464,7 +422,6 @@ onBeforeUnmount(() => {
   }
 
   .tutorial-top,
-  .practice-heading,
   .lesson-card {
     display: grid;
     justify-items: center;

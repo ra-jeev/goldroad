@@ -1,7 +1,8 @@
 <script setup lang="ts">
+import { nextTick, ref, watch } from 'vue';
 import { UI_COPY } from '../content/uiCopy';
 
-defineProps<{
+const props = defineProps<{
   value: number;
   isStart: boolean;
   isEnd: boolean;
@@ -9,16 +10,33 @@ defineProps<{
   isActive: boolean;
   isDone: boolean;
   isHinted: boolean;
+  tabIndex: number;
   disabled?: boolean;
 }>();
 
 const emit = defineEmits<{
   select: [];
 }>();
+
+const button = ref<HTMLButtonElement | null>(null);
+
+// Arrow-key moves are handled at the board level. Keep DOM focus aligned with
+// the newly current tile so the roving tabindex remains useful to keyboard and
+// assistive-technology users after each move. Do not steal focus on first
+// render; the watcher only runs when the current tile actually changes.
+watch(
+  () => props.isCurrent,
+  async (isCurrent, wasCurrent) => {
+    if (!isCurrent || wasCurrent !== false) return;
+    await nextTick();
+    button.value?.focus();
+  },
+);
 </script>
 
 <template>
   <button
+    ref="button"
     :class="{
       tile: true,
       current: isCurrent,
@@ -29,6 +47,7 @@ const emit = defineEmits<{
       hinted: isHinted,
     }"
     :disabled="disabled"
+    :tabindex="tabIndex"
     @click="emit('select')"
   >
     <span class="value">{{ value }}</span>

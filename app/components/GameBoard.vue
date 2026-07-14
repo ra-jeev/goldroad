@@ -5,6 +5,7 @@ import type { Board, EdgeType, PuzzleType } from '../../shared/types/game';
 import type { TileState } from '../types/game';
 import GameTile from './GameTile.vue';
 import BoardRoad from './BoardRoad.vue';
+import RoadGlyph from './RoadGlyph.vue';
 import { UI_COPY } from '../content/uiCopy';
 
 type RoadVisualType = 'open' | Exclude<EdgeType, 'missing'>;
@@ -79,14 +80,7 @@ interface RoadData {
   state: 'default' | 'closed' | 'active' | 'traversed';
   traversed: boolean;
   arrowDir: string | null;
-  costValue: number | null;
   style: Record<string, string>;
-}
-
-function costFor(type: RoadVisualType): number | null {
-  if (type === 'toll') return props.board.tollValue;
-  if (type === 'bonus') return props.board.bonusValue;
-  return null;
 }
 
 const allRoads = computed<RoadData[]>(() => {
@@ -125,7 +119,6 @@ const allRoads = computed<RoadData[]>(() => {
             state,
             traversed: hit,
             arrowDir: hit ? trav.get(edgeKey)! : null,
-            costValue: costFor(type),
             style: buildRoadStyle(row, col, 'h'),
           });
         }
@@ -159,7 +152,6 @@ const allRoads = computed<RoadData[]>(() => {
           state,
           traversed: hit,
           arrowDir: hit ? trav.get(edgeKey)! : null,
-          costValue: costFor(type),
           style: buildRoadStyle(row, col, 'v'),
         });
       }
@@ -198,16 +190,20 @@ watch(
         aria-label="Expedition road values"
       >
         <div class="info-item info-toll">
-          <span class="info-icon">-</span>
-          <span class="info-label"
-            >{{ UI_COPY.board.info.toll }} {{ board.tollValue }}</span
-          >
+          <span class="info-road" aria-hidden="true">
+            <RoadGlyph type="toll" state="default" />
+          </span>
+          <span class="info-label">
+            {{ UI_COPY.board.info.tollCost }} {{ board.tollValue }}
+          </span>
         </div>
         <div class="info-item info-bonus">
-          <span class="info-icon">+</span>
-          <span class="info-label"
-            >{{ UI_COPY.board.info.bonus }} {{ board.bonusValue }}</span
-          >
+          <span class="info-road" aria-hidden="true">
+            <RoadGlyph type="bonus" state="default" />
+          </span>
+          <span class="info-label">
+            {{ UI_COPY.board.info.roadBonus }} {{ board.bonusValue }}
+          </span>
         </div>
       </div>
 
@@ -228,6 +224,7 @@ watch(
             :is-active="activeSet.has(tile.id)"
             :is-done="visitedSet.has(tile.id)"
             :is-hinted="hintedTiles.has(tile.id)"
+            :tab-index="tile.tabIndex"
             :disabled="disabled"
             @select="emit('select', tile.id)"
           />
@@ -241,7 +238,6 @@ watch(
           :traversed="road.traversed"
           :arrow-dir="road.arrowDir"
           :orientation="road.orientation"
-          :cost-value="road.costValue"
           :style="road.style"
         />
       </div>
@@ -296,15 +292,16 @@ watch(
   border-color: rgb(var(--color-bonus-rgb) / 0.34);
 }
 
-.info-icon {
-  display: inline-grid;
-  place-items: center;
-  width: 1rem;
-  height: 1rem;
-  border-radius: var(--radius-circle);
-  border: 1px solid currentColor;
-  font-size: 0.82rem;
-  line-height: 1;
+.info-road {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  flex: 0 0 1.55rem;
+  width: 1.55rem;
+  height: var(--road-thickness);
+  line-height: 0;
+  transform: translateY(-1px);
 }
 
 .board-wrapper {
@@ -329,8 +326,5 @@ watch(
     font-size: 0.82rem;
   }
 
-  .info-icon {
-    font-size: 1rem;
-  }
 }
 </style>

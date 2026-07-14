@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { UI_COPY } from '../../content/uiCopy';
 import { RECENT_ARCHIVE_DAY_LIMIT } from '../../../shared/utils/archive';
 
 const gamesApi = useGamesApi();
@@ -71,61 +70,25 @@ onMounted(async () => {
               <p class="eyebrow">{{ formatDate(game.playableAt) }}</p>
               <h2>Road {{ game.gameNo }}</h2>
             </div>
-            <span class="day-pill">
-              {{ game.expedition ? 'Classic + Expedition' : 'Classic' }}
-            </span>
+            <span class="card-arrow" aria-hidden="true">→</span>
           </div>
 
           <div class="mode-list">
-            <section v-if="game.classic" class="mode-card mode-card--classic">
-              <div class="mode-head">
-                <strong>Classic</strong>
-                <span class="difficulty-pill">
-                  {{ formatDifficulty(game.classic.difficultyBand) }}
-                </span>
-              </div>
-              <div class="mode-stats">
-                <div class="game-stat">
-                  <span class="label">Target</span>
-                  <span class="value">{{ game.classic.maxScore }}</span>
-                </div>
-                <div class="game-stat">
-                  <span class="label">
-                    {{ UI_COPY.boardHeader.metrics.boardCoins }}
-                  </span>
-                  <span class="value">{{ game.classic.totalCoins }}</span>
-                </div>
-              </div>
-            </section>
+            <span v-if="game.classic" class="mode-pill mode-pill--classic">
+              <strong>Classic</strong>
+              <span>{{ formatDifficulty(game.classic.difficultyBand) }}</span>
+            </span>
 
-            <section
+            <span
               v-if="game.expedition"
-              class="mode-card mode-card--expedition"
+              class="mode-pill mode-pill--expedition"
             >
-              <div class="mode-head">
-                <strong>Expedition</strong>
-                <span class="difficulty-pill">
-                  {{ formatDifficulty(game.expedition.difficultyBand) }}
-                </span>
-              </div>
-              <div class="mode-stats">
-                <div class="game-stat">
-                  <span class="label">Target</span>
-                  <span class="value">{{ game.expedition.maxScore }}</span>
-                </div>
-                <div class="game-stat">
-                  <span class="label">
-                    {{ UI_COPY.boardHeader.metrics.boardCoins }}
-                  </span>
-                  <span class="value">{{ game.expedition.totalCoins }}</span>
-                </div>
-              </div>
-            </section>
+              <strong>Expedition</strong>
+              <span>{{ formatDifficulty(game.expedition.difficultyBand) }}</span>
+            </span>
           </div>
 
-          <span class="btn btn--primary">
-            Replay road day
-          </span>
+          <span class="card-action">Replay road day</span>
         </NuxtLink>
       </div>
     </div>
@@ -206,7 +169,7 @@ onMounted(async () => {
 
 .game-card {
   display: grid;
-  gap: 1rem;
+  gap: 0.9rem;
   align-content: start;
   color: inherit;
   text-decoration: none;
@@ -218,6 +181,12 @@ onMounted(async () => {
 .game-card:hover {
   transform: translateY(-2px);
   border-color: rgb(var(--color-gold-rgb) / 0.38);
+}
+
+.game-card:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 3px;
+  border-color: rgb(var(--color-gold-rgb) / 0.42);
 }
 
 .game-head {
@@ -233,104 +202,61 @@ onMounted(async () => {
   font-size: 1.35rem;
 }
 
-.day-pill,
-.difficulty-pill {
-  align-self: start;
-  padding: 0.26rem 0.6rem;
-  border-radius: var(--radius-full);
-  background: rgb(var(--color-gold-rgb) / 0.1);
-  border: 1px solid rgb(var(--color-gold-rgb) / 0.22);
-  color: rgb(var(--color-gold-rgb) / 0.86);
-  font-size: 0.74rem;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  white-space: nowrap;
+.card-arrow {
+  display: inline-grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-circle);
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.2);
+  background: rgb(var(--color-gold-rgb) / 0.08);
+  color: var(--color-gold);
+  font-size: 1.15rem;
+  transition:
+    transform var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.game-card:hover .card-arrow {
+  transform: translateX(2px);
+  background: rgb(var(--color-gold-rgb) / 0.15);
 }
 
 .mode-list {
-  display: grid;
-  gap: 0.7rem;
-}
-
-.mode-card {
-  display: grid;
-  gap: 0.6rem;
-  padding: 0.85rem 1rem;
-  border-radius: var(--radius-md);
-  background: rgb(var(--color-gold-rgb) / 0.06);
-  border: 1px solid rgb(var(--color-gold-rgb) / 0.14);
-}
-
-.mode-card--expedition {
-  border-color: rgb(var(--color-expedition-accent-rgb) / 0.24);
-  background: rgb(var(--color-expedition-accent-rgb) / 0.08);
-}
-
-.mode-head {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.8rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
-.mode-head strong {
+.mode-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  padding: 0.32rem 0.58rem;
+  border-radius: var(--radius-full);
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.18);
+  background: rgb(var(--color-gold-rgb) / 0.06);
+  color: rgb(var(--color-gold-rgb) / 0.7);
+  font-size: 0.76rem;
+}
+
+.mode-pill strong {
   color: var(--color-gold);
 }
 
-.mode-card--expedition .mode-head strong {
+.mode-pill--expedition {
+  border-color: rgb(var(--color-expedition-accent-rgb) / 0.2);
+  background: rgb(var(--color-expedition-accent-rgb) / 0.06);
+}
+
+.mode-pill--expedition strong {
   color: var(--color-expedition-accent-bright);
 }
 
-.mode-stats {
-  display: flex;
-  gap: 1.5rem;
-  flex-wrap: wrap;
-}
-
-.game-stat {
-  display: grid;
-  gap: 0.2rem;
-}
-
-.game-stat .label {
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: rgb(var(--color-gold-rgb) / 0.6);
-}
-
-.game-stat .value {
-  font-size: 1.2rem;
+.card-action {
+  color: rgb(var(--color-gold-rgb) / 0.78);
+  font-size: 0.8rem;
   font-weight: 800;
-  color: var(--color-gold-bright);
-  font-variant-numeric: tabular-nums;
-}
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  padding: 0.65rem 1rem;
-  border-radius: var(--radius-full);
-  border: 1px solid transparent;
-  font: inherit;
-  font-weight: 800;
-  text-decoration: none;
-  transition:
-    transform var(--transition-fast),
-    box-shadow var(--transition-fast);
-}
-
-.btn--primary {
-  color: var(--color-text-on-gold);
-  background: var(--gradient-button-primary);
-  box-shadow: 0 0 16px rgb(var(--color-gold-rgb) / 0.2);
-}
-
-.btn--primary:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-sm);
 }
 
 @media (max-width: 600px) {
