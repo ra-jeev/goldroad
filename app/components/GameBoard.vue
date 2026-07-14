@@ -189,20 +189,26 @@ watch(
         class="board-info"
         aria-label="Expedition road values"
       >
-        <div class="info-item info-toll">
+        <div class="info-item">
           <span class="info-road" aria-hidden="true">
             <RoadGlyph type="toll" state="default" />
           </span>
           <span class="info-label">
-            {{ UI_COPY.board.info.tollCost }} {{ board.tollValue }}
+            {{ UI_COPY.board.info.tollCost }}
+          </span>
+          <span class="info-value">
+            {{ board.tollValue }}
           </span>
         </div>
-        <div class="info-item info-bonus">
+        <div class="info-item">
           <span class="info-road" aria-hidden="true">
             <RoadGlyph type="bonus" state="default" />
           </span>
-          <span class="info-label">
-            {{ UI_COPY.board.info.roadBonus }} {{ board.bonusValue }}
+          <span>
+            {{ UI_COPY.board.info.roadBonus }}
+          </span>
+          <span class="info-value">
+            {{ board.bonusValue }}
           </span>
         </div>
       </div>
@@ -262,7 +268,7 @@ watch(
 .board-info {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.45rem;
+  gap: 1.5rem;
   justify-content: center;
   align-items: center;
   width: 100%;
@@ -271,25 +277,13 @@ watch(
 .info-item {
   display: flex;
   align-items: center;
-  gap: 0.36rem;
-  padding: 0.35rem 0.62rem;
-  border-radius: var(--radius-xs);
-  font-size: 0.78rem;
-  font-weight: 800;
-  border: 1px solid;
-  letter-spacing: 0.02em;
+  gap: 0.5rem;
+  color: rgb(var(--color-gold-rgb) / 0.64);
 }
 
-.info-toll {
-  background: rgb(var(--color-toll-rgb) / 0.14);
-  color: var(--color-toll-bright);
-  border-color: rgb(var(--color-toll-rgb) / 0.4);
-}
-
-.info-bonus {
-  background: rgb(var(--color-bonus-rgb) / 0.12);
-  color: var(--color-bonus-bright);
-  border-color: rgb(var(--color-bonus-rgb) / 0.34);
+.info-value {
+  font-weight: 700;
+  color: var(--color-gold);
 }
 
 .info-road {
@@ -297,11 +291,8 @@ watch(
   align-items: center;
   justify-content: center;
   align-self: center;
-  flex: 0 0 1.55rem;
-  width: 1.55rem;
+  width: var(--tile-gap);
   height: var(--road-thickness);
-  line-height: 0;
-  transform: translateY(-1px);
 }
 
 .board-wrapper {
@@ -325,6 +316,5 @@ watch(
     padding: 0.35rem 0.65rem;
     font-size: 0.82rem;
   }
-
 }
 </style>

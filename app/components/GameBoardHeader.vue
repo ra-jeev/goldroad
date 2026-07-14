@@ -1,24 +1,24 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import type { Medal, PuzzleType } from '../../shared/types/game'
-import { UI_COPY } from '../content/uiCopy'
+import { computed } from 'vue';
+import type { Medal, PuzzleType } from '../../shared/types/game';
+import { UI_COPY } from '../content/uiCopy';
 
 const props = defineProps<{
-  selectedMode: PuzzleType | null
-  hasExpedition: boolean
-  isExpeditionUnlocked: boolean
-  classicSolved: boolean
-  score: number
-  maxScore: number
-  totalCoins: number
-  medal: Medal | null
-  solved: boolean
-  pulse?: { type: 'toll' | 'bonus'; key: number } | null
-}>()
+  selectedMode: PuzzleType | null;
+  hasExpedition: boolean;
+  isExpeditionUnlocked: boolean;
+  classicSolved: boolean;
+  score: number;
+  maxScore: number;
+  totalCoins: number;
+  medal: Medal | null;
+  solved: boolean;
+  pulse?: { type: 'toll' | 'bonus'; key: number } | null;
+}>();
 
 const emit = defineEmits<{
-  selectMode: [mode: PuzzleType]
-}>()
+  selectMode: [mode: PuzzleType];
+}>();
 
 const metrics = computed(() => {
   return [
@@ -29,18 +29,24 @@ const metrics = computed(() => {
       value: `${props.totalCoins}`,
       description: UI_COPY.boardHeader.metrics.boardTotalDescription,
     },
-  ]
-})
+  ];
+});
 
 // A fresh :key each pulse replays the score-pulse animation. Color follows
 // the traversed edge's hue. Disabled under reduced motion via global CSS.
-const pulseKey = computed(() => props.pulse?.key ?? 0)
+const pulseKey = computed(() => props.pulse?.key ?? 0);
 const pulseStyle = computed(() => {
-  if (!props.pulse) return undefined
+  if (!props.pulse) return undefined;
   return props.pulse.type === 'toll'
-    ? { '--pulse-color': 'var(--color-toll-bright)', '--pulse-rgb': 'var(--color-toll-rgb)' }
-    : { '--pulse-color': 'var(--color-bonus-bright)', '--pulse-rgb': 'var(--color-bonus-rgb)' }
-})
+    ? {
+        '--pulse-color': 'var(--color-toll-bright)',
+        '--pulse-rgb': 'var(--color-toll-rgb)',
+      }
+    : {
+        '--pulse-color': 'var(--color-bonus-bright)',
+        '--pulse-rgb': 'var(--color-bonus-rgb)',
+      };
+});
 </script>
 
 <template>
@@ -96,9 +102,13 @@ const pulseStyle = computed(() => {
       :aria-label="UI_COPY.boardHeader.ariaLabels.roadScore"
     >
       <span v-for="(metric, index) in metrics" :key="metric.label">
-        <span class="metric-label" :title="metric.description">{{ metric.label }}</span>
+        <span class="metric-label" :title="metric.description">
+          {{ metric.label }}
+        </span>
         <strong>{{ metric.value }}</strong>
-        <span v-if="index < metrics.length - 1" class="metric-separator">·</span>
+        <span v-if="index < metrics.length - 1" class="metric-separator">
+          •
+        </span>
       </span>
     </p>
   </section>
@@ -174,8 +184,8 @@ const pulseStyle = computed(() => {
 }
 
 .metric-separator {
-  margin: 0 0.55rem;
-  color: rgb(var(--color-gold-rgb) / 0.36);
+  margin: 0 0.5rem;
+  color: rgb(var(--color-gold-rgb) / 0.64);
 }
 
 @media (max-width: 760px) {

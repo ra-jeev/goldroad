@@ -60,7 +60,7 @@ export const TUTORIAL_LESSONS: TutorialLesson[] = [
   {
     id: 'toll-road',
     title: 'Toll roads',
-    body: 'Two dotted rails mark a toll road. If you cross it, you pay the toll shown above the board.',
+    body: 'Two dashed rails mark a toll road. If you cross it, you pay the toll shown above the board.',
     visual: {
       fromValue: 6,
       toValue: 4,

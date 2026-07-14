@@ -162,11 +162,12 @@ onBeforeUnmount(() => {
         <p class="score-line practice-score-line">
           {{ UI_COPY.boardHeader.metrics.score }}
           <strong>{{ practice.score.value }}</strong>
-          <span>·</span>
+          <span>•</span>
           {{ UI_COPY.boardHeader.metrics.target }}
           <strong>{{ practice.maxScore.value }}</strong>
-          <span>·</span>
-          {{ UI_COPY.boardHeader.metrics.boardTotal }} <strong>{{ practice.totalCoins.value }}</strong>
+          <span>•</span>
+          {{ UI_COPY.boardHeader.metrics.boardTotal }}
+          <strong>{{ practice.totalCoins.value }}</strong>
         </p>
 
         <GameBoard
@@ -358,7 +359,7 @@ onBeforeUnmount(() => {
   display: grid;
   grid-template-columns: 11.5rem minmax(0, 1fr);
   align-items: center;
-  gap: 0.9rem;
+  gap: 1rem;
   padding: 0.75rem;
   border-radius: var(--radius-md);
   background: rgb(var(--color-gold-rgb) / 0.06);
@@ -366,7 +367,7 @@ onBeforeUnmount(() => {
 }
 
 .lesson-card > :first-child {
-  justify-self: center;
+  justify-self: end;
 }
 
 .lesson-card h3 {

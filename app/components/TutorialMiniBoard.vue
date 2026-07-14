@@ -106,7 +106,7 @@ function roadStyle(index: number): Record<string, string> {
 
 .mini-hint {
   display: grid;
-  place-items: center;
+  place-items: end;
   min-width: 11.5rem;
 }
 

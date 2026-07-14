@@ -41,10 +41,10 @@ withDefaults(
         fill="none"
         stroke="currentColor"
         stroke-linecap="round"
-        stroke-width="2.2"
-        stroke-dasharray="0.8 4"
+        stroke-width="3.2"
+        stroke-dasharray="3 6"
         vector-effect="non-scaling-stroke"
-        :d="orientation === 'h' ? 'M0 8H24M0 16H24' : 'M8 0V24M16 0V24'"
+        :d="orientation === 'h' ? 'M0 6H24M0 18H24' : 'M6 0V24M18 0V24'"
       />
     </svg>
 
@@ -60,9 +60,9 @@ withDefaults(
         fill="none"
         stroke="currentColor"
         stroke-linecap="round"
-        stroke-width="2.2"
+        stroke-width="3.2"
         vector-effect="non-scaling-stroke"
-        :d="orientation === 'h' ? 'M0 8H24M0 16H24' : 'M8 0V24M16 0V24'"
+        :d="orientation === 'h' ? 'M0 6H24M0 18H24' : 'M6 0V24M18 0V24'"
       />
     </svg>
 
@@ -78,7 +78,7 @@ withDefaults(
         fill="none"
         stroke="currentColor"
         stroke-linecap="round"
-        stroke-width="2.8"
+        stroke-width="3.2"
         vector-effect="non-scaling-stroke"
         :d="orientation === 'h' ? 'M0 12H24' : 'M12 0V24'"
       />
