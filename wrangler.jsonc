@@ -6,7 +6,7 @@
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "goldroad",
 	"main": "./.output/server/index.mjs",
-	"compatibility_date": "2025-09-27",
+	"compatibility_date": "2026-07-14",
 	"assets": {
 		"binding": "ASSETS",
 		"directory": "./.output/public/"

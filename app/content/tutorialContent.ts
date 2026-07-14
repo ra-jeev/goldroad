@@ -49,7 +49,7 @@ export const TUTORIAL_LESSONS: TutorialLesson[] = [
   {
     id: 'missing-road',
     title: 'Missing roads',
-    body: 'Neighboring tiles are not always connected. If there is no road, that move is unavailable.',
+    body: "Not every tile connects to its neighbor. Where the road is missing, that move disappears.",
     visual: {
       fromValue: 2,
       toValue: 5,

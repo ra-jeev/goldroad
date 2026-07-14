@@ -3,7 +3,13 @@ import type { Medal } from '../../shared/types/game';
 export const UI_COPY = {
   board: {
     keyboardHint: 'Click tiles or use arrow keys',
+    tileLabels: {
+      start: 'Start tile',
+      exit: 'Exit tile',
+    },
     info: {
+      openRoad: 'Open road',
+      missingRoad: 'Missing road',
       toll: 'Toll',
       bonus: 'Bonus',
     },
@@ -16,7 +22,7 @@ export const UI_COPY = {
     unlockHint: 'Solve Classic to unlock Expedition.',
     metrics: {
       score: 'Score',
-      boardCoins: 'Board Coins',
+      boardCoins: 'Road Coins',
       medal: 'Medal',
     },
     medals: {
@@ -24,15 +30,20 @@ export const UI_COPY = {
       silver: 'Silver',
       bronze: 'Bronze',
     } as Record<Medal, string>,
+    ariaLabels: {
+      controls: 'Road controls',
+      puzzleMode: 'Puzzle mode',
+      roadScore: 'Road score',
+    },
   },
   boardFooter: {
-    retryRoad: 'Retry Road',
+    retryRoad: 'Walk It Again',
     openHint: 'Hint',
     openHelp: 'How to Play',
     switchToExpedition: 'Play Expedition',
     shareResult: 'Share',
     viewStats: 'View Stats',
-    attemptLabel: 'Attempt',
+    attemptLabel: 'Run',
     expeditionUnlocked: 'Expedition unlocked',
     medalAwarded: (medal: string) => `${medal} medal`,
     nextRoadCountdown: (countdown: string) =>
@@ -42,7 +53,18 @@ export const UI_COPY = {
     helpTitle: 'How To Play',
     hintUsedLabel: (count: number) => `Used ${count}`,
   },
+  statsHistogram: {
+    distributionLabel: 'Distribution of how many tries roadgoers took',
+    barAriaLabel: (input: {
+      caption: string;
+      count: number;
+      share: number;
+      isPlayer: boolean;
+    }) =>
+      `${input.caption}: ${input.count} run${input.count === 1 ? '' : 's'}, ${input.share}%${input.isPlayer ? ' — your run' : ''}`,
+  },
   helpSheet: {
+    ariaLabel: 'How to play',
     close: 'Close',
     startTutorial: 'Play Tutorial',
     intro:
@@ -55,7 +77,7 @@ export const UI_COPY = {
           'Your running score must match the target when you reach the exit.',
           'You cannot revisit a tile during the same run.',
           'Only up, down, left, and right moves are legal.',
-          'Some roads are missing or blocked, so not every neighbor can be reached.',
+          "Some roads simply aren't there — where there's no road, there's no way through.",
           'It may not be possible to collect every coin on the board.',
         ],
       },
@@ -93,8 +115,7 @@ export const UI_COPY = {
     keepGoing: 'Done for now',
     solveIncrement: '+1',
     solved: 'Solved',
-    attemptLabel: (count: number) =>
-      `${count} attempt${count === 1 ? '' : 's'}`,
+    attemptLabel: (count: number) => `${count} run${count === 1 ? '' : 's'}`,
     medalLine: (medal: string) => `${medal} medal`,
     solveTimeLine: (time: string) => `Solve time ${time}`,
     classic: {
@@ -134,6 +155,22 @@ export const UI_COPY = {
     shareUnavailable: 'Unable to share this result right now.',
   },
 
+  tutorial: {
+    ariaLabel: 'GoldRoad tutorial',
+    eyebrow: 'Tutorial',
+    title: 'Learn the road',
+    close: 'Close',
+    stepsAriaLabel: 'Tutorial steps',
+    guideTab: '1. Guide',
+    practiceTab: '2. Practice',
+    lessonsAriaLabel: 'Tutorial lessons',
+    continueToPractice: 'Try a practice road',
+    practiceEyebrow: 'Practice',
+    practiceAriaLabel: 'Practice puzzle',
+    roadLegendAriaLabel: 'Road legend',
+    playToday: 'Play today',
+  },
+
   v1Welcome: {
     close: 'Close',
     eyebrow: 'GoldRoad is back',
@@ -152,16 +189,18 @@ export const UI_COPY = {
     findingAnotherRoad: 'Finding another road...',
     preRun: (maxScore: number) =>
       `Target ${maxScore}. Start from the marked tile.`,
-    needMore: (delta: number) => `Need ${delta} more before the exit.`,
+    needMore: (delta: number) => `${delta} more before the exit — keep walking.`,
     exactNowFinish: 'Target reached. Reach the exit.',
     overBy: (delta: number) => `Over by ${delta}.`,
     destinationSolved: 'Solved on target.',
-    destinationShort: (delta: number) => `Not solved. You were ${delta} short.`,
-    destinationOver: (delta: number) => `Not solved. You were ${delta} over.`,
+    destinationShort: (delta: number) =>
+      `So close — ${delta} short of the target.`,
+    destinationOver: (delta: number) =>
+      `${delta} over the target. Retry to land it exact.`,
     alreadySolved: 'Already solved. You can replay or switch modes.',
     alreadySolvedWithMedal: (medal: string) =>
       `Already solved with ${medal.toLowerCase()}. You can replay or switch modes.`,
-    deadEnd: 'Dead end before the exit. Retry this road.',
+    deadEnd: 'Dead end. Walk it again to find the way through.',
     hintNextStep:
       'Hint applied. The highlighted guide shows the next correct move.',
     hintDiverged:

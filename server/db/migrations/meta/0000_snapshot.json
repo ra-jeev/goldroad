@@ -1,136 +1,9 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "495679e3-f15c-4361-91d1-004ebfd8d5ff",
+  "id": "f5413170-dc26-4c29-87aa-a9fc34f1137b",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
-    "daily_game_stats": {
-      "name": "daily_game_stats",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "integer",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": true
-        },
-        "game_no": {
-          "name": "game_no",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "plays": {
-          "name": "plays",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
-        },
-        "completions": {
-          "name": "completions",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
-        },
-        "gold_completions": {
-          "name": "gold_completions",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
-        },
-        "silver_completions": {
-          "name": "silver_completions",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
-        },
-        "bronze_completions": {
-          "name": "bronze_completions",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
-        },
-        "total_attempts": {
-          "name": "total_attempts",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
-        },
-        "hint_level_1_uses": {
-          "name": "hint_level_1_uses",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
-        },
-        "hint_level_2_uses": {
-          "name": "hint_level_2_uses",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
-        },
-        "hint_level_3_uses": {
-          "name": "hint_level_3_uses",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
-        },
-        "completion_rate": {
-          "name": "completion_rate",
-          "type": "real",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "past_roads_opened": {
-          "name": "past_roads_opened",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "(datetime('now'))"
-        }
-      },
-      "indexes": {
-        "daily_game_stats_game_no_unique": {
-          "name": "daily_game_stats_game_no_unique",
-          "columns": [
-            "game_no"
-          ],
-          "isUnique": true
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
     "games": {
       "name": "games",
       "columns": {
@@ -148,6 +21,14 @@
           "notNull": true,
           "autoincrement": false
         },
+        "puzzle_type": {
+          "name": "puzzle_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'classic'"
+        },
         "board_json": {
           "name": "board_json",
           "type": "text",
@@ -155,8 +36,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "optimal_path_json": {
-          "name": "optimal_path_json",
+        "optimal_paths_json": {
+          "name": "optimal_paths_json",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -169,20 +50,19 @@
           "notNull": true,
           "autoincrement": false
         },
+        "total_coins": {
+          "name": "total_coins",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
         "difficulty_band": {
           "name": "difficulty_band",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
-        },
-        "route_count": {
-          "name": "route_count",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
         },
         "gold_silver_gap": {
           "name": "gold_silver_gap",
@@ -280,10 +160,11 @@
         }
       },
       "indexes": {
-        "games_game_no_unique": {
-          "name": "games_game_no_unique",
+        "games_game_no_puzzle_type_unique": {
+          "name": "games_game_no_puzzle_type_unique",
           "columns": [
-            "game_no"
+            "game_no",
+            "puzzle_type"
           ],
           "isUnique": true
         }
@@ -293,8 +174,8 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "player_game_session": {
-      "name": "player_game_session",
+    "player_road_analytics": {
+      "name": "player_road_analytics",
       "columns": {
         "id": {
           "name": "id",
@@ -317,25 +198,11 @@
           "notNull": true,
           "autoincrement": false
         },
-        "session_id": {
-          "name": "session_id",
+        "puzzle_type": {
+          "name": "puzzle_type",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false
-        },
-        "started_at": {
-          "name": "started_at",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "finished_at": {
-          "name": "finished_at",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
           "autoincrement": false
         },
         "attempts": {
@@ -344,76 +211,81 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": 1
+          "default": 0
         },
-        "best_score": {
-          "name": "best_score",
+        "solved": {
+          "name": "solved",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "hints_used": {
+          "name": "hints_used",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "attempts_before_first_hint": {
+          "name": "attempts_before_first_hint",
           "type": "integer",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "max_score": {
-          "name": "max_score",
+        "first_hint_move_index": {
+          "name": "first_hint_move_index",
           "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "solve_time_ms": {
+          "name": "solve_time_ms",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "dead_end_count": {
+          "name": "dead_end_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "wrong_exit_count": {
+          "name": "wrong_exit_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "last_played_at": {
+          "name": "last_played_at",
+          "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "outcome_tier": {
-          "name": "outcome_tier",
+        "solved_at": {
+          "name": "solved_at",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "completed": {
-          "name": "completed",
-          "type": "integer",
+        "solve_session_id": {
+          "name": "solve_session_id",
+          "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": false
-        },
-        "gold": {
-          "name": "gold",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": false
-        },
-        "hints_level_1": {
-          "name": "hints_level_1",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
-        },
-        "hints_level_2": {
-          "name": "hints_level_2",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
-        },
-        "hints_level_3": {
-          "name": "hints_level_3",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
-        },
-        "past_road_viewed": {
-          "name": "past_road_viewed",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": false
+          "notNull": false,
+          "autoincrement": false
         },
         "created_at": {
           "name": "created_at",
@@ -422,15 +294,33 @@
           "notNull": true,
           "autoincrement": false,
           "default": "(datetime('now'))"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(datetime('now'))"
         }
       },
       "indexes": {
-        "player_game_session_session_id_unique": {
-          "name": "player_game_session_session_id_unique",
+        "player_road_analytics_player_game_mode_unique": {
+          "name": "player_road_analytics_player_game_mode_unique",
           "columns": [
-            "session_id"
+            "player_id",
+            "game_no",
+            "puzzle_type"
           ],
           "isUnique": true
+        },
+        "player_road_analytics_game_mode_idx": {
+          "name": "player_road_analytics_game_mode_idx",
+          "columns": [
+            "game_no",
+            "puzzle_type"
+          ],
+          "isUnique": false
         }
       },
       "foreignKeys": {},

@@ -186,7 +186,7 @@ const quietMetaLine = computed(() => {
         type="button"
         :class="['action-button', retryButtonStyle]"
         :disabled="retryBusy"
-        aria-label="Retry road"
+        :aria-label="UI_COPY.boardFooter.retryRoad"
         :title="UI_COPY.boardFooter.retryRoad"
         @click="emit('retry')"
       >
@@ -296,7 +296,7 @@ const quietMetaLine = computed(() => {
 .attempt-pill {
   flex-shrink: 0;
   padding: 0.25rem 0.55rem;
-  border-radius: 8px;
+  border-radius: var(--radius-xs);
   background: rgb(var(--color-gold-rgb) / 0.12);
   border: 1px solid rgb(var(--color-gold-rgb) / 0.24);
   color: rgb(var(--color-gold-rgb) / 0.84);

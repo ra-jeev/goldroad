@@ -44,8 +44,32 @@
   --color-end-light: #e8a75c;
   --color-end-dark: #8b5a2b;
   --color-active: #4ade80;
-  --color-active-rgb: 68 221 25;
+  --color-active-rgb: 74 222 128;
   --color-blocked: #8b4513;
+  --color-success: #1c8a4a;
+  --color-text-on-success: #eafff2;
+
+  --color-medal-silver: #b9c2cc;
+  --color-medal-silver-bright: #e9edf2;
+  --color-medal-silver-muted: #dbe2ea;
+  --color-medal-silver-light: #eef2f7;
+  --color-medal-silver-rgb: 226 232 240;
+  --color-medal-silver-segment: #c4ccd6;
+  --color-text-on-silver: #1c1c1c;
+  --gradient-medal-silver: linear-gradient(135deg, #e9edf2 0%, #b9c2cc 100%);
+
+  --color-medal-bronze: #b9702f;
+  --color-medal-bronze-bright: #e6a866;
+  --color-medal-bronze-rgb: 205 127 50;
+  --color-medal-bronze-segment: #c67f34;
+  --color-text-on-bronze: #2a1608;
+  --gradient-medal-bronze: linear-gradient(135deg, #e6a866 0%, #b9702f 100%);
+
+  --color-expedition-accent: #00b4c8;
+  --color-expedition-accent-rgb: 0 180 200;
+  --color-expedition-accent-bright: #00dcf0;
+  --color-expedition-accent-bright-rgb: 0 220 240;
+  --color-text-on-expedition: #012026;
 
   /* ── Road edge hierarchy ──────────────────────────────────── */
   /* open roads = neutral gold (var(--color-gold)); scoring roads
@@ -76,6 +100,7 @@
   --road-thickness: 10px;
 
   /* ── Border radius ────────────────────────────────────────── */
+  --radius-xs: 8px;
   --radius-sm: 14px;
   --radius-md: 18px;
   --radius-lg: 24px;
@@ -153,16 +178,6 @@
       var(--color-bg-expedition-base) 0%,
       var(--color-bg-expedition-dark) 55%,
       var(--color-bg-expedition-deepest) 100%);
-  --gradient-card-hero:
-    radial-gradient(ellipse 120% 90% at 10% 0%,
-      var(--mode-tint-classic) 0%,
-      transparent 60%),
-    linear-gradient(160deg, #1e1004 0%, #150c03 62%, #0e0802 100%);
-  --gradient-card-board:
-    radial-gradient(ellipse 80% 60% at 18% 10%,
-      var(--mode-tint-classic) 0%,
-      transparent 60%),
-    linear-gradient(175deg, #1c1108 0%, #160e05 50%, #0e0a04 100%);
   --gradient-card-hero:
     radial-gradient(ellipse 120% 90% at 10% 0%,
       rgb(var(--color-gold-rgb) / 0.14) 0%,

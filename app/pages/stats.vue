@@ -62,7 +62,9 @@ type ShareableRoadResult = PlayerRoadResult & {
 // ---------------------------------------------------------------------------
 
 function formatModeLabel(mode: PuzzleType): string {
-  return mode === 'classic' ? 'Classic' : 'Expedition';
+  return mode === 'classic'
+    ? UI_COPY.boardHeader.classic
+    : UI_COPY.boardHeader.expedition;
 }
 
 function formatDay(day: string): string {
@@ -75,11 +77,11 @@ function formatDay(day: string): string {
 }
 
 function formatMedal(medal: Medal | null): string {
-  return medal ? UI_COPY.boardHeader.medals[medal] : 'Solved';
+  return medal ? UI_COPY.boardHeader.medals[medal] : UI_COPY.boardHeader.solvedBadge;
 }
 
-function formatTries(attempts: number): string {
-  return `${attempts} ${attempts === 1 ? 'try' : 'tries'}`;
+function formatRunCount(attempts: number): string {
+  return UI_COPY.celebration.attemptLabel(attempts);
 }
 
 function formatDurationMs(value: number | null): string {
@@ -158,7 +160,7 @@ function buildTriesBars(
   stat: CommunityRoadStats,
   playerBucket: number,
 ): HistogramBar[] {
-  const captions = ['First try', 'Second try', 'Third try', '4+ tries', 'Still going'];
+  const captions = ['First run', 'Second run', 'Third run', '4+ runs', 'Still going'];
   const labels = ['1', '2', '3', '4+', 'DNF'];
 
   return bucketCounts(stat).map((count, index) => ({
@@ -199,7 +201,7 @@ const modeAccentVar = computed(() => ({
   '--hist-accent-rgb':
     selectedMode.value === 'classic'
       ? 'var(--color-gold-rgb)'
-      : 'var(--color-active-rgb)',
+      : 'var(--color-expedition-accent-rgb)',
 }));
 
 const todayGameNo = computed(
@@ -242,7 +244,7 @@ const todayCard = computed(() => {
       badge: formatMedal(medal),
       medal,
       chips: [
-        formatTries(result.attempts),
+        formatRunCount(result.attempts),
         result.solveTimeMs !== null ? formatDurationMs(result.solveTimeMs) : null,
         result.hintsUsed > 0
           ? `${result.hintsUsed} hint${result.hintsUsed === 1 ? '' : 's'}`
@@ -255,7 +257,7 @@ const todayCard = computed(() => {
     state: 'inprogress' as const,
     eyebrow: 'Today · in progress',
     title: gameNo ? `Road ${gameNo}` : 'Today’s road',
-    detail: `${formatTries(result.attempts)} in${result.hintsUsed > 0 ? ` · ${result.hintsUsed} hint${result.hintsUsed === 1 ? '' : 's'}` : ''}. The solve is still out there.`,
+    detail: `${formatRunCount(result.attempts)} in${result.hintsUsed > 0 ? ` · ${result.hintsUsed} hint${result.hintsUsed === 1 ? '' : 's'}` : ''}. The solve is still out there.`,
   };
 });
 
@@ -275,7 +277,7 @@ const todayHeadline = computed(() => {
   if (result?.solved) {
     const ahead = aheadPercent(field, bucket);
     return ahead > 0
-      ? `Solved in ${formatTries(result.attempts)} — ahead of ${ahead}% of today’s roadgoers.`
+      ? `Solved in ${formatRunCount(result.attempts)} — ahead of ${ahead}% of today’s roadgoers.`
       : 'Solved and right at the front of today’s field.';
   }
 
@@ -319,9 +321,9 @@ const yesterdaySegments = computed(() => {
 
   const counts = bucketCounts(field);
   const defs = [
-    { key: 'gold', label: 'Gold', tone: 'gold' },
-    { key: 'silver', label: 'Silver', tone: 'silver' },
-    { key: 'bronze', label: 'Bronze', tone: 'bronze' },
+    { key: 'gold', label: UI_COPY.boardHeader.medals.gold, tone: 'gold' },
+    { key: 'silver', label: UI_COPY.boardHeader.medals.silver, tone: 'silver' },
+    { key: 'bronze', label: UI_COPY.boardHeader.medals.bronze, tone: 'bronze' },
     { key: 'late', label: 'Later solve', tone: 'late' },
     { key: 'dnf', label: 'Unsolved', tone: 'dnf' },
   ] as const;
@@ -343,7 +345,7 @@ const yesterdayHeadline = computed(() => {
   if (result?.solved) {
     const ahead = aheadPercent(field, bucketOf(result));
     return ahead > 0
-      ? `You solved it in ${formatTries(result.attempts)} — ahead of ${ahead}% of the field.`
+      ? `You solved it in ${formatRunCount(result.attempts)} — ahead of ${ahead}% of the field.`
       : 'You solved it near the very front of the field.';
   }
 
@@ -381,7 +383,7 @@ const allTimeHeadline = computed(() => {
   return [
     { key: 'solves', label: 'Solves', value: String(stats.exactSolves) },
     { key: 'rate', label: 'Solve rate', value: `${stats.solveRate}%` },
-    { key: 'avg', label: 'Avg tries', value: stats.averageSolvedAttempts },
+    { key: 'avg', label: 'Avg runs', value: stats.averageSolvedAttempts },
     { key: 'best', label: 'Best time', value: formatDurationMs(stats.bestSolveTimeMs) },
   ];
 });
@@ -393,9 +395,9 @@ const allTimeDetail = computed(() => {
     { key: 'streak', label: 'Best streak', value: `${stats.bestStreak} day${stats.bestStreak === 1 ? '' : 's'}` },
     { key: 'avgTime', label: 'Avg solve time', value: formatDurationMs(stats.averageSolveTimeMs) },
     { key: 'hints', label: 'Hints used', value: String(stats.totalHints) },
-    { key: 'gold', label: 'Gold medals', value: String(stats.medalCounts.gold) },
-    { key: 'silver', label: 'Silver medals', value: String(stats.medalCounts.silver) },
-    { key: 'bronze', label: 'Bronze medals', value: String(stats.medalCounts.bronze) },
+    { key: 'gold', label: `${UI_COPY.boardHeader.medals.gold} medals`, value: String(stats.medalCounts.gold) },
+    { key: 'silver', label: `${UI_COPY.boardHeader.medals.silver} medals`, value: String(stats.medalCounts.silver) },
+    { key: 'bronze', label: `${UI_COPY.boardHeader.medals.bronze} medals`, value: String(stats.medalCounts.bronze) },
   ];
 });
 
@@ -418,9 +420,9 @@ const modeRoadLog = computed(() =>
         gameNo: day.gameNo,
         solved: record.solved,
         medal,
-        result: record.solved ? formatMedal(medal) : 'Tried',
+        result: record.solved ? formatMedal(medal) : 'Walked',
         chips: [
-          formatTries(record.attempts),
+          formatRunCount(record.attempts),
           record.hintsUsed > 0
             ? `${record.hintsUsed} hint${record.hintsUsed === 1 ? '' : 's'}`
             : null,
@@ -483,8 +485,8 @@ const latestShareCard = computed(() => {
     eyebrow: 'Latest run',
     title: `Road ${result.gameNo} · ${formatModeLabel(result.puzzleType)}`,
     status: result.solved
-      ? `${formatMedal(medal)} in ${formatTries(result.attempts)}`
-      : `${formatTries(result.attempts)} and still chasing it`,
+      ? `${formatMedal(medal)} in ${formatRunCount(result.attempts)}`
+      : `${formatRunCount(result.attempts)} and still chasing it`,
     detail: [
       result.solved && result.solveTimeMs !== null
         ? formatDurationMs(result.solveTimeMs)
@@ -495,7 +497,7 @@ const latestShareCard = computed(() => {
     ]
       .filter((part): part is string => Boolean(part))
       .join(' · '),
-    buttonLabel: result.solved ? 'Share this result' : 'Share this attempt',
+    buttonLabel: result.solved ? 'Share this result' : `Share this ${UI_COPY.boardFooter.attemptLabel.toLowerCase()}`,
   };
 });
 
@@ -647,13 +649,13 @@ onMounted(async () => {
           <span class="strip-label">Medals earned</span>
           <div class="strip-medals">
             <span class="strip-medal strip-medal--gold">
-              {{ headerStrip.medals.gold }}<em>Gold</em>
+              {{ headerStrip.medals.gold }}<em>{{ UI_COPY.boardHeader.medals.gold }}</em>
             </span>
             <span class="strip-medal strip-medal--silver">
-              {{ headerStrip.medals.silver }}<em>Silver</em>
+              {{ headerStrip.medals.silver }}<em>{{ UI_COPY.boardHeader.medals.silver }}</em>
             </span>
             <span class="strip-medal strip-medal--bronze">
-              {{ headerStrip.medals.bronze }}<em>Bronze</em>
+              {{ headerStrip.medals.bronze }}<em>{{ UI_COPY.boardHeader.medals.bronze }}</em>
             </span>
           </div>
         </div>
@@ -1052,10 +1054,10 @@ onMounted(async () => {
   color: var(--color-gold-bright);
 }
 .strip-medal--silver {
-  color: #dbe2ea;
+  color: var(--color-medal-silver-muted);
 }
 .strip-medal--bronze {
-  color: #e6a866;
+  color: var(--color-medal-bronze-bright);
 }
 
 /* ── Mode switch ──────────────────────────────────────────── */
@@ -1096,9 +1098,13 @@ onMounted(async () => {
 }
 
 .mode-switch-btn--expedition.is-active {
-  color: #04241a;
-  background: linear-gradient(135deg, #4ade80 0%, #14a058 100%);
-  box-shadow: 0 0 16px rgb(var(--color-active-rgb) / 0.32);
+  color: var(--color-text-on-expedition);
+  background: linear-gradient(
+    135deg,
+    var(--color-expedition-accent-bright) 0%,
+    var(--color-expedition-accent) 100%
+  );
+  box-shadow: 0 0 16px rgb(var(--color-expedition-accent-rgb) / 0.32);
 }
 
 /* ── Panels ───────────────────────────────────────────────── */
@@ -1236,15 +1242,15 @@ onMounted(async () => {
 }
 
 .badge--silver {
-  color: #eef2f7;
-  background: rgb(226 232 240 / 0.12);
-  border: 1px solid rgb(226 232 240 / 0.28);
+  color: var(--color-medal-silver-light);
+  background: rgb(var(--color-medal-silver-rgb) / 0.12);
+  border: 1px solid rgb(var(--color-medal-silver-rgb) / 0.28);
 }
 
 .badge--bronze {
-  color: #e6a866;
-  background: rgb(205 127 50 / 0.14);
-  border: 1px solid rgb(205 127 50 / 0.3);
+  color: var(--color-medal-bronze-bright);
+  background: rgb(var(--color-medal-bronze-rgb) / 0.14);
+  border: 1px solid rgb(var(--color-medal-bronze-rgb) / 0.3);
 }
 
 /* ── Field panel ──────────────────────────────────────────── */
@@ -1293,10 +1299,10 @@ onMounted(async () => {
   background: var(--color-gold-bright);
 }
 .split-seg--silver {
-  background: #c4ccd6;
+  background: var(--color-medal-silver-segment);
 }
 .split-seg--bronze {
-  background: #c67f34;
+  background: var(--color-medal-bronze-segment);
 }
 .split-seg--late {
   background: rgb(var(--color-gold-rgb) / 0.4);

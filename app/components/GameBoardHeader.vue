@@ -39,8 +39,15 @@ const pulseStyle = computed(() => {
 </script>
 
 <template>
-  <section class="board-header-card" aria-label="Road controls">
-    <div class="mode-switch" role="tablist" aria-label="Puzzle mode">
+  <section
+    class="board-header-card"
+    :aria-label="UI_COPY.boardHeader.ariaLabels.controls"
+  >
+    <div
+      class="mode-switch"
+      role="tablist"
+      :aria-label="UI_COPY.boardHeader.ariaLabels.puzzleMode"
+    >
       <button
         type="button"
         class="mode-option"
@@ -81,7 +88,7 @@ const pulseStyle = computed(() => {
       class="metric-line"
       :class="{ 'metric-line--pulse': pulse }"
       :style="pulseStyle"
-      aria-label="Road score"
+      :aria-label="UI_COPY.boardHeader.ariaLabels.roadScore"
     >
       <span v-for="(metric, index) in metrics" :key="metric.label">
         <span class="metric-label">{{ metric.label }}</span>

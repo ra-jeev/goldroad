@@ -23,22 +23,22 @@
 		"@vueuse/core": "^14.3.0",
 		"@vueuse/nuxt": "^14.3.0",
 		"drizzle-orm": "^0.45.2",
-		"nuxt": "^4.4.2",
-		"vue": "^3.5.31",
-		"vue-router": "^5.0.4",
-		"zod": "^4.3.6"
+		"nuxt": "^4.4.8",
+		"vue": "^3.5.39",
+		"vue-router": "^5.1.0",
+		"zod": "^4.4.3"
 	},
 	"devDependencies": {
-		"@types/node": "^25.5.0",
+		"@types/node": "^26.1.1",
 		"drizzle-kit": "^0.31.10",
 		"drizzle-zod": "^0.8.3",
-		"h3": "^1.15.10",
+		"h3": "^1.15.11",
 		"nitro-cloudflare-dev": "^0.2.2",
-		"nitropack": "^2.13.3",
-		"sharp": "^0.34.5",
-		"tsx": "^4.21.0",
-		"vitest": "^4.1.9",
-		"vue-tsc": "^3.2.6",
-		"wrangler": "^4.79.0"
+		"nitropack": "^2.13.4",
+		"sharp": "^0.35.3",
+		"tsx": "^4.23.1",
+		"vitest": "^4.1.10",
+		"vue-tsc": "^3.3.7",
+		"wrangler": "^4.110.0"
 	}
 }

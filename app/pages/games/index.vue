@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { UI_COPY } from '../../content/uiCopy';
 import { RECENT_ARCHIVE_DAY_LIMIT } from '../../../shared/utils/archive';
 
 const gamesApi = useGamesApi();
@@ -59,7 +60,12 @@ onMounted(async () => {
       </section>
 
       <div v-else class="games-grid">
-        <article v-for="game in games" :key="game.gameNo" class="panel game-card">
+        <NuxtLink
+          v-for="game in games"
+          :key="game.gameNo"
+          :to="`/games/${game.gameNo}`"
+          class="panel game-card"
+        >
           <div class="game-head">
             <div>
               <p class="eyebrow">{{ formatDate(game.playableAt) }}</p>
@@ -84,7 +90,9 @@ onMounted(async () => {
                   <span class="value">{{ game.classic.maxScore }}</span>
                 </div>
                 <div class="game-stat">
-                  <span class="label">Board coins</span>
+                  <span class="label">
+                    {{ UI_COPY.boardHeader.metrics.boardCoins }}
+                  </span>
                   <span class="value">{{ game.classic.totalCoins }}</span>
                 </div>
               </div>
@@ -106,17 +114,19 @@ onMounted(async () => {
                   <span class="value">{{ game.expedition.maxScore }}</span>
                 </div>
                 <div class="game-stat">
-                  <span class="label">Board coins</span>
+                  <span class="label">
+                    {{ UI_COPY.boardHeader.metrics.boardCoins }}
+                  </span>
                   <span class="value">{{ game.expedition.totalCoins }}</span>
                 </div>
               </div>
             </section>
           </div>
 
-          <NuxtLink :to="`/games/${game.gameNo}`" class="btn btn--primary">
+          <span class="btn btn--primary">
             Replay road day
-          </NuxtLink>
-        </article>
+          </span>
+        </NuxtLink>
       </div>
     </div>
   </div>
@@ -198,6 +208,8 @@ onMounted(async () => {
   display: grid;
   gap: 1rem;
   align-content: start;
+  color: inherit;
+  text-decoration: none;
   transition:
     transform var(--transition-fast),
     border-color var(--transition-fast);
@@ -250,8 +262,8 @@ onMounted(async () => {
 }
 
 .mode-card--expedition {
-  border-color: rgb(var(--color-active-rgb) / 0.2);
-  background: rgb(var(--color-active-rgb) / 0.07);
+  border-color: rgb(var(--color-expedition-accent-rgb) / 0.24);
+  background: rgb(var(--color-expedition-accent-rgb) / 0.08);
 }
 
 .mode-head {
@@ -266,7 +278,7 @@ onMounted(async () => {
 }
 
 .mode-card--expedition .mode-head strong {
-  color: #7ff0ad;
+  color: var(--color-expedition-accent-bright);
 }
 
 .mode-stats {

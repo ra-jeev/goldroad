@@ -120,14 +120,14 @@ import { UPDATES as updates } from '../content/updates';
 }
 
 .page-header h1 {
-  font-size: 2.5rem;
+  font-size: var(--font-size-3xl);
   color: var(--color-gold);
   margin: 0 0 0.5rem;
 }
 
 .subtitle {
   color: var(--color-gold-muted);
-  font-size: 1.1rem;
+  font-size: var(--font-size-lg);
   margin: 0;
 }
 
@@ -138,6 +138,7 @@ import { UPDATES as updates } from '../content/updates';
   border-radius: var(--radius-lg);
   background: var(--gradient-card-status);
   border: 1px solid rgb(var(--color-gold-rgb) / 0.2);
+  box-shadow: var(--shadow-lg);
 }
 
 .card h2 {
@@ -234,7 +235,7 @@ import { UPDATES as updates } from '../content/updates';
   }
 
   .page-header h1 {
-    font-size: 2rem;
+    font-size: var(--font-size-3xl);
   }
 
   .card {

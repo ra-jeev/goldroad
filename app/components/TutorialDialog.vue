@@ -1,15 +1,18 @@
 <script setup lang="ts">
+import { onBeforeUnmount } from 'vue';
 import { TUTORIAL_LESSONS } from '../content/tutorialContent';
+import { UI_COPY } from '../content/uiCopy';
 
 const { isTutorialOpen, closeTutorial, completeTutorial } = useTutorialFlow();
 const practice = useTutorialPractice();
+const COPY = UI_COPY.tutorial;
 const step = ref<'guide' | 'practice'>('guide');
 
 const legendItems = computed(() => [
-  { label: 'Open road', type: 'open' as const },
-  { label: 'Missing road', type: 'missing' as const },
-  { label: `Toll -${practice.board.tollValue}`, type: 'toll' as const },
-  { label: `Bonus +${practice.board.bonusValue}`, type: 'bonus' as const },
+  { label: UI_COPY.board.info.openRoad, type: 'open' as const },
+  { label: UI_COPY.board.info.missingRoad, type: 'missing' as const },
+  { label: `${UI_COPY.board.info.toll} -${practice.board.tollValue}`, type: 'toll' as const },
+  { label: `${UI_COPY.board.info.bonus} +${practice.board.bonusValue}`, type: 'bonus' as const },
 ]);
 
 function finishTutorial() {
@@ -18,9 +21,30 @@ function finishTutorial() {
   void navigateTo('/');
 }
 
+function onKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    closeTutorial();
+  }
+}
+
 watch(isTutorialOpen, (open) => {
   if (open) {
     step.value = 'guide';
+  }
+
+  if (!import.meta.client) return;
+
+  if (open) {
+    window.addEventListener('keydown', onKeydown);
+  } else {
+    window.removeEventListener('keydown', onKeydown);
+  }
+});
+
+onBeforeUnmount(() => {
+  if (import.meta.client) {
+    window.removeEventListener('keydown', onKeydown);
   }
 });
 </script>
@@ -31,41 +55,70 @@ watch(isTutorialOpen, (open) => {
     class="tutorial-backdrop"
     @click.self="closeTutorial"
   >
-    <section class="tutorial-panel" aria-label="GoldRoad tutorial">
+    <section
+      class="tutorial-panel"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="tutorial-title"
+      :aria-label="COPY.ariaLabel"
+    >
       <header class="tutorial-top">
         <div>
-          <p class="eyebrow">Tutorial</p>
-          <h2>Learn the road</h2>
+          <p class="eyebrow">{{ COPY.eyebrow }}</p>
+          <h2 id="tutorial-title">{{ COPY.title }}</h2>
         </div>
 
-        <button type="button" class="close-button" @click="closeTutorial">
-          Close
+        <button
+          type="button"
+          class="tutorial-close"
+          :aria-label="COPY.close"
+          @click="closeTutorial"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M6 6l12 12M18 6L6 18"
+              fill="none"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-width="2"
+            />
+          </svg>
         </button>
       </header>
 
-      <div class="step-switch" role="tablist" aria-label="Tutorial steps">
+      <div class="step-switch" role="tablist" :aria-label="COPY.stepsAriaLabel">
         <button
+          id="tutorial-guide-tab"
           type="button"
           :class="{ active: step === 'guide' }"
           :aria-selected="step === 'guide'"
+          aria-controls="tutorial-guide-panel"
           role="tab"
           @click="step = 'guide'"
         >
-          1. Guide
+          {{ COPY.guideTab }}
         </button>
         <button
+          id="tutorial-practice-tab"
           type="button"
           :class="{ active: step === 'practice' }"
           :aria-selected="step === 'practice'"
+          aria-controls="tutorial-practice-panel"
           role="tab"
           @click="step = 'practice'"
         >
-          2. Practice
+          {{ COPY.practiceTab }}
         </button>
       </div>
 
-      <section v-if="step === 'guide'" class="guide-section">
-        <div class="lesson-grid" aria-label="Tutorial steps">
+      <section
+        v-if="step === 'guide'"
+        id="tutorial-guide-panel"
+        class="guide-section"
+        role="tabpanel"
+        aria-labelledby="tutorial-guide-tab"
+      >
+        <div class="lesson-grid" :aria-label="COPY.lessonsAriaLabel">
           <article
             v-for="lesson in TUTORIAL_LESSONS"
             :key="lesson.id"
@@ -89,25 +142,32 @@ watch(isTutorialOpen, (open) => {
 
         <button
           type="button"
-          class="continue-button"
+          class="tutorial-button tutorial-button--primary"
           @click="step = 'practice'"
         >
-          Try a practice road
+          {{ COPY.continueToPractice }}
         </button>
       </section>
 
-      <section v-else class="practice-section" aria-label="Practice puzzle">
+      <section
+        v-else
+        id="tutorial-practice-panel"
+        class="practice-section"
+        role="tabpanel"
+        aria-labelledby="tutorial-practice-tab"
+        :aria-label="COPY.practiceAriaLabel"
+      >
         <div class="practice-heading">
           <div>
-            <p class="eyebrow">Practice</p>
+            <p class="eyebrow">{{ COPY.practiceEyebrow }}</p>
             <h3>{{ practice.game.title }}</h3>
           </div>
 
           <p class="score-line">
-            Score
+            {{ UI_COPY.boardHeader.metrics.score }}
             <strong>{{ practice.score.value }}/{{ practice.maxScore.value }}</strong>
             <span>·</span>
-            Board Coins <strong>{{ practice.totalCoins.value }}</strong>
+            {{ UI_COPY.boardHeader.metrics.boardCoins }} <strong>{{ practice.totalCoins.value }}</strong>
           </p>
         </div>
 
@@ -124,7 +184,7 @@ watch(isTutorialOpen, (open) => {
           @select="practice.moveTo"
         />
 
-        <div class="legend-row" aria-label="Road legend">
+        <div class="legend-row" :aria-label="COPY.roadLegendAriaLabel">
           <div
             v-for="item in legendItems"
             :key="item.label"
@@ -159,10 +219,10 @@ watch(isTutorialOpen, (open) => {
         <button
           v-if="practice.solved.value"
           type="button"
-          class="play-button"
+          class="tutorial-button tutorial-button--primary"
           @click="finishTutorial"
         >
-          Play today
+          {{ COPY.playToday }}
         </button>
       </section>
     </section>
@@ -182,12 +242,13 @@ watch(isTutorialOpen, (open) => {
 }
 
 .tutorial-panel {
+  position: relative;
   width: min(100%, 760px);
   max-height: min(92dvh, 900px);
   overflow: auto;
   display: grid;
   gap: 1rem;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   padding: clamp(0.9rem, 2.5vw, 1.25rem);
   background: var(--gradient-card-overlay);
   border: 1px solid rgb(var(--color-gold-rgb) / 0.32);
@@ -202,23 +263,68 @@ watch(isTutorialOpen, (open) => {
   gap: 1rem;
 }
 
+.tutorial-top {
+  padding-right: 2.6rem;
+}
+
 .tutorial-top h2,
 .practice-heading h3 {
   margin: 0;
   color: var(--color-gold-bright);
 }
 
-.close-button,
-.continue-button,
-.play-button {
-  border: 1px solid rgb(var(--color-gold-rgb) / 0.3);
-  border-radius: var(--radius-sm);
-  padding: 0.65rem 0.9rem;
+.tutorial-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 2.1rem;
+  height: 2.1rem;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.22);
+  border-radius: var(--radius-circle);
+  background: rgb(0 0 0 / 0.28);
+  color: rgb(var(--color-gold-rgb) / 0.78);
+  cursor: pointer;
+  transition: transform var(--transition-fast);
+}
+
+.tutorial-close svg {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+.tutorial-close:hover {
+  transform: translateY(-1px);
   color: var(--color-gold-bright);
-  background: rgb(var(--color-gold-rgb) / 0.13);
+}
+
+.tutorial-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-full);
+  padding: 0 1.1rem;
   font: inherit;
   font-weight: 800;
   cursor: pointer;
+  text-decoration: none;
+  transition:
+    transform var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.tutorial-button--primary {
+  color: var(--color-text-on-gold);
+  background: var(--gradient-button-primary);
+  box-shadow: 0 0 18px rgb(var(--color-gold-rgb) / 0.3);
+}
+
+.tutorial-button:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
 .lesson-grid {
@@ -239,7 +345,7 @@ watch(isTutorialOpen, (open) => {
   padding: 0.16rem;
   border: 1px solid rgb(var(--color-gold-rgb) / 0.22);
   border-radius: var(--radius-full);
-  background: rgb(0 0 0 / 0.24);
+  background: rgb(var(--color-gold-rgb) / 0.08);
 }
 
 .step-switch button {
@@ -265,9 +371,9 @@ watch(isTutorialOpen, (open) => {
   align-items: center;
   gap: 0.9rem;
   padding: 0.75rem;
-  border-radius: 8px;
-  background: rgb(0 0 0 / 0.18);
-  border: 1px solid rgb(var(--color-gold-rgb) / 0.18);
+  border-radius: var(--radius-md);
+  background: rgb(var(--color-gold-rgb) / 0.06);
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.14);
 }
 
 .lesson-card h3 {
@@ -328,10 +434,10 @@ watch(isTutorialOpen, (open) => {
   align-items: center;
   gap: 0.35rem;
   padding: 0.32rem 0.5rem;
-  border-radius: 8px;
-  border: 1px solid rgb(var(--color-gold-rgb) / 0.18);
-  background: rgb(0 0 0 / 0.16);
-  color: rgb(var(--color-gold-rgb) / 0.8);
+  border-radius: var(--radius-full);
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.22);
+  background: rgb(var(--color-gold-rgb) / 0.1);
+  color: rgb(var(--color-gold-rgb) / 0.86);
   font-size: 0.78rem;
   font-weight: 800;
 }
@@ -341,11 +447,6 @@ watch(isTutorialOpen, (open) => {
   place-items: center;
   width: 1.7rem;
   height: 1rem;
-}
-
-.continue-button,
-.play-button {
-  background: rgb(var(--color-gold-rgb) / 0.2);
 }
 
 @media (max-width: 760px) {

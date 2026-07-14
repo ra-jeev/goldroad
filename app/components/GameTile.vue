@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { UI_COPY } from '../content/uiCopy';
+
 defineProps<{
   value: number;
   isStart: boolean;
@@ -37,6 +39,8 @@ const emit = defineEmits<{
       xmlns="http://www.w3.org/2000/svg"
       class="marker"
       viewBox="0 0 32 32"
+      role="img"
+      :aria-label="UI_COPY.board.tileLabels.start"
     >
       <g fill="currentColor">
         <path
@@ -59,6 +63,8 @@ const emit = defineEmits<{
       xmlns="http://www.w3.org/2000/svg"
       class="marker"
       viewBox="0 0 512 512"
+      role="img"
+      :aria-label="UI_COPY.board.tileLabels.exit"
     >
       <path
         fill="currentColor"

@@ -149,7 +149,7 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
 
       <section v-else-if="loadError" class="state-card state-card--error">
         <p>{{ loadError }}</p>
-        <NuxtLink to="/games" class="back-link back-link--inline">
+        <NuxtLink to="/games" class="btn btn--secondary">
           Back to Past Games
         </NuxtLink>
       </section>
@@ -157,7 +157,7 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
       <section v-else-if="game" class="board-column">
         <header class="archive-header">
           <div class="archive-header-top">
-            <NuxtLink to="/games" class="back-link">
+            <NuxtLink to="/games" class="btn btn--secondary">
               ← Past roads
             </NuxtLink>
           </div>
@@ -324,27 +324,48 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
   font-size: 0.9rem;
 }
 
-.back-link {
-  color: rgb(var(--color-gold-rgb) / 0.86);
-  font-weight: 800;
-  font-size: 0.86rem;
-  text-decoration: none;
-}
-
-.back-link--inline {
+.btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 180px;
-  padding: 0.7rem 1rem;
-  border-radius: var(--radius-sm);
-  background: rgb(var(--color-gold-rgb) / 0.15);
-  border: 1px solid rgb(var(--color-gold-rgb) / 0.28);
+  justify-self: start;
+  min-height: 2.35rem;
+  padding: 0.6rem 1rem;
+  border-radius: var(--radius-full);
+  border: 1px solid transparent;
+  font: inherit;
+  font-weight: 800;
+  font-size: 0.86rem;
+  text-decoration: none;
+  transition:
+    transform var(--transition-fast),
+    box-shadow var(--transition-fast),
+    background var(--transition-fast),
+    border-color var(--transition-fast);
 }
 
-.back-link:hover,
-.back-link--inline:hover {
-  text-decoration: underline;
+.btn--secondary {
+  color: rgb(var(--color-gold-rgb) / 0.88);
+  background: rgb(var(--color-gold-rgb) / 0.08);
+  border-color: rgb(var(--color-gold-rgb) / 0.28);
+}
+
+.btn:hover,
+:deep(.board-footer-card .link-button.secondary:hover) {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+:deep(.board-footer-card .link-button.secondary) {
+  width: auto;
+  min-width: 2.35rem;
+  height: 2.35rem;
+  padding: 0 1rem;
+  border-radius: var(--radius-full);
+  color: rgb(var(--color-gold-rgb) / 0.88);
+  background: rgb(var(--color-gold-rgb) / 0.08);
+  border-color: rgb(var(--color-gold-rgb) / 0.28);
+  font-size: 0.86rem;
 }
 
 @media (max-width: 760px) {

@@ -471,14 +471,14 @@ onBeforeUnmount(() => {
 }
 
 .celebration-medal--silver .celebration-medal-core {
-  color: #1c1c1c;
-  background: linear-gradient(135deg, #e9edf2 0%, #b9c2cc 100%);
+  color: var(--color-text-on-silver);
+  background: var(--gradient-medal-silver);
   box-shadow: 0 0 16px rgb(210 220 230 / 0.4), var(--shadow-inset-gold);
 }
 
 .celebration-medal--bronze .celebration-medal-core {
-  color: #2a1608;
-  background: linear-gradient(135deg, #e6a866 0%, #b9702f 100%);
+  color: var(--color-text-on-bronze);
+  background: var(--gradient-medal-bronze);
   box-shadow: 0 0 16px rgb(210 140 80 / 0.42), var(--shadow-inset-gold);
 }
 
@@ -508,8 +508,8 @@ onBeforeUnmount(() => {
   min-width: 1.7rem;
   padding: 0.12rem 0.34rem;
   border-radius: var(--radius-full);
-  background: #1c8a4a;
-  color: #eafff2;
+  background: var(--color-success);
+  color: var(--color-text-on-success);
   font-size: 0.82rem;
   font-weight: 900;
   box-shadow: 0 0 10px rgb(30 160 90 / 0.6);

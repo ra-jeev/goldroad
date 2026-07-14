@@ -1,13 +1,38 @@
 <script setup lang="ts">
+import { onBeforeUnmount, watch } from 'vue';
 import { UI_COPY } from '../content/uiCopy';
 
 const { isHowToPlayOpen, closeHowToPlay } = useHowToPlaySheet();
 const { openTutorial } = useTutorialFlow();
+const COPY = UI_COPY.helpSheet;
 
 function playTutorial() {
   closeHowToPlay();
   openTutorial();
 }
+
+function onKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    closeHowToPlay();
+  }
+}
+
+watch(isHowToPlayOpen, (open) => {
+  if (!import.meta.client) return;
+
+  if (open) {
+    window.addEventListener('keydown', onKeydown);
+  } else {
+    window.removeEventListener('keydown', onKeydown);
+  }
+});
+
+onBeforeUnmount(() => {
+  if (import.meta.client) {
+    window.removeEventListener('keydown', onKeydown);
+  }
+});
 </script>
 
 <template>
@@ -16,33 +41,52 @@ function playTutorial() {
     class="sheet-backdrop"
     @click.self="closeHowToPlay"
   >
-    <section class="sheet-card" aria-label="How to play">
+    <section
+      class="sheet-card"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="game-help-title"
+      :aria-label="COPY.ariaLabel"
+    >
       <div class="sheet-header">
         <div>
-          <p class="eyebrow">How to Play</p>
-          <h2>{{ UI_COPY.boardFooter.helpTitle }}</h2>
+          <p class="eyebrow">{{ UI_COPY.boardFooter.openHelp }}</p>
+          <h2 id="game-help-title">{{ UI_COPY.boardFooter.helpTitle }}</h2>
         </div>
 
-        <button type="button" class="close-button" @click="closeHowToPlay">
-          {{ UI_COPY.helpSheet.close }}
+        <button
+          type="button"
+          class="sheet-close"
+          :aria-label="COPY.close"
+          @click="closeHowToPlay"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M6 6l12 12M18 6L6 18"
+              fill="none"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-width="2"
+            />
+          </svg>
         </button>
       </div>
 
-      <p class="sheet-intro">{{ UI_COPY.helpSheet.intro }}</p>
+      <p class="sheet-intro">{{ COPY.intro }}</p>
 
       <button
         type="button"
-        class="tutorial-link"
+        class="sheet-button sheet-button--primary"
         @click="playTutorial"
       >
-        {{ UI_COPY.helpSheet.startTutorial }}
+        {{ COPY.startTutorial }}
       </button>
 
       <article class="help-section">
-        <h3>{{ UI_COPY.helpSheet.sections.howToPlay.title }}</h3>
+        <h3>{{ COPY.sections.howToPlay.title }}</h3>
         <ul>
           <li
-            v-for="item in UI_COPY.helpSheet.sections.howToPlay.items"
+            v-for="item in COPY.sections.howToPlay.items"
             :key="item"
           >
             {{ item }}
@@ -51,10 +95,10 @@ function playTutorial() {
       </article>
 
       <article class="help-section">
-        <h3>{{ UI_COPY.helpSheet.sections.tools.title }}</h3>
+        <h3>{{ COPY.sections.tools.title }}</h3>
         <ul>
           <li
-            v-for="item in UI_COPY.helpSheet.sections.tools.items"
+            v-for="item in COPY.sections.tools.items"
             :key="item"
           >
             {{ item }}
@@ -63,15 +107,15 @@ function playTutorial() {
       </article>
 
       <article class="help-section">
-        <h3>{{ UI_COPY.helpSheet.sections.about.title }}</h3>
-        <p>{{ UI_COPY.helpSheet.sections.about.body }}</p>
+        <h3>{{ COPY.sections.about.title }}</h3>
+        <p>{{ COPY.sections.about.body }}</p>
       </article>
 
       <article class="help-section">
-        <h3>{{ UI_COPY.helpSheet.sections.updates.title }}</h3>
+        <h3>{{ COPY.sections.updates.title }}</h3>
         <ul>
           <li
-            v-for="item in UI_COPY.helpSheet.sections.updates.items"
+            v-for="item in COPY.sections.updates.items"
             :key="item"
           >
             {{ item }}
@@ -95,6 +139,7 @@ function playTutorial() {
 }
 
 .sheet-card {
+  position: relative;
   width: min(100%, 560px);
   max-height: min(84dvh, 720px);
   overflow: auto;
@@ -110,6 +155,7 @@ function playTutorial() {
   justify-content: space-between;
   gap: 1rem;
   align-items: start;
+  padding-right: 2.6rem;
 }
 
 .sheet-header h2,
@@ -118,14 +164,30 @@ function playTutorial() {
   color: var(--color-gold);
 }
 
-.close-button {
-  border: 1px solid rgb(var(--color-gold-rgb) / 0.28);
-  border-radius: var(--radius-sm);
-  padding: 0.7rem 0.9rem;
-  color: var(--color-gold);
-  background: rgb(var(--color-gold-rgb) / 0.1);
-  font-weight: 700;
+.sheet-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 2.1rem;
+  height: 2.1rem;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.22);
+  border-radius: var(--radius-circle);
+  background: rgb(0 0 0 / 0.28);
+  color: rgb(var(--color-gold-rgb) / 0.78);
   cursor: pointer;
+  transition: transform var(--transition-fast);
+}
+
+.sheet-close svg {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+.sheet-close:hover {
+  transform: translateY(-1px);
+  color: var(--color-gold-bright);
 }
 
 .help-section {
@@ -138,18 +200,33 @@ function playTutorial() {
   line-height: var(--line-height-base);
 }
 
-.tutorial-link {
+.sheet-button {
   display: inline-flex;
+  align-items: center;
+  justify-content: center;
   margin-top: 0.85rem;
-  border: 1px solid rgb(var(--color-gold-rgb) / 0.34);
-  border-radius: var(--radius-sm);
-  padding: 0.65rem 0.9rem;
-  color: var(--color-gold-bright);
-  background: rgb(var(--color-gold-rgb) / 0.16);
+  min-height: 3rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-full);
+  padding: 0 1.1rem;
   font: inherit;
   font-weight: 800;
   text-decoration: none;
   cursor: pointer;
+  transition:
+    transform var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.sheet-button--primary {
+  color: var(--color-text-on-gold);
+  background: var(--gradient-button-primary);
+  box-shadow: 0 0 18px rgb(var(--color-gold-rgb) / 0.3);
+}
+
+.sheet-button:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
 .help-section ul {

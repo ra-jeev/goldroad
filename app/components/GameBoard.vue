@@ -277,7 +277,7 @@ watch(
   align-items: center;
   gap: 0.36rem;
   padding: 0.35rem 0.62rem;
-  border-radius: 8px;
+  border-radius: var(--radius-xs);
   font-size: 0.78rem;
   font-weight: 800;
   border: 1px solid;

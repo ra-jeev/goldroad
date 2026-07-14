@@ -1,1 +1,0 @@
-ALTER TABLE `games` ADD `total_coins` integer NOT NULL;

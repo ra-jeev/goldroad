@@ -12,6 +12,7 @@ export type HistogramBar = {
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import { UI_COPY } from '../content/uiCopy';
 
 const props = defineProps<{
   bars: HistogramBar[];
@@ -40,16 +41,20 @@ function sharePercent(count: number): number {
 
 function barAriaLabel(bar: HistogramBar): string {
   const share = sharePercent(bar.count);
-  const you = bar.isPlayer ? ' — your run' : '';
-  return `${bar.caption}: ${bar.count} run${bar.count === 1 ? '' : 's'}, ${share}%${you}`;
+  return UI_COPY.statsHistogram.barAriaLabel({
+    caption: bar.caption,
+    count: bar.count,
+    share,
+    isPlayer: Boolean(bar.isPlayer),
+  });
 }
 </script>
 
 <template>
   <div
     class="histogram"
-    role="img"
-    aria-label="Distribution of how many tries roadgoers took"
+    role="group"
+    :aria-label="UI_COPY.statsHistogram.distributionLabel"
   >
     <div class="histogram-track">
       <div
@@ -57,6 +62,8 @@ function barAriaLabel(bar: HistogramBar): string {
         :key="bar.key"
         class="histogram-col"
         :class="{ 'histogram-col--player': bar.isPlayer }"
+        role="img"
+        tabindex="0"
         :aria-label="barAriaLabel(bar)"
       >
         <span v-if="bar.isPlayer && playerTag" class="histogram-you">
