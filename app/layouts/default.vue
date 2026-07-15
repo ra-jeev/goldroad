@@ -59,7 +59,7 @@ function closeMobileMenu() {
                 stroke="currentColor"
                 stroke-linecap="round"
                 stroke-linejoin="round"
-                stroke-width="1.8"
+                stroke-width="3"
               />
             </svg>
           </NuxtLink>
@@ -79,14 +79,14 @@ function closeMobileMenu() {
                 stroke="currentColor"
                 stroke-linecap="round"
                 stroke-linejoin="round"
-                stroke-width="1.8"
+                stroke-width="3"
               />
               <path
                 d="M16 9a4.5 4.5 0 0 1 0 6M18.4 6.6a8 8 0 0 1 0 10.8"
                 fill="none"
                 stroke="currentColor"
                 stroke-linecap="round"
-                stroke-width="1.8"
+                stroke-width="3"
               />
             </svg>
             <svg v-else viewBox="0 0 24 24" aria-hidden="true">
@@ -96,14 +96,14 @@ function closeMobileMenu() {
                 stroke="currentColor"
                 stroke-linecap="round"
                 stroke-linejoin="round"
-                stroke-width="1.8"
+                stroke-width="3"
               />
               <path
                 d="m17 9 4 4m0-4-4 4"
                 fill="none"
                 stroke="currentColor"
                 stroke-linecap="round"
-                stroke-width="1.8"
+                stroke-width="3"
               />
             </svg>
           </button>
@@ -125,7 +125,7 @@ function closeMobileMenu() {
                 stroke="currentColor"
                 stroke-linecap="round"
                 stroke-linejoin="round"
-                stroke-width="1.8"
+                stroke-width="3"
               />
             </svg>
           </button>
@@ -149,10 +149,14 @@ function closeMobileMenu() {
                   fill="none"
                   stroke="currentColor"
                   stroke-linecap="round"
-                  stroke-width="1.8"
+                  stroke-width="3"
                 />
               </svg>
-              <span v-if="hasUnseenUpdate" class="notification-dot" aria-hidden="true" />
+              <span
+                v-if="hasUnseenUpdate"
+                class="notification-dot"
+                aria-hidden="true"
+              />
             </button>
 
             <div v-if="showMobileMenu" class="menu-panel">
@@ -185,8 +189,7 @@ function closeMobileMenu() {
   position: sticky;
   top: 0;
   z-index: 100;
-  background:
-    linear-gradient(180deg, rgb(31 17 4 / 0.88), rgb(20 11 3 / 0.72));
+  background: linear-gradient(180deg, rgb(31 17 4 / 0.88), rgb(20 11 3 / 0.72));
   backdrop-filter: blur(10px);
   border-bottom: 1px solid rgb(var(--color-gold-rgb) / 0.18);
   box-shadow: 0 12px 30px rgb(0 0 0 / 0.24);
@@ -265,8 +268,8 @@ function closeMobileMenu() {
 
 .icon-button {
   position: relative;
-  width: 2.32rem;
-  height: 2.32rem;
+  width: 2.25rem;
+  height: 2.25rem;
   border-radius: 8px;
   border: 1px solid rgb(var(--color-gold-rgb) / 0.18);
   background: rgb(var(--color-gold-rgb) / 0.06);
@@ -329,8 +332,8 @@ function closeMobileMenu() {
 }
 
 .icon-button svg {
-  width: 1.1rem;
-  height: 1.1rem;
+  width: 1.25rem;
+  height: 1.25rem;
 }
 
 .icon-button:hover,

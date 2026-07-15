@@ -80,7 +80,7 @@ onBeforeUnmount(() => {
               fill="none"
               stroke="currentColor"
               stroke-linecap="round"
-              stroke-width="2"
+              stroke-width="3"
             />
           </svg>
         </button>

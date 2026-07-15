@@ -75,7 +75,7 @@ onBeforeUnmount(() => {
               fill="none"
               stroke="currentColor"
               stroke-linecap="round"
-              stroke-width="2"
+              stroke-width="3"
             />
           </svg>
         </button>
@@ -85,7 +85,11 @@ onBeforeUnmount(() => {
           <h2 id="v1welcome-title" class="v1welcome-title">
             {{ COPY.title }}
           </h2>
-          <p v-for="(paragraph, index) in COPY.body" :key="index" class="v1welcome-lede">
+          <p
+            v-for="(paragraph, index) in COPY.body"
+            :key="index"
+            class="v1welcome-lede"
+          >
             {{ paragraph }}
           </p>
 

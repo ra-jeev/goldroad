@@ -71,7 +71,7 @@ onBeforeUnmount(() => {
               fill="none"
               stroke="currentColor"
               stroke-linecap="round"
-              stroke-width="2"
+              stroke-width="3"
             />
           </svg>
         </button>
@@ -90,10 +90,7 @@ onBeforeUnmount(() => {
       <article class="help-section">
         <h3>{{ COPY.sections.howToPlay.title }}</h3>
         <ul>
-          <li
-            v-for="item in COPY.sections.howToPlay.items"
-            :key="item"
-          >
+          <li v-for="item in COPY.sections.howToPlay.items" :key="item">
             {{ item }}
           </li>
         </ul>
@@ -102,10 +99,7 @@ onBeforeUnmount(() => {
       <article class="help-section">
         <h3>{{ COPY.sections.tools.title }}</h3>
         <ul>
-          <li
-            v-for="item in COPY.sections.tools.items"
-            :key="item"
-          >
+          <li v-for="item in COPY.sections.tools.items" :key="item">
             {{ item }}
           </li>
         </ul>
@@ -119,10 +113,7 @@ onBeforeUnmount(() => {
       <article class="help-section">
         <h3>{{ COPY.sections.updates.title }}</h3>
         <ul>
-          <li
-            v-for="item in COPY.sections.updates.items"
-            :key="item"
-          >
+          <li v-for="item in COPY.sections.updates.items" :key="item">
             {{ item }}
           </li>
         </ul>

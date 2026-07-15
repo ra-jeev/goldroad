@@ -50,7 +50,11 @@ const showStreakTick = computed(() => !isReplay.value);
 
 function medalLabel(medal: string | null): string | null {
   if (!medal) return null;
-  return UI_COPY.boardHeader.medals[medal as keyof typeof UI_COPY.boardHeader.medals] ?? null;
+  return (
+    UI_COPY.boardHeader.medals[
+      medal as keyof typeof UI_COPY.boardHeader.medals
+    ] ?? null
+  );
 }
 
 function formatTime(value: number | null): string | null {
@@ -82,7 +86,12 @@ const heading = computed(() => {
     };
   }
 
-  const toneKey = tier.value === 'gold' ? 'gold' : tier.value === 'medal' ? 'medal' : 'relief';
+  const toneKey =
+    tier.value === 'gold'
+      ? 'gold'
+      : tier.value === 'medal'
+        ? 'medal'
+        : 'relief';
   const tone = COPY.classic[toneKey];
   return {
     eyebrow: tone.eyebrow,
@@ -91,15 +100,15 @@ const heading = computed(() => {
   };
 });
 
-const primaryMedalLabel = computed(() => medalLabel(props.celebration?.medal ?? null));
+const primaryMedalLabel = computed(() =>
+  medalLabel(props.celebration?.medal ?? null),
+);
 
 const resultChips = computed(() => {
   if (!props.celebration) return [];
   const chips: string[] = [];
   const medal = primaryMedalLabel.value;
-  chips.push(
-    medal ? COPY.medalLine(medal) : COPY.solved,
-  );
+  chips.push(medal ? COPY.medalLine(medal) : COPY.solved);
   chips.push(COPY.attemptLabel(props.celebration.attemptNumber));
   const time = formatTime(props.celebration.solveTimeMs);
   if (time) chips.push(COPY.solveTimeLine(time));
@@ -209,11 +218,7 @@ onBeforeUnmount(() => {
 
 <template>
   <Transition name="celebration">
-    <div
-      v-if="celebration"
-      class="celebration-scrim"
-      @click.self="onDismiss"
-    >
+    <div v-if="celebration" class="celebration-scrim" @click.self="onDismiss">
       <section
         ref="dialog"
         class="celebration-sheet"
@@ -235,7 +240,7 @@ onBeforeUnmount(() => {
               fill="none"
               stroke="currentColor"
               stroke-linecap="round"
-              stroke-width="2"
+              stroke-width="3"
             />
           </svg>
         </button>
@@ -245,7 +250,9 @@ onBeforeUnmount(() => {
             v-if="!isDayComplete"
             class="celebration-medal"
             :class="[
-              primaryMedalLabel ? `celebration-medal--${celebration.medal}` : 'celebration-medal--plain',
+              primaryMedalLabel
+                ? `celebration-medal--${celebration.medal}`
+                : 'celebration-medal--plain',
             ]"
           >
             <span class="celebration-medal-core">
@@ -256,11 +263,7 @@ onBeforeUnmount(() => {
             </span>
           </div>
 
-          <div
-            v-else
-            class="celebration-day-badge"
-            aria-hidden="true"
-          >
+          <div v-else class="celebration-day-badge" aria-hidden="true">
             <span class="celebration-day-badge-core">
               {{ COPY.dayComplete.bothSolved }}
             </span>
@@ -276,7 +279,11 @@ onBeforeUnmount(() => {
           <p class="celebration-lede">{{ heading.body }}</p>
 
           <div v-if="isDayComplete" class="celebration-day-grid">
-            <div v-for="row in dayRows" :key="row.label" class="celebration-day-row">
+            <div
+              v-for="row in dayRows"
+              :key="row.label"
+              class="celebration-day-row"
+            >
               <span class="celebration-day-mode">{{ row.label }}</span>
               <span class="celebration-day-result">{{ row.result }}</span>
             </div>
@@ -301,7 +308,11 @@ onBeforeUnmount(() => {
               <button
                 type="button"
                 class="celebration-button"
-                :class="expeditionLeads ? 'celebration-button--ghost' : 'celebration-button--primary'"
+                :class="
+                  expeditionLeads
+                    ? 'celebration-button--ghost'
+                    : 'celebration-button--primary'
+                "
                 :disabled="shareBusy"
                 @click="onShare"
               >
@@ -312,7 +323,11 @@ onBeforeUnmount(() => {
                 v-if="showExpeditionCta"
                 type="button"
                 class="celebration-button"
-                :class="expeditionLeads ? 'celebration-button--primary' : 'celebration-button--secondary'"
+                :class="
+                  expeditionLeads
+                    ? 'celebration-button--primary'
+                    : 'celebration-button--secondary'
+                "
                 @click="onContinue"
               >
                 {{ COPY.continueToExpedition }}
@@ -478,13 +493,17 @@ onBeforeUnmount(() => {
 .celebration-medal--silver .celebration-medal-core {
   color: var(--color-text-on-silver);
   background: var(--gradient-medal-silver);
-  box-shadow: 0 0 16px rgb(210 220 230 / 0.4), var(--shadow-inset-gold);
+  box-shadow:
+    0 0 16px rgb(210 220 230 / 0.4),
+    var(--shadow-inset-gold);
 }
 
 .celebration-medal--bronze .celebration-medal-core {
   color: var(--color-text-on-bronze);
   background: var(--gradient-medal-bronze);
-  box-shadow: 0 0 16px rgb(210 140 80 / 0.42), var(--shadow-inset-gold);
+  box-shadow:
+    0 0 16px rgb(210 140 80 / 0.42),
+    var(--shadow-inset-gold);
 }
 
 .celebration-medal--plain .celebration-medal-core {

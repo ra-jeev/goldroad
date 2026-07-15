@@ -201,7 +201,7 @@ const quietMetaLine = computed(() => {
             stroke="currentColor"
             stroke-linecap="round"
             stroke-linejoin="round"
-            stroke-width="2"
+            stroke-width="3"
           />
         </svg>
         <span v-if="ended && !solved">{{ UI_COPY.boardFooter.retryRoad }}</span>
@@ -231,7 +231,7 @@ const quietMetaLine = computed(() => {
             stroke="currentColor"
             stroke-linecap="round"
             stroke-linejoin="round"
-            stroke-width="1.8"
+            stroke-width="3"
           />
         </svg>
         {{ UI_COPY.boardFooter.openHint }}
@@ -246,7 +246,12 @@ const quietMetaLine = computed(() => {
       </NuxtLink>
     </div>
 
-    <p v-if="shareMessage" class="share-message" role="status" aria-live="polite">
+    <p
+      v-if="shareMessage"
+      class="share-message"
+      role="status"
+      aria-live="polite"
+    >
       {{ shareMessage }}
     </p>
   </section>

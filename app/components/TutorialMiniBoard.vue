@@ -51,7 +51,7 @@ function roadStyle(index: number): Record<string, string> {
           stroke="currentColor"
           stroke-linecap="round"
           stroke-linejoin="round"
-          stroke-width="1.8"
+          stroke-width="3"
         />
       </svg>
       {{ UI_COPY.boardFooter.openHint }}
