@@ -45,7 +45,7 @@ export const UI_COPY = {
     openHelp: 'How to Play',
     switchToExpedition: 'Play Expedition',
     shareResult: 'Share',
-    viewStats: 'View Stats',
+    viewStats: 'View stats',
     attemptLabel: 'Attempt',
     expeditionUnlocked: 'Expedition unlocked',
     medalAwarded: (medal: string) => `${medal} medal`,
@@ -58,14 +58,14 @@ export const UI_COPY = {
       count === 0 ? 'Hint' : `Hint used ${count} time${count === 1 ? '' : 's'}`,
   },
   statsHistogram: {
-    distributionLabel: 'Distribution of how many tries roadgoers took',
+    distributionLabel: 'Distribution of how many attempts roadgoers took',
     barAriaLabel: (input: {
       caption: string;
       count: number;
       share: number;
       isPlayer: boolean;
     }) =>
-      `${input.caption}: ${input.count} run${input.count === 1 ? '' : 's'}, ${input.share}%${input.isPlayer ? ' — your run' : ''}`,
+      `${input.caption}: ${input.count} result${input.count === 1 ? '' : 's'}, ${input.share}%${input.isPlayer ? ' — your result' : ''}`,
   },
   helpSheet: {
     ariaLabel: 'How to play',

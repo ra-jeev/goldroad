@@ -26,13 +26,16 @@ const {
   loading,
   submitting,
   status,
-  lastMedal,
   lastSolved,
   hintsUsed,
   trackingDisabled,
   attemptNumber,
   maxScore,
   totalCoins,
+  classicSolvedToday,
+  classicMedalToday,
+  expeditionSolvedToday,
+  expeditionMedalToday,
   celebration,
   successfulMoveSignal,
   deniedMoveSignal,
@@ -61,10 +64,6 @@ const formattedDate = computed(() => {
     year: 'numeric',
     timeZone: 'UTC',
   }).format(new Date(game.value.playableAt));
-});
-const difficultyLabel = computed(() => {
-  if (!game.value) return '';
-  return `${game.value.difficultyBand.charAt(0).toUpperCase()}${game.value.difficultyBand.slice(1)}`;
 });
 
 watchEffect(() => {
@@ -167,7 +166,7 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
               <p class="eyebrow">Archived replay</p>
               <h1>Road {{ game.gameNo }}</h1>
               <p class="archive-subtitle">
-                {{ formattedDate }} · {{ difficultyLabel }} difficulty
+                {{ formattedDate }}
               </p>
             </div>
           </div>
@@ -181,12 +180,13 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
           :selected-mode="selectedMode"
           :has-expedition="Boolean(availableGames.expedition)"
           :is-expedition-unlocked="true"
-          :classic-solved="false"
+          :classic-solved="classicSolvedToday"
+          :classic-medal="classicMedalToday"
+          :expedition-solved="expeditionSolvedToday"
+          :expedition-medal="expeditionMedalToday"
           :score="score"
           :max-score="maxScore"
           :total-coins="totalCoins"
-          :medal="lastMedal"
-          :solved="lastSolved"
           :pulse="scorePulse"
           @select-mode="selectMode"
         />
@@ -209,7 +209,6 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
           :status="status"
           :hint-message="hintMessage"
           :attempt-number="attemptNumber"
-          :medal="lastMedal"
           :show-next-reset-countdown="false"
           :show-stats-link="false"
           secondary-link-to="/games"

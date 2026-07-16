@@ -1,5 +1,8 @@
 <script setup lang="ts">
+import { onClickOutside } from '@vueuse/core';
+
 const showMobileMenu = ref(false);
+const menuShell = ref<HTMLElement | null>(null);
 const route = useRoute();
 const currentRoadLabel = useState<string | null>(
   'current-road-label',
@@ -27,6 +30,8 @@ watch(
 function closeMobileMenu() {
   showMobileMenu.value = false;
 }
+
+onClickOutside(menuShell, closeMobileMenu);
 </script>
 
 <template>
@@ -44,26 +49,6 @@ function closeMobileMenu() {
         </div>
 
         <div class="header-actions">
-          <NuxtLink
-            to="/stats"
-            class="icon-button"
-            aria-label="View stats"
-            title="Stats"
-            data-tooltip="Stats"
-            @click="closeMobileMenu"
-          >
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path
-                d="M5 19V9m7 10V5m7 14v-7M3 19.5h18"
-                fill="none"
-                stroke="currentColor"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="3"
-              />
-            </svg>
-          </NuxtLink>
-
           <button
             class="icon-button"
             :aria-label="muted ? 'Unmute sounds' : 'Mute sounds'"
@@ -108,6 +93,26 @@ function closeMobileMenu() {
             </svg>
           </button>
 
+          <NuxtLink
+            to="/stats"
+            class="icon-button"
+            aria-label="View stats"
+            title="Stats"
+            data-tooltip="Stats"
+            @click="closeMobileMenu"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M5 19V9m7 10V5m7 14v-7M3 19.5h18"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="3"
+              />
+            </svg>
+          </NuxtLink>
+
           <button
             class="icon-button"
             aria-label="Open How to Play"
@@ -130,7 +135,7 @@ function closeMobileMenu() {
             </svg>
           </button>
 
-          <div class="menu-shell">
+          <div ref="menuShell" class="menu-shell">
             <button
               class="icon-button"
               :aria-expanded="showMobileMenu"

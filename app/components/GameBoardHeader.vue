@@ -8,11 +8,12 @@ const props = defineProps<{
   hasExpedition: boolean;
   isExpeditionUnlocked: boolean;
   classicSolved: boolean;
+  classicMedal: Medal | null;
+  expeditionSolved: boolean;
+  expeditionMedal: Medal | null;
   score: number;
   maxScore: number;
   totalCoins: number;
-  medal: Medal | null;
-  solved: boolean;
   pulse?: { type: 'toll' | 'bonus'; key: number } | null;
 }>();
 
@@ -47,6 +48,13 @@ const pulseStyle = computed(() => {
         '--pulse-rgb': 'var(--color-bonus-rgb)',
       };
 });
+
+function statusLabel(solved: boolean, medal: Medal | null): string {
+  if (!solved) return 'Not solved';
+  return medal
+    ? `${UI_COPY.boardHeader.medals[medal]} medal`
+    : UI_COPY.boardHeader.solvedBadge;
+}
 </script>
 
 <template>
@@ -72,7 +80,22 @@ const pulseStyle = computed(() => {
         "
         @click="emit('selectMode', 'classic')"
       >
-        {{ UI_COPY.boardHeader.classic }}
+        <span>{{ UI_COPY.boardHeader.classic }}</span>
+        <span
+          class="mode-status"
+          :class="[
+            { 'mode-status--solved': classicSolved },
+            classicMedal ? `mode-status--${classicMedal}` : null,
+          ]"
+        >
+          <svg v-if="classicSolved" viewBox="0 0 16 16" aria-hidden="true">
+            <path d="m3.5 8.2 2.8 2.8 6.2-6.2" />
+          </svg>
+          <span v-else class="mode-status-dot" aria-hidden="true" />
+          <span class="mode-status-label">
+            {{ statusLabel(classicSolved, classicMedal) }}
+          </span>
+        </span>
       </button>
 
       <button
@@ -90,7 +113,22 @@ const pulseStyle = computed(() => {
         "
         @click="emit('selectMode', 'expedition')"
       >
-        {{ UI_COPY.boardHeader.expedition }}
+        <span>{{ UI_COPY.boardHeader.expedition }}</span>
+        <span
+          class="mode-status"
+          :class="[
+            { 'mode-status--solved': expeditionSolved },
+            expeditionMedal ? `mode-status--${expeditionMedal}` : null,
+          ]"
+        >
+          <svg v-if="expeditionSolved" viewBox="0 0 16 16" aria-hidden="true">
+            <path d="m3.5 8.2 2.8 2.8 6.2-6.2" />
+          </svg>
+          <span v-else class="mode-status-dot" aria-hidden="true" />
+          <span class="mode-status-label">
+            {{ statusLabel(expeditionSolved, expeditionMedal) }}
+          </span>
+        </span>
       </button>
     </div>
 
@@ -135,15 +173,19 @@ const pulseStyle = computed(() => {
 }
 
 .mode-option {
-  min-height: 1.85rem;
+  min-height: 2.15rem;
   border: 0;
   border-radius: var(--radius-full);
-  padding: 0.28rem 0.72rem;
+  padding: 0.32rem 0.72rem;
   background: transparent;
   color: rgb(var(--color-gold-rgb) / 0.62);
   font: inherit;
-  font-size: 0.82rem;
+  font-size: 0.94rem;
   font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.42rem;
   cursor: pointer;
   transition:
     background var(--transition-fast),
@@ -162,10 +204,69 @@ const pulseStyle = computed(() => {
   cursor: not-allowed;
 }
 
+.mode-status {
+  position: relative;
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 1rem;
+  display: inline-grid;
+  place-items: center;
+  border-radius: var(--radius-circle);
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.34);
+  color: rgb(var(--color-gold-rgb) / 0.64);
+}
+
+.mode-status svg {
+  width: 0.72rem;
+  height: 0.72rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.mode-status-dot {
+  width: 0.3rem;
+  height: 0.3rem;
+  border-radius: var(--radius-circle);
+  background: currentColor;
+  opacity: 0.55;
+}
+
+.mode-status--solved {
+  color: var(--color-text-on-gold);
+  background: var(--color-gold);
+  border-color: var(--color-gold-bright);
+}
+
+.mode-status--silver {
+  background: var(--color-medal-silver-muted);
+  border-color: var(--color-medal-silver-bright);
+}
+
+.mode-status--bronze {
+  background: var(--color-medal-bronze-bright);
+  border-color: var(--color-medal-bronze-bright);
+  color: var(--color-text-on-bronze);
+}
+
+.mode-status-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .metric-line {
   margin: 0;
   color: rgb(var(--color-gold-rgb) / 0.76);
-  font-size: 0.9rem;
+  font-size: 1rem;
   font-weight: 700;
 }
 
@@ -194,7 +295,7 @@ const pulseStyle = computed(() => {
   }
 
   .metric-line {
-    font-size: 0.84rem;
+    font-size: 0.92rem;
   }
 }
 </style>

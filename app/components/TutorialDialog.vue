@@ -187,7 +187,6 @@ onBeforeUnmount(() => {
           :status="practice.status.value"
           :hint-message="practice.hintMessage.value"
           :attempt-number="1"
-          :medal="null"
           :show-next-reset-countdown="false"
           :show-stats-link="false"
           :expedition-just-unlocked="false"

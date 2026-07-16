@@ -16,7 +16,6 @@ const {
   loading,
   submitting,
   status,
-  lastMedal,
   lastSolved,
   hintsUsed,
   trackingDisabled,
@@ -27,6 +26,9 @@ const {
   selectedMode,
   isExpeditionUnlocked,
   classicSolvedToday,
+  classicMedalToday,
+  expeditionSolvedToday,
+  expeditionMedalToday,
   attemptNumber,
   nextResetCountdown,
   roadHeading,
@@ -154,11 +156,12 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
           :has-expedition="Boolean(availableGames.expedition)"
           :is-expedition-unlocked="isExpeditionUnlocked"
           :classic-solved="classicSolvedToday"
+          :classic-medal="classicMedalToday"
+          :expedition-solved="expeditionSolvedToday"
+          :expedition-medal="expeditionMedalToday"
           :score="score"
           :max-score="maxScore"
           :total-coins="totalCoins"
-          :medal="lastMedal"
-          :solved="lastSolved"
           :pulse="scorePulse"
           @select-mode="selectMode"
         />
@@ -181,7 +184,6 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
           :status="status"
           :hint-message="hintMessage"
           :attempt-number="attemptNumber"
-          :medal="lastMedal"
           :next-reset-countdown="nextResetCountdown"
           :expedition-just-unlocked="expeditionJustUnlocked"
           :hints-used="hintsUsed"

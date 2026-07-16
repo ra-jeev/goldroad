@@ -17,10 +17,6 @@ function formatDate(value: string): string {
   }).format(new Date(value));
 }
 
-function formatDifficulty(value: string): string {
-  return value.charAt(0).toUpperCase() + value.slice(1);
-}
-
 onMounted(async () => {
   try {
     const response = await gamesApi.getPastGames();
@@ -75,16 +71,14 @@ onMounted(async () => {
 
           <div class="mode-list">
             <span v-if="game.classic" class="mode-pill mode-pill--classic">
-              <strong>Classic</strong>
-              <span>{{ formatDifficulty(game.classic.difficultyBand) }}</span>
+              Classic
             </span>
 
             <span
               v-if="game.expedition"
               class="mode-pill mode-pill--expedition"
             >
-              <strong>Expedition</strong>
-              <span>{{ formatDifficulty(game.expedition.difficultyBand) }}</span>
+              Expedition
             </span>
           </div>
 
@@ -231,26 +225,13 @@ onMounted(async () => {
 .mode-pill {
   display: inline-flex;
   align-items: center;
-  gap: 0.42rem;
   padding: 0.32rem 0.58rem;
   border-radius: var(--radius-full);
   border: 1px solid rgb(var(--color-gold-rgb) / 0.18);
   background: rgb(var(--color-gold-rgb) / 0.06);
-  color: rgb(var(--color-gold-rgb) / 0.7);
-  font-size: 0.76rem;
-}
-
-.mode-pill strong {
   color: var(--color-gold);
-}
-
-.mode-pill--expedition {
-  border-color: rgb(var(--color-expedition-accent-rgb) / 0.2);
-  background: rgb(var(--color-expedition-accent-rgb) / 0.06);
-}
-
-.mode-pill--expedition strong {
-  color: var(--color-expedition-accent-bright);
+  font-size: 0.82rem;
+  font-weight: 800;
 }
 
 .card-action {

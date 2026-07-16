@@ -4,15 +4,10 @@ import type { CommunityRoadStats, Medal, PuzzleType } from '../../shared/types/g
 import { UI_COPY } from '../content/uiCopy';
 import { useRoadResultShare } from '../composables/useRoadResultShare';
 import type { HistogramBar } from '../components/StatsTriesHistogram.vue';
-import {
-  RECENT_ARCHIVE_DAY_LIMIT,
-  hasDeepArchiveRoads,
-} from '../../shared/utils/archive';
 
 const localStats = useLocalPlayerStats();
 const localProgress = useLocalGameProgress();
 const statsApi = useStatsApi();
-const gamesApi = useGamesApi();
 const roadResultShare = useRoadResultShare();
 
 const summary = localStats.summary;
@@ -27,20 +22,14 @@ const loading = ref(true);
 const selectedMode = ref<PuzzleType>('classic');
 const showAllTimeDetail = ref(false);
 const showFieldDetail = ref(false);
-const showFullHistory = ref(false);
-const HISTORY_PREVIEW_COUNT = 8;
+const communityRefreshing = ref(false);
+const HISTORY_PREVIEW_COUNT = 3;
+const COMMUNITY_SAMPLE_MIN = 5;
 
 const todayShare = ref<{ busy: boolean; feedback: FeedbackMessage | null }>({
   busy: false,
   feedback: null,
 });
-const latestShare = ref<{ busy: boolean; feedback: FeedbackMessage | null }>({
-  busy: false,
-  feedback: null,
-});
-const findingRandomRoad = ref(false);
-const randomRoadError = ref<string | null>(null);
-
 type FeedbackMessage = { kind: 'success' | 'error'; message: string };
 
 type PlayerRoadResult = {
@@ -49,12 +38,6 @@ type PlayerRoadResult = {
   hintsUsed: number;
   solveTimeMs: number | null;
   updatedAt: string;
-};
-
-type ShareableRoadResult = PlayerRoadResult & {
-  day: string;
-  gameNo: number;
-  puzzleType: PuzzleType;
 };
 
 // ---------------------------------------------------------------------------
@@ -132,8 +115,8 @@ function medalOf(result: PlayerRoadResult | null): Medal | null {
 }
 
 /**
- * Which histogram bucket the player's own run lands in.
- * 0 first try · 1 second · 2 third · 3 four-plus · 4 unsolved · -1 not played.
+ * Which histogram bucket the player's own attempt lands in.
+ * 0 first · 1 second · 2 third · 3 four-plus · 4 unsolved · -1 not played.
  */
 function bucketOf(result: PlayerRoadResult | null): number {
   if (!result || (result.attempts === 0 && !result.solved)) return -1;
@@ -160,7 +143,7 @@ function buildTriesBars(
   stat: CommunityRoadStats,
   playerBucket: number,
 ): HistogramBar[] {
-  const captions = ['First run', 'Second run', 'Third run', '4+ runs', 'Still going'];
+  const captions = ['First attempt', 'Second attempt', 'Third attempt', '4+ attempts', 'Still going'];
   const labels = ['1', '2', '3', '4+', 'DNF'];
 
   return bucketCounts(stat).map((count, index) => ({
@@ -198,10 +181,7 @@ const headerStrip = computed(() => ({
 // ---------------------------------------------------------------------------
 
 const modeAccentVar = computed(() => ({
-  '--hist-accent-rgb':
-    selectedMode.value === 'classic'
-      ? 'var(--color-gold-rgb)'
-      : 'var(--color-expedition-accent-rgb)',
+  '--hist-accent-rgb': 'var(--color-gold-rgb)',
 }));
 
 const todayGameNo = computed(
@@ -272,6 +252,12 @@ const todayHeadline = computed(() => {
       : 'Today’s road is fresh. Be one of the first to chart it.';
   }
 
+  if (field.plays < COMMUNITY_SAMPLE_MIN) {
+    return result?.solved
+      ? `You’re among the first ${field.plays} roadgoer${field.plays === 1 ? '' : 's'} here today.`
+      : `Only ${field.plays} roadgoer${field.plays === 1 ? ' has' : 's have'} posted a result so far.`;
+  }
+
   const bucket = bucketOf(result);
 
   if (result?.solved) {
@@ -296,7 +282,7 @@ const todayBars = computed<HistogramBar[]>(() => {
 });
 
 const showTodayHistogram = computed(
-  () => Boolean(todayField.value && todayField.value.plays > 0),
+  () => Boolean(todayField.value && todayField.value.plays >= COMMUNITY_SAMPLE_MIN),
 );
 
 // ---------------------------------------------------------------------------
@@ -383,7 +369,7 @@ const allTimeHeadline = computed(() => {
   return [
     { key: 'solves', label: 'Solves', value: String(stats.exactSolves) },
     { key: 'rate', label: 'Solve rate', value: `${stats.solveRate}%` },
-    { key: 'avg', label: 'Avg runs', value: stats.averageSolvedAttempts },
+    { key: 'avg', label: 'Avg attempts', value: stats.averageSolvedAttempts },
     { key: 'best', label: 'Best time', value: formatDurationMs(stats.bestSolveTimeMs) },
   ];
 });
@@ -434,13 +420,7 @@ const modeRoadLog = computed(() =>
 );
 
 const visibleRoadLog = computed(() =>
-  showFullHistory.value
-    ? modeRoadLog.value
-    : modeRoadLog.value.slice(0, HISTORY_PREVIEW_COUNT),
-);
-
-const hiddenRoadCount = computed(() =>
-  Math.max(modeRoadLog.value.length - HISTORY_PREVIEW_COUNT, 0),
+  modeRoadLog.value.slice(0, HISTORY_PREVIEW_COUNT),
 );
 
 function badgeClass(medal: Medal | null, solved: boolean) {
@@ -451,66 +431,6 @@ function badgeClass(medal: Medal | null, solved: boolean) {
     'badge--bronze': medal === 'bronze',
   };
 }
-
-// ---------------------------------------------------------------------------
-// Share & explore
-// ---------------------------------------------------------------------------
-
-const latestShareable = computed<ShareableRoadResult | null>(() => {
-  const results = recentDays.value.flatMap((entry) =>
-    (['classic', 'expedition'] as const).flatMap((mode) => {
-      const record = entry.modes[mode];
-      if (!record || record.attempts === 0) return [];
-      return [
-        {
-          ...record,
-          day: entry.day,
-          gameNo: entry.gameNo,
-          puzzleType: mode,
-        },
-      ];
-    }),
-  );
-
-  results.sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
-  return results[0] ?? null;
-});
-
-const latestShareCard = computed(() => {
-  const result = latestShareable.value;
-  if (!result) return null;
-
-  const medal = calcMedalForAttempt(result.attempts, result.solved);
-  return {
-    eyebrow: 'Latest run',
-    title: `Road ${result.gameNo} · ${formatModeLabel(result.puzzleType)}`,
-    status: result.solved
-      ? `${formatMedal(medal)} in ${formatRunCount(result.attempts)}`
-      : `${formatRunCount(result.attempts)} and still chasing it`,
-    detail: [
-      result.solved && result.solveTimeMs !== null
-        ? formatDurationMs(result.solveTimeMs)
-        : null,
-      result.hintsUsed > 0
-        ? `${result.hintsUsed} hint${result.hintsUsed === 1 ? '' : 's'}`
-        : null,
-    ]
-      .filter((part): part is string => Boolean(part))
-      .join(' · '),
-    buttonLabel: result.solved ? 'Share this result' : `Share this ${UI_COPY.boardFooter.attemptLabel.toLowerCase()}`,
-  };
-});
-
-const currentGameNo = computed(
-  () =>
-    communityOverview.value?.current.gameNo ??
-    localProgress.currentRoadContext.value.currentGameNo ??
-    null,
-);
-
-const canExploreDeepArchive = computed(() =>
-  hasDeepArchiveRoads(currentGameNo.value),
-);
 
 function scheduleFeedbackClear(target: { feedback: FeedbackMessage | null }) {
   window.setTimeout(() => {
@@ -563,44 +483,24 @@ async function shareTodayResult() {
   );
 }
 
-async function shareLatestResult() {
-  const result = latestShareable.value;
-  if (!result) return;
-
-  await runShare(
-    {
-      gameNo: result.gameNo,
-      puzzleType: result.puzzleType,
-      attempts: result.attempts,
-      solved: result.solved,
-      solveTimeMs: result.solveTimeMs,
-      hintsUsed: result.hintsUsed,
-    },
-    latestShare.value,
-  );
-}
-
-async function goToRandomOlderRoad() {
-  if (!canExploreDeepArchive.value || findingRandomRoad.value) return;
-
-  findingRandomRoad.value = true;
-  randomRoadError.value = null;
-
-  try {
-    const response = await gamesApi.getAnotherGame(
-      localProgress.playerUUID.value,
-    );
-    await navigateTo(`/games/${response.gameNo}`);
-  } catch {
-    randomRoadError.value = 'A random older road is unavailable right now.';
-  } finally {
-    findingRandomRoad.value = false;
-  }
-}
-
 // ---------------------------------------------------------------------------
 // Lifecycle
 // ---------------------------------------------------------------------------
+
+async function refreshCommunityStats() {
+  if (communityRefreshing.value) return;
+
+  communityRefreshing.value = true;
+  communityError.value = null;
+
+  try {
+    communityOverview.value = await statsApi.getOverview();
+  } catch {
+    communityError.value = 'Community comparison is unavailable right now.';
+  } finally {
+    communityRefreshing.value = false;
+  }
+}
 
 onMounted(async () => {
   localProgress.load();
@@ -611,11 +511,7 @@ onMounted(async () => {
     selectedMode.value = preferred;
   }
 
-  try {
-    communityOverview.value = await statsApi.getOverview();
-  } catch {
-    communityError.value = 'Community comparison is unavailable right now.';
-  }
+  await refreshCommunityStats();
 
   loading.value = false;
 });
@@ -629,34 +525,39 @@ onMounted(async () => {
         <h1>Stats</h1>
       </header>
 
-      <!-- Cross-mode header strip: never hidden by mode scoping -->
-      <section class="strip" aria-label="Across both modes">
-        <div class="strip-tile">
-          <span class="strip-label">Classic streak</span>
-          <strong class="strip-value">{{ headerStrip.classicStreak }}</strong>
-          <span class="strip-unit">
-            {{ headerStrip.classicStreak ? 'days running' : 'start today' }}
-          </span>
+      <section class="panel panel--record" aria-label="Across both modes">
+        <div class="section-head">
+          <p class="eyebrow">Across Classic and Expedition</p>
+          <h2>Your record</h2>
         </div>
-        <div class="strip-tile">
-          <span class="strip-label">Expedition streak</span>
-          <strong class="strip-value">{{ headerStrip.expeditionStreak }}</strong>
-          <span class="strip-unit">
-            {{ headerStrip.expeditionStreak ? 'days running' : 'start today' }}
-          </span>
-        </div>
-        <div class="strip-tile strip-tile--medals">
-          <span class="strip-label">Medals earned</span>
-          <div class="strip-medals">
-            <span class="strip-medal strip-medal--gold">
-              {{ headerStrip.medals.gold }}<em>{{ UI_COPY.boardHeader.medals.gold }}</em>
+        <div class="strip">
+          <div class="strip-tile">
+            <span class="strip-label">Classic streak</span>
+            <strong class="strip-value">{{ headerStrip.classicStreak }}</strong>
+            <span class="strip-unit">
+              {{ headerStrip.classicStreak ? 'days running' : 'start today' }}
             </span>
-            <span class="strip-medal strip-medal--silver">
-              {{ headerStrip.medals.silver }}<em>{{ UI_COPY.boardHeader.medals.silver }}</em>
+          </div>
+          <div class="strip-tile">
+            <span class="strip-label">Expedition streak</span>
+            <strong class="strip-value">{{ headerStrip.expeditionStreak }}</strong>
+            <span class="strip-unit">
+              {{ headerStrip.expeditionStreak ? 'days running' : 'start today' }}
             </span>
-            <span class="strip-medal strip-medal--bronze">
-              {{ headerStrip.medals.bronze }}<em>{{ UI_COPY.boardHeader.medals.bronze }}</em>
-            </span>
+          </div>
+          <div class="strip-tile strip-tile--medals">
+            <span class="strip-label">Medals earned</span>
+            <div class="strip-medals">
+              <span class="strip-medal strip-medal--gold">
+                {{ headerStrip.medals.gold }}<em>{{ UI_COPY.boardHeader.medals.gold }}</em>
+              </span>
+              <span class="strip-medal strip-medal--silver">
+                {{ headerStrip.medals.silver }}<em>{{ UI_COPY.boardHeader.medals.silver }}</em>
+              </span>
+              <span class="strip-medal strip-medal--bronze">
+                {{ headerStrip.medals.bronze }}<em>{{ UI_COPY.boardHeader.medals.bronze }}</em>
+              </span>
+            </div>
           </div>
         </div>
       </section>
@@ -693,7 +594,7 @@ onMounted(async () => {
               <h2>{{ todayCard.title }}</h2>
               <span
                 v-if="todayCard.state === 'solved'"
-                class="badge"
+                class="badge badge--featured"
                 :class="badgeClass(todayCard.medal ?? null, true)"
               >
                 {{ todayCard.badge }}
@@ -736,6 +637,19 @@ onMounted(async () => {
           </div>
 
           <div class="today-field">
+            <div class="today-field-head">
+              <span>
+                Snapshot from this visit<span v-if="todayField"> · {{ todayField.plays }} posted</span>
+              </span>
+              <button
+                type="button"
+                class="refresh-button"
+                :disabled="communityRefreshing"
+                @click="refreshCommunityStats"
+              >
+                {{ communityRefreshing ? 'Refreshing…' : 'Refresh' }}
+              </button>
+            </div>
             <p class="today-headline">{{ todayHeadline }}</p>
             <StatsTriesHistogram
               v-if="showTodayHistogram"
@@ -743,7 +657,7 @@ onMounted(async () => {
               player-tag="You"
             />
             <p v-else class="field-forming">
-              The field is still forming — check back as roadgoers post their runs.
+              The comparison appears after at least {{ COMMUNITY_SAMPLE_MIN }} results.
             </p>
           </div>
         </section>
@@ -851,8 +765,8 @@ onMounted(async () => {
         <!-- 4 · Recent road log -->
         <section v-if="modeRoadLog.length" class="panel panel--log">
           <div class="section-head">
-            <p class="eyebrow">{{ formatModeLabel(selectedMode) }} · newest first</p>
-            <h2>Recent roads</h2>
+            <p class="eyebrow">Personal history · newest first</p>
+            <h2>Your recent results</h2>
           </div>
 
           <ul class="log-list">
@@ -870,85 +784,7 @@ onMounted(async () => {
             </li>
           </ul>
 
-          <button
-            v-if="hiddenRoadCount"
-            type="button"
-            class="text-toggle"
-            @click="showFullHistory = !showFullHistory"
-          >
-            {{
-              showFullHistory
-                ? 'Show fewer roads'
-                : `Show ${hiddenRoadCount} older road${hiddenRoadCount === 1 ? '' : 's'}`
-            }}
-          </button>
-        </section>
-
-        <!-- 5 · Share & explore -->
-        <section
-          v-if="latestShareCard || canExploreDeepArchive"
-          class="panel panel--explore"
-        >
-          <div class="section-head">
-            <p class="eyebrow">Carry it forward</p>
-            <h2>Share &amp; explore</h2>
-          </div>
-
-          <div class="explore-grid">
-            <article v-if="latestShareCard" class="explore-card">
-              <p class="eyebrow">{{ latestShareCard.eyebrow }}</p>
-              <h3>{{ latestShareCard.title }}</h3>
-              <strong class="explore-status">{{ latestShareCard.status }}</strong>
-              <p v-if="latestShareCard.detail" class="explore-detail">
-                {{ latestShareCard.detail }}
-              </p>
-              <button
-                type="button"
-                class="btn btn--primary"
-                :disabled="latestShare.busy"
-                @click="shareLatestResult"
-              >
-                {{ latestShare.busy ? 'Preparing…' : latestShareCard.buttonLabel }}
-              </button>
-              <p
-                v-if="latestShare.feedback"
-                class="feedback"
-                :class="{ 'feedback--error': latestShare.feedback.kind === 'error' }"
-                aria-live="polite"
-              >
-                {{ latestShare.feedback.message }}
-              </p>
-            </article>
-
-            <article v-if="canExploreDeepArchive" class="explore-card">
-              <p class="eyebrow">Random older road</p>
-              <h3>Wander the deep archive</h3>
-              <p class="explore-detail">
-                Jump to a random road older than the latest
-                {{ RECENT_ARCHIVE_DAY_LIMIT }}, ready for a fresh replay.
-              </p>
-              <div class="explore-actions">
-                <button
-                  type="button"
-                  class="btn btn--primary"
-                  :disabled="findingRandomRoad"
-                  @click="goToRandomOlderRoad"
-                >
-                  {{ findingRandomRoad ? 'Finding a road…' : 'Play a random older road' }}
-                </button>
-                <NuxtLink to="/games" class="btn btn--ghost">
-                  Browse archive
-                </NuxtLink>
-              </div>
-              <p
-                v-if="randomRoadError"
-                class="feedback feedback--error"
-                aria-live="polite"
-              >
-                {{ randomRoadError }}
-              </p>
-            </article>
-          </div>
+          <NuxtLink to="/games" class="text-link">Browse Past Roads</NuxtLink>
         </section>
       </template>
     </div>
@@ -982,7 +818,7 @@ onMounted(async () => {
 
 .eyebrow {
   margin: 0;
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -1007,7 +843,7 @@ onMounted(async () => {
 }
 
 .strip-label {
-  font-size: 0.68rem;
+  font-size: 0.76rem;
   font-weight: 800;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -1023,7 +859,7 @@ onMounted(async () => {
 }
 
 .strip-unit {
-  font-size: 0.72rem;
+  font-size: 0.8rem;
   color: rgb(var(--color-gold-rgb) / 0.6);
 }
 
@@ -1043,7 +879,7 @@ onMounted(async () => {
 
 .strip-medal em {
   font-style: normal;
-  font-size: 0.6rem;
+  font-size: 0.68rem;
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -1078,6 +914,7 @@ onMounted(async () => {
   background: transparent;
   color: rgb(var(--color-gold-rgb) / 0.72);
   font: inherit;
+  font-size: 0.96rem;
   font-weight: 800;
   letter-spacing: 0.02em;
   cursor: pointer;
@@ -1091,20 +928,10 @@ onMounted(async () => {
   color: var(--color-gold-bright);
 }
 
-.mode-switch-btn--classic.is-active {
+.mode-switch-btn.is-active {
   color: var(--color-text-on-gold);
   background: var(--gradient-button-primary);
   box-shadow: 0 0 16px rgb(var(--color-gold-rgb) / 0.28);
-}
-
-.mode-switch-btn--expedition.is-active {
-  color: var(--color-text-on-expedition);
-  background: linear-gradient(
-    135deg,
-    var(--color-expedition-accent-bright) 0%,
-    var(--color-expedition-accent) 100%
-  );
-  box-shadow: 0 0 16px rgb(var(--color-expedition-accent-rgb) / 0.32);
 }
 
 /* ── Panels ───────────────────────────────────────────────── */
@@ -1174,6 +1001,7 @@ onMounted(async () => {
   margin: 0;
   color: rgb(var(--color-gold-rgb) / 0.82);
   line-height: var(--line-height-base);
+  font-size: 1rem;
 }
 
 .today-actions {
@@ -1187,6 +1015,35 @@ onMounted(async () => {
   gap: 0.85rem;
   padding-top: 1rem;
   border-top: 1px solid rgb(var(--color-gold-rgb) / 0.14);
+}
+
+.today-field-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  color: rgb(var(--color-gold-rgb) / 0.64);
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.refresh-button {
+  padding: 0.25rem 0.55rem;
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.2);
+  border-radius: var(--radius-full);
+  background: rgb(var(--color-gold-rgb) / 0.06);
+  color: rgb(var(--color-gold-rgb) / 0.78);
+  font: inherit;
+  font-size: 0.76rem;
+  text-transform: none;
+  cursor: pointer;
+}
+
+.refresh-button:disabled {
+  opacity: 0.6;
+  cursor: wait;
 }
 
 .today-headline {
@@ -1215,7 +1072,7 @@ onMounted(async () => {
   background: rgb(0 0 0 / 0.24);
   border: 1px solid rgb(var(--color-gold-rgb) / 0.22);
   color: rgb(var(--color-gold-rgb) / 0.86);
-  font-size: 0.8rem;
+  font-size: 0.88rem;
   font-weight: 800;
 }
 
@@ -1253,6 +1110,18 @@ onMounted(async () => {
   border: 1px solid rgb(var(--color-medal-bronze-rgb) / 0.3);
 }
 
+.badge--featured {
+  display: inline-grid;
+  place-items: center;
+  min-width: 4.25rem;
+  min-height: 4.25rem;
+  padding: 0.55rem;
+  border-radius: var(--radius-circle);
+  font-size: 0.86rem;
+  text-align: center;
+  box-shadow: 0 6px 16px rgb(0 0 0 / 0.28);
+}
+
 /* ── Field panel ──────────────────────────────────────────── */
 .panel--field {
   background: var(--gradient-card-metric);
@@ -1272,7 +1141,7 @@ onMounted(async () => {
   background: rgb(var(--color-gold-rgb) / 0.1);
   border: 1px solid rgb(var(--color-gold-rgb) / 0.2);
   color: rgb(var(--color-gold-rgb) / 0.86);
-  font-size: 0.78rem;
+  font-size: 0.84rem;
   font-weight: 800;
   white-space: nowrap;
 }
@@ -1321,7 +1190,7 @@ onMounted(async () => {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  font-size: 0.76rem;
+  font-size: 0.82rem;
   color: rgb(var(--color-gold-rgb) / 0.72);
 }
 
@@ -1365,7 +1234,7 @@ onMounted(async () => {
 }
 
 .headline-stat span {
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -1425,7 +1294,7 @@ onMounted(async () => {
 }
 
 .log-day {
-  font-size: 0.74rem;
+  font-size: 0.8rem;
   color: rgb(var(--color-gold-rgb) / 0.6);
 }
 
@@ -1443,7 +1312,7 @@ onMounted(async () => {
 }
 
 .log-chips {
-  font-size: 0.8rem;
+  font-size: 0.86rem;
   color: rgb(var(--color-gold-rgb) / 0.7);
   font-variant-numeric: tabular-nums;
 }
@@ -1494,6 +1363,7 @@ onMounted(async () => {
   border-radius: var(--radius-full);
   border: 1px solid transparent;
   font: inherit;
+  font-size: 0.94rem;
   font-weight: 800;
   text-decoration: none;
   cursor: pointer;
@@ -1533,7 +1403,7 @@ onMounted(async () => {
   color: rgb(var(--color-gold-rgb) / 0.82);
   font: inherit;
   font-weight: 800;
-  font-size: 0.86rem;
+  font-size: 0.9rem;
   cursor: pointer;
   border-bottom: 1px solid rgb(var(--color-gold-rgb) / 0.32);
 }
@@ -1557,6 +1427,14 @@ onMounted(async () => {
   margin: 0;
   color: rgb(var(--color-gold-rgb) / 0.7);
   font-size: 0.9rem;
+}
+
+.text-link {
+  justify-self: start;
+  color: rgb(var(--color-gold-rgb) / 0.86);
+  font-size: 0.9rem;
+  font-weight: 800;
+  text-underline-offset: 0.22em;
 }
 
 @media (max-width: 560px) {

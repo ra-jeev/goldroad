@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import type { Medal } from '../../shared/types/game';
 import type { ShareRoadResultResponse } from '../composables/useRoadResultShare';
 import { UI_COPY } from '../content/uiCopy';
 
@@ -9,7 +8,6 @@ const props = withDefaults(
     status: string;
     hintMessage: string | null;
     attemptNumber: number;
-    medal: Medal | null;
     nextResetCountdown?: string;
     showNextResetCountdown?: boolean;
     expeditionJustUnlocked: boolean;
@@ -81,16 +79,8 @@ const retryBusy = computed(
 );
 const footerMessage = computed(() => props.hintMessage ?? props.status);
 const showSolvedMeta = computed(() => props.solved);
-const medalLabel = computed(() =>
-  props.medal ? UI_COPY.boardHeader.medals[props.medal] : null,
-);
 const retryButtonStyle = computed(() =>
   props.canSwitchToExpedition || showSolvedMeta.value ? 'secondary' : 'primary',
-);
-const showFooterMessage = computed(
-  () =>
-    Boolean(footerMessage.value) &&
-    (!props.canRetry || props.ended || props.solved),
 );
 const showStatsLink = computed(
   () =>
@@ -113,28 +103,13 @@ const resultLine = computed(() => {
     return footerMessage.value;
   }
 
-  if (medalLabel.value) {
-    return props.ended
-      ? `Solved · ${medalLabel.value}`
-      : `Solved earlier · ${medalLabel.value}`;
-  }
-
-  return UI_COPY.runtime.destinationSolved;
-});
-
-const quietMetaLine = computed(() => {
-  if (!showSolvedMeta.value) {
+  if (props.canSwitchToExpedition || !props.showNextResetCountdown) {
     return null;
   }
 
-  if (props.canSwitchToExpedition) {
-    return null;
-  }
-
-  return props.showNextResetCountdown
-    ? UI_COPY.boardFooter.nextRoadShort(props.nextResetCountdown)
-    : null;
+  return UI_COPY.boardFooter.nextRoadShort(props.nextResetCountdown);
 });
+const showFooterMessage = computed(() => Boolean(resultLine.value));
 </script>
 
 <template>
@@ -145,8 +120,6 @@ const quietMetaLine = computed(() => {
     <div v-if="showFooterMessage" class="footer-top">
       <div class="footer-copy">
         <p class="footer-message">{{ resultLine }}</p>
-
-        <p v-if="quietMetaLine" class="quiet-meta">{{ quietMetaLine }}</p>
       </div>
 
       <span v-if="showAttemptPill" class="attempt-pill">
@@ -156,29 +129,25 @@ const quietMetaLine = computed(() => {
 
     <div class="action-row">
       <button
-        v-if="canSwitchToExpedition"
+        v-if="showHintAction"
         type="button"
-        class="action-button primary action-button--text"
+        class="action-button ghost ghost--hint action-button--text"
         :disabled="busy"
-        :title="
-          expeditionJustUnlocked
-            ? UI_COPY.boardFooter.expeditionUnlocked
-            : UI_COPY.boardFooter.switchToExpedition
-        "
-        @click="emit('switchExpedition')"
+        :aria-label="UI_COPY.boardFooter.openHint"
+        :title="UI_COPY.boardFooter.hintUsedLabel(hintsUsed)"
+        @click="emit('hint')"
       >
-        {{ UI_COPY.boardFooter.switchToExpedition }}
-      </button>
-
-      <button
-        v-if="showShareAction"
-        type="button"
-        class="action-button secondary action-button--text"
-        :disabled="shareBusy"
-        :title="UI_COPY.boardFooter.shareResult"
-        @click="onShare"
-      >
-        {{ UI_COPY.boardFooter.shareResult }}
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M9 18h6m-5-3.5h4m-7.5-4.7a5.5 5.5 0 1 1 9.2 4.05c-.77.68-1.2 1.28-1.34 2.15H9.64c-.14-.87-.57-1.47-1.34-2.15A5.48 5.48 0 0 1 6.5 9.8Z"
+            fill="none"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="3"
+          />
+        </svg>
+        {{ UI_COPY.boardFooter.openHint }}
       </button>
 
       <button
@@ -207,34 +176,15 @@ const quietMetaLine = computed(() => {
         <span v-if="ended && !solved">{{ UI_COPY.boardFooter.retryRoad }}</span>
       </button>
 
-      <NuxtLink
-        v-if="showStatsLink"
-        to="/stats"
-        class="link-button primary action-button--text"
-      >
-        {{ UI_COPY.boardFooter.viewStats }}
-      </NuxtLink>
-
       <button
-        v-if="showHintAction"
+        v-if="showShareAction"
         type="button"
-        class="action-button ghost ghost--hint action-button--text"
-        :disabled="busy"
-        :aria-label="UI_COPY.boardFooter.openHint"
-        :title="UI_COPY.boardFooter.hintUsedLabel(hintsUsed)"
-        @click="emit('hint')"
+        class="action-button secondary action-button--text"
+        :disabled="shareBusy"
+        :title="UI_COPY.boardFooter.shareResult"
+        @click="onShare"
       >
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path
-            d="M9 18h6m-5-3.5h4m-7.5-4.7a5.5 5.5 0 1 1 9.2 4.05c-.77.68-1.2 1.28-1.34 2.15H9.64c-.14-.87-.57-1.47-1.34-2.15A5.48 5.48 0 0 1 6.5 9.8Z"
-            fill="none"
-            stroke="currentColor"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="3"
-          />
-        </svg>
-        {{ UI_COPY.boardFooter.openHint }}
+        {{ UI_COPY.boardFooter.shareResult }}
       </button>
 
       <NuxtLink
@@ -244,6 +194,29 @@ const quietMetaLine = computed(() => {
       >
         {{ secondaryLinkLabel }}
       </NuxtLink>
+
+      <NuxtLink
+        v-if="showStatsLink"
+        to="/stats"
+        class="link-button primary action-button--text"
+      >
+        {{ UI_COPY.boardFooter.viewStats }}
+      </NuxtLink>
+
+      <button
+        v-if="canSwitchToExpedition"
+        type="button"
+        class="action-button primary action-button--text"
+        :disabled="busy"
+        :title="
+          expeditionJustUnlocked
+            ? UI_COPY.boardFooter.expeditionUnlocked
+            : UI_COPY.boardFooter.switchToExpedition
+        "
+        @click="emit('switchExpedition')"
+      >
+        {{ UI_COPY.boardFooter.switchToExpedition }}
+      </button>
     </div>
 
     <p
@@ -274,6 +247,8 @@ const quietMetaLine = computed(() => {
 .footer-message {
   margin: 0;
   color: var(--color-gold-bright);
+  font-size: 1rem;
+  font-weight: 650;
   line-height: var(--line-height-snug);
 }
 
@@ -290,13 +265,6 @@ const quietMetaLine = computed(() => {
   min-width: 0;
 }
 
-.quiet-meta {
-  margin: 0;
-  color: rgb(var(--color-gold-rgb) / 0.62);
-  font-size: 0.8rem;
-  font-weight: 700;
-}
-
 .share-message {
   margin: 0;
   font-size: 0.8rem;
@@ -311,7 +279,7 @@ const quietMetaLine = computed(() => {
   background: rgb(var(--color-gold-rgb) / 0.12);
   border: 1px solid rgb(var(--color-gold-rgb) / 0.24);
   color: rgb(var(--color-gold-rgb) / 0.84);
-  font-size: 0.8rem;
+  font-size: 0.88rem;
   font-weight: 700;
 }
 
@@ -341,6 +309,7 @@ button,
   justify-content: center;
   gap: 0.45rem;
   font: inherit;
+  font-size: 0.94rem;
   font-weight: 800;
   line-height: 1;
 }

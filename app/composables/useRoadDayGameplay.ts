@@ -154,6 +154,35 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     );
     return classicProgress.solved;
   });
+  const classicMedalToday = computed<Medal | null>(() => {
+    const classic = availableGames.value.classic;
+    if (!classic) return null;
+    const progress = localProgress.getGameProgress(
+      classic.gameNo,
+      'classic',
+      progressScope,
+    );
+    return calcMedalForAttempt(Math.max(progress.attempts, 1), progress.solved);
+  });
+  const expeditionSolvedToday = computed(() => {
+    const expedition = availableGames.value.expedition;
+    if (!expedition) return false;
+    return localProgress.getGameProgress(
+      expedition.gameNo,
+      'expedition',
+      progressScope,
+    ).solved;
+  });
+  const expeditionMedalToday = computed<Medal | null>(() => {
+    const expedition = availableGames.value.expedition;
+    if (!expedition) return null;
+    const progress = localProgress.getGameProgress(
+      expedition.gameNo,
+      'expedition',
+      progressScope,
+    );
+    return calcMedalForAttempt(Math.max(progress.attempts, 1), progress.solved);
+  });
 
   watch(selectedMode, (mode) => {
     if (typeof window === 'undefined') return;
@@ -1045,6 +1074,9 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     roadHeading,
     isExpeditionUnlocked,
     classicSolvedToday,
+    classicMedalToday,
+    expeditionSolvedToday,
+    expeditionMedalToday,
     celebration,
     successfulMoveSignal,
     deniedMoveSignal,

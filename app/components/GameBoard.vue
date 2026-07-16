@@ -184,32 +184,34 @@ watch(
 <template>
   <section class="board-shell">
     <div class="board-stage">
-      <div
-        v-if="puzzleType === 'expedition'"
-        class="board-info"
-        aria-label="Expedition road values"
-      >
-        <div class="info-item">
-          <span class="info-road" aria-hidden="true">
-            <RoadGlyph type="toll" state="default" />
-          </span>
-          <span class="info-label">
-            {{ UI_COPY.board.info.tollCost }}
-          </span>
-          <span class="info-value">
-            {{ board.tollValue }}
-          </span>
-        </div>
-        <div class="info-item">
-          <span class="info-road" aria-hidden="true">
-            <RoadGlyph type="bonus" state="default" />
-          </span>
-          <span>
-            {{ UI_COPY.board.info.roadBonus }}
-          </span>
-          <span class="info-value">
-            {{ board.bonusValue }}
-          </span>
+      <div class="board-info-slot">
+        <div
+          v-if="puzzleType === 'expedition'"
+          class="board-info"
+          aria-label="Expedition road values"
+        >
+          <div class="info-item">
+            <span class="info-road" aria-hidden="true">
+              <RoadGlyph type="toll" state="default" />
+            </span>
+            <span class="info-label">
+              {{ UI_COPY.board.info.tollCost }}
+            </span>
+            <span class="info-value">
+              {{ board.tollValue }}
+            </span>
+          </div>
+          <div class="info-item">
+            <span class="info-road" aria-hidden="true">
+              <RoadGlyph type="bonus" state="default" />
+            </span>
+            <span>
+              {{ UI_COPY.board.info.roadBonus }}
+            </span>
+            <span class="info-value">
+              {{ board.bonusValue }}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -274,11 +276,20 @@ watch(
   width: 100%;
 }
 
+.board-info-slot {
+  min-height: 1.35rem;
+  display: grid;
+  place-items: center;
+  width: 100%;
+}
+
 .info-item {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   color: rgb(var(--color-gold-rgb) / 0.64);
+  font-size: 0.9rem;
+  line-height: 1;
 }
 
 .info-value {
