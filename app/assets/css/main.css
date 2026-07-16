@@ -316,7 +316,7 @@ body.mode-expedition .hero-card {
 :focus-visible {
   outline-style: ridge;
   outline-width: 2px;
-  outline-color: #afcbff;
+  outline-color: var(--color-focus);
   outline-offset: 1px;
 }
 

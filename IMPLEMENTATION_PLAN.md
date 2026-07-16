@@ -706,3 +706,449 @@ The legacy code and archive material under `_archive/` remain the place for hist
 Whenever a product decision is changed, update this file and `ARCHITECTURE.md` in the same pass.
 
 That keeps future sessions aligned with the same plan and prevents outdated docs from becoming accidental requirements again.
+
+## 8. V2 release-polish tracker
+
+This is the follow-up queue from the first full v1/v2 consistency review and the July 2026 screenshot review. It does not erase the completed rewrite history above. It tracks the remaining work needed for v2 to feel release-ready in real use.
+
+### Clarified product decisions
+
+- Keep the sum of every tile value visible near the score. Players asked for it in v1 because comparing the target with the whole-board total helps them reason about how much of the board can be left out. Rename the player-facing metric from **Road Coins** to **Board total**: some tiles will never belong to the completed road, and the number is a value sum rather than a count of coins.
+- Missing roads on the real board remain true empty space, not a faint dotted road. Open roads must be sufficiently solid, thick, and edge-to-edge that an empty gap cannot be mistaken for a connection. The tutorial must demonstrate the same visual contract.
+- ~~V2 community stats are dynamic at request time for both the current road and the previous road.~~ **Superseded (July 2026 experience review):** community stats are shown only for the previous, completed road — v1's model. There are no dynamic community stats for the in-progress road; without a live global scoreboard as a deliberate feature, a mid-day snapshot answers no player question. The stats page's "today" section is the player's own result (and share), not a community comparison. Histogram/percentile UI still handles tiny samples honestly (RP0-4 / RP1-5 safeguards stay).
+- "Recent roads" on the current stats page means the player's own locally stored recent results, not another copy of the playable Past Roads archive. Keep it only if a short personal-result history adds value after the stats redesign; do not give it a large archive-like section by default.
+- Sharing belongs beside the concrete result being shared. The current generic "Share & explore" section should not survive merely because the previous stats plan listed it.
+
+### Clarified product decisions — July 2026 experience review
+
+The v2 UI is visually good; these decisions are about behavior and information rhythm, with v1 as the explicit reference:
+
+- **Board messaging is strictly contextual.** v1's `GameFooter` is the contract: exactly one message or affordance per state. During movement, only the retry affordance shows — no status text, no attempt count. The attempt count appears only at rest after a retry (v1's "3rd try") and disappears on the first move. Pre-play shows one instruction. Solved shows the next-road ticker. Nothing renders merely because space exists for it.
+- **The stats page returns to v1's shape, adapted for two modes.** v1's forms were better: medal-count displays with the "+1" increment moment, a "Today's Road" card holding the player's own result and share (or a play prompt), a previous-road global-stats story (histogram plus the narrative "X% finished it… you were in the top Y%"), and a key-value "Your Stats" record (streaks, treads, finishes, completion %, average attempts). Two modes are scoped by the single global mode toggle; some deviation from v1 is expected, but the forms above are the target.
+- **Past Roads becomes a calendar.** The card grid conveys nothing per road (every card is date + number + the same two pills). Replace it with a calendar-style picker where tapping a date opens that road day. Replay pages drop header/label chrome — the board is the content.
+- **The footer is the hint's home.** v1 had no hint feature, so its one-thing-at-a-time footer never had to accommodate one. v2 keeps Hint in the board footer, made contextual to the extent possible: reachable but quiet during play, absent once the road is solved or in untracked replay.
+- **Medals are gold/silver/bronze only.** v1's 4+/10+/20+ try buckets (😅😥😓) served no purpose and are not carried over. The medal display is the three medal counts with the "+1" moment for whatever was earned today. v2 has no medal iconography — medals are a typographic color system (see RP1-11 for the display decision).
+- **One focus color.** `--color-focus` (#4b9eff blue) is the single focus indicator everywhere; the v1-inherited `#afcbff` global outline was replaced (applied July 2026).
+- **A final dead-declaration cleanup pass is agreed** (RP1-13): once the experience issues land, remove CSS tokens and code declared but unused or no longer used in the sense they were declared (e.g. the `--color-start`/`--color-end` families — start/finish are distinguished by icon, not color — and `--color-blocked`).
+
+### Issue RP0-1 — Restore a trustworthy release verification gate
+- Priority: `P0` (launch-blocking)
+- Status: `in progress`
+- Goal: make the documented verification commands reliable on a clean checkout.
+- Why it matters: tests and builds currently pass, but the declared typecheck command is broken by the installed TypeScript/tooling combination. A release cannot rely on a check nobody can run.
+- Scope:
+  - package/tooling versions and scripts
+  - CI or equivalent clean-checkout verification
+  - release checklist documentation
+- Acceptance criteria:
+  - `pnpm typecheck`, `pnpm test`, and `pnpm build` all pass from the supported setup
+  - the release checklist names the exact commands and expected environment
+  - board, tutorial, stats, past-roads, and replay routes receive at least one browser smoke pass at mobile and desktop widths
+- Dependencies: none
+- Progress notes:
+  - added the missing explicit `typescript@^5.9.3` dev dependency, replacing the incompatible transitive TypeScript 7 resolution
+  - `pnpm typecheck`, `pnpm test` (41/41), and `pnpm build` now pass
+  - browser-smoked the live board, first-run guide, practice road, archived Classic/Expedition replay, Past Roads, mobile header, and dialog keyboard focus with no console errors
+  - remains in progress until the deferred stats review is browser-smoked and a repeatable UI smoke suite from RP1-9 exists
+
+### Issue RP0-2 — Finish deployment, migration, and cutover readiness
+- Priority: `P0` (launch-blocking)
+- Status: `planned`
+- Goal: remove configuration ambiguity before the v1-to-v2 switch.
+- Why it matters: production configuration still requires a real D1 database ID, migration documentation refers to the pre-squash migration chain, and the actual DNS/Firebase cutover remains outstanding.
+- Scope:
+  - `wrangler.jsonc`
+  - database and deployment docs
+  - `LAUNCH_CUTOVER_NOTES.md`
+  - legacy-route handling, including `/sign-in`
+  - launch-day verification and v1 shutdown checklist
+- Acceptance criteria:
+  - production bindings and secrets are configured without placeholders
+  - migration docs match the active squashed migration state
+  - legacy public URLs land on sensible v2 destinations rather than hard 404s
+  - the P2-4 DNS, Firebase sunset, analytics-write, and share-unfurl checklist is executed or explicitly scheduled
+- Dependencies:
+  - RP0-1
+
+### Issue RP0-3 — Fix gameplay and local-stats correctness gaps
+- Priority: `P0` (launch-blocking)
+- Status: `done`
+- Goal: remove small behavioral contradictions that undermine trust in the game.
+- Why it matters: the start tile is already selected when a road loads while the footer tells the player to start there; clicking it produces denied feedback. The computed roving keyboard tab index is also not bound to the tile buttons, and the current-streak calculation can fall to zero at the start of a new day before the player has played.
+- Scope:
+  - `useRoadDayGameplay`
+  - `GameTile` / `GameBoard` keyboard behavior
+  - runtime instruction copy
+  - `useLocalPlayerStats`
+- Acceptance criteria:
+  - the initial instruction accurately describes the state already visible on the board
+  - clicking/tapping the current start tile does not emit misleading denied feedback
+  - only the intended tile participates in the roving-tabindex pattern, with arrow-key behavior verified
+  - an active streak remains correct across the daily rollover before today's solve
+- Dependencies: none
+- Completion notes:
+  - the loaded-road instruction now acknowledges that the player is already on the footprints; selecting the current tile is a quiet no-op instead of denied feedback
+  - the computed tile tabindex is bound to the button, only the current tile has `tabindex="0"`, and keyboard movement moves DOM focus with the current tile
+  - board keyboard input is suppressed while Help, Tutorial, or the returning-player welcome sheet covers the board
+  - current streaks now remain alive through today's unplayed window when yesterday was solved; three deterministic regression tests cover rollover, today solved, and expired streak states
+
+### Issue RP0-4 — Make anonymous analytics trustworthy and accurately described
+- Priority: `P0` (launch-blocking)
+- Status: `planned`
+- Goal: ensure global comparison cannot be trivially distorted and public privacy copy matches stored data.
+- Why it matters: session analytics currently accepts important solve fields from the client, and rate limiting uses a player-supplied UUID. The privacy page describes aggregated data even though the database keeps pseudonymous per-player, per-road, per-mode rows.
+- Scope:
+  - session-end and hint analytics validation
+  - abuse/rate-limit identity strategy
+  - stats aggregation safeguards
+  - About/Privacy copy
+- Acceptance criteria:
+  - the server validates or derives every result field it can reasonably verify
+  - one client cannot bypass useful limits merely by rotating its supplied UUID
+  - tiny or suspicious samples do not produce authoritative percentile claims
+  - privacy copy plainly describes pseudonymous event/result storage and aggregation
+- Dependencies: none
+
+### Issue RP1-1 — Rebuild onboarding around the production game language
+- Priority: `P1`
+- Status: `done`
+- Goal: make the guide and practice road a faithful, polished miniature of the real game.
+- Why it matters: the current tutorial uses unnamed icons, awkward "exact target score" wording, two-tile examples, connection gaps, and toll/bonus labels that do not match the board. It omits a real Hint lesson, crowds the practice footer, and preserves an already-solved practice state when reopened.
+- Scope:
+  - `TutorialDialog`
+  - `TutorialMiniBoard`
+  - tutorial content and practice state
+  - How to Play handoff
+- Acceptance criteria:
+  - start and finish markers are named and described by their visible symbols, such as footprints and finish flag
+  - the goal is explained consistently: reach the finish with the score matching the target
+  - start/finish teaching uses enough board context to show a route rather than two isolated endpoints
+  - open, missing, toll, and bonus examples reuse the production road visuals and spacing exactly
+  - the guide explicitly teaches Hint with the same button treatment used by the game; Retry remains contextual to a failed attempt instead of occupying a permanent lesson
+  - practice uses intentional vertical spacing and a practice-specific contextual footer
+  - reopening the tutorial starts a fresh practice session rather than showing the previous solved board
+  - practice completion says **Practice complete** or **Solved**, never **Solved on target**
+- Dependencies:
+  - RP1-2
+  - RP1-3
+- Completion notes:
+  - the guide now names footprints and the finish flag, explains the target without "exact target score," and uses a three-tile start-to-finish vignette
+  - guide roads reuse the production open, empty-gap, double-dotted toll, and double-solid bonus grammar with no fake connection margins or per-edge value labels
+  - the permanent Hint/Try again lesson was simplified to a dedicated Hint lesson using the real lightbulb-and-label button treatment
+  - browser feedback exposed that the first mini-board implementation collapsed production tiles and positioned road glyphs inside a zero-gap flex row; it now uses the production board's grid sizing and absolute road geometry, including real empty space for a missing road
+  - toll and bonus explanations now describe the player consequence directly (pay the toll / get the bonus), and the second tutorial tab is named **Practice Road**
+  - the practice panel uses one **Practice road** heading rather than repeating an eyebrow and title; the shared Expedition legend now reads **Toll cost N** and **Road bonus N**, without redundant minus/plus signs
+  - every desktop guide card now reserves the same fixed visual column, keeping all lesson headings and descriptions on one shared text axis while centering the differently sized examples
+  - removed the redundant practice-panel title, moved the practice invitation into the dialog description, restored the production pre-run instruction in the footer, and optically centered the shared toll/bonus road samples in their value pills
+  - practice now uses the production toll/bonus legend, separate Score/Target/Board total metrics, more vertical space, and no duplicate four-road legend below the board
+  - opening or reopening the tutorial resets the practice road, hints, and solved state
+
+### Issue RP1-2 — Make every road type legible at a glance
+- Priority: `P1`
+- Status: `done`
+- Goal: remove ambiguity between open, missing, toll, and bonus connections.
+- Why it matters: open roads currently render with low opacity and a short glyph inside the inter-tile gap. Missing roads are correctly omitted, yet tile glow and the faint road treatment can create the illusion of a connection. Toll and bonus roads also compete with midpoint value chips even though their values are global for the board.
+- Scope:
+  - road sizing tokens
+  - `RoadGlyph`
+  - `BoardRoad`
+  - board toll/bonus legend
+  - Classic/Expedition board surfaces
+- Acceptance criteria:
+  - open roads are thicker, more opaque, and visually meet the tile boundaries
+  - missing roads read as unmistakable empty space under normal, active, visited, and glow states
+  - toll and bonus each have a distinct non-color-only line pattern that remains legible at mobile size
+  - per-edge `-N` / `+N` chips are removed if the modifier is board-global; the board legend states **Toll cost N** and **Road bonus N** once
+  - Expedition is distinguished without a cyan rectangle behind the board; mode identity comes from the switcher, modifier legend, and restrained accents
+  - tutorial, live board, and replay board use the same road grammar
+- Dependencies: none
+- Completion notes:
+  - open roads now span the complete tile gap at higher opacity and with a thicker alignment area; missing roads render as true empty space
+  - toll roads use two dashed rails and bonus roads use two solid rails, preserving color as a secondary signal
+  - per-edge modifier chips were removed; Expedition presents each board-global modifier once in the legend
+  - the cyan Expedition board rectangle was removed while the mode switch, modifier legend, and restrained accents retain mode identity
+  - verified in the rendered tutorial, live Classic board, and archived Expedition board at desktop and mobile widths
+
+### Issue RP1-3 — Redesign the board header and footer as contextual game UI
+- Priority: `P1`
+- Status: `in progress`
+- Goal: show the right information and action for the player's current state instead of presenting every control at once.
+- Why it matters: the current footer is crowded and the Hint action has weak placement. The header's score syntax and **Road Coins** label are also misleading.
+- Scope:
+  - `GameBoardHeader`
+  - `GameBoardFooter`
+  - live and replay page composition
+  - state-specific copy
+- Acceptance criteria:
+  - the header reads clearly as current score, target, and **Board total**, with a short accessible explanation of Board total
+  - before movement, the footer gives one clear instruction and keeps Hint quiet but reachable
+  - during a run, Retry and Hint are available without competing with irrelevant post-solve actions
+  - a dead end or wrong finish promotes the retry action and explains what happened
+  - a Classic solve prioritizes Share and/or Expedition according to the celebration outcome
+  - an Expedition solve prioritizes the day result, sharing, stats, and next-road timing
+  - solved replay states remain visibly untracked and use quieter actions
+- Dependencies:
+  - RP1-2
+- Progress notes:
+  - header now separates Score, Target, and Board total; Board total explains that it is the sum of every tile and that a route may leave tiles out
+  - the pre-move footer shows one instruction and a clearly labeled Hint action; active attempts stay compact; failed endings promote a labeled primary Try again action
+  - "Solved on target" was removed from shared runtime/footer language
+  - Classic and Expedition now carry a compact unsolved marker that becomes a medal-colored check after that mode is solved
+  - the Expedition legend sits in a reserved row, so switching modes no longer moves the board vertically
+  - board metrics, legend labels, state messages, and footer controls use larger type; solved footers show only the relevant timer or next action instead of restating "Solved"
+  - footer actions now follow one order across live and replay states: recovery, sharing/navigation, then the primary next step
+  - remains in progress until full dead-end, wrong-finish, Classic-solve, Expedition-solve, and solved-replay state transitions are browser-regression tested
+  - July 2026 review: the contextual-messaging contract is tightened further by RP1-10, which absorbs this issue's remaining state-transition verification
+
+### Issue RP1-4 — Unify the app header and navigation language
+- Priority: `P1`
+- Status: `done`
+- Goal: make all global actions feel like one intentional control set.
+- Why it matters: Stats is the only text-treated action, other icon buttons lack visible hover/focus tooltips, sound placement needs review, and the menu calls roads "Past Games." The brand also alternates between Goldroad and GoldRoad.
+- Scope:
+  - default layout/header
+  - navigation copy and tooltips
+  - brand casing
+- Acceptance criteria:
+  - Stats, Sound, How to Play, and Menu share one visual treatment and touch target size
+  - icon-only actions have accessible names plus desktop hover/focus tooltips
+  - the sound control remains easy to reach without dominating the header
+  - **Past Games** becomes **Past Roads** consistently, including replay back-links
+  - player-facing brand casing is consistently **GoldRoad**
+- Dependencies: none
+- Completion notes:
+  - Stats is now an icon peer of Sound, How to play, and Menu, resolving the mobile header squeeze while keeping Sound first and top-level
+  - every icon action has an accessible label, native title, and desktop hover/focus tooltip
+  - menu and replay navigation now consistently use Past Roads
+  - an open menu closes when focus moves to a route or the player clicks outside the menu shell
+  - player-facing brand casing is GoldRoad
+
+### Issue RP1-5 — Reframe stats as a rewarding personal record
+- Priority: `P1`
+- Status: `in progress`
+- Goal: retain the richer v2 data while restoring the clarity, consistent cards, and emotional payoff of v1.
+- Why it matters: the current page has the right ingredients but reads as several analytics treatments assembled together. Its current-road histogram can also look nonsensical when only one player has contributed.
+- Scope:
+  - stats hierarchy and card system
+  - current-road and previous-road community states
+  - medal/personal summary treatment
+  - recent local results
+  - contextual sharing
+- Acceptance criteria:
+  - one card language is used for today's result, medal/attempt record, previous-road community result, and all-time personal stats
+  - current-road stats are labeled as a request-time snapshot and refreshed when the page is revisited or explicitly refreshed
+  - a defined minimum sample (initial recommendation: 5 plays) is required before showing a histogram or percentile; smaller samples use honest early-field copy
+  - yesterday's completed-road comparison remains available and visually quieter than the player's own result
+  - medal totals and today's earned medal regain the clear reward treatment v1 had
+  - the local recent-result log is either compressed to a few useful entries or removed if it duplicates Past Roads without adding personal meaning
+  - Share sits on today's or another specific result, not in a generic catch-all panel
+- Dependencies:
+  - RP0-4
+  - RP1-7
+- Progress notes:
+  - consolidated streaks and medal totals into one **Your record** card and made today's earned medal a clear visual reward
+  - today's community view is labeled as a visit-time snapshot, has an explicit Refresh action, and withholds histograms/percentiles until at least five results exist
+  - kept yesterday's completed-road comparison as the quieter community card and retained a compact expandable all-time personal snapshot
+  - compressed personal history to the three newest results, renamed it **Your recent results**, and linked the actual Past Roads archive instead of duplicating it
+  - removed the generic Share & explore panel; sharing now stays attached to today's concrete result
+  - implementation is ready for the planned product-feedback pass on dynamic today stats and personal recent results
+  - July 2026 review (the awaited feedback): dynamic today-community stats are dropped and the page returns to v1's shape — direction continues as RP1-11; this issue's shipped safeguards (small-sample honesty, card consolidation, contextual share) carry forward
+
+### Issue RP1-6 — Simplify Past Roads around replay decisions
+- Priority: `P1`
+- Status: `done`
+- Goal: make the archive easier to scan and less card-heavy.
+- Why it matters: each current road-day card nests multiple cards, repeats secondary metadata, and makes the replay action visually clumsy.
+- Scope:
+  - `/games`
+  - `/games/[gameNo]`
+  - archive/replay copy
+- Acceptance criteria:
+  - each road day has one compact card with date/road number and clear Classic/Expedition availability or personal results
+  - target, Board total, and difficulty are shown only where they help choose or understand a replay
+  - the entire card or one obvious action opens the road day without a redundant oversized CTA
+  - replay pages share the polished board/header/footer patterns without pretending to affect today's streak or stats
+- Dependencies:
+  - RP1-2
+  - RP1-3
+- Completion notes:
+  - replaced nested Classic/Expedition metric cards and the oversized CTA with one compact clickable road-day card
+  - each card now leads with date and road number, then small neutral mode pills and a quiet replay label
+  - target and Board total remain on the actual replay board where they help play, rather than crowding archive selection
+  - player-facing difficulty labels were removed from archive cards and replay headers because they do not help the replay decision
+  - Expedition availability no longer uses the neon/cyan accent on archive cards
+  - July 2026 review: the compact-card presentation is superseded by RP1-12's calendar direction; the copy and metadata decisions here carry forward
+
+### Issue RP1-7 — Give v2 one warm, concrete product voice
+- Priority: `P1`
+- Status: `in progress`
+- Goal: restore character without bringing back v1's less precise rules or inventing extra game jargon.
+- Why it matters: v2 mixes run/attempt/try, start/exit/finish, road/game, analytics language, and internal phrases such as **Milestone 1**. Correct mechanics still feel unfinished when their language drifts.
+- Scope:
+  - centralized UI copy
+  - tutorial/help
+  - runtime states
+  - celebration and stats
+  - archive/navigation
+  - About/Privacy
+- Acceptance criteria:
+  - a short terminology sheet locks the preferred words before copy is rewritten
+  - use **attempt** for the medal-counting unit and **road/path/route** only where each is genuinely meant
+  - start/finish, target, hint, retry, solved, and replay language is consistent across every surface
+  - internal roadmap language and analytics jargon do not appear in player-facing UI
+  - the voice is warm, direct, and lightly road-themed, using the celebration sheet and strongest v1 moments as tone references
+- Dependencies: none
+- Progress notes:
+  - established and applied footprints, finish, attempt, Try again, Past Roads, Board total, and plain Solved language across the board, tutorial, help, celebration, archive, and navigation
+  - removed the player-facing internal "Milestone 1" heading
+  - stats now uses **attempt** for medal-counting units and reserves **result** for community histogram counts
+
+### Issue RP1-8 — Complete keyboard and dialog accessibility
+- Priority: `P1`
+- Status: `done`
+- Goal: make the polished interaction model work predictably without a pointer and with assistive technology.
+- Why it matters: dialogs currently expose roles and Escape handling but do not fully manage initial focus, focus containment, or focus restoration. Tooltips and board keyboard behavior also need a complete pass.
+- Scope:
+  - tutorial/help/welcome/celebration dialogs
+  - board keyboard interaction
+  - header tooltips and focus styles
+- Acceptance criteria:
+  - opening a dialog moves focus to an intentional element
+  - Tab and Shift+Tab remain inside the active dialog
+  - closing restores focus to the control that opened it
+  - Escape and backdrop behavior are consistent and do not discard progress unexpectedly
+  - all icon buttons expose matching accessible names, tooltips, and visible focus states
+  - the full daily flow can be completed by keyboard
+- Dependencies:
+  - RP0-3
+  - RP1-4
+- Completion notes:
+  - added one shared dialog-focus contract used by Help, Tutorial, V1 Welcome, and solve celebrations
+  - opening focuses the first dialog control, Tab/Shift+Tab loop inside, closing restores the opener, and dialog-to-dialog handoffs avoid stealing focus back
+  - browser-verified Help initial focus, forward/backward looping, and restoration to the header Help button
+
+### Issue RP1-9 — Add UI regression coverage for the release surfaces
+- Priority: `P1`
+- Status: `in progress`
+- Goal: protect the interactions most likely to regress during the polish pass.
+- Why it matters: existing tests cover pure game and aggregation logic well, but there are no component or browser tests for the screens now being redesigned.
+- Scope:
+  - component tests where useful
+  - browser smoke/regression tests
+  - visual state fixtures for boards and dialogs
+- Acceptance criteria:
+  - tests cover first-run tutorial, tutorial reopen/reset, Classic solve to Expedition, dead-end/retry, hint, celebration dismissal, stats sparse-data states, and archive replay
+  - at least one keyboard-only board/dialog flow is automated
+  - open/missing/toll/bonus road snapshots or equivalent visual assertions are protected at a mobile viewport
+- Dependencies:
+  - land alongside RP1-1 through RP1-8 rather than after all UI work
+- Progress notes:
+  - added three local-streak rollover regression tests; suite is now 41 tests
+  - completed manual browser smoke coverage for the edited release surfaces and keyboard focus contract
+  - automated component/browser coverage for the listed visual and state transitions remains outstanding
+
+### Issue RP1-10 — Make board messaging strictly contextual (v1 footer contract)
+- Priority: `P1`
+- Status: `planned`
+- Goal: show exactly one contextual message or affordance per board state, restoring v1's information rhythm.
+- Why it matters: v2's footer renders status text, attempt pill, hint button, and action row concurrently. v1 showed one thing at a time — attempt count only at rest after a retry, gone on the first move; only a retry icon during movement. The current board talks when the context doesn't demand it.
+- Scope:
+  - `GameBoardFooter` (and `GameBoardHeader` if any always-on element fails the context test)
+  - `useRoadDayGameplay` state exposure if finer-grained states are needed
+  - runtime copy in `uiCopy.ts`
+- State contract (v1-derived, adapted to v2 features; the footer is the hint's home — v1 had no hint, so this is the one deliberate addition to its contract):
+  - pre-play, first visit path: one instruction line; Hint quiet but reachable
+  - mid-run (any moves made): retry affordance only — no status line, no attempt pill, Hint reachable but visually quiet
+  - at rest after a failed attempt: what happened + promoted Try again + attempt count; all of it clears on the next move
+  - Classic solved: celebration/share/Expedition per P1-10 tiering; footer afterwards carries only the relevant next action
+  - day solved: next-road ticker as the single resting message
+  - replay/untracked states: same rhythm, quieter actions, no attempt pill
+- Acceptance criteria:
+  - no board state renders more than one message plus its state-relevant actions
+  - the attempt count is visible only at rest after a retry and disappears on the first move of the new attempt
+  - during a run, nothing persistent competes with the board (verified at mobile width)
+  - hint guidance messages replace — not stack on — the status line
+  - the existing RP1-3 state transitions still pass their browser checks
+- Dependencies:
+  - RP1-3 (absorbs its remaining state-transition verification)
+  - RP1-9 for regression coverage of the state matrix
+
+### Issue RP1-11 — Return stats to v1's shape, adapted for two modes
+- Priority: `P1`
+- Status: `planned`
+- Goal: rebuild the stats page around v1's proven forms — medal displays, own-result today card, previous-road global story, key-value personal record — scoped by the single global mode toggle.
+- Why it matters: the July 2026 review judged v1's stats page better. v2's current page still reads as assembled analytics, and its dynamic today-community section answers no player question without a live scoreboard.
+- Design decision (medal display): v2 has no medal artwork — medals exist only as a typographic color system (colored count + uppercase label in the stats header strip, medal-tinted badge pills, a medal-colored check in `GameBoardHeader`). The rebuilt display uses v1's *form* — one tile per medal tier, count prominent, "+1" tick on today's earn — built from v2's medal color system (or new small medal art if a taste pass justifies it). Only gold, silver, and bronze: v1's 4+/10+/20+ try buckets are dropped.
+- Scope:
+  - `stats.vue` restructure (presentation; data composables largely reusable)
+  - medal display treatment (v1's medal-cards-with-count form and the "+1" increment moment on arrival from a solve)
+  - removal of the dynamic today-community snapshot, its Refresh action, and its API usage
+  - previous-road global stats: histogram plus v1's narrative framing ("X% of the people who walked down Road N finished it… top Y%")
+  - key-value personal record list (streaks, roads played, solves, completion %, average attempts, plus v2's solve time)
+  - server stats API surface reduction if the current-road aggregation becomes dead
+- Acceptance criteria:
+  - page order: medals (with +1 moment when arriving from a solve) → today's own result + share (or play prompt) → previous-road global story → personal record → past-roads entry
+  - medal displays show only gold/silver/bronze counts — no 4+/10+/20+ bucket tiles
+  - no community data is shown for the in-progress road anywhere
+  - one global Classic/Expedition toggle scopes mode-specific sections; cross-mode facts stay always visible
+  - the histogram keeps the player's bar highlighted and keeps the RP1-5 small-sample honesty rules
+  - sparse/no-history states stay clean
+- Dependencies:
+  - supersedes the remaining direction of RP1-5 (its shipped safeguards and card consolidation carry forward)
+  - RP0-4 for the aggregation-side changes
+
+### Issue RP1-12 — Past Roads as a calendar; de-chrome the replay pages
+- Priority: `P1`
+- Status: `planned`
+- Goal: replace the past-roads card grid with a calendar-style picker and strip replay-page text to what helps play.
+- Why it matters: every archive card carries identical content (date, road number, the same two mode pills) — a grid of cards that conveys nothing. A calendar says the same thing in one glance and matches the day-based product model. The replay page also fronts too many headers and labels before the board.
+- Scope:
+  - `/games` (`games/index.vue`) calendar UI over the recent-archive window
+  - personal-result marks on calendar days (solved/medal state from local history) if cheap — decide during implementation
+  - `/games/[gameNo]` header/label reduction
+  - random-road CTA placement preserved
+- Acceptance criteria:
+  - past roads render as a calendar (or month strip) of playable days; tapping a day opens that road day's dual-mode replay
+  - days outside the recent-archive window are visibly not playable; the deep-archive random-road entry remains
+  - the replay page leads with the board; page-level eyebrow/subtitle chrome is removed or collapsed to a single compact identity line
+  - empty/error/loading states remain handled
+- Dependencies:
+  - RP1-6 (supersedes its card-grid presentation; its copy and metadata decisions carry forward)
+
+### Issue RP1-13 — Dead-declaration cleanup across CSS and code
+- Priority: `P1`
+- Status: `planned`
+- Goal: remove everything declared but unused — or no longer used in the sense it was declared — once the experience issues have settled the UI.
+- Why it matters: the polish passes left residue. `main.css` declares the `--color-start`/`--color-end` families and `--color-silver-rgb` (start/finish are icon-distinguished and share gold coloring — no component references these), plus the pre-P0-1 `--color-blocked`. Component CSS, composables, and exports likely have equivalent leftovers. A trustworthy design system documents only what exists.
+- Scope:
+  - `app/assets/css/main.css` token audit (colors, gradients, shadows — verify each has a live consumer)
+  - component-scoped CSS audit for orphaned rules
+  - TypeScript audit for unused exports/composables/props (typecheck + a dead-code pass)
+  - `DESIGN_SYSTEM.md` updated in the same pass so doc and code stay in lockstep
+- Acceptance criteria:
+  - every token in `main.css` has at least one real consumer, or is removed
+  - the known dead tokens (`--color-start`/`--color-end` families, `--color-silver-rgb`, `--color-blocked`) are gone
+  - misleadingly named tokens still in use are renamed to what they actually do (e.g. `--color-active` if it survives as a stats accent)
+  - no unused exported functions/composables/props remain in `app/`
+  - `pnpm typecheck`, `pnpm test`, and `pnpm build` stay green; a browser smoke pass confirms no visual regressions
+- Dependencies:
+  - RP1-10, RP1-11, RP1-12 — run this after the UI settles, not before
+
+### Recommended implementation order
+
+1. RP0-1 — verification gate
+2. RP0-3 — gameplay, keyboard, and streak correctness
+3. RP1-7 — terminology and voice decisions
+4. RP1-2 — road grammar and Expedition surface
+5. RP1-3 — contextual board header/footer
+6. RP1-1 — tutorial rebuilt from the production components
+7. RP1-4 and RP1-8 — header/navigation and dialog accessibility
+8. RP1-5 — stats redesign and sparse live-data states ✅ (direction continues as RP1-11)
+9. RP1-6 — Past Roads redesign ✅ (presentation superseded by RP1-12)
+10. RP1-10 — contextual board messaging (absorbs RP1-3 verification)
+11. RP1-11 — stats page in v1's shape, coordinated with RP0-4
+12. RP1-12 — Past Roads calendar and replay de-chroming
+13. RP0-4 — analytics hardening/privacy, coordinated with RP1-11's reduced stats surface
+14. RP1-13 — dead-declaration cleanup once the UI has settled
+15. RP1-9 — regression coverage throughout the work, completed as a release gate
+16. RP0-2 — production cutover after every local release gate is green

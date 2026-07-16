@@ -6,27 +6,52 @@ This document describes the centralized design system implemented in `app/assets
 
 The design system uses CSS custom properties in `app/assets/css/main.css` to maintain consistency across the current Nuxt app.
 
-Current status: this file is a working reference, not a finished design spec. The board grid is the strongest current UI surface. The page shell, board header, board footer, Classic/Expedition switcher, and stats page are scheduled for another design pass in `IMPLEMENTATION_PLAN.md`.
+Current status: the shipped v2 UI is the reference implementation. This document tracks the code; when the two disagree, the code wins and this file gets corrected.
+
+## Design principles
+
+These are the decided visual rules the v2 UI implements. They came out of the P1/RP1 design passes in `IMPLEMENTATION_PLAN.md` and are binding for new surfaces:
+
+- **Road grammar** — plain roads whisper, scoring roads speak, missing roads disappear. Open roads are solid neutral gold spanning the full tile gap. Toll roads are two dashed rails in rust; bonus roads are two solid rails in honey-gold (pattern first, color second, so the signal survives color-blindness). Missing roads are true empty space, never a faint road.
+- **Board-global modifiers** — toll and bonus values are stated once in the board legend (**Toll cost N**, **Road bonus N**), never as per-edge chips.
+- **Mode identity is quiet** — Classic vs. Expedition reads from the mode switcher, background tint, and legend. No loud accent blocks behind the board.
+- **Chrome recedes, the road speaks** — cards, gradients, and shadows exist to frame the game, not to compete with it. Prefer fewer, flatter surfaces; a new page section must justify its card.
+- **Contextual messaging** — the board shows one contextual message or affordance per state, in the spirit of v1's footer (see `IMPLEMENTATION_PLAN.md` RP1-10). Information appears when the state demands it and disappears when play resumes.
+- **Voice** — warm, direct, lightly road-themed. Locked terms: footprints, finish, attempt, Try again, Past Roads, Board total, Solved (never "Solved on target"), brand casing **GoldRoad**.
 
 ## Design Tokens
 
 ### Colors
 
 #### Primary Palette
-- `--color-gold` - Main gold color (goldenrod)
-- `--color-gold-dark` - Darker gold variant
-- `--color-gold-bright` - Brighter gold (#d4af37)
-- `--color-gold-rgb` - RGB values for use with opacity (218, 165, 32)
+- `--color-gold` - Main gold color (goldenrod), with `--color-gold-dark`, `--color-gold-bright` (#d4af37), `--color-gold-muted`, `--color-gold-light`
+- `--color-gold-rgb`, `--color-gold-dark-rgb` - RGB triplets for use with opacity
+
+#### Backgrounds
+- `--color-bg-deepest` / `--color-bg-dark` / `--color-bg-base` - Warm near-black browns for the app shell
+- `--color-bg-classic-*` - Classic mode backgrounds (same warm browns)
+- `--color-bg-expedition-*` - Expedition mode backgrounds (deep blue-teal)
+- `--mode-tint-classic(-alt)`, `--mode-tint-expedition(-alt)` - Mode card tints
 
 #### Semantic Colors
-- `--color-start` - Start tile indicator (green)
-- `--color-end` - End tile indicator (red)
-- `--color-active` - Active/available tiles
-- `--color-blocked` - Missing-road / unavailable-road color (legacy token name)
-- `--color-toll` - Toll roads
-- `--color-bonus` - Bonus roads (green)
-- `--color-hint` - Hint highlighting
-- `--color-focus` - Focus states
+- Start/finish markers carry **no semantic color**: both render as gold-on-dark icon badges (`GameTile.vue` `.marker`), distinguished purely by icon — footprints for start, finish flag for the exit. The `--color-start`/`--color-end` token families (and `--color-silver-rgb`) are declared but referenced by nothing — cleanup candidates (see `IMPLEMENTATION_PLAN.md` RP1-13)
+- `--color-active` (+ `-rgb`) - Available-move green; also used as the positive accent on stats surfaces
+- `--color-blocked` - Dead legacy token (pre-P0-1 "blocked road" naming); referenced by nothing, cleanup candidate
+- `--color-success`, `--color-text-on-success` - Success badge fill and readable text color
+- `--color-medal-silver`, `--color-medal-silver-bright`, `--color-medal-silver-muted`, `--color-medal-silver-light`, `--color-medal-silver-rgb`, `--color-medal-silver-segment` - Silver medal tier colors
+- `--color-text-on-silver`, `--gradient-medal-silver` - Text and gradient for silver medal surfaces
+- `--color-medal-bronze`, `--color-medal-bronze-bright`, `--color-medal-bronze-rgb`, `--color-medal-bronze-segment` - Bronze medal tier colors
+- `--color-text-on-bronze`, `--gradient-medal-bronze` - Text and gradient for bronze medal surfaces
+- `--color-expedition-accent`, `--color-expedition-accent-rgb`, `--color-expedition-accent-bright`, `--color-expedition-accent-bright-rgb` - Expedition cyan accent colors
+- `--color-toll` (+ `-rgb`, `-bright`) - Toll roads, cautionary rust (#d2691e)
+- `--color-bonus` (+ `-rgb`, `-bright`) - Bonus roads, honey-gold (#ffce3a)
+- `--road-missing-opacity` - How far missing-road remnants recede (used by closed-road states, not the live board, where missing roads are true empty space)
+- `--color-hint` (+ `-rgb`) - Hint highlighting (pink)
+- `--color-focus` (+ `-rgb`) - The single focus color (#4b9eff blue) used by both component focus styles and the global `:focus-visible` outline
+
+#### Text
+- `--color-text-primary` - Defaults to gold
+- `--color-text-dark`, `--color-text-on-gold` - Dark text for gold-filled surfaces
 
 #### Opacity
 
@@ -141,16 +166,13 @@ Rotate the SVG for different directions:
 
 ## Responsive Design
 
-The design system includes responsive breakpoints:
-
-- **980px and below** - Tablet layout adjustments
-- **760px and below** - Mobile optimizations (smaller tiles, stacked layouts)
+Board dimension tokens (`--tile-size`, `--tile-gap`, `--road-thickness`) shrink at **760px and below** in `main.css`; most components use the same 760px breakpoint for mobile layout. A few surfaces carry local breakpoints (980px on the current-road page for the wide layout, 768px on about/layout) — component-local by design.
 
 ## Accessibility
 
-- Focus states use `--color-focus` with visible outlines
+- Focus states use `--color-focus` everywhere — component focus styles and the global `:focus-visible` ridge outline
 - Reduced motion support via `@media (prefers-reduced-motion: reduce)`
-- Semantic color usage (green for start, red for end)
+- Color is never the only signal: start/finish are distinguished by icon alone (footprints/flag — they share the same gold badge coloring), toll/bonus use distinct rail patterns (dashed/solid), medals pair color with counts and labels
 - Proper contrast ratios maintained
 
 ## Usage in Components

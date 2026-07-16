@@ -175,14 +175,15 @@ A unified `edges[]` model can be revisited later only if it unlocks a real featu
 
 ### 4.4 Edge visual hierarchy
 
-Tolls and bonuses change the score — the win condition — so they must read as first-class game elements, separated by hue and magnitude rather than fine glyph texture:
+Tolls and bonuses change the score — the win condition — so they must read as first-class game elements. As shipped (RP1-2), the primary signal is line pattern, with hue as the secondary signal:
 
-- open roads stay neutral gold line-work
-- bonus roads carry a positive accent tint and a `+N` cost chip at the road midpoint
-- toll roads carry a cautionary tint within the warm palette and a `−N` cost chip
-- missing edges recede as far as possible
+- open roads are solid neutral gold, thick and opaque, spanning the complete tile gap
+- toll roads are two dashed rails in a cautionary rust tint
+- bonus roads are two solid rails in a honey-gold tint
+- missing edges are true empty space — no faint road remnant on the live board
+- toll/bonus values are board-global and stated once in the board legend (**Toll cost N**, **Road bonus N**); per-edge `+N`/`−N` chips were deliberately removed
 
-Guiding principle: plain roads whisper, scoring roads speak, missing roads disappear. Traversing a toll or bonus briefly pulses the chip and the score readout in the matching hue (disabled under reduced motion).
+Guiding principle: plain roads whisper, scoring roads speak, missing roads disappear. Traversing a toll or bonus briefly pulses the score readout in the matching hue (disabled under reduced motion).
 
 ## 5. Puzzle generation and optimal paths
 
@@ -427,15 +428,13 @@ The tries-distribution histogram is the centerpiece of community comparison, wit
 
 The v2 board grid is the strongest part of the current interface and should be preserved.
 
-The surrounding UI needs another product-design pass:
-- the page layout should make the board feel intentionally placed — vertically centered like v1 — rather than merely stacked between controls
-- the board header should carry road identity, score/target state, and mode switching with less visual noise
-- the board footer should make retry, hint, next-step messaging, and post-solve actions clearer
-- Classic and Expedition should feel like two parts of one road day, not generic tabs
-- the stats page order is: personal emotional read first (streak, today's result, histogram), then community comparison, then a compressed all-time snapshot, then the recent road log, then share/explore actions
-- the past-roads archive pages adopt the same card and typography system as the stats redesign
+The board shell, header, footer, mode switcher, road grammar, and navigation passes from the P1/RP1 series have landed. The remaining UI direction (July 2026 review):
 
-This is a planned UI refinement, not a change to the underlying gameplay model.
+- board messaging becomes strictly contextual, following v1's footer contract: one message or affordance per state, attempt count shown only at rest after a retry and cleared on the first move (RP1-10)
+- the stats page returns to v1's shape — medal displays with a "+1" moment, a today's-result card with share, a previous-road global-stats story, and a key-value personal record — adapted to two modes via the single global mode toggle; no dynamic community stats for the in-progress road (RP1-11)
+- Past Roads becomes a calendar-style picker rather than a card grid, and replay pages shed header/label chrome (RP1-12)
+
+This is a UI refinement, not a change to the underlying gameplay model.
 
 ## 11. Interactive tutorial
 
