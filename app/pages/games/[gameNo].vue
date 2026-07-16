@@ -154,26 +154,20 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
       </section>
 
       <section v-else-if="game" class="board-column">
-        <header class="archive-header">
-          <div class="archive-header-top">
-            <NuxtLink to="/games" class="btn btn--secondary">
-              ← Past roads
-            </NuxtLink>
-          </div>
-
-          <div class="archive-header-main">
-            <div>
-              <p class="eyebrow">Archived replay</p>
-              <h1>Road {{ game.gameNo }}</h1>
-              <p class="archive-subtitle">
-                {{ formattedDate }}
-              </p>
-            </div>
-          </div>
-
-          <p class="archive-note">
-            Replay this road without touching today's live board.
-          </p>
+        <header class="replay-bar">
+          <NuxtLink
+            to="/games"
+            class="replay-back"
+            aria-label="Back to Past Roads"
+            title="Back to Past Roads"
+          >
+            ←
+          </NuxtLink>
+          <h1 class="replay-title">
+            Road {{ game.gameNo }}
+            <span class="replay-date">· {{ formattedDate }}</span>
+          </h1>
+          <span class="replay-tag">Replay</span>
         </header>
 
         <GameBoardHeader
@@ -264,17 +258,69 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
   text-align: center;
 }
 
-.archive-header,
 .state-card {
   display: grid;
   gap: 0.7rem;
   width: 100%;
-  text-align: left;
   padding: clamp(1.1rem, 3vw, 1.4rem);
   border-radius: var(--radius-lg);
   background: var(--gradient-card-status);
   border: 1px solid rgb(var(--color-gold-rgb) / 0.2);
   box-shadow: var(--shadow-lg);
+}
+
+/* Compact replay identity bar — the board is the content here. */
+.replay-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  width: 100%;
+}
+
+.replay-back {
+  display: inline-grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-circle);
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.24);
+  background: rgb(var(--color-gold-rgb) / 0.08);
+  color: var(--color-gold);
+  font-size: 1.05rem;
+  text-decoration: none;
+  transition:
+    transform var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.replay-back:hover {
+  transform: translateX(-1px);
+  background: rgb(var(--color-gold-rgb) / 0.15);
+}
+
+.replay-title {
+  margin: 0;
+  color: var(--color-gold-bright);
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.replay-date {
+  color: rgb(var(--color-gold-rgb) / 0.66);
+  font-weight: 700;
+}
+
+.replay-tag {
+  padding: 0.18rem 0.5rem;
+  border-radius: var(--radius-full);
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.24);
+  background: rgb(var(--color-gold-rgb) / 0.06);
+  color: rgb(var(--color-gold-rgb) / 0.7);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .state-card {
@@ -286,42 +332,6 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
 
 .state-card--error {
   justify-items: center;
-}
-
-.archive-header-top,
-.archive-header-main {
-  display: flex;
-  align-items: start;
-  justify-content: space-between;
-  gap: 0.8rem;
-}
-
-.archive-header-main {
-  align-items: end;
-}
-
-.eyebrow {
-  margin: 0;
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: rgb(var(--color-gold-rgb) / 0.6);
-}
-
-.archive-header h1 {
-  margin: 0.1rem 0 0;
-  color: var(--color-gold-bright);
-}
-
-.archive-subtitle,
-.archive-note {
-  margin: 0;
-  color: rgb(var(--color-gold-rgb) / 0.72);
-}
-
-.archive-note {
-  font-size: 0.9rem;
 }
 
 .btn {
@@ -371,11 +381,6 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
 @media (max-width: 760px) {
   .shell {
     padding: 0.75rem;
-  }
-
-  .archive-header-top,
-  .archive-header-main {
-    display: grid;
   }
 }
 </style>

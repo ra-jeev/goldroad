@@ -1116,7 +1116,7 @@ The v2 UI is visually good; these decisions are about behavior and information r
 
 ### Issue RP1-12 — Past Roads as a calendar; de-chrome the replay pages
 - Priority: `P1`
-- Status: `planned`
+- Status: `done`
 - Goal: replace the past-roads card grid with a calendar-style picker and strip replay-page text to what helps play.
 - Why it matters: every archive card carries identical content (date, road number, the same two mode pills) — a grid of cards that conveys nothing. A calendar says the same thing in one glance and matches the day-based product model. The replay page also fronts too many headers and labels before the board.
 - Scope:
@@ -1131,6 +1131,11 @@ The v2 UI is visually good; these decisions are about behavior and information r
   - empty/error/loading states remain handled
 - Dependencies:
   - RP1-6 (supersedes its card-grid presentation; its copy and metadata decisions carry forward)
+- Completion notes:
+  - `/games` now renders month calendars (UTC, newest month first): playable archive days are tappable cells, other days recede; each playable day carries a personal-result dot colored by the best local result across modes (gold > silver > bronze > solved-green)
+  - the deep-archive random-road entry was found to have lost its UI entry point during RP1-5's panel removal — restored here as a "Surprise me with an older road" action on the calendar page, shown only once roads exist beyond the recent-archive boundary (P1-3's rule), navigating to the road-day replay
+  - `/games/[gameNo]` dropped the archive-header card (eyebrow, h1, subtitle, note) for one compact identity bar — back arrow, "Road N · date", and a small REPLAY tag — so the board leads the page
+  - browser-verified the calendar (playable vs. inert days) and the de-chromed replay page; typecheck and 41/41 tests pass
 
 ### Issue RP1-13 — Dead-declaration cleanup across CSS and code
 - Priority: `P1`
