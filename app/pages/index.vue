@@ -184,6 +184,7 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
           :status="status"
           :hint-message="hintMessage"
           :attempt-number="attemptNumber"
+          :has-moved="moves > 1"
           :next-reset-countdown="nextResetCountdown"
           :expedition-just-unlocked="expeditionJustUnlocked"
           :hints-used="hintsUsed"

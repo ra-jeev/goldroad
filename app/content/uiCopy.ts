@@ -47,6 +47,11 @@ export const UI_COPY = {
     shareResult: 'Share',
     viewStats: 'View stats',
     attemptLabel: 'Attempt',
+    attemptResting: (attempt: number) => {
+      const ordinal =
+        ['st', 'nd', 'rd'][((((attempt + 90) % 100) - 10) % 10) - 1] || 'th';
+      return `${attempt}${ordinal} attempt`;
+    },
     expeditionUnlocked: 'Expedition unlocked',
     medalAwarded: (medal: string) => `${medal} medal`,
     nextRoadCountdown: (countdown: string) =>

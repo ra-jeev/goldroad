@@ -871,7 +871,7 @@ The v2 UI is visually good; these decisions are about behavior and information r
 
 ### Issue RP1-3 — Redesign the board header and footer as contextual game UI
 - Priority: `P1`
-- Status: `in progress`
+- Status: `done` (remaining verification absorbed and completed by RP1-10)
 - Goal: show the right information and action for the player's current state instead of presenting every control at once.
 - Why it matters: the current footer is crowded and the Hint action has weak placement. The header's score syntax and **Road Coins** label are also misleading.
 - Scope:
@@ -1049,7 +1049,7 @@ The v2 UI is visually good; these decisions are about behavior and information r
 
 ### Issue RP1-10 — Make board messaging strictly contextual (v1 footer contract)
 - Priority: `P1`
-- Status: `planned`
+- Status: `done`
 - Goal: show exactly one contextual message or affordance per board state, restoring v1's information rhythm.
 - Why it matters: v2's footer renders status text, attempt pill, hint button, and action row concurrently. v1 showed one thing at a time — attempt count only at rest after a retry, gone on the first move; only a retry icon during movement. The current board talks when the context doesn't demand it.
 - Scope:
@@ -1072,6 +1072,14 @@ The v2 UI is visually good; these decisions are about behavior and information r
 - Dependencies:
   - RP1-3 (absorbs its remaining state-transition verification)
   - RP1-9 for regression coverage of the state matrix
+- Completion notes:
+  - `GameBoardFooter` now computes an explicit six-state machine (`resting-first`, `resting-retry`, `mid-run`, `failed`, `solved-next`, `solved-final`) from a new `hasMoved` prop passed by the live, replay, and tutorial-practice surfaces
+  - mid-run renders no text at all — only quiet icon-circle Retry and Hint; a player-requested hint message is the one exception and clears on the next move (existing behavior)
+  - the resting state after a retry shows only the v1-style ordinal attempt line ("2nd attempt", `UI_COPY.boardFooter.attemptResting`), which disappears on the first move; the attempt pill now appears only in the failed state alongside the promoted Try again
+  - solved-next (Expedition waiting) shows no message with quiet retry + Share and a primary Play Expedition; solved-final shows the next-road ticker as its single message with quiet retry/Share and View stats
+  - the replay page's footer back-link now appears only in solved/failed states (the archive header already carries a permanent back link)
+  - browser-verified every transition on the live board: resting-first → mid-run → retry → resting-retry (clears on move) → hint mid-run → wrong-finish failed state → solve → relief-tier celebration → solved-next → Expedition solve → day-complete sheet → solved-final ticker; typecheck and 41/41 tests pass
+  - automated coverage of this state matrix remains tracked by RP1-9
 
 ### Issue RP1-11 — Return stats to v1's shape, adapted for two modes
 - Priority: `P1`

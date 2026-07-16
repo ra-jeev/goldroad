@@ -209,6 +209,7 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
           :status="status"
           :hint-message="hintMessage"
           :attempt-number="attemptNumber"
+          :has-moved="moves > 1"
           :show-next-reset-countdown="false"
           :show-stats-link="false"
           secondary-link-to="/games"

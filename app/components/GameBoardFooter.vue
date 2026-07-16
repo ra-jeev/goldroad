@@ -8,6 +8,7 @@ const props = withDefaults(
     status: string;
     hintMessage: string | null;
     attemptNumber: number;
+    hasMoved: boolean;
     nextResetCountdown?: string;
     showNextResetCountdown?: boolean;
     expeditionJustUnlocked: boolean;
@@ -47,10 +48,6 @@ const shareBusy = ref(false);
 const shareMessage = ref<string | null>(null);
 let shareMessageTimer: ReturnType<typeof setTimeout> | null = null;
 
-const showShareAction = computed(
-  () => props.showShare && props.solved && Boolean(props.shareHandler),
-);
-
 async function onShare() {
   if (!props.shareHandler || shareBusy.value) return;
 
@@ -77,49 +74,103 @@ const busy = computed(() => props.loading || props.submitting);
 const retryBusy = computed(
   () => props.loading || (props.submitting && !props.ended),
 );
-const footerMessage = computed(() => props.hintMessage ?? props.status);
-const showSolvedMeta = computed(() => props.solved);
-const retryButtonStyle = computed(() =>
-  props.canSwitchToExpedition || showSolvedMeta.value ? 'secondary' : 'primary',
-);
-const showStatsLink = computed(
-  () =>
-    props.showStatsLink && showSolvedMeta.value && !props.canSwitchToExpedition,
-);
+
+/**
+ * The footer shows exactly one contextual message (or none) plus the
+ * state-relevant actions — v1's GameFooter contract, with Hint as the
+ * one deliberate addition since v1 had no hint feature.
+ */
+type FooterState =
+  | 'resting-first' // board at rest, first attempt: one instruction
+  | 'resting-retry' // board at rest after a retry: attempt count only
+  | 'mid-run' // moves made: no text, quiet retry + hint icons only
+  | 'failed' // run ended unsolved: what happened + promoted Try again
+  | 'solved-next' // solved, Expedition waiting: actions only
+  | 'solved-final'; // solved, day done here: ticker + quiet actions
+
+const footerState = computed<FooterState>(() => {
+  if (props.solved) {
+    return props.canSwitchToExpedition ? 'solved-next' : 'solved-final';
+  }
+  if (props.ended) return 'failed';
+  if (props.hasMoved) return 'mid-run';
+  return props.attemptNumber > 1 && !props.trackingDisabled
+    ? 'resting-retry'
+    : 'resting-first';
+});
+
+const footerMessage = computed<string | null>(() => {
+  // A hint the player just asked for always replaces the resting message.
+  if (props.hintMessage && !props.solved && !props.ended) {
+    return props.hintMessage;
+  }
+
+  switch (footerState.value) {
+    case 'resting-first':
+      return props.status;
+    case 'resting-retry':
+      return UI_COPY.boardFooter.attemptResting(props.attemptNumber);
+    case 'failed':
+      return props.status;
+    case 'solved-final':
+      return props.showNextResetCountdown
+        ? UI_COPY.boardFooter.nextRoadShort(props.nextResetCountdown)
+        : null;
+    default:
+      return null;
+  }
+});
+
 const showAttemptPill = computed(
   () =>
-    props.attemptNumber > 1 && !showSolvedMeta.value && !props.trackingDisabled,
+    footerState.value === 'failed' &&
+    props.attemptNumber > 1 &&
+    !props.trackingDisabled,
 );
 const showHintAction = computed(
-  () => !props.ended && !props.solved && !props.trackingDisabled,
+  () =>
+    (footerState.value === 'resting-first' ||
+      footerState.value === 'resting-retry' ||
+      footerState.value === 'mid-run') &&
+    !props.trackingDisabled,
 );
-const showSecondaryLink = computed(() =>
-  Boolean(props.secondaryLinkTo && props.secondaryLinkLabel),
+// Mid-run keeps Hint reachable but drops its label so nothing competes
+// with the board.
+const hintIsQuiet = computed(() => footerState.value === 'mid-run');
+const showRetryAction = computed(() => props.canRetry);
+const retryIsPrimary = computed(() => footerState.value === 'failed');
+const showShareAction = computed(
+  () => props.showShare && props.solved && Boolean(props.shareHandler),
+);
+const showStatsAction = computed(
+  () => props.showStatsLink && footerState.value === 'solved-final',
+);
+const showSecondaryLink = computed(
+  () =>
+    Boolean(props.secondaryLinkTo && props.secondaryLinkLabel) &&
+    (props.solved || props.ended),
 );
 const secondaryLinkTo = computed(() => props.secondaryLinkTo ?? '/');
 const secondaryLinkLabel = computed(() => props.secondaryLinkLabel ?? '');
-const resultLine = computed(() => {
-  if (!showSolvedMeta.value) {
-    return footerMessage.value;
-  }
-
-  if (props.canSwitchToExpedition || !props.showNextResetCountdown) {
-    return null;
-  }
-
-  return UI_COPY.boardFooter.nextRoadShort(props.nextResetCountdown);
-});
-const showFooterMessage = computed(() => Boolean(resultLine.value));
+const showActionRow = computed(
+  () =>
+    showHintAction.value ||
+    showRetryAction.value ||
+    showShareAction.value ||
+    showStatsAction.value ||
+    showSecondaryLink.value ||
+    props.canSwitchToExpedition,
+);
 </script>
 
 <template>
   <section
     class="board-footer-card"
-    :class="{ 'board-footer-card--actions-only': !showFooterMessage }"
+    :class="{ 'board-footer-card--actions-only': !footerMessage }"
   >
-    <div v-if="showFooterMessage" class="footer-top">
+    <div v-if="footerMessage" class="footer-top">
       <div class="footer-copy">
-        <p class="footer-message">{{ resultLine }}</p>
+        <p class="footer-message">{{ footerMessage }}</p>
       </div>
 
       <span v-if="showAttemptPill" class="attempt-pill">
@@ -127,36 +178,14 @@ const showFooterMessage = computed(() => Boolean(resultLine.value));
       </span>
     </div>
 
-    <div class="action-row">
+    <div v-if="showActionRow" class="action-row">
       <button
-        v-if="showHintAction"
-        type="button"
-        class="action-button ghost ghost--hint action-button--text"
-        :disabled="busy"
-        :aria-label="UI_COPY.boardFooter.openHint"
-        :title="UI_COPY.boardFooter.hintUsedLabel(hintsUsed)"
-        @click="emit('hint')"
-      >
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path
-            d="M9 18h6m-5-3.5h4m-7.5-4.7a5.5 5.5 0 1 1 9.2 4.05c-.77.68-1.2 1.28-1.34 2.15H9.64c-.14-.87-.57-1.47-1.34-2.15A5.48 5.48 0 0 1 6.5 9.8Z"
-            fill="none"
-            stroke="currentColor"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="3"
-          />
-        </svg>
-        {{ UI_COPY.boardFooter.openHint }}
-      </button>
-
-      <button
-        v-if="canRetry"
+        v-if="showRetryAction"
         type="button"
         :class="[
           'action-button',
-          retryButtonStyle,
-          { 'action-button--text': ended && !solved },
+          retryIsPrimary ? 'primary' : 'ghost',
+          { 'action-button--text': retryIsPrimary },
         ]"
         :disabled="retryBusy"
         :aria-label="UI_COPY.boardFooter.retryRoad"
@@ -173,7 +202,36 @@ const showFooterMessage = computed(() => Boolean(resultLine.value));
             stroke-width="3"
           />
         </svg>
-        <span v-if="ended && !solved">{{ UI_COPY.boardFooter.retryRoad }}</span>
+        <span v-if="retryIsPrimary">{{ UI_COPY.boardFooter.retryRoad }}</span>
+      </button>
+
+      <button
+        v-if="showHintAction"
+        type="button"
+        :class="[
+          'action-button',
+          'ghost',
+          'ghost--hint',
+          { 'action-button--text': !hintIsQuiet },
+        ]"
+        :disabled="busy"
+        :aria-label="UI_COPY.boardFooter.openHint"
+        :title="UI_COPY.boardFooter.hintUsedLabel(hintsUsed)"
+        @click="emit('hint')"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M9 18h6m-5-3.5h4m-7.5-4.7a5.5 5.5 0 1 1 9.2 4.05c-.77.68-1.2 1.28-1.34 2.15H9.64c-.14-.87-.57-1.47-1.34-2.15A5.48 5.48 0 0 1 6.5 9.8Z"
+            fill="none"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="3"
+          />
+        </svg>
+        <template v-if="!hintIsQuiet">
+          {{ UI_COPY.boardFooter.openHint }}
+        </template>
       </button>
 
       <button
@@ -190,13 +248,13 @@ const showFooterMessage = computed(() => Boolean(resultLine.value));
       <NuxtLink
         v-if="showSecondaryLink"
         :to="secondaryLinkTo"
-        class="link-button secondary"
+        class="link-button secondary action-button--text"
       >
         {{ secondaryLinkLabel }}
       </NuxtLink>
 
       <NuxtLink
-        v-if="showStatsLink"
+        v-if="showStatsAction"
         to="/stats"
         class="link-button primary action-button--text"
       >
