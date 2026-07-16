@@ -244,8 +244,12 @@ export const StatsRoadDaySchema = z.object({
   expedition: CommunityRoadStatsSchema.nullable(),
 });
 
+// Community stats are only reported for the previous, completed road —
+// there are no dynamic community stats for the in-progress road (July 2026
+// experience-review decision). `currentGameNo` identifies today's road so
+// clients can key their own local result against it.
 export const StatsOverviewSchema = z.object({
-  current: StatsRoadDaySchema,
+  currentGameNo: z.number().int().positive().nullable(),
   yesterday: StatsRoadDaySchema,
 });
 

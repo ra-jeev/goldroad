@@ -349,7 +349,7 @@ async function checkStatsOverview() {
   const { status, body, text } = await request('/api/stats/overview');
   expectStatus('GET /api/stats/overview', status, 200, text);
   parseOrThrow('GET /api/stats/overview', StatsOverviewSchema, body);
-  logOk('returns a schema-valid stats overview with current + yesterday blocks');
+  logOk('returns a schema-valid stats overview with currentGameNo + yesterday block');
 }
 
 async function checkErrorBranches() {

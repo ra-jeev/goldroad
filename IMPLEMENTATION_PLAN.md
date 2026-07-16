@@ -1083,7 +1083,7 @@ The v2 UI is visually good; these decisions are about behavior and information r
 
 ### Issue RP1-11 — Return stats to v1's shape, adapted for two modes
 - Priority: `P1`
-- Status: `planned`
+- Status: `done`
 - Goal: rebuild the stats page around v1's proven forms — medal displays, own-result today card, previous-road global story, key-value personal record — scoped by the single global mode toggle.
 - Why it matters: the July 2026 review judged v1's stats page better. v2's current page still reads as assembled analytics, and its dynamic today-community section answers no player question without a live scoreboard.
 - Design decision (medal display): v2 has no medal artwork — medals exist only as a typographic color system (colored count + uppercase label in the stats header strip, medal-tinted badge pills, a medal-colored check in `GameBoardHeader`). The rebuilt display uses v1's *form* — one tile per medal tier, count prominent, "+1" tick on today's earn — built from v2's medal color system (or new small medal art if a taste pass justifies it). Only gold, silver, and bronze: v1's 4+/10+/20+ try buckets are dropped.
@@ -1104,6 +1104,15 @@ The v2 UI is visually good; these decisions are about behavior and information r
 - Dependencies:
   - supersedes the remaining direction of RP1-5 (its shipped safeguards and card consolidation carry forward)
   - RP0-4 for the aggregation-side changes
+- Completion notes:
+  - `stats.vue` rebuilt in v1's page order: medal tiles → mode toggle → Today's Road (own result + share, or play prompt) → Yesterday's Road global stats (histogram + narrative) → Your stats key-value record → "Keep walking & improving" past-roads entry
+  - medal tiles use v1's form in v2's materials: a gradient medal disc carrying the all-time count (cross-mode, always visible above the toggle), tier label, attempts sub-label, and a green "+N" tick for medals earned on today's road in either mode
+  - the v1 record labels returned: Total treads, Total finishes, Completion, plus streaks, average/best solve time, and hints — a flat key-value list, no expandable snapshot grid
+  - yesterday's narrative uses v1's voice: "X% of the roadgoers who walked down Road N reached the finish" and "You got to the finish in N attempts — in the top Y% of the field" (v1's at-or-better percentile), with honest small-sample copy below 5 results and the histogram withheld
+  - dynamic today-community stats removed end to end: `/api/stats/overview` now returns `{ currentGameNo, yesterday }` only and no longer aggregates the in-progress road; `StatsOverviewSchema` updated; API smoke script passes (12/12) against the new contract
+  - the recent-results log was removed — the personal record and Past Roads cover it (per the "Recent roads" clarified decision); the quiet "How the field played it" behavior detail stays on yesterday's card
+  - browser-verified with a synthetic 6-play field for the previous road: both mode scopes, solved/no-medal badge states, +1 tick, histogram, and empty-field hiding; typecheck and 41/41 tests pass
+  - dev note: the "current streak 0 with today solved" seen locally is a seed-data artifact (seeded road day is months behind the calendar), not a logic bug
 
 ### Issue RP1-12 — Past Roads as a calendar; de-chrome the replay pages
 - Priority: `P1`

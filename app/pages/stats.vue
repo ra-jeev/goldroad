@@ -20,10 +20,7 @@ const communityError = ref<string | null>(null);
 const loading = ref(true);
 
 const selectedMode = ref<PuzzleType>('classic');
-const showAllTimeDetail = ref(false);
 const showFieldDetail = ref(false);
-const communityRefreshing = ref(false);
-const HISTORY_PREVIEW_COUNT = 3;
 const COMMUNITY_SAMPLE_MIN = 5;
 
 const todayShare = ref<{ busy: boolean; feedback: FeedbackMessage | null }>({
@@ -48,15 +45,6 @@ function formatModeLabel(mode: PuzzleType): string {
   return mode === 'classic'
     ? UI_COPY.boardHeader.classic
     : UI_COPY.boardHeader.expedition;
-}
-
-function formatDay(day: string): string {
-  return new Intl.DateTimeFormat(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    timeZone: 'UTC',
-  }).format(new Date(`${day}T00:00:00.000Z`));
 }
 
 function formatMedal(medal: Medal | null): string {
@@ -155,45 +143,58 @@ function buildTriesBars(
   }));
 }
 
-/** Share of the field that finished strictly worse than the player. */
-function aheadPercent(stat: CommunityRoadStats, playerBucket: number): number {
+/**
+ * v1's "top X%": the share of the whole field that did as well as or better
+ * than the player, the player included. Smaller is better.
+ */
+function topPercent(stat: CommunityRoadStats, playerBucket: number): number {
   if (playerBucket < 0 || stat.plays <= 0) return 0;
   const counts = bucketCounts(stat);
-  const behind = counts
-    .slice(playerBucket + 1)
+  const atOrBetter = counts
+    .slice(0, playerBucket + 1)
     .reduce((sum, value) => sum + value, 0);
-  return toPercent(behind, stat.plays);
+  return Math.max(1, toPercent(atOrBetter, stat.plays));
 }
 
 // ---------------------------------------------------------------------------
-// Cross-mode header strip
+// Medals (cross-mode, always visible) with the +1 moment
 // ---------------------------------------------------------------------------
-
-const headerStrip = computed(() => ({
-  classicStreak: summary.value.currentClassicStreak,
-  expeditionStreak: summary.value.currentExpeditionStreak,
-  medals: summary.value.medalCounts,
-  hasHistory: summary.value.modeSessionsPlayed > 0,
-}));
-
-// ---------------------------------------------------------------------------
-// Today (personal read + community centrepiece)
-// ---------------------------------------------------------------------------
-
-const modeAccentVar = computed(() => ({
-  '--hist-accent-rgb': 'var(--color-gold-rgb)',
-}));
 
 const todayGameNo = computed(
   () =>
-    communityOverview.value?.current.gameNo ??
+    communityOverview.value?.currentGameNo ??
     localProgress.currentRoadContext.value.currentGameNo ??
     null,
 );
 
-const todayField = computed<CommunityRoadStats | null>(
-  () => communityOverview.value?.current[selectedMode.value] ?? null,
+/** Medals earned on today's road, per tier, across both modes. */
+const medalsEarnedToday = computed<Record<Medal, number>>(() => {
+  const earned: Record<Medal, number> = { gold: 0, silver: 0, bronze: 0 };
+  const gameNo = todayGameNo.value;
+  if (gameNo === null) return earned;
+
+  (['classic', 'expedition'] as const).forEach((mode) => {
+    const medal = medalOf(playerResult(gameNo, mode));
+    if (medal) earned[medal] += 1;
+  });
+
+  return earned;
+});
+
+const medalTiles = computed(() =>
+  (['gold', 'silver', 'bronze'] as const).map((tier, index) => ({
+    key: tier,
+    label: UI_COPY.boardHeader.medals[tier],
+    sub: `${index + 1} attempt${index === 0 ? '' : 's'}`,
+    count: summary.value.medalCounts[tier],
+    earnedToday: medalsEarnedToday.value[tier],
+  })),
 );
+
+// ---------------------------------------------------------------------------
+// Today's road (the player's own result — no community data for a road
+// still in progress)
+// ---------------------------------------------------------------------------
 
 const todayResult = computed(() =>
   playerResult(todayGameNo.value, selectedMode.value),
@@ -206,7 +207,7 @@ const todayCard = computed(() => {
   if (!result || (result.attempts === 0 && !result.solved)) {
     return {
       state: 'unplayed' as const,
-      eyebrow: 'Today',
+      eyebrow: 'Today’s road',
       title: gameNo ? `Road ${gameNo} is waiting` : 'Today’s road is waiting',
       detail:
         selectedMode.value === 'classic'
@@ -219,7 +220,7 @@ const todayCard = computed(() => {
     const medal = medalOf(result);
     return {
       state: 'solved' as const,
-      eyebrow: 'Today · solved',
+      eyebrow: 'Today’s road · solved',
       title: gameNo ? `Road ${gameNo}` : 'Today’s road',
       badge: formatMedal(medal),
       medal,
@@ -235,58 +236,14 @@ const todayCard = computed(() => {
 
   return {
     state: 'inprogress' as const,
-    eyebrow: 'Today · in progress',
+    eyebrow: 'Today’s road · in progress',
     title: gameNo ? `Road ${gameNo}` : 'Today’s road',
     detail: `${formatRunCount(result.attempts)} in${result.hintsUsed > 0 ? ` · ${result.hintsUsed} hint${result.hintsUsed === 1 ? '' : 's'}` : ''}. The solve is still out there.`,
   };
 });
 
-const todayHeadline = computed(() => {
-  const field = todayField.value;
-  const gameNo = todayGameNo.value;
-  const result = todayResult.value;
-
-  if (!field || field.plays <= 0) {
-    return result?.solved
-      ? 'You’re first on the board today — the field is still forming.'
-      : 'Today’s road is fresh. Be one of the first to chart it.';
-  }
-
-  if (field.plays < COMMUNITY_SAMPLE_MIN) {
-    return result?.solved
-      ? `You’re among the first ${field.plays} roadgoer${field.plays === 1 ? '' : 's'} here today.`
-      : `Only ${field.plays} roadgoer${field.plays === 1 ? ' has' : 's have'} posted a result so far.`;
-  }
-
-  const bucket = bucketOf(result);
-
-  if (result?.solved) {
-    const ahead = aheadPercent(field, bucket);
-    return ahead > 0
-      ? `Solved in ${formatRunCount(result.attempts)} — ahead of ${ahead}% of today’s roadgoers.`
-      : 'Solved and right at the front of today’s field.';
-  }
-
-  if (bucket === 4) {
-    const road = gameNo ? `Road ${gameNo}` : 'this road';
-    return `${field.solveRate}% of roadgoers have solved ${road} so far. Your route’s still open.`;
-  }
-
-  return `${field.solveRate}% of roadgoers have already solved today’s road.`;
-});
-
-const todayBars = computed<HistogramBar[]>(() => {
-  const field = todayField.value;
-  if (!field) return [];
-  return buildTriesBars(field, bucketOf(todayResult.value));
-});
-
-const showTodayHistogram = computed(
-  () => Boolean(todayField.value && todayField.value.plays >= COMMUNITY_SAMPLE_MIN),
-);
-
 // ---------------------------------------------------------------------------
-// Community comparison (yesterday's completed road)
+// Yesterday's road — the completed field, told v1's way
 // ---------------------------------------------------------------------------
 
 const yesterdayGameNo = computed(
@@ -301,41 +258,45 @@ const yesterdayResult = computed(() =>
   playerResult(yesterdayGameNo.value, selectedMode.value),
 );
 
-const yesterdaySegments = computed(() => {
+const showYesterdayHistogram = computed(
+  () =>
+    Boolean(yesterdayField.value) &&
+    yesterdayField.value!.plays >= COMMUNITY_SAMPLE_MIN,
+);
+
+const yesterdayBars = computed<HistogramBar[]>(() => {
   const field = yesterdayField.value;
-  if (!field || field.plays <= 0) return [];
-
-  const counts = bucketCounts(field);
-  const defs = [
-    { key: 'gold', label: UI_COPY.boardHeader.medals.gold, tone: 'gold' },
-    { key: 'silver', label: UI_COPY.boardHeader.medals.silver, tone: 'silver' },
-    { key: 'bronze', label: UI_COPY.boardHeader.medals.bronze, tone: 'bronze' },
-    { key: 'late', label: 'Later solve', tone: 'late' },
-    { key: 'dnf', label: 'Unsolved', tone: 'dnf' },
-  ] as const;
-
-  return defs
-    .map((def, index) => ({
-      ...def,
-      count: counts[index]!,
-      width: toPercent(counts[index]!, field.plays),
-    }))
-    .filter((segment) => segment.count > 0);
+  if (!field) return [];
+  return buildTriesBars(field, bucketOf(yesterdayResult.value));
 });
 
 const yesterdayHeadline = computed(() => {
   const field = yesterdayField.value;
-  const result = yesterdayResult.value;
+  const gameNo = yesterdayGameNo.value;
   if (!field || field.plays <= 0) return null;
 
-  if (result?.solved) {
-    const ahead = aheadPercent(field, bucketOf(result));
-    return ahead > 0
-      ? `You solved it in ${formatRunCount(result.attempts)} — ahead of ${ahead}% of the field.`
-      : 'You solved it near the very front of the field.';
+  if (field.plays < COMMUNITY_SAMPLE_MIN) {
+    return `Only ${field.plays} result${field.plays === 1 ? '' : 's'} posted for Road ${gameNo} — too small a field for a fair comparison.`;
   }
 
-  return `${field.solveRate}% of roadgoers solved yesterday’s road.`;
+  return `${field.solveRate}% of the roadgoers who walked down Road ${gameNo} reached the finish.`;
+});
+
+const yesterdayPlayerLine = computed(() => {
+  const field = yesterdayField.value;
+  const result = yesterdayResult.value;
+  if (!field || field.plays < COMMUNITY_SAMPLE_MIN) return null;
+
+  if (result?.solved) {
+    const top = topPercent(field, bucketOf(result));
+    return `You got to the finish in ${formatRunCount(result.attempts)} — in the top ${top}% of the field.`;
+  }
+
+  if (result && result.attempts > 0) {
+    return 'You walked it too — the finish stayed out of reach that day.';
+  }
+
+  return 'Walk down today’s road and come back tomorrow to see how you fared against the field.';
 });
 
 const yesterdayBehaviorRows = computed(() => {
@@ -359,69 +320,29 @@ const yesterdayBehaviorRows = computed(() => {
 });
 
 // ---------------------------------------------------------------------------
-// All-time snapshot (mode-scoped)
+// Your stats — the v1 key-value record, mode-scoped
 // ---------------------------------------------------------------------------
 
 const modeSummary = computed(() => summary.value.modeBreakdown[selectedMode.value]);
-
-const allTimeHeadline = computed(() => {
-  const stats = modeSummary.value;
-  return [
-    { key: 'solves', label: 'Solves', value: String(stats.exactSolves) },
-    { key: 'rate', label: 'Solve rate', value: `${stats.solveRate}%` },
-    { key: 'avg', label: 'Avg attempts', value: stats.averageSolvedAttempts },
-    { key: 'best', label: 'Best time', value: formatDurationMs(stats.bestSolveTimeMs) },
-  ];
-});
-
-const allTimeDetail = computed(() => {
-  const stats = modeSummary.value;
-  return [
-    { key: 'sessions', label: 'Roads played', value: String(stats.sessionsPlayed) },
-    { key: 'streak', label: 'Best streak', value: `${stats.bestStreak} day${stats.bestStreak === 1 ? '' : 's'}` },
-    { key: 'avgTime', label: 'Avg solve time', value: formatDurationMs(stats.averageSolveTimeMs) },
-    { key: 'hints', label: 'Hints used', value: String(stats.totalHints) },
-    { key: 'gold', label: `${UI_COPY.boardHeader.medals.gold} medals`, value: String(stats.medalCounts.gold) },
-    { key: 'silver', label: `${UI_COPY.boardHeader.medals.silver} medals`, value: String(stats.medalCounts.silver) },
-    { key: 'bronze', label: `${UI_COPY.boardHeader.medals.bronze} medals`, value: String(stats.medalCounts.bronze) },
-  ];
-});
-
 const hasModeHistory = computed(() => modeSummary.value.sessionsPlayed > 0);
 
-// ---------------------------------------------------------------------------
-// Recent road log (mode-scoped)
-// ---------------------------------------------------------------------------
+const recordRows = computed(() => {
+  const stats = modeSummary.value;
+  const dayWord = (count: number) => `${count} day${count === 1 ? '' : 's'}`;
+  const roadWord = (count: number) => `${count} road${count === 1 ? '' : 's'}`;
 
-const modeRoadLog = computed(() =>
-  recentDays.value
-    .map((day) => {
-      const record = day.modes[selectedMode.value];
-      if (!record || (record.attempts === 0 && !record.solved)) return null;
-
-      const medal = medalOf(record);
-      return {
-        key: `${day.day}:${selectedMode.value}`,
-        day: day.day,
-        gameNo: day.gameNo,
-        solved: record.solved,
-        medal,
-        result: record.solved ? formatMedal(medal) : 'Walked',
-        chips: [
-          formatRunCount(record.attempts),
-          record.hintsUsed > 0
-            ? `${record.hintsUsed} hint${record.hintsUsed === 1 ? '' : 's'}`
-            : null,
-          record.solveTimeMs !== null ? formatDurationMs(record.solveTimeMs) : null,
-        ].filter((chip): chip is string => Boolean(chip)),
-      };
-    })
-    .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry)),
-);
-
-const visibleRoadLog = computed(() =>
-  modeRoadLog.value.slice(0, HISTORY_PREVIEW_COUNT),
-);
+  return [
+    { key: 'streak', label: 'Current streak', value: dayWord(stats.currentStreak) },
+    { key: 'bestStreak', label: 'Longest streak', value: dayWord(stats.bestStreak) },
+    { key: 'played', label: 'Total treads', value: roadWord(stats.sessionsPlayed) },
+    { key: 'solves', label: 'Total finishes', value: roadWord(stats.exactSolves) },
+    { key: 'rate', label: 'Completion', value: `${stats.solveRate}%` },
+    { key: 'avgAttempts', label: 'Average attempts', value: stats.averageSolvedAttempts },
+    { key: 'avgTime', label: 'Average solve time', value: formatDurationMs(stats.averageSolveTimeMs) },
+    { key: 'bestTime', label: 'Best solve time', value: formatDurationMs(stats.bestSolveTimeMs) },
+    { key: 'hints', label: 'Hints used', value: String(stats.totalHints) },
+  ];
+});
 
 function badgeClass(medal: Medal | null, solved: boolean) {
   return {
@@ -432,75 +353,45 @@ function badgeClass(medal: Medal | null, solved: boolean) {
   };
 }
 
+// ---------------------------------------------------------------------------
+// Share
+// ---------------------------------------------------------------------------
+
 function scheduleFeedbackClear(target: { feedback: FeedbackMessage | null }) {
   window.setTimeout(() => {
     target.feedback = null;
   }, 3200);
 }
 
-async function runShare(
-  input: {
-    gameNo: number;
-    puzzleType: PuzzleType;
-    attempts: number;
-    solved: boolean;
-    solveTimeMs: number | null;
-    hintsUsed: number;
-  },
-  slot: { busy: boolean; feedback: FeedbackMessage | null },
-) {
-  if (slot.busy) return;
-  slot.busy = true;
-
-  try {
-    const outcome = await roadResultShare.shareRoadResult(input);
-    if (outcome.outcome === 'cancelled' || !outcome.message) return;
-    slot.feedback = {
-      kind: outcome.outcome === 'unavailable' ? 'error' : 'success',
-      message: outcome.message,
-    };
-    scheduleFeedbackClear(slot);
-  } finally {
-    slot.busy = false;
-  }
-}
-
 async function shareTodayResult() {
   const result = todayResult.value;
   const gameNo = todayGameNo.value;
-  if (!result || gameNo === null) return;
+  if (!result || gameNo === null || todayShare.value.busy) return;
 
-  await runShare(
-    {
+  todayShare.value.busy = true;
+  try {
+    const outcome = await roadResultShare.shareRoadResult({
       gameNo,
       puzzleType: selectedMode.value,
       attempts: result.attempts,
       solved: result.solved,
       solveTimeMs: result.solveTimeMs,
       hintsUsed: result.hintsUsed,
-    },
-    todayShare.value,
-  );
+    });
+    if (outcome.outcome === 'cancelled' || !outcome.message) return;
+    todayShare.value.feedback = {
+      kind: outcome.outcome === 'unavailable' ? 'error' : 'success',
+      message: outcome.message,
+    };
+    scheduleFeedbackClear(todayShare.value);
+  } finally {
+    todayShare.value.busy = false;
+  }
 }
 
 // ---------------------------------------------------------------------------
 // Lifecycle
 // ---------------------------------------------------------------------------
-
-async function refreshCommunityStats() {
-  if (communityRefreshing.value) return;
-
-  communityRefreshing.value = true;
-  communityError.value = null;
-
-  try {
-    communityOverview.value = await statsApi.getOverview();
-  } catch {
-    communityError.value = 'Community comparison is unavailable right now.';
-  } finally {
-    communityRefreshing.value = false;
-  }
-}
 
 onMounted(async () => {
   localProgress.load();
@@ -511,7 +402,11 @@ onMounted(async () => {
     selectedMode.value = preferred;
   }
 
-  await refreshCommunityStats();
+  try {
+    communityOverview.value = await statsApi.getOverview();
+  } catch {
+    communityError.value = 'Community comparison is unavailable right now.';
+  }
 
   loading.value = false;
 });
@@ -525,39 +420,28 @@ onMounted(async () => {
         <h1>Stats</h1>
       </header>
 
-      <section class="panel panel--record" aria-label="Across both modes">
-        <div class="section-head">
-          <p class="eyebrow">Across Classic and Expedition</p>
-          <h2>Your record</h2>
-        </div>
-        <div class="strip">
-          <div class="strip-tile">
-            <span class="strip-label">Classic streak</span>
-            <strong class="strip-value">{{ headerStrip.classicStreak }}</strong>
-            <span class="strip-unit">
-              {{ headerStrip.classicStreak ? 'days running' : 'start today' }}
+      <!-- 1 · Medals: cross-mode, always visible, with the +1 moment -->
+      <section class="panel panel--medals" aria-label="Medals earned">
+        <div class="medal-grid">
+          <div
+            v-for="tier in medalTiles"
+            :key="tier.key"
+            class="medal-tile"
+            :class="`medal-tile--${tier.key}`"
+          >
+            <span
+              v-if="tier.earnedToday > 0"
+              class="medal-increment"
+              :aria-label="`${tier.earnedToday} earned today`"
+            >
+              +{{ tier.earnedToday }}
             </span>
-          </div>
-          <div class="strip-tile">
-            <span class="strip-label">Expedition streak</span>
-            <strong class="strip-value">{{ headerStrip.expeditionStreak }}</strong>
-            <span class="strip-unit">
-              {{ headerStrip.expeditionStreak ? 'days running' : 'start today' }}
+            <span class="medal-disc" aria-hidden="true">{{ tier.count }}</span>
+            <span class="medal-name">{{ tier.label }}</span>
+            <span class="medal-sub">{{ tier.sub }}</span>
+            <span class="sr-only">
+              {{ tier.count }} {{ tier.label }} medal{{ tier.count === 1 ? '' : 's' }}
             </span>
-          </div>
-          <div class="strip-tile strip-tile--medals">
-            <span class="strip-label">Medals earned</span>
-            <div class="strip-medals">
-              <span class="strip-medal strip-medal--gold">
-                {{ headerStrip.medals.gold }}<em>{{ UI_COPY.boardHeader.medals.gold }}</em>
-              </span>
-              <span class="strip-medal strip-medal--silver">
-                {{ headerStrip.medals.silver }}<em>{{ UI_COPY.boardHeader.medals.silver }}</em>
-              </span>
-              <span class="strip-medal strip-medal--bronze">
-                {{ headerStrip.medals.bronze }}<em>{{ UI_COPY.boardHeader.medals.bronze }}</em>
-              </span>
-            </div>
           </div>
         </div>
       </section>
@@ -570,10 +454,7 @@ onMounted(async () => {
           type="button"
           role="tab"
           class="mode-switch-btn"
-          :class="[
-            `mode-switch-btn--${mode}`,
-            { 'is-active': selectedMode === mode },
-          ]"
+          :class="{ 'is-active': selectedMode === mode }"
           :aria-selected="selectedMode === mode"
           @click="selectedMode = mode"
         >
@@ -586,8 +467,8 @@ onMounted(async () => {
       </section>
 
       <template v-else>
-        <!-- 1 · Personal emotional read: today + histogram -->
-        <section class="panel panel--today" :style="modeAccentVar">
+        <!-- 2 · Today's road: the player's own result and share -->
+        <section class="panel panel--today">
           <div class="today-lead">
             <p class="eyebrow">{{ todayCard.eyebrow }}</p>
             <div class="today-title-row">
@@ -618,11 +499,7 @@ onMounted(async () => {
               >
                 {{ todayShare.busy ? 'Preparing…' : 'Share today’s result' }}
               </button>
-              <NuxtLink
-                v-else
-                to="/"
-                class="btn btn--primary"
-              >
+              <NuxtLink v-else to="/" class="btn btn--primary">
                 Play today’s road
               </NuxtLink>
               <p
@@ -635,79 +512,35 @@ onMounted(async () => {
               </p>
             </div>
           </div>
-
-          <div class="today-field">
-            <div class="today-field-head">
-              <span>
-                Snapshot from this visit<span v-if="todayField"> · {{ todayField.plays }} posted</span>
-              </span>
-              <button
-                type="button"
-                class="refresh-button"
-                :disabled="communityRefreshing"
-                @click="refreshCommunityStats"
-              >
-                {{ communityRefreshing ? 'Refreshing…' : 'Refresh' }}
-              </button>
-            </div>
-            <p class="today-headline">{{ todayHeadline }}</p>
-            <StatsTriesHistogram
-              v-if="showTodayHistogram"
-              :bars="todayBars"
-              player-tag="You"
-            />
-            <p v-else class="field-forming">
-              The comparison appears after at least {{ COMMUNITY_SAMPLE_MIN }} results.
-            </p>
-          </div>
         </section>
 
-        <!-- 2 · Community comparison: yesterday, kept quiet -->
+        <!-- 3 · Yesterday's road: the completed field's global story -->
         <section
           v-if="yesterdayField && yesterdayField.plays > 0"
           class="panel panel--field"
         >
-          <div class="field-head">
-            <div>
-              <p class="eyebrow">Yesterday’s field</p>
-              <h2>
-                Road {{ yesterdayGameNo }} · {{ formatModeLabel(selectedMode) }}
-              </h2>
-            </div>
-            <span class="rate-pill">{{ yesterdayField.solveRate }}% solved</span>
+          <div class="section-head">
+            <p class="eyebrow">Yesterday’s road · global stats</p>
+            <h2>Road {{ yesterdayGameNo }} · {{ formatModeLabel(selectedMode) }}</h2>
           </div>
 
-          <p v-if="yesterdayHeadline" class="field-headline">
-            {{ yesterdayHeadline }}
-          </p>
+          <StatsTriesHistogram
+            v-if="showYesterdayHistogram"
+            :bars="yesterdayBars"
+            player-tag="You"
+          />
 
-          <div
-            class="split-bar"
-            role="img"
-            aria-label="How yesterday’s field finished"
-          >
-            <span
-              v-for="segment in yesterdaySegments"
-              :key="segment.key"
-              class="split-seg"
-              :class="`split-seg--${segment.tone}`"
-              :style="{ width: `${segment.width}%` }"
-              :title="`${segment.label}: ${segment.count}`"
-            />
-          </div>
-          <div class="split-legend">
-            <span
-              v-for="segment in yesterdaySegments"
-              :key="segment.key"
-              class="legend-item"
-            >
-              <span class="legend-dot" :class="`split-seg--${segment.tone}`" />
-              {{ segment.label }} · {{ segment.count }}
-            </span>
+          <div class="field-story">
+            <p v-if="yesterdayHeadline" class="field-headline">
+              {{ yesterdayHeadline }}
+            </p>
+            <p v-if="yesterdayPlayerLine" class="field-player-line">
+              {{ yesterdayPlayerLine }}
+            </p>
           </div>
 
           <button
-            v-if="yesterdayBehaviorRows.length"
+            v-if="showYesterdayHistogram && yesterdayBehaviorRows.length"
             type="button"
             class="text-toggle"
             @click="showFieldDetail = !showFieldDetail"
@@ -723,68 +556,34 @@ onMounted(async () => {
           {{ communityError }}
         </p>
 
-        <!-- 3 · Compressed all-time snapshot -->
-        <section v-if="hasModeHistory" class="panel panel--snapshot">
+        <!-- 4 · Your stats: the v1 key-value record -->
+        <section v-if="hasModeHistory" class="panel panel--record">
           <div class="section-head">
             <p class="eyebrow">All-time · {{ formatModeLabel(selectedMode) }}</p>
-            <h2>Your snapshot</h2>
+            <h2>Your stats</h2>
           </div>
 
-          <div class="headline-grid">
-            <div v-for="stat in allTimeHeadline" :key="stat.key" class="headline-stat">
-              <strong>{{ stat.value }}</strong>
-              <span>{{ stat.label }}</span>
+          <dl class="record-list">
+            <div v-for="row in recordRows" :key="row.key" class="record-row">
+              <dt>{{ row.label }}</dt>
+              <dd>{{ row.value }}</dd>
             </div>
-          </div>
-
-          <button
-            type="button"
-            class="text-toggle"
-            @click="showAllTimeDetail = !showAllTimeDetail"
-          >
-            {{ showAllTimeDetail ? 'Show less' : 'More detail' }}
-          </button>
-
-          <div v-if="showAllTimeDetail" class="detail-grid">
-            <div v-for="stat in allTimeDetail" :key="stat.key" class="detail-stat">
-              <span>{{ stat.label }}</span>
-              <strong>{{ stat.value }}</strong>
-            </div>
-          </div>
+          </dl>
         </section>
 
         <section v-else class="panel panel--empty">
           <h2>No {{ formatModeLabel(selectedMode) }} history yet</h2>
           <p>
-            Play a {{ formatModeLabel(selectedMode) }} road and your snapshot,
-            medals, and road log fill in here.
+            Play a {{ formatModeLabel(selectedMode) }} road and your medals and
+            stats fill in here.
           </p>
           <NuxtLink to="/" class="btn btn--primary">Play today’s road</NuxtLink>
         </section>
 
-        <!-- 4 · Recent road log -->
-        <section v-if="modeRoadLog.length" class="panel panel--log">
-          <div class="section-head">
-            <p class="eyebrow">Personal history · newest first</p>
-            <h2>Your recent results</h2>
-          </div>
-
-          <ul class="log-list">
-            <li v-for="entry in visibleRoadLog" :key="entry.key" class="log-row">
-              <div class="log-lead">
-                <span class="log-day">{{ formatDay(entry.day) }}</span>
-                <strong class="log-road">Road {{ entry.gameNo }}</strong>
-              </div>
-              <div class="log-result">
-                <span class="badge" :class="badgeClass(entry.medal, entry.solved)">
-                  {{ entry.result }}
-                </span>
-                <span class="log-chips">{{ entry.chips.join(' · ') }}</span>
-              </div>
-            </li>
-          </ul>
-
-          <NuxtLink to="/games" class="text-link">Browse Past Roads</NuxtLink>
+        <!-- 5 · Past roads entry -->
+        <section class="panel panel--explore">
+          <p class="explore-lead">Keep walking &amp; improving</p>
+          <NuxtLink to="/games" class="btn btn--ghost">Play past roads</NuxtLink>
         </section>
       </template>
     </div>
@@ -798,7 +597,7 @@ onMounted(async () => {
 }
 
 .container {
-  max-width: 760px;
+  max-width: 640px;
   margin: 0 auto;
   display: grid;
   gap: clamp(1rem, 2.5vw, 1.5rem);
@@ -825,75 +624,102 @@ onMounted(async () => {
   color: rgb(var(--color-gold-rgb) / 0.6);
 }
 
-/* ── Header strip ─────────────────────────────────────────── */
-.strip {
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── Medals ───────────────────────────────────────────────── */
+.panel--medals {
+  padding: clamp(1rem, 3vw, 1.3rem);
+}
+
+.medal-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 0.7rem;
 }
 
-.strip-tile {
+.medal-tile {
+  position: relative;
   display: grid;
-  gap: 0.15rem;
-  align-content: start;
-  padding: 0.85rem 0.95rem;
+  justify-items: center;
+  gap: 0.3rem;
+  padding: 1rem 0.6rem 0.85rem;
   border-radius: var(--radius-md);
-  background: var(--gradient-card-metric);
-  border: 1px solid rgb(var(--color-gold-rgb) / 0.18);
+  background: rgb(0 0 0 / 0.22);
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.14);
 }
 
-.strip-label {
-  font-size: 0.76rem;
-  font-weight: 800;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: rgb(var(--color-gold-rgb) / 0.6);
-}
-
-.strip-value {
-  font-size: 1.8rem;
-  font-weight: 900;
-  line-height: 1;
-  color: var(--color-gold-bright);
-  font-variant-numeric: tabular-nums;
-}
-
-.strip-unit {
-  font-size: 0.8rem;
-  color: rgb(var(--color-gold-rgb) / 0.6);
-}
-
-.strip-medals {
-  display: flex;
-  gap: 0.85rem;
-  margin-top: 0.2rem;
-}
-
-.strip-medal {
+.medal-disc {
   display: grid;
+  place-items: center;
+  width: 3.4rem;
+  height: 3.4rem;
+  border-radius: var(--radius-circle);
   font-size: 1.35rem;
   font-weight: 900;
-  line-height: 1.05;
   font-variant-numeric: tabular-nums;
+  box-shadow:
+    0 6px 14px rgb(0 0 0 / 0.35),
+    inset 0 1px 0 rgb(255 255 255 / 0.35);
 }
 
-.strip-medal em {
-  font-style: normal;
-  font-size: 0.68rem;
+.medal-tile--gold .medal-disc {
+  background: var(--gradient-tile-done);
+  color: var(--color-text-on-gold);
+}
+
+.medal-tile--silver .medal-disc {
+  background: var(--gradient-medal-silver);
+  color: var(--color-text-on-silver);
+}
+
+.medal-tile--bronze .medal-disc {
+  background: var(--gradient-medal-bronze);
+  color: var(--color-text-on-bronze);
+}
+
+.medal-name {
+  font-size: 0.92rem;
   font-weight: 800;
-  letter-spacing: 0.06em;
+  color: var(--color-gold-bright);
+}
+
+.medal-tile--silver .medal-name {
+  color: var(--color-medal-silver-muted);
+}
+
+.medal-tile--bronze .medal-name {
+  color: var(--color-medal-bronze-bright);
+}
+
+.medal-sub {
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   color: rgb(var(--color-gold-rgb) / 0.55);
 }
 
-.strip-medal--gold {
-  color: var(--color-gold-bright);
-}
-.strip-medal--silver {
-  color: var(--color-medal-silver-muted);
-}
-.strip-medal--bronze {
-  color: var(--color-medal-bronze-bright);
+.medal-increment {
+  position: absolute;
+  top: 0.45rem;
+  right: 0.5rem;
+  padding: 0.14rem 0.42rem;
+  border-radius: var(--radius-full);
+  background: var(--color-success);
+  color: var(--color-text-on-success);
+  font-size: 0.76rem;
+  font-weight: 900;
+  animation: rise-in var(--transition-slow) both;
 }
 
 /* ── Mode switch ──────────────────────────────────────────── */
@@ -968,23 +794,12 @@ onMounted(async () => {
   font-size: 1.3rem;
 }
 
-.panel h3 {
-  margin: 0;
-  color: var(--color-gold);
-  font-size: 1.05rem;
-}
-
 .section-head {
   display: grid;
   gap: 0.2rem;
 }
 
 /* ── Today panel ──────────────────────────────────────────── */
-.panel--today {
-  border-color: rgb(var(--hist-accent-rgb) / 0.34);
-  box-shadow: 0 0 0 1px rgb(var(--hist-accent-rgb) / 0.06) inset;
-}
-
 .today-lead {
   display: grid;
   gap: 0.55rem;
@@ -1008,55 +823,6 @@ onMounted(async () => {
   display: grid;
   gap: 0.4rem;
   justify-items: start;
-}
-
-.today-field {
-  display: grid;
-  gap: 0.85rem;
-  padding-top: 1rem;
-  border-top: 1px solid rgb(var(--color-gold-rgb) / 0.14);
-}
-
-.today-field-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  color: rgb(var(--color-gold-rgb) / 0.64);
-  font-size: 0.82rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.refresh-button {
-  padding: 0.25rem 0.55rem;
-  border: 1px solid rgb(var(--color-gold-rgb) / 0.2);
-  border-radius: var(--radius-full);
-  background: rgb(var(--color-gold-rgb) / 0.06);
-  color: rgb(var(--color-gold-rgb) / 0.78);
-  font: inherit;
-  font-size: 0.76rem;
-  text-transform: none;
-  cursor: pointer;
-}
-
-.refresh-button:disabled {
-  opacity: 0.6;
-  cursor: wait;
-}
-
-.today-headline {
-  margin: 0;
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: var(--color-gold-bright);
-  line-height: var(--line-height-snug);
-}
-
-.field-forming {
-  margin: 0;
-  color: rgb(var(--color-gold-rgb) / 0.66);
 }
 
 /* ── Chips & badges ───────────────────────────────────────── */
@@ -1122,82 +888,28 @@ onMounted(async () => {
   box-shadow: 0 6px 16px rgb(0 0 0 / 0.28);
 }
 
-/* ── Field panel ──────────────────────────────────────────── */
+/* ── Yesterday's field ────────────────────────────────────── */
 .panel--field {
   background: var(--gradient-card-metric);
   border-color: rgb(var(--color-gold-rgb) / 0.14);
 }
 
-.field-head {
-  display: flex;
-  align-items: start;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.rate-pill {
-  padding: 0.24rem 0.6rem;
-  border-radius: var(--radius-full);
-  background: rgb(var(--color-gold-rgb) / 0.1);
-  border: 1px solid rgb(var(--color-gold-rgb) / 0.2);
-  color: rgb(var(--color-gold-rgb) / 0.86);
-  font-size: 0.84rem;
-  font-weight: 800;
-  white-space: nowrap;
+.field-story {
+  display: grid;
+  gap: 0.45rem;
 }
 
 .field-headline {
   margin: 0;
   color: var(--color-gold-bright);
   font-weight: 700;
+  line-height: var(--line-height-snug);
 }
 
-.split-bar {
-  display: flex;
-  height: 0.85rem;
-  border-radius: var(--radius-full);
-  overflow: hidden;
-  background: rgb(0 0 0 / 0.3);
-}
-
-.split-seg {
-  height: 100%;
-}
-
-.split-seg--gold {
-  background: var(--color-gold-bright);
-}
-.split-seg--silver {
-  background: var(--color-medal-silver-segment);
-}
-.split-seg--bronze {
-  background: var(--color-medal-bronze-segment);
-}
-.split-seg--late {
-  background: rgb(var(--color-gold-rgb) / 0.4);
-}
-.split-seg--dnf {
-  background: rgb(255 255 255 / 0.12);
-}
-
-.split-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem 1rem;
-}
-
-.legend-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: 0.82rem;
-  color: rgb(var(--color-gold-rgb) / 0.72);
-}
-
-.legend-dot {
-  width: 0.6rem;
-  height: 0.6rem;
-  border-radius: var(--radius-circle);
+.field-player-line {
+  margin: 0;
+  color: rgb(var(--color-gold-rgb) / 0.82);
+  line-height: var(--line-height-base);
 }
 
 .field-detail {
@@ -1209,148 +921,51 @@ onMounted(async () => {
   font-size: 0.9rem;
 }
 
-/* ── Snapshot ─────────────────────────────────────────────── */
-.headline-grid {
+/* ── Your stats record ────────────────────────────────────── */
+.record-list {
+  margin: 0;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.7rem;
+  gap: 0.4rem;
 }
 
-.headline-stat {
-  display: grid;
-  gap: 0.2rem;
-  padding: 0.9rem 0.75rem;
-  border-radius: var(--radius-md);
-  background: rgb(var(--color-gold-rgb) / 0.06);
-  border: 1px solid rgb(var(--color-gold-rgb) / 0.14);
-  text-align: center;
-}
-
-.headline-stat strong {
-  font-size: 1.5rem;
-  font-weight: 900;
-  color: var(--color-gold-bright);
-  font-variant-numeric: tabular-nums;
-}
-
-.headline-stat span {
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: rgb(var(--color-gold-rgb) / 0.62);
-}
-
-.detail-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 0.6rem;
-}
-
-.detail-stat {
+.record-row {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.7rem 0.85rem;
-  border-radius: var(--radius-sm);
-  background: rgb(0 0 0 / 0.2);
-  border: 1px solid rgb(var(--color-gold-rgb) / 0.12);
-}
-
-.detail-stat span {
-  font-size: 0.82rem;
-  color: rgb(var(--color-gold-rgb) / 0.68);
-}
-
-.detail-stat strong {
-  color: var(--color-gold);
-  font-variant-numeric: tabular-nums;
-}
-
-/* ── Road log ─────────────────────────────────────────────── */
-.log-list {
-  display: grid;
-  gap: 0.5rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.log-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   gap: 1rem;
-  padding: 0.75rem 0.9rem;
-  border-radius: var(--radius-sm);
-  background: rgb(var(--color-gold-rgb) / 0.05);
-  border: 1px solid rgb(var(--color-gold-rgb) / 0.12);
+  padding: 0.55rem 0.2rem;
+  border-bottom: 1px solid rgb(var(--color-gold-rgb) / 0.1);
 }
 
-.log-lead {
-  display: grid;
-  gap: 0.15rem;
+.record-row:last-child {
+  border-bottom: 0;
 }
 
-.log-day {
-  font-size: 0.8rem;
-  color: rgb(var(--color-gold-rgb) / 0.6);
+.record-row dt {
+  color: rgb(var(--color-gold-rgb) / 0.72);
+  font-size: 0.94rem;
 }
 
-.log-road {
-  color: var(--color-gold);
-}
-
-.log-result {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  flex-wrap: wrap;
-  justify-content: end;
+.record-row dd {
+  margin: 0;
+  color: var(--color-gold-bright);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
   text-align: right;
 }
 
-.log-chips {
-  font-size: 0.86rem;
-  color: rgb(var(--color-gold-rgb) / 0.7);
-  font-variant-numeric: tabular-nums;
-}
-
 /* ── Explore ──────────────────────────────────────────────── */
-.explore-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 0.9rem;
+.panel--explore {
+  justify-items: center;
+  text-align: center;
+  gap: 0.7rem;
 }
 
-.explore-card {
-  display: grid;
-  gap: 0.5rem;
-  align-content: start;
-  padding: 1.1rem;
-  border-radius: var(--radius-md);
-  background: rgb(var(--color-gold-rgb) / 0.05);
-  border: 1px solid rgb(var(--color-gold-rgb) / 0.14);
-}
-
-.explore-status {
-  color: var(--color-gold-bright);
-  font-size: 1.05rem;
-}
-
-.explore-detail {
+.explore-lead {
   margin: 0;
-  color: rgb(var(--color-gold-rgb) / 0.74);
-  font-size: 0.9rem;
-  line-height: var(--line-height-base);
-}
-
-.explore-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 0.2rem;
+  color: var(--color-gold-bright);
+  font-weight: 800;
+  font-size: 1.05rem;
 }
 
 /* ── Buttons, toggles, feedback ───────────────────────────── */
@@ -1429,36 +1044,15 @@ onMounted(async () => {
   font-size: 0.9rem;
 }
 
-.text-link {
-  justify-self: start;
-  color: rgb(var(--color-gold-rgb) / 0.86);
-  font-size: 0.9rem;
-  font-weight: 800;
-  text-underline-offset: 0.22em;
-}
-
 @media (max-width: 560px) {
-  .strip {
-    grid-template-columns: 1fr;
-  }
-
-  .strip-tile--medals {
-    order: -1;
-  }
-
-  .headline-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .log-row {
-    flex-direction: column;
-    align-items: start;
+  .medal-grid {
     gap: 0.5rem;
   }
 
-  .log-result {
-    justify-content: start;
-    text-align: left;
+  .medal-disc {
+    width: 2.9rem;
+    height: 2.9rem;
+    font-size: 1.15rem;
   }
 }
 </style>

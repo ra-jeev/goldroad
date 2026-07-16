@@ -100,17 +100,15 @@ export default defineEventHandler(async (event): Promise<StatsOverview> => {
     yesterdayGameNo = yesterdayRows[0]?.gameNo ?? null;
   }
 
-  const [current, yesterday] = await Promise.all([
-    currentGameNo !== null
-      ? getRoadDayStats(db, currentGameNo)
-      : Promise.resolve(createEmptyStatsRoadDay(null)),
+  // Community stats are only aggregated for the previous, completed road.
+  // Today's road never gets a community aggregation (July 2026 decision).
+  const yesterday =
     yesterdayGameNo !== null
-      ? getRoadDayStats(db, yesterdayGameNo)
-      : Promise.resolve(createEmptyStatsRoadDay(null)),
-  ]);
+      ? await getRoadDayStats(db, yesterdayGameNo)
+      : createEmptyStatsRoadDay(null);
 
   return {
-    current,
+    currentGameNo,
     yesterday,
   };
 });
