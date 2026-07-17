@@ -735,7 +735,7 @@ The v2 UI is visually good; these decisions are about behavior and information r
 
 - **The histogram never reveals counts.** v1's conscious decision restored: showing per-bucket counts tells players how many people played. Bars are relative to the busiest bucket only; empty buckets stay as hairlines so the field reads as a field. The server still returns counts (`solvedAttempts`) — clients render shape only. Bars cover solvers at 1..24 attempts plus a pooled 25+, v1's exact form, with axis markers at 1, 25+, and the player's own bar (👇).
 - **The board frame never changes height between states.** The footer reserves fixed-height message and action slots that render whether or not they're occupied; transient share feedback borrows the message slot. This kills the board jumping that state-contextual messaging otherwise causes — v1 solved it the same way with fixed slots.
-- **Retry is a no-op until a move is made.** The board auto-starts on the footprints, so with no moves there is nothing to retry; solved boards at rest don't show a retry control at all (tapping tiles starts the untracked replay directly).
+- **Try again follows the board's dirty state, with one solved-state exception.** A fresh or newly reset board has no Try again control because no move has been made. Once the player moves, a quiet retry control appears; a failed road promotes it to **Try again**. A newly solved board also keeps a quiet **Try again** control as the explicit entry into an untracked replay. Pressing it resets to the solved-at-rest presentation, hides retry until the first replay move, and never makes the solved road look unsolved.
 - **Replay pages carry no page-level header.** The global toolbar's road label (now "Road N · date") is the identity; the board leads with the same composition as the live page.
 - **Today's solved card uses v1's celebration form**: a "Yay! You got to the finish 🎉" line over a solid-gold result block with dark text, Share beneath. The medal "+1" is golden text (v1's), never a green badge, and the medal count bumps on arrival.
 - **The pre-run instruction doesn't repeat the target number** (it's in the header) and is action-first like v1's: "You're on the footprints. Step onto any glowing tile to begin."
@@ -759,11 +759,20 @@ The v2 UI is visually good; these decisions are about behavior and information r
 - **About leads with Updates, in its own visually distinct section** — a timeline treatment (dot + connecting line + a gold "Latest" badge on the newest entry) rather than another plain card, so what changed is the first thing a returning player sees, ahead of the evergreen About/Privacy content.
 - **The app icon's road reads as three coin tiles**, matching the in-game tile geometry exactly (filled start, open tiles, flagged finish) rather than an abstracted diamond mark.
 
+### Clarified product decisions — July 2026 archive and replay review
+
+- **Archive completion is local, mode-specific, and calendar-only.** Solving an old road records only that Classic or Expedition was completed for the Past Roads calendar and for restoring that archive road's local solved/unlock state. It must not change medals, streaks, attempts, solve times, personal totals, today's result, yesterday's comparison, or server/global analytics.
+- **An archive attempt counts only when it is solved.** Starting, retrying, abandoning, or failing an archived road creates no completion mark. This intentionally treats an unfinished archive attempt the same as an unplayed road.
+- **The calendar shows two per-mode, medal-tinted completion discs** (owner decision, replacing the reviewer's neutral-disc proposal). Classic and Expedition each have a fixed marker position, so the day answers "which half is unfinished" at a glance. Each disc tints by that mode's own result: gold/silver/bronze from live history's attempt count, and the game's existing solved-green (`--color-active`) for no-medal solves and for archive completions (which store no attempt count). Uncompleted modes show a faint hollow marker. A short C/E legend explains the positions, and each playable day exposes the full state to assistive technology, for example: "Road 1. Classic solved, gold. Expedition not solved."
+- **Expedition remains gated in archive play** (owner-confirmed; this deliberately supersedes P0-4's "Expedition is directly available in archive replay" acceptance criterion — that frictionless model predates tracked archive completion). It unlocks only after Classic for that road has been solved, whether the Classic solve originally happened live or later in the archive. "Expedition solved while Classic unsolved" is not a valid reachable state.
+- **Archive hints are local** (owner-confirmed; a deliberate carve-out from P0-3's server-side-paths boundary, for archived roads only — protecting yesterday's solutions is pointless load once the road is history). Fetch the archived boards with their valid solution paths, then reuse the client hint calculation. Archived play makes no session, hint, or result analytics calls. Current/live solution paths must remain protected behind the existing live-game contract.
+- **Deep-archive random play stays** (owner decision, upholding the §2 locked decision "random deep-archive play is allowed"). **Surprise me** is retained in simplified, identity-free form: it picks any road older than the calendar window with no player-identity or analytics lookup; repeats are acceptable.
+
 ### Issue RP0-1 — Restore a trustworthy release verification gate
 - Priority: `P0` (launch-blocking)
 - Status: `in progress`
 - Goal: make the documented verification commands reliable on a clean checkout.
-- Why it matters: tests and builds currently pass, but the declared typecheck command is broken by the installed TypeScript/tooling combination. A release cannot rely on a check nobody can run.
+- Why it matters: the declared typecheck command was broken by the installed TypeScript/tooling combination. That tooling issue is fixed, but release confidence still depends on turning the manual UI smoke pass into a repeatable gate.
 - Scope:
   - package/tooling versions and scripts
   - CI or equivalent clean-checkout verification
@@ -777,7 +786,8 @@ The v2 UI is visually good; these decisions are about behavior and information r
   - added the missing explicit `typescript@^5.9.3` dev dependency, replacing the incompatible transitive TypeScript 7 resolution
   - `pnpm typecheck`, `pnpm test` (41/41), and `pnpm build` now pass
   - browser-smoked the live board, first-run guide, practice road, archived Classic/Expedition replay, Past Roads, mobile header, and dialog keyboard focus with no console errors
-  - remains in progress until the deferred stats review is browser-smoked and a repeatable UI smoke suite from RP1-9 exists
+  - the latest full audit again passes `pnpm typecheck`, `pnpm test` (43/43), and `pnpm build`; main board, both stats modes, calendar, replay, About, Help, Tutorial guide/practice, and menu outside-click were browser-smoked without console errors
+  - remains in progress until a repeatable UI smoke suite from RP1-9 exists
 
 ### Issue RP0-2 — Finish deployment, migration, and cutover readiness
 - Priority: `P0` (launch-blocking)
@@ -797,6 +807,10 @@ The v2 UI is visually good; these decisions are about behavior and information r
   - the P2-4 DNS, Firebase sunset, analytics-write, and share-unfurl checklist is executed or explicitly scheduled
 - Dependencies:
   - RP0-1
+- Audit notes:
+  - `wrangler.jsonc` still contains a placeholder production D1 database ID
+  - the legacy `/sign-in` route referenced by the cutover plan is not present in v2, so its redirect/destination still needs an explicit decision
+  - the DNS/Firebase shutdown, production analytics-write decision, share-unfurl verification, and launch-day ownership/checklist remain open rather than merely undocumented
 
 ### Issue RP0-3 — Fix gameplay and local-stats correctness gaps
 - Priority: `P0` (launch-blocking)
@@ -824,18 +838,48 @@ The v2 UI is visually good; these decisions are about behavior and information r
 - Priority: `P0` (launch-blocking)
 - Status: `planned`
 - Goal: ensure global comparison cannot be trivially distorted and public privacy copy matches stored data.
-- Why it matters: session analytics currently accepts important solve fields from the client, and rate limiting uses a player-supplied UUID. The privacy page describes aggregated data even though the database keeps pseudonymous per-player, per-road, per-mode rows.
+- Why it matters: session analytics currently accepts important solve fields from the client, and rate limiting uses a player-supplied UUID. The privacy page describes aggregated data even though the database keeps pseudonymous per-player, per-road, per-mode rows. Archived solves currently use the same analytics path as live play, and the 25+ histogram bucket is too coarse to support an exact percentile for every player inside it.
 - Scope:
   - session-end and hint analytics validation
   - abuse/rate-limit identity strategy
   - stats aggregation safeguards
+  - strict exclusion of archive play from analytics and personal-stat inputs
+  - percentile calculation independent of the display histogram's pooled 25+ bucket
   - About/Privacy copy
 - Acceptance criteria:
   - the server validates or derives every result field it can reasonably verify
   - one client cannot bypass useful limits merely by rotating its supplied UUID
   - tiny or suspicious samples do not produce authoritative percentile claims
+  - archived hints, attempts, and solves create no analytics rows and cannot affect today's, yesterday's, or all-time statistics
+  - the chart may keep its visual 25+ bucket, but a player's “top N%” statement is calculated from unpooled attempts or from a separate server-derived at-or-better value
   - privacy copy plainly describes pseudonymous event/result storage and aggregation
 - Dependencies: none
+
+### Issue RP0-5 — Make archive completion local, mode-specific, and stats-free
+- Priority: `P0` (launch-blocking)
+- Status: `in progress`
+- Goal: let players complete missed roads from Past Roads without turning archive replay into live competition or corrupting personal/global records.
+- Why it matters: archive mode currently unlocks Expedition without requiring that road's Classic solve, and its gameplay can travel through the live session/hint/end analytics contract. The calendar also collapses both modes into one best-result marker, so it cannot answer the useful question: which half of this road day is still unfinished?
+- Scope:
+  - archive road response and gameplay state
+  - archive-local hint calculation
+  - separate local archive-completion storage
+  - calendar mode markers and accessible state labels
+  - Classic-to-Expedition archive gating
+  - `/api/games/another` and the deep-archive product boundary
+- Acceptance criteria:
+  - the archive fetch supplies both boards and their valid paths for local hint calculation without exposing the current live road's paths
+  - archived play never creates or updates session, hint, end, player-road, or aggregate analytics data
+  - an unfinished archived attempt writes nothing; a solve writes only that road number and mode to a dedicated local completion map
+  - live completion history and archive completion are merged only when deriving the calendar and that archive road's local solved/unlock state; the archive map is not an input to medals, streaks, attempts, solve times, completion rate, personal totals, or community stats
+  - each calendar day has fixed Classic and Expedition positions, each disc tinted by that mode's own result (gold/silver/bronze from live history, solved-green for no-medal solves and archive completions), faint hollow when uncompleted, plus a compact C/E legend
+  - the calendar link's accessible name states both modes in full, including unsolved states
+  - Expedition is disabled until Classic for that road is solved locally, whether that Classic completion came from live history or archive completion
+  - the impossible Expedition-only state cannot be produced through the UI or normal storage writes; defensive rendering remains understandable if corrupted legacy data contains it
+  - **Surprise me** and `/api/games/another` are retained in simplified identity-free form (no playerId/analytics lookup; repeats acceptable), per the owner decision upholding deep-archive play
+- Dependencies:
+  - coordinate with RP0-4 so archive requests cannot reach analytics writes
+  - RP1-9 for the completion, unlock, hint, and storage regression matrix
 
 ### Issue RP1-1 — Rebuild onboarding around the production game language
 - Priority: `P1`
@@ -953,9 +997,9 @@ The v2 UI is visually good; these decisions are about behavior and information r
 
 ### Issue RP1-5 — Reframe stats as a rewarding personal record
 - Priority: `P1`
-- Status: `in progress`
+- Status: `done` (superseded by RP1-11)
 - Goal: retain the richer v2 data while restoring the clarity, consistent cards, and emotional payoff of v1.
-- Why it matters: the current page has the right ingredients but reads as several analytics treatments assembled together. Its current-road histogram can also look nonsensical when only one player has contributed.
+- Why it matters: the page at the time had the right ingredients but read as several analytics treatments assembled together. Its current-road histogram could also look nonsensical when only one player had contributed. RP1-11 subsequently replaced that direction.
 - Scope:
   - stats hierarchy and card system
   - current-road and previous-road community states
@@ -1030,6 +1074,7 @@ The v2 UI is visually good; these decisions are about behavior and information r
   - established and applied footprints, finish, attempt, Try again, Past Roads, Board total, and plain Solved language across the board, tutorial, help, celebration, archive, and navigation
   - removed the player-facing internal "Milestone 1" heading
   - stats now uses **attempt** for medal-counting units and reserves **result** for community histogram counts
+  - remaining audit drift: About still uses **start/exit** where the game teaches **footprints/finish**; Help and one runtime hint still use **Retry** where the player-facing action is **Try again**
 
 ### Issue RP1-8 — Complete keyboard and dialog accessibility
 - Priority: `P1`
@@ -1066,6 +1111,9 @@ The v2 UI is visually good; these decisions are about behavior and information r
   - visual state fixtures for boards and dialogs
 - Acceptance criteria:
   - tests cover first-run tutorial, tutorial reopen/reset, Classic solve to Expedition, dead-end/retry, hint, celebration dismissal, stats sparse-data states, and archive replay
+  - archive tests cover separate Classic/Expedition calendar dots, Classic-to-Expedition unlock, local hint calculation, solved-only local completion writes, and zero analytics/stat writes
+  - board-footer tests cover fresh, dirty, failed, newly solved, solved-reset, and dirty untracked-replay retry visibility
+  - stats tests prove that an exact percentile remains correct for attempts inside the pooled 25+ display bucket
   - at least one keyboard-only board/dialog flow is automated
   - open/missing/toll/bonus road snapshots or equivalent visual assertions are protected at a mobile viewport
 - Dependencies:
@@ -1073,6 +1121,7 @@ The v2 UI is visually good; these decisions are about behavior and information r
 - Progress notes:
   - added three local-streak rollover regression tests; suite is now 41 tests
   - completed manual browser smoke coverage for the edited release surfaces and keyboard focus contract
+  - the latest suite is 43/43; the archive-mode, solved-retry, and pooled-percentile cases above are still missing
   - automated component/browser coverage for the listed visual and state transitions remains outstanding
 
 ### Issue RP1-10 — Make board messaging strictly contextual (v1 footer contract)
@@ -1086,11 +1135,12 @@ The v2 UI is visually good; these decisions are about behavior and information r
   - runtime copy in `uiCopy.ts`
 - State contract (v1-derived, adapted to v2 features; the footer is the hint's home — v1 had no hint, so this is the one deliberate addition to its contract):
   - pre-play, first visit path: one instruction line; Hint quiet but reachable
-  - mid-run (any moves made): retry affordance only — no status line, no attempt pill, Hint reachable but visually quiet
+  - mid-run (any moves made): quiet retry affordance only — no status line, no attempt pill, Hint reachable but visually quiet
   - at rest after a failed attempt: what happened + promoted Try again + attempt count; all of it clears on the next move
-  - Classic solved: celebration/share/Expedition per P1-10 tiering; footer afterwards carries only the relevant next action
-  - day solved: next-road ticker as the single resting message
-  - replay/untracked states: same rhythm, quieter actions, no attempt pill
+  - newly solved Classic: celebration/share/Expedition per P1-10 tiering; footer afterwards carries the relevant next action plus a quiet Try again entry into untracked replay
+  - newly solved day: next-road ticker as the single resting message, with quiet Try again/Share and View stats actions
+  - solved reset, before a replay move: the board still presents as solved and retry is hidden because the reset board is clean
+  - untracked replay after a move: quiet retry returns; no attempt pill and no tracked-result effects
 - Acceptance criteria:
   - no board state renders more than one message plus its state-relevant actions
   - the attempt count is visible only at rest after a retry and disappears on the first move of the new attempt
@@ -1105,6 +1155,7 @@ The v2 UI is visually good; these decisions are about behavior and information r
   - mid-run renders no text at all — only quiet icon-circle Retry and Hint; a player-requested hint message is the one exception and clears on the next move (existing behavior)
   - the resting state after a retry shows only the v1-style ordinal attempt line ("2nd attempt", `UI_COPY.boardFooter.attemptResting`), which disappears on the first move; the attempt pill now appears only in the failed state alongside the promoted Try again
   - solved-next (Expedition waiting) shows no message with quiet retry + Share and a primary Play Expedition; solved-final shows the next-road ticker as its single message with quiet retry/Share and View stats
+  - the solved-state retry behavior was rechecked in July 2026: the quiet Try again control on a newly solved board is intentional; after it resets the board, retry stays hidden until the player makes the first untracked replay move
   - the replay page's footer back-link now appears only in solved/failed states (the archive header already carries a permanent back link)
   - browser-verified every transition on the live board: resting-first → mid-run → retry → resting-retry (clears on move) → hint mid-run → wrong-finish failed state → solve → relief-tier celebration → solved-next → Expedition solve → day-complete sheet → solved-final ticker; typecheck and 41/41 tests pass
   - automated coverage of this state matrix remains tracked by RP1-9
@@ -1151,17 +1202,17 @@ The v2 UI is visually good; these decisions are about behavior and information r
   - `/games` (`games/index.vue`) calendar UI over the recent-archive window
   - personal-result marks on calendar days (solved/medal state from local history) if cheap — decide during implementation
   - `/games/[gameNo]` header/label reduction
-  - random-road CTA placement preserved
+  - random-road CTA placement, pending the later RP0-5 deep-archive decision
 - Acceptance criteria:
   - past roads render as a calendar (or month strip) of playable days; tapping a day opens that road day's dual-mode replay
-  - days outside the recent-archive window are visibly not playable; the deep-archive random-road entry remains
+  - days outside the recent-archive window are visibly not playable; whether a separate deep-archive random-road entry remains is decided under RP0-5
   - the replay page leads with the board; page-level eyebrow/subtitle chrome is removed or collapsed to a single compact identity line
   - empty/error/loading states remain handled
 - Dependencies:
   - RP1-6 (supersedes its card-grid presentation; its copy and metadata decisions carry forward)
 - Completion notes:
-  - `/games` now renders month calendars (UTC, newest month first): playable archive days are tappable cells, other days recede; each playable day carries a personal-result dot colored by the best local result across modes (gold > silver > bronze > solved-green)
-  - the deep-archive random-road entry was found to have lost its UI entry point during RP1-5's panel removal — restored here as a "Surprise me with an older road" action on the calendar page, shown only once roads exist beyond the recent-archive boundary (P1-3's rule), navigating to the road-day replay
+  - `/games` now renders month calendars (UTC, newest month first): playable archive days are tappable cells and other days recede; the originally shipped single best-result medal dot is superseded by RP0-5's two per-mode medal-tinted completion discs (owner-approved)
+  - the deep-archive random-road entry was found to have lost its UI entry point during RP1-5's panel removal and was restored here as a "Surprise me with an older road" action; RP0-5 now reopens whether this action and `/api/games/another` should survive at all
   - `/games/[gameNo]` dropped the archive-header card (eyebrow, h1, subtitle, note) for one compact identity bar — back arrow, "Road N · date", and a small REPLAY tag — so the board leads the page
   - browser-verified the calendar (playable vs. inert days) and the de-chromed replay page; typecheck and 41/41 tests pass
 
@@ -1172,7 +1223,7 @@ The v2 UI is visually good; these decisions are about behavior and information r
 - Why it matters: the polish passes left residue. `main.css` declares the `--color-start`/`--color-end` families and `--color-silver-rgb` (start/finish are icon-distinguished and share gold coloring — no component references these), plus the pre-P0-1 `--color-blocked`. Component CSS, composables, and exports likely have equivalent leftovers. A trustworthy design system documents only what exists.
 - Scope:
   - `app/assets/css/main.css` token audit (colors, gradients, shadows — verify each has a live consumer)
-  - component-scoped CSS audit for orphaned rules
+  - component-scoped CSS audit for orphaned and duplicate rules, including the duplicate `.container` declaration in `app/pages/games/index.vue`
   - TypeScript audit for unused exports/composables/props (typecheck + a dead-code pass)
   - `DESIGN_SYSTEM.md` updated in the same pass so doc and code stay in lockstep
 - Acceptance criteria:
@@ -1183,6 +1234,28 @@ The v2 UI is visually good; these decisions are about behavior and information r
   - `pnpm typecheck`, `pnpm test`, and `pnpm build` stay green; a browser smoke pass confirms no visual regressions
 - Dependencies:
   - RP1-10, RP1-11, RP1-12 — run this after the UI settles, not before
+
+### Issue RP1-14 — Bring release documentation back in sync with the shipped app
+- Priority: `P1`
+- Status: `planned`
+- Goal: make the repository's release and design documents describe the product that is actually being reviewed for launch.
+- Why it matters: README and architecture notes still call shipped About, Tutorial, sounds, celebration, stats, and archive work “planned.” The tracker itself leaves superseded work looking active, and design/cutover notes preserve decisions that the UI has since replaced. That makes release review slower and invites old behavior to be reintroduced.
+- Scope:
+  - `README.md` and `ARCHITECTURE.md`
+  - `DESIGN_SYSTEM.md`
+  - `LAUNCH_CUTOVER_NOTES.md`
+  - tracker status/supersession cleanup
+  - Updates-content ownership and notification-dot documentation
+- Acceptance criteria:
+  - shipped surfaces are described as current behavior, not future work
+  - superseded issues such as RP1-5 point clearly to their replacement and do not imply a second implementation is still pending
+  - the design-system palette records muted gold, not silver, as Expedition's secondary emphasis and removes the stale cyan guidance
+  - launch notes describe the current two-level update dot (hamburger and About entry) and identify `app/content/updates.ts` as the Updates-content source of truth
+  - the currently ignored `LAUNCH_CUTOVER_NOTES.md` is either deliberately tracked as release documentation or its still-valid checklist is moved into a tracked source of truth
+  - archive, analytics, replay, and retry documentation matches RP0-4, RP0-5, and the clarified RP1-10 state contract
+  - no release checklist points at a route, file, or behavior that does not exist without also recording the required migration/redirect decision
+- Dependencies:
+  - finalize RP0-4 and RP0-5 behavior before closing this documentation pass
 
 ### Recommended implementation order
 
@@ -1198,7 +1271,10 @@ The v2 UI is visually good; these decisions are about behavior and information r
 10. RP1-10 — contextual board messaging (absorbs RP1-3 verification)
 11. RP1-11 — stats page in v1's shape, coordinated with RP0-4
 12. RP1-12 — Past Roads calendar and replay de-chroming
-13. RP0-4 — analytics hardening/privacy, coordinated with RP1-11's reduced stats surface
-14. RP1-13 — dead-declaration cleanup once the UI has settled
-15. RP1-9 — regression coverage throughout the work, completed as a release gate
-16. RP0-2 — production cutover after every local release gate is green
+13. RP0-5 — local, mode-specific, stats-free archive completion and archive hints
+14. RP0-4 — analytics hardening/privacy, coordinated with RP0-5's archive boundary and RP1-11's reduced stats surface
+15. RP1-7 — finish the remaining terminology drift
+16. RP1-14 — synchronize release/design documentation after behavior contracts settle
+17. RP1-13 — dead-declaration cleanup once the UI has settled
+18. RP1-9 — regression coverage throughout the work, completed as a release gate
+19. RP0-2 — production cutover after every local release gate is green
