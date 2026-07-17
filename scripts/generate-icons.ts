@@ -11,31 +11,15 @@ async function renderPng(input: string | Buffer, outputPath: string, width: numb
 }
 
 function buildMaskableSvg(masterSvg: string) {
+  // Full-bleed background + shrink the art group into the maskable safe zone.
   return masterSvg
-    .replace('<rect width="512" height="512" rx="112" fill="url(#bgGrad)"/>', '<rect width="512" height="512" rx="0" fill="url(#bgGrad)"/>')
     .replace(
-      `  <!-- tile (diamond) -->
-  <rect x="176" y="176" width="160" height="160" rx="26"
-        transform="rotate(45 256 256)" fill="url(#goldGrad)"/>
-
-  <!-- road crossing the tile -->
-  <path d="M144 256 H368" stroke="#1a0e03" stroke-width="16" stroke-linecap="round"/>
-
-  <!-- start / exit nodes -->
-  <circle cx="144" cy="256" r="20" fill="#e8c84a" stroke="#0d0702" stroke-width="6"/>
-  <circle cx="368" cy="256" r="20" fill="#0d0702" stroke="#e8c84a" stroke-width="6"/>`,
-      `  <g transform="translate(256 256) scale(0.82) translate(-256 -256)">
-    <!-- tile (diamond) -->
-    <rect x="176" y="176" width="160" height="160" rx="26"
-          transform="rotate(45 256 256)" fill="url(#goldGrad)"/>
-
-    <!-- road crossing the tile -->
-    <path d="M144 256 H368" stroke="#1a0e03" stroke-width="16" stroke-linecap="round"/>
-
-    <!-- start / exit nodes -->
-    <circle cx="144" cy="256" r="20" fill="#e8c84a" stroke="#0d0702" stroke-width="6"/>
-    <circle cx="368" cy="256" r="20" fill="#0d0702" stroke="#e8c84a" stroke-width="6"/>
-  </g>`,
+      '<rect width="512" height="512" rx="112" fill="url(#bgGrad)"/>',
+      '<rect width="512" height="512" rx="0" fill="url(#bgGrad)"/>',
+    )
+    .replace(
+      '<g id="icon-art">',
+      '<g id="icon-art" transform="translate(256 256) scale(0.78) translate(-256 -256)">',
     );
 }
 

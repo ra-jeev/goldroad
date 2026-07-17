@@ -42,7 +42,7 @@ These are the decided visual rules the v2 UI implements. They came out of the P1
 - `--color-text-on-silver`, `--gradient-medal-silver` - Text and gradient for silver medal surfaces
 - `--color-medal-bronze`, `--color-medal-bronze-bright`, `--color-medal-bronze-rgb`, `--color-medal-bronze-segment` - Bronze medal tier colors
 - `--color-text-on-bronze`, `--gradient-medal-bronze` - Text and gradient for bronze medal surfaces
-- `--color-expedition-accent`, `--color-expedition-accent-rgb`, `--color-expedition-accent-bright`, `--color-expedition-accent-bright-rgb` - Expedition cyan accent colors
+- `--color-expedition-accent`, `--color-expedition-accent-rgb`, `--color-expedition-accent-bright`, `--color-expedition-accent-bright-rgb` - Expedition cyan accent colors — **referenced by no component** (July 2026 decision: no cyan element accents; Expedition identity comes from its background tint alone; secondary emphasis uses silver). Cleanup candidates (RP1-13)
 - `--color-toll` (+ `-rgb`, `-bright`) - Toll roads, cautionary rust (#d2691e)
 - `--color-bonus` (+ `-rgb`, `-bright`) - Bonus roads, honey-gold (#ffce3a)
 - `--road-missing-opacity` - How far missing-road remnants recede (used by closed-road states, not the live board, where missing roads are true empty space)

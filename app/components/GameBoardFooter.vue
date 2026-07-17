@@ -112,6 +112,8 @@ const footerMessage = computed<string | null>(() => {
       return UI_COPY.boardFooter.attemptResting(props.attemptNumber);
     case 'failed':
       return props.status;
+    // Both solved states carry the next-road ticker — the day's next beat.
+    case 'solved-next':
     case 'solved-final':
       return props.showNextResetCountdown
         ? UI_COPY.boardFooter.nextRoadShort(props.nextResetCountdown)

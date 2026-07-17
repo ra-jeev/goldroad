@@ -67,7 +67,6 @@ function celebrationTierForMedal(medal: Medal | null): CelebrationTier {
 
 type SetupGameOptions = {
   attemptNumber?: number;
-  replaySolved?: boolean;
 };
 
 type ApplyRoadDayOptions = {
@@ -401,14 +400,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
       progressScope,
     );
     const progressAttemptNumber = Math.max(progress.attempts, 0) + 1;
-    const replaySolved = progress.solved && options.replaySolved;
     const hasSolvedHistory = progress.solved;
-    const preservedHintsUsed = replaySolved ? 0 : progress.hintsUsed;
-    const preservedGuidePath = replaySolved ? [] : [...progress.guidePath];
-    const preservedActiveSolveTimeMs = replaySolved
-      ? 0
-      : progress.activeTimeMs;
-    const preservedTimerCanResume = !progress.solved;
     const solvedMedal = progress.solved
       ? calcMedalForAttempt(Math.max(progress.attempts, 1), true)
       : null;
@@ -428,21 +420,23 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     expeditionJustUnlocked.value = false;
     status.value = UI_COPY.runtime.preRun;
     lastTier.value = null;
-    lastMedal.value = progress.solved && !replaySolved ? solvedMedal : null;
-    lastSolved.value = progress.solved && !replaySolved;
+    // A solved puzzle always presents as solved at rest — even after a
+    // mid-replay retry. Moving off the start tile is what begins an
+    // untracked replay run.
+    lastMedal.value = progress.solved ? solvedMedal : null;
+    lastSolved.value = progress.solved;
     attemptNumber.value = hasSolvedHistory
       ? 1
       : (options.attemptNumber ?? progressAttemptNumber);
-    hintsUsed.value = preservedHintsUsed;
-    guidePath.value = preservedGuidePath;
+    hintsUsed.value = progress.hintsUsed;
+    guidePath.value = [...progress.guidePath];
     sessionId.value = createSessionId();
     trackingDisabled.value = hasSolvedHistory;
-    activeSolveTimeMs.value = progress.solved && !replaySolved
+    activeSolveTimeMs.value = progress.solved
       ? (progress.solveTimeMs ?? 0)
-      : preservedActiveSolveTimeMs;
+      : progress.activeTimeMs;
     solveTimerStartedAtMs.value = null;
-    solveTimerCanResume.value =
-      !progress.solved && preservedTimerCanResume;
+    solveTimerCanResume.value = !progress.solved;
 
     const edgeMap = buildEdgeMap(next.board);
     const active = getActiveNeighbors(
@@ -818,7 +812,6 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
 
     setupGame(game.value, {
       attemptNumber: nextAttemptNumber,
-      replaySolved: true,
     });
   }
 

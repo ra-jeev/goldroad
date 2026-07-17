@@ -11,6 +11,7 @@ const localStats = useLocalPlayerStats();
 const localProgress = useLocalGameProgress();
 const statsApi = useStatsApi();
 const roadResultShare = useRoadResultShare();
+const { countdown: nextRoadCountdown } = useNextRoadCountdown();
 
 const summary = localStats.summary;
 const recentDays = localStats.recentDays;
@@ -440,7 +441,7 @@ onMounted(async () => {
 
       <!-- Streaks: the daily (Classic) streak leads, Expedition rides along -->
       <section class="panel streak-card" aria-label="Streaks">
-        <div class="streak-main" :class="{ 'streak-main--lit': streakCard.lit }">
+        <div class="streak-flame-col" :class="{ 'streak-flame-col--lit': streakCard.lit }">
           <svg
             class="streak-flame"
             viewBox="0 0 24 24"
@@ -455,12 +456,14 @@ onMounted(async () => {
               d="M12 21a3.4 3.4 0 0 1-3.4-3.4c0-1.6 1-2.5 1.9-3.5.7-.8 1.3-1.5 1.5-2.6 1.2 1.2 3.4 3.7 3.4 6.1A3.4 3.4 0 0 1 12 21Z"
             />
           </svg>
-          <strong class="streak-headline">{{ streakCard.headline }}</strong>
         </div>
-        <p class="streak-sub">{{ streakCard.sub }}</p>
-        <p v-if="streakCard.expeditionLine" class="streak-expedition">
-          {{ streakCard.expeditionLine }}
-        </p>
+        <div class="streak-text">
+          <strong class="streak-headline">{{ streakCard.headline }}</strong>
+          <p class="streak-sub">{{ streakCard.sub }}</p>
+          <p v-if="streakCard.expeditionLine" class="streak-expedition">
+            {{ streakCard.expeditionLine }}
+          </p>
+        </div>
       </section>
 
       <!-- Global mode toggle: scopes every section below -->
@@ -520,6 +523,10 @@ onMounted(async () => {
             aria-live="polite"
           >
             {{ todayShare.feedback.message }}
+          </p>
+
+          <p v-if="todayCard.state === 'solved'" class="next-road-line">
+            Next road in {{ nextRoadCountdown }}
           </p>
         </section>
 
@@ -729,32 +736,51 @@ onMounted(async () => {
   }
 }
 
-/* ── Streaks ──────────────────────────────────────────────── */
-.streak-card {
-  gap: 0.35rem;
-  padding: clamp(0.9rem, 2.5vw, 1.15rem);
+/* ── Streaks — flame column beside the numbers ────────────── */
+.panel.streak-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.1rem;
+  text-align: left;
+  padding: clamp(0.9rem, 2.5vw, 1.15rem) clamp(1.1rem, 3vw, 1.5rem);
 }
 
-.streak-main {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
+.streak-flame-col {
+  display: grid;
+  place-items: center;
+  width: 3.4rem;
+  height: 3.4rem;
+  border-radius: var(--radius-circle);
+  background: rgb(0 0 0 / 0.25);
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.16);
 }
 
 .streak-flame {
-  width: 1.7rem;
-  height: 1.7rem;
-  filter: grayscale(1) opacity(0.45);
+  width: 2rem;
+  height: 2rem;
+  filter: grayscale(1) opacity(0.4);
 }
 
-.streak-main--lit .streak-flame {
+.streak-flame-col--lit {
+  border-color: rgb(255 157 46 / 0.4);
+  box-shadow: 0 0 14px rgb(255 157 46 / 0.22);
+}
+
+.streak-flame-col--lit .streak-flame {
   filter: drop-shadow(0 0 8px rgb(255 157 46 / 0.45));
+}
+
+.streak-text {
+  display: grid;
+  gap: 0.18rem;
 }
 
 .streak-headline {
   font-size: 1.3rem;
   font-weight: 900;
   color: var(--color-gold-bright);
+  line-height: 1.1;
 }
 
 .streak-sub {
@@ -768,7 +794,7 @@ onMounted(async () => {
   font-size: 0.8rem;
   font-weight: 700;
   letter-spacing: 0.03em;
-  color: rgb(var(--color-expedition-accent-rgb) / 0.85);
+  color: var(--color-medal-silver-muted);
 }
 
 /* ── Mode switch ──────────────────────────────────────────── */
@@ -888,6 +914,14 @@ onMounted(async () => {
   line-height: var(--line-height-base);
   font-size: 1rem;
   max-width: 38ch;
+}
+
+.next-road-line {
+  margin: 0;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: rgb(var(--color-gold-rgb) / 0.66);
+  font-variant-numeric: tabular-nums;
 }
 
 /* ── Yesterday's field ────────────────────────────────────── */

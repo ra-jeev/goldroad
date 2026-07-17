@@ -14,14 +14,23 @@
 
   <rect width="512" height="512" rx="112" fill="url(#bgGrad)"/>
 
-  <!-- tile (diamond) -->
-  <rect x="176" y="176" width="160" height="160" rx="26"
-        transform="rotate(45 256 256)" fill="url(#goldGrad)"/>
+  <!-- mini road: circular coin tiles joined by gold roads, like the board -->
+  <g id="icon-art">
+    <!-- roads -->
+    <path d="M150 362 H362 V150" fill="none" stroke="url(#goldGrad)"
+          stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
 
-  <!-- road crossing the tile -->
-  <path d="M144 256 H368" stroke="#1a0e03" stroke-width="16" stroke-linecap="round"/>
+    <!-- start tile: the bright, current coin -->
+    <circle cx="150" cy="362" r="56" fill="url(#goldGrad)" stroke="#0d0702" stroke-width="8"/>
 
-  <!-- start / exit nodes -->
-  <circle cx="144" cy="256" r="20" fill="#e8c84a" stroke="#0d0702" stroke-width="6"/>
-  <circle cx="368" cy="256" r="20" fill="#0d0702" stroke="#e8c84a" stroke-width="6"/>
+    <!-- corner tile: open coin -->
+    <circle cx="362" cy="362" r="56" fill="#110900" stroke="url(#goldGrad)" stroke-width="14"/>
+
+    <!-- finish tile: open coin carrying the flag -->
+    <circle cx="362" cy="150" r="56" fill="#110900" stroke="url(#goldGrad)" stroke-width="14"/>
+    <g fill="#e8c84a">
+      <rect x="344" y="122" width="9" height="58" rx="4"/>
+      <path d="M353 126 L392 138 L353 152 Z"/>
+    </g>
+  </g>
 </svg>
