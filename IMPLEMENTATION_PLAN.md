@@ -742,6 +742,7 @@ The v2 UI is visually good; these decisions are about behavior and information r
 - **Medals are ribboned SVG art** (`MedalIcon.vue`), not discs and not emoji — emoji render inconsistently across platforms; SVGs give v1's medal feel everywhere. The stats page presents them as v1 did: three standalone cards, `medal × count`, attempts sub-label, golden +1.
 - **The today gold block previews the exact share payload** (v1's trick): it renders `buildRoadResultShareText` line by line, so what you see is literally what Share now sends. Share text carries the medal emoji (🥇🥈🥉, 😅 for late solves) — emoji are fine in shared text where platform rendering is out of our hands anyway.
 - **The stats page is center-aligned throughout**, and Your stats uses v1's two-column record (keys right-aligned, values left-aligned).
+- **The Classic streak is THE daily streak, presented with a flame.** Since Classic is the day's baseline challenge (Expedition only unlocks behind it), "consecutive days with Classic solved" is what a player means by "my streak." It lives in an always-visible flame card under the medals (Reddit-style: lit with a glow when alive, dimmed with "Solve today's road to light the flame" at zero), with the Expedition streak as a smaller accent line in the same card. Streak rows no longer appear in the mode-scoped Your stats record. Streak *calculation* stays per-mode and unchanged.
 
 ### Issue RP0-1 — Restore a trustworthy release verification gate
 - Priority: `P0` (launch-blocking)

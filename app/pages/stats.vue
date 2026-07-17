@@ -159,6 +159,36 @@ const medalTiles = computed(() =>
 );
 
 // ---------------------------------------------------------------------------
+// Streaks (always visible): Classic is the day's baseline challenge, so the
+// Classic streak IS the daily streak. Expedition's harder optional streak
+// rides along in the same card.
+// ---------------------------------------------------------------------------
+
+const streakCard = computed(() => {
+  const current = summary.value.currentClassicStreak;
+  const best = summary.value.bestClassicStreak;
+  const expeditionCurrent = summary.value.currentExpeditionStreak;
+  const expeditionBest = summary.value.bestExpeditionStreak;
+
+  return {
+    current,
+    lit: current > 0,
+    headline:
+      current > 0
+        ? `${current}-day streak`
+        : 'No streak yet',
+    sub:
+      current > 0
+        ? `Longest ${best} day${best === 1 ? '' : 's'}`
+        : 'Solve today’s road to light the flame.',
+    expeditionLine:
+      expeditionCurrent > 0 || expeditionBest > 0
+        ? `Expedition streak ${expeditionCurrent} day${expeditionCurrent === 1 ? '' : 's'} · best ${expeditionBest}`
+        : null,
+  };
+});
+
+// ---------------------------------------------------------------------------
 // Today's road (the player's own result — no community data for a road
 // still in progress)
 // ---------------------------------------------------------------------------
@@ -298,12 +328,9 @@ const hasModeHistory = computed(() => modeSummary.value.sessionsPlayed > 0);
 
 const recordRows = computed(() => {
   const stats = modeSummary.value;
-  const dayWord = (count: number) => `${count} day${count === 1 ? '' : 's'}`;
   const roadWord = (count: number) => `${count} road${count === 1 ? '' : 's'}`;
 
   return [
-    { key: 'streak', label: 'Current streak', value: dayWord(stats.currentStreak) },
-    { key: 'bestStreak', label: 'Longest streak', value: dayWord(stats.bestStreak) },
     { key: 'played', label: 'Total treads', value: roadWord(stats.sessionsPlayed) },
     { key: 'solves', label: 'Total finishes', value: roadWord(stats.exactSolves) },
     { key: 'rate', label: 'Completion', value: `${stats.solveRate}%` },
@@ -409,6 +436,31 @@ onMounted(async () => {
             {{ tier.count }} {{ tier.label }} medal{{ tier.count === 1 ? '' : 's' }}
           </span>
         </div>
+      </section>
+
+      <!-- Streaks: the daily (Classic) streak leads, Expedition rides along -->
+      <section class="panel streak-card" aria-label="Streaks">
+        <div class="streak-main" :class="{ 'streak-main--lit': streakCard.lit }">
+          <svg
+            class="streak-flame"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path
+              fill="#ff9d2e"
+              d="M12 2c.7 3.2-.6 5-2.2 6.7C8.1 10.5 6.5 12.3 6.5 15a5.5 5.5 0 0 0 11 0c0-1.5-.5-2.9-1.2-4.2-.3.9-.8 1.6-1.6 2.1.3-3-1-6.6-2.7-8.4A7.6 7.6 0 0 0 12 2Z"
+            />
+            <path
+              fill="#ffce31"
+              d="M12 21a3.4 3.4 0 0 1-3.4-3.4c0-1.6 1-2.5 1.9-3.5.7-.8 1.3-1.5 1.5-2.6 1.2 1.2 3.4 3.7 3.4 6.1A3.4 3.4 0 0 1 12 21Z"
+            />
+          </svg>
+          <strong class="streak-headline">{{ streakCard.headline }}</strong>
+        </div>
+        <p class="streak-sub">{{ streakCard.sub }}</p>
+        <p v-if="streakCard.expeditionLine" class="streak-expedition">
+          {{ streakCard.expeditionLine }}
+        </p>
       </section>
 
       <!-- Global mode toggle: scopes every section below -->
@@ -675,6 +727,48 @@ onMounted(async () => {
   100% {
     transform: scale(1);
   }
+}
+
+/* ── Streaks ──────────────────────────────────────────────── */
+.streak-card {
+  gap: 0.35rem;
+  padding: clamp(0.9rem, 2.5vw, 1.15rem);
+}
+
+.streak-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.streak-flame {
+  width: 1.7rem;
+  height: 1.7rem;
+  filter: grayscale(1) opacity(0.45);
+}
+
+.streak-main--lit .streak-flame {
+  filter: drop-shadow(0 0 8px rgb(255 157 46 / 0.45));
+}
+
+.streak-headline {
+  font-size: 1.3rem;
+  font-weight: 900;
+  color: var(--color-gold-bright);
+}
+
+.streak-sub {
+  margin: 0;
+  font-size: 0.88rem;
+  color: rgb(var(--color-gold-rgb) / 0.7);
+}
+
+.streak-expedition {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: rgb(var(--color-expedition-accent-rgb) / 0.85);
 }
 
 /* ── Mode switch ──────────────────────────────────────────── */
