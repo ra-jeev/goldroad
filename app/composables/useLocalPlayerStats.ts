@@ -62,7 +62,7 @@ function formatAverageSolvedAttempts(
     ? (entries.reduce((sum, entry) => sum + entry.attempts, 0) / entries.length)
         .toFixed(1)
         .replace(/\.0$/, '')
-    : '—';
+    : '–';
 }
 
 function getSolvedDurations(

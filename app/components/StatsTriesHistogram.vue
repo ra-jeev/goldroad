@@ -111,14 +111,18 @@ const ariaLabel = computed(() =>
   box-shadow: 0 0 10px rgb(var(--color-gold-rgb) / 0.55);
 }
 
+/* A thin arrow, not the 👇 emoji — reads as a UI marker, not a sticker. */
 .graph-entry--you::after {
-  content: '👇';
+  content: '';
   position: absolute;
-  top: -18px;
+  top: -11px;
   left: 50%;
-  margin-left: -6px;
-  font-size: 12px;
-  line-height: 1;
+  width: 8px;
+  height: 8px;
+  margin-left: -4px;
+  border-right: 1.5px solid var(--color-gold-bright);
+  border-bottom: 1.5px solid var(--color-gold-bright);
+  transform: rotate(45deg);
 }
 
 .axis-marker {

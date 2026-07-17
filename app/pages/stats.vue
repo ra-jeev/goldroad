@@ -55,7 +55,7 @@ function formatRunCount(attempts: number): string {
 }
 
 function formatDurationMs(value: number | null): string {
-  if (value === null) return '—';
+  if (value === null) return '–';
   const totalSeconds = Math.max(0, Math.round(value / 1000));
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
@@ -170,18 +170,21 @@ const streakCard = computed(() => {
   const best = summary.value.bestClassicStreak;
   const expeditionCurrent = summary.value.currentExpeditionStreak;
   const expeditionBest = summary.value.bestExpeditionStreak;
+  const isBest = current > 0 && current >= best;
 
   return {
     current,
     lit: current > 0,
-    headline:
+    headline: current > 0 ? `${current}-day streak` : 'No streak yet',
+    // Rides right beside the headline, same golden tone, just smaller —
+    // "your best" when the current run IS the longest one.
+    bestNote:
       current > 0
-        ? `${current}-day streak`
-        : 'No streak yet',
-    sub:
-      current > 0
-        ? `Longest ${best} day${best === 1 ? '' : 's'}`
-        : 'Solve today’s road to light the flame.',
+        ? isBest
+          ? 'Your best yet'
+          : `Best ${best} day${best === 1 ? '' : 's'}`
+        : null,
+    prompt: current > 0 ? null : 'Solve today’s road to light the flame.',
     expeditionLine:
       expeditionCurrent > 0 || expeditionBest > 0
         ? `Expedition streak ${expeditionCurrent} day${expeditionCurrent === 1 ? '' : 's'} · best ${expeditionBest}`
@@ -240,7 +243,7 @@ const todayCard = computed(() => {
     state: 'inprogress' as const,
     eyebrow: 'Today’s road',
     title: gameNo ? `Road ${gameNo}` : 'Today’s road',
-    detail: `Umm… you haven’t solved it yet. ${formatRunCount(result.attempts)} in — the solve is still out there.`,
+    detail: `Umm… you haven’t solved it yet. The solve is still out there after ${formatRunCount(result.attempts)}.`,
   };
 });
 
@@ -290,11 +293,11 @@ const yesterdayPlayerLine = computed(() => {
 
   if (result?.solved) {
     const top = topPercent(field, result.attempts);
-    return `You got to the finish in ${formatRunCount(result.attempts)} — in the top ${top}% of the field.`;
+    return `You got to the finish in ${formatRunCount(result.attempts)}, in the top ${top}% of the field.`;
   }
 
   if (result && result.attempts > 0) {
-    return 'You walked it too — the finish stayed out of reach that day.';
+    return 'You walked it too, but the finish stayed out of reach that day.';
   }
 
   return 'Walk down today’s road and come back tomorrow to see how you fared against the field.';
@@ -458,8 +461,15 @@ onMounted(async () => {
           </svg>
         </div>
         <div class="streak-text">
-          <strong class="streak-headline">{{ streakCard.headline }}</strong>
-          <p class="streak-sub">{{ streakCard.sub }}</p>
+          <div class="streak-headline-row">
+            <strong class="streak-headline">{{ streakCard.headline }}</strong>
+            <span v-if="streakCard.bestNote" class="streak-best">
+              {{ streakCard.bestNote }}
+            </span>
+          </div>
+          <p v-if="streakCard.prompt" class="streak-sub">
+            {{ streakCard.prompt }}
+          </p>
           <p v-if="streakCard.expeditionLine" class="streak-expedition">
             {{ streakCard.expeditionLine }}
           </p>
@@ -776,11 +786,26 @@ onMounted(async () => {
   gap: 0.18rem;
 }
 
+.streak-headline-row {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 .streak-headline {
   font-size: 1.3rem;
   font-weight: 900;
   color: var(--color-gold-bright);
   line-height: 1.1;
+}
+
+/* Same golden tone as the headline, just quieter and smaller — not a
+   separate line, so it reads as one fact rather than two. */
+.streak-best {
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: rgb(var(--color-gold-rgb) / 0.75);
 }
 
 .streak-sub {
@@ -789,12 +814,14 @@ onMounted(async () => {
   color: rgb(var(--color-gold-rgb) / 0.7);
 }
 
+/* A warm gold shade, not silver — silver read as an unrelated accent
+   against the rest of the game's gold/bronze palette. */
 .streak-expedition {
   margin: 0;
   font-size: 0.8rem;
   font-weight: 700;
   letter-spacing: 0.03em;
-  color: var(--color-medal-silver-muted);
+  color: var(--color-gold-muted);
 }
 
 /* ── Mode switch ──────────────────────────────────────────── */

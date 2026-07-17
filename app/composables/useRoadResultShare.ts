@@ -32,7 +32,7 @@ function formatModeLabel(mode: PuzzleType): string {
 }
 
 function formatDurationMs(value: number | null): string {
-  if (value === null) return '—';
+  if (value === null) return '–';
 
   const totalSeconds = Math.max(0, Math.round(value / 1000));
   const minutes = Math.floor(totalSeconds / 60);

@@ -141,7 +141,7 @@ onClickOutside(menuShell, closeMobileMenu);
               :aria-expanded="showMobileMenu"
               :aria-label="
                 hasUnseenUpdate
-                  ? 'Open navigation menu — updates available'
+                  ? 'Open navigation menu (update available)'
                   : 'Open navigation menu'
               "
               title="Menu"
@@ -168,8 +168,13 @@ onClickOutside(menuShell, closeMobileMenu);
               <NuxtLink to="/games" class="menu-link" @click="closeMobileMenu">
                 Past Roads
               </NuxtLink>
-              <NuxtLink to="/about" class="menu-link" @click="closeMobileMenu">
+              <NuxtLink to="/about" class="menu-link menu-link--update" @click="closeMobileMenu">
                 About
+                <span
+                  v-if="hasUnseenUpdate"
+                  class="notification-dot notification-dot--inline"
+                  aria-hidden="true"
+                />
               </NuxtLink>
             </div>
           </div>
@@ -366,12 +371,19 @@ onClickOutside(menuShell, closeMobileMenu);
 }
 
 .menu-link {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
   padding: 0.75rem 0.9rem;
   border-radius: 6px;
   text-decoration: none;
   color: rgb(var(--color-gold-rgb) / 0.86);
   font-weight: 600;
+}
+
+.notification-dot--inline {
+  position: static;
+  box-shadow: none;
 }
 
 .menu-link:hover {

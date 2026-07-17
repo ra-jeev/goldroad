@@ -12,6 +12,41 @@ import { UPDATES as updates } from '../content/updates';
         </p>
       </header>
 
+      <section class="updates-panel" aria-label="What's new">
+        <div class="updates-head">
+          <p class="eyebrow">Updates</p>
+          <h2>What's new</h2>
+        </div>
+
+        <div class="updates-timeline">
+          <article
+            v-for="(entry, index) in updates"
+            :key="entry.date"
+            class="update-entry"
+            :class="{ 'update-entry--latest': index === 0 }"
+          >
+            <div class="update-marker" aria-hidden="true">
+              <span class="update-dot" />
+              <span
+                v-if="index !== updates.length - 1"
+                class="update-line"
+              />
+            </div>
+
+            <div class="update-body">
+              <div class="update-meta">
+                <span v-if="index === 0" class="update-badge">Latest</span>
+                <span class="update-date">{{ entry.date }}</span>
+              </div>
+              <h3>{{ entry.title }}</h3>
+              <p v-for="(paragraph, pIndex) in entry.body" :key="pIndex">
+                {{ paragraph }}
+              </p>
+            </div>
+          </article>
+        </div>
+      </section>
+
       <section class="card">
         <p class="eyebrow">About</p>
         <h2>A daily road, walked one tile at a time</h2>
@@ -25,31 +60,15 @@ import { UPDATES as updates } from '../content/updates';
           Build a path from the start tile to the exit tile without
           retracing your steps. A puzzle is
           <strong>solved</strong> only when you reach the exit with your
-          score exactly on the target &mdash; not more, not less.
+          score exactly on the target: not more, not less.
         </p>
         <p>
           Solve on your first attempt and you earn gold. Second attempt is
           silver, third is bronze. Keep trying past that and it still counts
-          as solved &mdash; just without a medal. Hints are always available
+          as solved, just without a medal. Hints are always available
           if you get stuck; they guide you back onto the road home without
           any penalty.
         </p>
-      </section>
-
-      <section class="card">
-        <p class="eyebrow">Updates</p>
-        <h2>What's changed</h2>
-        <div class="updates-list">
-          <article v-for="entry in updates" :key="entry.date" class="update-entry">
-            <div class="update-head">
-              <strong class="update-date">{{ entry.date }}</strong>
-              <h3>{{ entry.title }}</h3>
-            </div>
-            <p v-for="(paragraph, index) in entry.body" :key="index">
-              {{ paragraph }}
-            </p>
-          </article>
-        </div>
       </section>
 
       <section class="card">
@@ -57,9 +76,9 @@ import { UPDATES as updates } from '../content/updates';
         <h2>Plain language, no fine print</h2>
         <ul class="privacy-list">
           <li>
-            Your personal history &mdash; streaks, medals, and past roads
-            &mdash; lives only on your device, in your browser's local
-            storage. Nothing that identifies you ever leaves it.
+            Your personal history (streaks, medals, and past roads) lives
+            only on your device, in your browser's local storage. Nothing
+            that identifies you ever leaves it.
           </li>
           <li>
             The server keeps only anonymous, aggregated gameplay analytics:
@@ -131,6 +150,15 @@ import { UPDATES as updates } from '../content/updates';
   margin: 0;
 }
 
+.eyebrow {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgb(var(--color-gold-rgb) / 0.6);
+}
+
 .card {
   display: grid;
   gap: 0.75rem;
@@ -153,42 +181,104 @@ import { UPDATES as updates } from '../content/updates';
   line-height: var(--line-height-base);
 }
 
-.updates-list {
+/* ── Updates — its own featured section, a timeline rather than a card
+   list, so the newest entry reads as an event, not a filed-away note ── */
+.updates-panel {
   display: grid;
-  gap: 1.2rem;
+  gap: 1.1rem;
+  padding: 1.5rem 1.5rem 1.6rem;
+  border-radius: var(--radius-lg);
+  background: var(--gradient-card-hero);
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.3);
+  box-shadow: var(--shadow-xl);
 }
 
-.update-entry {
-  display: grid;
-  gap: 0.5rem;
-  padding-top: 1.2rem;
-  border-top: 1px solid rgb(var(--color-gold-rgb) / 0.14);
-}
-
-.update-entry:first-child {
-  padding-top: 0;
-  border-top: none;
-}
-
-.update-head {
+.updates-head {
   display: grid;
   gap: 0.2rem;
 }
 
-.update-date {
-  color: rgb(var(--color-gold-rgb) / 0.7);
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.update-entry h3 {
+.updates-head h2 {
   margin: 0;
   color: var(--color-gold-bright);
-  font-size: 1.1rem;
+  font-size: 1.4rem;
 }
 
-.update-entry p {
+.updates-timeline {
+  display: grid;
+  gap: 0;
+}
+
+.update-entry {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.9rem;
+}
+
+.update-marker {
+  display: grid;
+  justify-items: center;
+  gap: 0.2rem;
+}
+
+.update-dot {
+  margin-top: 0.35rem;
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: var(--radius-circle);
+  background: rgb(var(--color-gold-rgb) / 0.4);
+}
+
+.update-entry--latest .update-dot {
+  background: var(--color-gold-bright);
+  box-shadow: var(--shadow-glow-gold-soft);
+}
+
+.update-line {
+  width: 2px;
+  flex: 1;
+  min-height: 1.2rem;
+  background: rgb(var(--color-gold-rgb) / 0.18);
+}
+
+.update-body {
+  display: grid;
+  gap: 0.4rem;
+  padding-bottom: 1.2rem;
+}
+
+.update-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.update-badge {
+  padding: 0.14rem 0.5rem;
+  border-radius: var(--radius-full);
+  background: var(--gradient-button-primary);
+  color: var(--color-text-on-gold);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.update-date {
+  color: rgb(var(--color-gold-rgb) / 0.62);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.update-body h3 {
+  margin: 0;
+  color: var(--color-gold-bright);
+  font-size: 1.12rem;
+}
+
+.update-body p {
   margin: 0;
   color: rgb(var(--color-gold-rgb) / 0.82);
   line-height: var(--line-height-base);
@@ -238,7 +328,8 @@ import { UPDATES as updates } from '../content/updates';
     font-size: var(--font-size-3xl);
   }
 
-  .card {
+  .card,
+  .updates-panel {
     padding: 1.2rem 1.1rem;
   }
 }

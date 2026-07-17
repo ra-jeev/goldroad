@@ -76,7 +76,7 @@ export const UI_COPY = {
           'Your score changes as you move from tile to tile.',
           'You cannot revisit a tile during the same attempt.',
           'Only up, down, left, and right moves are legal.',
-          "Some roads simply aren't there — where there's no road, there's no way through.",
+          "Some roads simply aren't there. Where there's no road, there's no way through.",
           'You may need to leave some tiles out. Board total shows the value of every tile, not the route you must take.',
         ],
       },
@@ -176,7 +176,7 @@ export const UI_COPY = {
     eyebrow: 'GoldRoad is back',
     title: 'Welcome back.',
     body: [
-      "GoldRoad got a full rewrite. Road numbering restarted, and old accounts and history didn't carry over — a clean break, not a bug.",
+      "GoldRoad got a full rewrite. Road numbering restarted, and old accounts and history didn't carry over. That's a clean break, not a bug.",
       "There's also something new: a whole second mode called Expedition, with toll and bonus roads that change how you score.",
     ],
     primaryCta: "Show me what's new",

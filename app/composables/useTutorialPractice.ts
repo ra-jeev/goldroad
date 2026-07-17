@@ -175,7 +175,7 @@ export function useTutorialPractice() {
       activeSet.value = new Set();
       status.value = solved.value
         ? 'Solved. You are ready for today\'s road.'
-        : `You reached the finish with ${score.value} — the target is ${maxScore.value}. Try another route.`;
+        : `You reached the finish with ${score.value}, but the target is ${maxScore.value}. Try another route.`;
       syncTileStates();
       return;
     }
