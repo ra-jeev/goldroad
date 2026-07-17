@@ -267,6 +267,14 @@ onMounted(async () => {
 .shell {
   min-height: calc(100dvh - 60px);
   padding: clamp(0.9rem, 2.5vw, 1.4rem);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.container {
+  width: 100%;
 }
 
 .container {

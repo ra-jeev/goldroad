@@ -190,7 +190,7 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
           :hints-used="hintsUsed"
           :ended="ended"
           :solved="lastSolved"
-          :can-retry="ended || moves > 1 || lastSolved"
+          :can-retry="ended || moves > 1"
           :can-switch-to-expedition="
             canSwitchToExpedition && (ended || moves <= 1 || lastSolved)
           "

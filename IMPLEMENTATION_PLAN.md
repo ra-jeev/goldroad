@@ -731,6 +731,18 @@ The v2 UI is visually good; these decisions are about behavior and information r
 - **One focus color.** `--color-focus` (#4b9eff blue) is the single focus indicator everywhere; the v1-inherited `#afcbff` global outline was replaced (applied July 2026).
 - **A final dead-declaration cleanup pass is agreed** (RP1-13): once the experience issues land, remove CSS tokens and code declared but unused or no longer used in the sense they were declared (e.g. the `--color-start`/`--color-end` families — start/finish are distinguished by icon, not color — and `--color-blocked`).
 
+### Clarified product decisions — July 2026 feedback round (post-RP1-10/11/12 review)
+
+- **The histogram never reveals counts.** v1's conscious decision restored: showing per-bucket counts tells players how many people played. Bars are relative to the busiest bucket only; empty buckets stay as hairlines so the field reads as a field. The server still returns counts (`solvedAttempts`) — clients render shape only. Bars cover solvers at 1..24 attempts plus a pooled 25+, v1's exact form, with axis markers at 1, 25+, and the player's own bar (👇).
+- **The board frame never changes height between states.** The footer reserves fixed-height message and action slots that render whether or not they're occupied; transient share feedback borrows the message slot. This kills the board jumping that state-contextual messaging otherwise causes — v1 solved it the same way with fixed slots.
+- **Retry is a no-op until a move is made.** The board auto-starts on the footprints, so with no moves there is nothing to retry; solved boards at rest don't show a retry control at all (tapping tiles starts the untracked replay directly).
+- **Replay pages carry no page-level header.** The global toolbar's road label (now "Road N · date") is the identity; the board leads with the same composition as the live page.
+- **Today's solved card uses v1's celebration form**: a "Yay! You got to the finish 🎉" line over a solid-gold result block with dark text, Share beneath. The medal "+1" is golden text (v1's), never a green badge, and the medal count bumps on arrival.
+- **The pre-run instruction doesn't repeat the target number** (it's in the header) and is action-first like v1's: "You're on the footprints. Step onto any glowing tile to begin."
+- **Medals are ribboned SVG art** (`MedalIcon.vue`), not discs and not emoji — emoji render inconsistently across platforms; SVGs give v1's medal feel everywhere. The stats page presents them as v1 did: three standalone cards, `medal × count`, attempts sub-label, golden +1.
+- **The today gold block previews the exact share payload** (v1's trick): it renders `buildRoadResultShareText` line by line, so what you see is literally what Share now sends. Share text carries the medal emoji (🥇🥈🥉, 😅 for late solves) — emoji are fine in shared text where platform rendering is out of our hands anyway.
+- **The stats page is center-aligned throughout**, and Your stats uses v1's two-column record (keys right-aligned, values left-aligned).
+
 ### Issue RP0-1 — Restore a trustworthy release verification gate
 - Priority: `P0` (launch-blocking)
 - Status: `in progress`

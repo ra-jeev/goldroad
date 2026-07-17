@@ -2,8 +2,10 @@
 import { calcMedalForAttempt } from '../../lib/gameTiers';
 import type { CommunityRoadStats, Medal, PuzzleType } from '../../shared/types/game';
 import { UI_COPY } from '../content/uiCopy';
-import { useRoadResultShare } from '../composables/useRoadResultShare';
-import type { HistogramBar } from '../components/StatsTriesHistogram.vue';
+import {
+  buildRoadResultShareText,
+  useRoadResultShare,
+} from '../composables/useRoadResultShare';
 
 const localStats = useLocalPlayerStats();
 const localProgress = useLocalGameProgress();
@@ -45,10 +47,6 @@ function formatModeLabel(mode: PuzzleType): string {
   return mode === 'classic'
     ? UI_COPY.boardHeader.classic
     : UI_COPY.boardHeader.expedition;
-}
-
-function formatMedal(medal: Medal | null): string {
-  return medal ? UI_COPY.boardHeader.medals[medal] : UI_COPY.boardHeader.solvedBadge;
 }
 
 function formatRunCount(attempts: number): string {
@@ -103,56 +101,25 @@ function medalOf(result: PlayerRoadResult | null): Medal | null {
 }
 
 /**
- * Which histogram bucket the player's own attempt lands in.
- * 0 first · 1 second · 2 third · 3 four-plus · 4 unsolved · -1 not played.
- */
-function bucketOf(result: PlayerRoadResult | null): number {
-  if (!result || (result.attempts === 0 && !result.solved)) return -1;
-  if (result.solved) {
-    if (result.attempts <= 1) return 0;
-    if (result.attempts === 2) return 1;
-    if (result.attempts === 3) return 2;
-    return 3;
-  }
-  return 4;
-}
-
-// ---------------------------------------------------------------------------
-// Community tries distribution
-// ---------------------------------------------------------------------------
-
-function bucketCounts(stat: CommunityRoadStats): number[] {
-  const late = Math.max(stat.exactSolves - stat.gold - stat.silver - stat.bronze, 0);
-  const dnf = Math.max(stat.plays - stat.exactSolves, 0);
-  return [stat.gold, stat.silver, stat.bronze, late, dnf];
-}
-
-function buildTriesBars(
-  stat: CommunityRoadStats,
-  playerBucket: number,
-): HistogramBar[] {
-  const captions = ['First attempt', 'Second attempt', 'Third attempt', '4+ attempts', 'Still going'];
-  const labels = ['1', '2', '3', '4+', 'DNF'];
-
-  return bucketCounts(stat).map((count, index) => ({
-    key: String(index),
-    label: labels[index]!,
-    caption: captions[index]!,
-    count,
-    isPlayer: index === playerBucket,
-  }));
-}
-
-/**
  * v1's "top X%": the share of the whole field that did as well as or better
- * than the player, the player included. Smaller is better.
+ * than the player, the player included. Smaller is better. Computed from
+ * the solved-attempts distribution against everyone who played.
  */
-function topPercent(stat: CommunityRoadStats, playerBucket: number): number {
-  if (playerBucket < 0 || stat.plays <= 0) return 0;
-  const counts = bucketCounts(stat);
-  const atOrBetter = counts
-    .slice(0, playerBucket + 1)
-    .reduce((sum, value) => sum + value, 0);
+function topPercent(stat: CommunityRoadStats, playerAttempts: number): number {
+  if (playerAttempts < 1 || stat.plays <= 0) return 0;
+
+  let atOrBetter = 0;
+  for (const [key, count] of Object.entries(stat.solvedAttempts)) {
+    const attempts = Number.parseInt(key, 10);
+    const isOverflowBucket = key.endsWith('+');
+    if (
+      (!isOverflowBucket && attempts <= playerAttempts) ||
+      (isOverflowBucket && playerAttempts >= attempts)
+    ) {
+      atOrBetter += count;
+    }
+  }
+
   return Math.max(1, toPercent(atOrBetter, stat.plays));
 }
 
@@ -217,28 +184,32 @@ const todayCard = computed(() => {
   }
 
   if (result.solved) {
-    const medal = medalOf(result);
+    // The gold block previews the exact text Share now sends — v1's trick.
+    const shareLines =
+      gameNo === null
+        ? []
+        : buildRoadResultShareText({
+            gameNo,
+            puzzleType: selectedMode.value,
+            attempts: result.attempts,
+            solved: true,
+            solveTimeMs: result.solveTimeMs,
+            hintsUsed: result.hintsUsed,
+          }).text.split('\n');
+
     return {
       state: 'solved' as const,
-      eyebrow: 'Today’s road · solved',
-      title: gameNo ? `Road ${gameNo}` : 'Today’s road',
-      badge: formatMedal(medal),
-      medal,
-      chips: [
-        formatRunCount(result.attempts),
-        result.solveTimeMs !== null ? formatDurationMs(result.solveTimeMs) : null,
-        result.hintsUsed > 0
-          ? `${result.hintsUsed} hint${result.hintsUsed === 1 ? '' : 's'}`
-          : null,
-      ].filter((chip): chip is string => Boolean(chip)),
+      eyebrow: 'Today’s road',
+      title: 'Yay! You got to the finish 🎉',
+      shareLines,
     };
   }
 
   return {
     state: 'inprogress' as const,
-    eyebrow: 'Today’s road · in progress',
+    eyebrow: 'Today’s road',
     title: gameNo ? `Road ${gameNo}` : 'Today’s road',
-    detail: `${formatRunCount(result.attempts)} in${result.hintsUsed > 0 ? ` · ${result.hintsUsed} hint${result.hintsUsed === 1 ? '' : 's'}` : ''}. The solve is still out there.`,
+    detail: `Umm… you haven’t solved it yet. ${formatRunCount(result.attempts)} in — the solve is still out there.`,
   };
 });
 
@@ -264,10 +235,9 @@ const showYesterdayHistogram = computed(
     yesterdayField.value!.plays >= COMMUNITY_SAMPLE_MIN,
 );
 
-const yesterdayBars = computed<HistogramBar[]>(() => {
-  const field = yesterdayField.value;
-  if (!field) return [];
-  return buildTriesBars(field, bucketOf(yesterdayResult.value));
+const yesterdayPlayerAttempts = computed(() => {
+  const result = yesterdayResult.value;
+  return result?.solved ? result.attempts : null;
 });
 
 const yesterdayHeadline = computed(() => {
@@ -276,7 +246,7 @@ const yesterdayHeadline = computed(() => {
   if (!field || field.plays <= 0) return null;
 
   if (field.plays < COMMUNITY_SAMPLE_MIN) {
-    return `Only ${field.plays} result${field.plays === 1 ? '' : 's'} posted for Road ${gameNo} — too small a field for a fair comparison.`;
+    return `The field for Road ${gameNo} is still too small for a fair comparison.`;
   }
 
   return `${field.solveRate}% of the roadgoers who walked down Road ${gameNo} reached the finish.`;
@@ -288,7 +258,7 @@ const yesterdayPlayerLine = computed(() => {
   if (!field || field.plays < COMMUNITY_SAMPLE_MIN) return null;
 
   if (result?.solved) {
-    const top = topPercent(field, bucketOf(result));
+    const top = topPercent(field, result.attempts);
     return `You got to the finish in ${formatRunCount(result.attempts)} — in the top ${top}% of the field.`;
   }
 
@@ -343,15 +313,6 @@ const recordRows = computed(() => {
     { key: 'hints', label: 'Hints used', value: String(stats.totalHints) },
   ];
 });
-
-function badgeClass(medal: Medal | null, solved: boolean) {
-  return {
-    'badge--solved': solved,
-    'badge--gold': medal === 'gold',
-    'badge--silver': medal === 'silver',
-    'badge--bronze': medal === 'bronze',
-  };
-}
 
 // ---------------------------------------------------------------------------
 // Share
@@ -421,28 +382,32 @@ onMounted(async () => {
       </header>
 
       <!-- 1 · Medals: cross-mode, always visible, with the +1 moment -->
-      <section class="panel panel--medals" aria-label="Medals earned">
-        <div class="medal-grid">
-          <div
-            v-for="tier in medalTiles"
-            :key="tier.key"
-            class="medal-tile"
-            :class="`medal-tile--${tier.key}`"
+      <section class="medal-grid" aria-label="Medals earned">
+        <div
+          v-for="tier in medalTiles"
+          :key="tier.key"
+          class="medal-card"
+        >
+          <span
+            v-if="tier.earnedToday > 0"
+            class="medal-increment"
+            :aria-label="`${tier.earnedToday} earned today`"
           >
-            <span
-              v-if="tier.earnedToday > 0"
-              class="medal-increment"
-              :aria-label="`${tier.earnedToday} earned today`"
-            >
-              +{{ tier.earnedToday }}
-            </span>
-            <span class="medal-disc" aria-hidden="true">{{ tier.count }}</span>
-            <span class="medal-name">{{ tier.label }}</span>
-            <span class="medal-sub">{{ tier.sub }}</span>
-            <span class="sr-only">
-              {{ tier.count }} {{ tier.label }} medal{{ tier.count === 1 ? '' : 's' }}
-            </span>
-          </div>
+            +{{ tier.earnedToday }}
+          </span>
+          <span
+            class="medal-stat"
+            :class="{ 'medal-stat--bumped': tier.earnedToday > 0 }"
+            aria-hidden="true"
+          >
+            <MedalIcon :tier="tier.key" class="medal-art" />
+            <span class="medal-multiply">x</span>
+            <span class="medal-count">{{ tier.count }}</span>
+          </span>
+          <span class="medal-sub">{{ tier.sub }}</span>
+          <span class="sr-only">
+            {{ tier.count }} {{ tier.label }} medal{{ tier.count === 1 ? '' : 's' }}
+          </span>
         </div>
       </section>
 
@@ -469,49 +434,41 @@ onMounted(async () => {
       <template v-else>
         <!-- 2 · Today's road: the player's own result and share -->
         <section class="panel panel--today">
-          <div class="today-lead">
-            <p class="eyebrow">{{ todayCard.eyebrow }}</p>
-            <div class="today-title-row">
-              <h2>{{ todayCard.title }}</h2>
-              <span
-                v-if="todayCard.state === 'solved'"
-                class="badge badge--featured"
-                :class="badgeClass(todayCard.medal ?? null, true)"
-              >
-                {{ todayCard.badge }}
-              </span>
-            </div>
+          <p class="eyebrow">{{ todayCard.eyebrow }}</p>
+          <h2 class="today-title">{{ todayCard.title }}</h2>
 
-            <div v-if="todayCard.state === 'solved'" class="chip-row">
-              <span v-for="chip in todayCard.chips" :key="chip" class="chip">
-                {{ chip }}
-              </span>
-            </div>
-            <p v-else class="today-detail">{{ todayCard.detail }}</p>
-
-            <div class="today-actions">
-              <button
-                v-if="todayCard.state === 'solved'"
-                type="button"
-                class="btn btn--primary"
-                :disabled="todayShare.busy"
-                @click="shareTodayResult"
-              >
-                {{ todayShare.busy ? 'Preparing…' : 'Share today’s result' }}
-              </button>
-              <NuxtLink v-else to="/" class="btn btn--primary">
-                Play today’s road
-              </NuxtLink>
-              <p
-                v-if="todayShare.feedback"
-                class="feedback"
-                :class="{ 'feedback--error': todayShare.feedback.kind === 'error' }"
-                aria-live="polite"
-              >
-                {{ todayShare.feedback.message }}
-              </p>
-            </div>
+          <div v-if="todayCard.state === 'solved'" class="today-result">
+            <span
+              v-for="(line, index) in todayCard.shareLines"
+              :key="line"
+              class="today-result-line"
+              :class="{ 'today-result-line--lead': index === 0 }"
+            >
+              {{ line }}
+            </span>
           </div>
+          <p v-else class="today-detail">{{ todayCard.detail }}</p>
+
+          <button
+            v-if="todayCard.state === 'solved'"
+            type="button"
+            class="btn btn--primary"
+            :disabled="todayShare.busy"
+            @click="shareTodayResult"
+          >
+            {{ todayShare.busy ? 'Preparing…' : 'Share now' }}
+          </button>
+          <NuxtLink v-else to="/" class="btn btn--primary">
+            Play now
+          </NuxtLink>
+          <p
+            v-if="todayShare.feedback"
+            class="feedback"
+            :class="{ 'feedback--error': todayShare.feedback.kind === 'error' }"
+            aria-live="polite"
+          >
+            {{ todayShare.feedback.message }}
+          </p>
         </section>
 
         <!-- 3 · Yesterday's road: the completed field's global story -->
@@ -525,9 +482,9 @@ onMounted(async () => {
           </div>
 
           <StatsTriesHistogram
-            v-if="showYesterdayHistogram"
-            :bars="yesterdayBars"
-            player-tag="You"
+            v-if="showYesterdayHistogram && yesterdayField"
+            :distribution="yesterdayField.solvedAttempts"
+            :player-attempts="yesterdayPlayerAttempts"
           />
 
           <div class="field-story">
@@ -603,9 +560,12 @@ onMounted(async () => {
   gap: clamp(1rem, 2.5vw, 1.5rem);
 }
 
+/* v1's stats page centered everything; headers and content follow suit. */
 .page-header {
   display: grid;
   gap: 0.2rem;
+  justify-items: center;
+  text-align: center;
 }
 
 .page-header h1 {
@@ -636,69 +596,46 @@ onMounted(async () => {
   border: 0;
 }
 
-/* ── Medals ───────────────────────────────────────────────── */
-.panel--medals {
-  padding: clamp(1rem, 3vw, 1.3rem);
-}
-
+/* ── Medals — v1's three cards: medal art × count ─────────── */
 .medal-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 0.7rem;
+  gap: 0.8rem;
 }
 
-.medal-tile {
+.medal-card {
   position: relative;
   display: grid;
   justify-items: center;
-  gap: 0.3rem;
+  gap: 0.45rem;
   padding: 1rem 0.6rem 0.85rem;
-  border-radius: var(--radius-md);
-  background: rgb(0 0 0 / 0.22);
-  border: 1px solid rgb(var(--color-gold-rgb) / 0.14);
+  border-radius: var(--radius-lg);
+  background: var(--gradient-card-status);
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.18);
 }
 
-.medal-disc {
-  display: grid;
-  place-items: center;
-  width: 3.4rem;
-  height: 3.4rem;
-  border-radius: var(--radius-circle);
-  font-size: 1.35rem;
+.medal-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.medal-art {
+  font-size: 2.1rem;
+  filter: drop-shadow(0 3px 6px rgb(0 0 0 / 0.4));
+}
+
+.medal-multiply {
+  color: var(--color-gold-dark);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.medal-count {
+  font-size: 1.4rem;
   font-weight: 900;
-  font-variant-numeric: tabular-nums;
-  box-shadow:
-    0 6px 14px rgb(0 0 0 / 0.35),
-    inset 0 1px 0 rgb(255 255 255 / 0.35);
-}
-
-.medal-tile--gold .medal-disc {
-  background: var(--gradient-tile-done);
-  color: var(--color-text-on-gold);
-}
-
-.medal-tile--silver .medal-disc {
-  background: var(--gradient-medal-silver);
-  color: var(--color-text-on-silver);
-}
-
-.medal-tile--bronze .medal-disc {
-  background: var(--gradient-medal-bronze);
-  color: var(--color-text-on-bronze);
-}
-
-.medal-name {
-  font-size: 0.92rem;
-  font-weight: 800;
   color: var(--color-gold-bright);
-}
-
-.medal-tile--silver .medal-name {
-  color: var(--color-medal-silver-muted);
-}
-
-.medal-tile--bronze .medal-name {
-  color: var(--color-medal-bronze-bright);
+  font-variant-numeric: tabular-nums;
 }
 
 .medal-sub {
@@ -709,17 +646,35 @@ onMounted(async () => {
   color: rgb(var(--color-gold-rgb) / 0.55);
 }
 
+/* v1's golden "+1": plain gold text, top-right of the medal card. */
 .medal-increment {
   position: absolute;
-  top: 0.45rem;
+  top: 0.4rem;
   right: 0.5rem;
-  padding: 0.14rem 0.42rem;
-  border-radius: var(--radius-full);
-  background: var(--color-success);
-  color: var(--color-text-on-success);
-  font-size: 0.76rem;
-  font-weight: 900;
+  color: gold;
+  font-size: 0.8rem;
+  font-weight: 800;
   animation: rise-in var(--transition-slow) both;
+  animation-delay: 260ms;
+}
+
+.medal-stat--bumped {
+  animation: medal-bump 620ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: 180ms;
+}
+
+@keyframes medal-bump {
+  0% {
+    transform: scale(1);
+  }
+
+  40% {
+    transform: scale(1.22);
+  }
+
+  100% {
+    transform: scale(1);
+  }
 }
 
 /* ── Mode switch ──────────────────────────────────────────── */
@@ -768,6 +723,8 @@ onMounted(async () => {
   border-radius: var(--radius-lg);
   background: var(--gradient-card-status);
   border: 1px solid rgb(var(--color-gold-rgb) / 0.18);
+  justify-items: center;
+  text-align: center;
 }
 
 .panel--loading,
@@ -799,17 +756,36 @@ onMounted(async () => {
   gap: 0.2rem;
 }
 
-/* ── Today panel ──────────────────────────────────────────── */
-.today-lead {
-  display: grid;
-  gap: 0.55rem;
+/* ── Today panel — centered, with v1's gold result block ──── */
+.panel--today {
+  justify-items: center;
+  text-align: center;
+  gap: 0.8rem;
 }
 
-.today-title-row {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  flex-wrap: wrap;
+.panel--today h2.today-title {
+  font-size: 1.15rem;
+}
+
+.today-result {
+  display: grid;
+  gap: 0.35rem;
+  padding: 1rem 2.2rem;
+  border-radius: var(--radius-md);
+  background: gold;
+  color: var(--color-text-dark);
+  box-shadow: 0 8px 20px rgb(0 0 0 / 0.3);
+  line-height: 1.4;
+}
+
+.today-result-line {
+  font-size: 0.96rem;
+  font-weight: 700;
+}
+
+.today-result-line--lead {
+  font-size: 1.05rem;
+  font-weight: 900;
 }
 
 .today-detail {
@@ -817,75 +793,7 @@ onMounted(async () => {
   color: rgb(var(--color-gold-rgb) / 0.82);
   line-height: var(--line-height-base);
   font-size: 1rem;
-}
-
-.today-actions {
-  display: grid;
-  gap: 0.4rem;
-  justify-items: start;
-}
-
-/* ── Chips & badges ───────────────────────────────────────── */
-.chip-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-}
-
-.chip {
-  padding: 0.28rem 0.65rem;
-  border-radius: var(--radius-full);
-  background: rgb(0 0 0 / 0.24);
-  border: 1px solid rgb(var(--color-gold-rgb) / 0.22);
-  color: rgb(var(--color-gold-rgb) / 0.86);
-  font-size: 0.88rem;
-  font-weight: 800;
-}
-
-.badge {
-  padding: 0.24rem 0.6rem;
-  border-radius: var(--radius-full);
-  background: rgb(var(--color-gold-rgb) / 0.08);
-  color: rgb(var(--color-gold-rgb) / 0.8);
-  font-size: 0.78rem;
-  font-weight: 800;
-  white-space: nowrap;
-}
-
-.badge--solved {
-  color: var(--color-active);
-  background: rgb(var(--color-active-rgb) / 0.12);
-  border: 1px solid rgb(var(--color-active-rgb) / 0.24);
-}
-
-.badge--gold {
-  color: var(--color-gold-bright);
-  background: rgb(var(--color-gold-rgb) / 0.16);
-  border: 1px solid rgb(var(--color-gold-rgb) / 0.32);
-}
-
-.badge--silver {
-  color: var(--color-medal-silver-light);
-  background: rgb(var(--color-medal-silver-rgb) / 0.12);
-  border: 1px solid rgb(var(--color-medal-silver-rgb) / 0.28);
-}
-
-.badge--bronze {
-  color: var(--color-medal-bronze-bright);
-  background: rgb(var(--color-medal-bronze-rgb) / 0.14);
-  border: 1px solid rgb(var(--color-medal-bronze-rgb) / 0.3);
-}
-
-.badge--featured {
-  display: inline-grid;
-  place-items: center;
-  min-width: 4.25rem;
-  min-height: 4.25rem;
-  padding: 0.55rem;
-  border-radius: var(--radius-circle);
-  font-size: 0.86rem;
-  text-align: center;
-  box-shadow: 0 6px 16px rgb(0 0 0 / 0.28);
+  max-width: 38ch;
 }
 
 /* ── Yesterday's field ────────────────────────────────────── */
@@ -894,9 +802,11 @@ onMounted(async () => {
   border-color: rgb(var(--color-gold-rgb) / 0.14);
 }
 
+/* v1 centered its global-stats copy under the graph; keep that read. */
 .field-story {
   display: grid;
   gap: 0.45rem;
+  text-align: center;
 }
 
 .field-headline {
@@ -919,39 +829,40 @@ onMounted(async () => {
   gap: 0.3rem;
   color: rgb(var(--color-gold-rgb) / 0.76);
   font-size: 0.9rem;
+  justify-self: center;
+  text-align: left;
 }
 
 /* ── Your stats record ────────────────────────────────────── */
+/* v1's two-column record: key right-aligned, value left-aligned. */
 .record-list {
   margin: 0;
   display: grid;
-  gap: 0.4rem;
+  gap: 0;
+  width: 100%;
 }
 
 .record-row {
   display: flex;
   align-items: baseline;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.55rem 0.2rem;
-  border-bottom: 1px solid rgb(var(--color-gold-rgb) / 0.1);
-}
-
-.record-row:last-child {
-  border-bottom: 0;
+  gap: 0.6rem;
+  padding: 0.34rem 0;
 }
 
 .record-row dt {
+  width: 50%;
+  text-align: right;
   color: rgb(var(--color-gold-rgb) / 0.72);
   font-size: 0.94rem;
 }
 
 .record-row dd {
+  width: 50%;
   margin: 0;
   color: var(--color-gold-bright);
   font-weight: 800;
   font-variant-numeric: tabular-nums;
-  text-align: right;
+  text-align: left;
 }
 
 /* ── Explore ──────────────────────────────────────────────── */
@@ -1011,7 +922,7 @@ onMounted(async () => {
 }
 
 .text-toggle {
-  justify-self: start;
+  justify-self: center;
   padding: 0.3rem 0;
   border: 0;
   background: none;

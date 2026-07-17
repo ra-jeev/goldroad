@@ -59,9 +59,7 @@ function computeTutorialHint(
 
 export function useTutorialPractice() {
   const board = TUTORIAL_PRACTICE_GAME.board;
-  const initialStatus = UI_COPY.runtime.preRun(
-    TUTORIAL_PRACTICE_GAME.maxScore,
-  );
+  const initialStatus = UI_COPY.runtime.preRun;
   const tiles = ref(buildInitialTileStates(board));
   const currentTileIndex = ref<number | null>(null);
   const visited = ref<Set<number>>(new Set());
@@ -74,14 +72,12 @@ export function useTutorialPractice() {
   const solved = ref(false);
   const hintsUsed = ref(0);
   const retryCount = ref(0);
-  const status = ref(initialStatus);
+  const status = ref<string>(initialStatus);
   const hintMessage = ref<string | null>(null);
 
   const maxScore = computed(() => TUTORIAL_PRACTICE_GAME.maxScore);
   const totalCoins = computed(() => TUTORIAL_PRACTICE_GAME.totalCoins);
-  const canRetry = computed(
-    () => ended.value || moves.value > 1 || solved.value,
-  );
+  const canRetry = computed(() => ended.value || moves.value > 1);
 
   function syncTileStates() {
     if (currentTileIndex.value === null) return;
@@ -116,7 +112,7 @@ export function useTutorialPractice() {
     solved.value = false;
     status.value =
       retryCount.value > 0
-        ? 'Fresh try. Watch the score, and use Hint if you want a nudge.'
+        ? 'Fresh road, same rules. Hint is there if you want a nudge.'
         : initialStatus;
     hintMessage.value = null;
     syncGuideHighlight();
@@ -146,20 +142,13 @@ export function useTutorialPractice() {
   }
 
   function updateInRunStatus() {
-    const remaining = maxScore.value - score.value;
-
+    // Mid-run stays quiet, matching the real board's contextual footer.
+    // The one practice-only exception: a gentle teaching nudge toward Hint,
+    // routed through the hint-message slot so it actually renders mid-run.
     if (hintsUsed.value === 0 && moves.value >= 4) {
-      status.value =
+      hintMessage.value =
         'If you are unsure which way to go, Hint can show the next useful move.';
-      return;
     }
-
-    status.value =
-      remaining === 0
-        ? 'Target reached. Now find the exit without changing the score.'
-        : remaining > 0
-          ? `Need ${remaining} more before the exit.`
-          : `Over by ${Math.abs(remaining)}. You may need to retry.`;
   }
 
   function moveTo(tileIndex: number) {
@@ -186,7 +175,7 @@ export function useTutorialPractice() {
       activeSet.value = new Set();
       status.value = solved.value
         ? 'Solved. You are ready for today\'s road.'
-        : `You reached the exit with ${score.value}, but the target is ${maxScore.value}. Tap Retry and try another route.`;
+        : `You reached the finish with ${score.value} — the target is ${maxScore.value}. Try another route.`;
       syncTileStates();
       return;
     }
@@ -204,7 +193,7 @@ export function useTutorialPractice() {
     if (activeSet.value.size === 0) {
       ended.value = true;
       status.value =
-        'Dead end. Tap Retry to replay this road and try a different path.';
+        'Dead end. Walk it again to find the way through.';
       syncTileStates();
       return;
     }

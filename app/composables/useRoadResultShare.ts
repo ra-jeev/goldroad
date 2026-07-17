@@ -54,19 +54,19 @@ function formatResultLine(input: {
   const medal = calcMedalForAttempt(input.attempts, input.solved);
 
   if (input.solved && medal === 'gold') {
-    return `Gold in ${formatAttemptLabel(input.attempts)}`;
+    return `🥇 Gold in ${formatAttemptLabel(input.attempts)}`;
   }
 
   if (input.solved && medal === 'silver') {
-    return `Silver in ${formatAttemptLabel(input.attempts)}`;
+    return `🥈 Silver in ${formatAttemptLabel(input.attempts)}`;
   }
 
   if (input.solved && medal === 'bronze') {
-    return `Bronze in ${formatAttemptLabel(input.attempts)}`;
+    return `🥉 Bronze in ${formatAttemptLabel(input.attempts)}`;
   }
 
   if (input.solved) {
-    return `Solved in ${formatAttemptLabel(input.attempts)}`;
+    return `😅 Solved in ${formatAttemptLabel(input.attempts)}`;
   }
 
   return `Still chasing the solve after ${formatAttemptLabel(input.attempts)}`;

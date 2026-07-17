@@ -1,196 +1,151 @@
-<script lang="ts">
-export type HistogramBar = {
-  key: string;
-  /** Short axis label, e.g. "1", "2", "3", "4+", "DNF". */
-  label: string;
-  /** Longer descriptor for the tooltip / a11y, e.g. "First try". */
-  caption: string;
-  count: number;
-  isPlayer?: boolean;
-};
-</script>
-
 <script setup lang="ts">
 import { computed } from 'vue';
-import { UI_COPY } from '../content/uiCopy';
 
-const props = defineProps<{
-  bars: HistogramBar[];
-  /** You-are-here marker text on the player's bar. */
-  playerTag?: string;
-}>();
-
-const maxCount = computed(() =>
-  props.bars.reduce((max, bar) => Math.max(max, bar.count), 0),
+const props = withDefaults(
+  defineProps<{
+    /** Solved-attempts distribution keyed by "1".."24" and "25+". */
+    distribution: Record<string, number>;
+    /** The player's own solved attempt count, if they solved this road. */
+    playerAttempts?: number | null;
+    upperBound?: number;
+  }>(),
+  {
+    playerAttempts: null,
+    upperBound: 25,
+  },
 );
 
-const total = computed(() =>
-  props.bars.reduce((sum, bar) => sum + bar.count, 0),
-);
+type Bar = {
+  key: string;
+  value: number;
+  highlight: boolean;
+  marker: string | null;
+};
 
-function barHeight(count: number): string {
-  if (maxCount.value <= 0 || count <= 0) return '0%';
-  // Floor non-zero bars so a lonely run still reads as a mark.
-  return `${Math.max(9, Math.round((count / maxCount.value) * 100))}%`;
-}
+/**
+ * v1's histogram contract: one thin bar per attempt count up to the pooled
+ * `${upperBound}+` bucket, heights relative to the busiest bucket, empty
+ * buckets kept as hairlines so the field reads as a field. Absolute counts
+ * are deliberately never rendered.
+ */
+const bars = computed<Bar[]>(() => {
+  const overflowKey = `${props.upperBound}+`;
+  const playerKey =
+    props.playerAttempts === null
+      ? null
+      : props.playerAttempts >= props.upperBound
+        ? overflowKey
+        : String(props.playerAttempts);
 
-function sharePercent(count: number): number {
-  if (total.value <= 0) return 0;
-  return Math.round((count / total.value) * 100);
-}
+  const keys = [
+    ...Array.from({ length: props.upperBound - 1 }, (_, i) => String(i + 1)),
+    overflowKey,
+  ];
 
-function barAriaLabel(bar: HistogramBar): string {
-  const share = sharePercent(bar.count);
-  return UI_COPY.statsHistogram.barAriaLabel({
-    caption: bar.caption,
-    count: bar.count,
-    share,
-    isPlayer: Boolean(bar.isPlayer),
+  const maxCount = Math.max(...keys.map((key) => props.distribution[key] ?? 0), 1);
+
+  return keys.map((key, index) => {
+    const count = props.distribution[key] ?? 0;
+    const highlight = key === playerKey;
+    return {
+      key,
+      value: count > 0 ? Math.max(6, Math.round((count / maxCount) * 100)) : 1,
+      highlight,
+      marker:
+        highlight || index === 0 || key === overflowKey ? key : null,
+    };
   });
-}
+});
+
+const ariaLabel = computed(() =>
+  props.playerAttempts === null
+    ? 'How many attempts the field needed, from 1 to 25 and beyond.'
+    : `How many attempts the field needed, from 1 to 25 and beyond. Your solve is marked at ${props.playerAttempts >= props.upperBound ? `${props.upperBound}+` : props.playerAttempts}.`,
+);
 </script>
 
 <template>
-  <div
-    class="histogram"
-    role="group"
-    :aria-label="UI_COPY.statsHistogram.distributionLabel"
-  >
-    <div class="histogram-track">
+  <div class="graph" role="img" :aria-label="ariaLabel">
+    <div class="graph-plot">
       <div
         v-for="bar in bars"
         :key="bar.key"
-        class="histogram-col"
-        :class="{ 'histogram-col--player': bar.isPlayer }"
-        role="img"
-        tabindex="0"
-        :aria-label="barAriaLabel(bar)"
+        class="graph-entry"
+        :class="{ 'graph-entry--you': bar.highlight }"
+        :style="{ height: `${bar.value}%` }"
       >
-        <span v-if="bar.isPlayer && playerTag" class="histogram-you">
-          {{ playerTag }}
-        </span>
-        <span class="histogram-count">{{ bar.count }}</span>
-        <div class="histogram-bar-wrap">
-          <div
-            class="histogram-bar"
-            :style="{ height: barHeight(bar.count) }"
-          />
-        </div>
-        <span class="histogram-label">{{ bar.label }}</span>
-        <span class="histogram-caption">{{ bar.caption }}</span>
+        <span v-if="bar.marker" class="axis-marker">{{ bar.marker }}</span>
       </div>
     </div>
+    <div class="graph-label" aria-hidden="true">attempts →</div>
   </div>
 </template>
 
 <style scoped>
-.histogram {
-  --hist-accent-rgb: var(--color-gold-rgb);
-  width: 100%;
-}
-
-.histogram-track {
+.graph {
   display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 1fr;
-  align-items: end;
-  gap: clamp(0.4rem, 2vw, 0.9rem);
-}
-
-.histogram-col {
-  display: grid;
-  grid-template-rows: auto auto 1fr auto auto;
   justify-items: center;
-  gap: 0.3rem;
-  min-width: 0;
+  width: 100%;
 }
 
-.histogram-you {
-  padding: 0.1rem 0.45rem;
-  border-radius: var(--radius-full);
-  background: rgb(var(--hist-accent-rgb) / 0.9);
-  color: var(--color-text-on-gold);
-  font-size: 0.64rem;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.histogram-col:not(.histogram-col--player) .histogram-you {
-  visibility: hidden;
-}
-
-.histogram-count {
-  font-size: 0.82rem;
-  font-weight: 800;
-  color: rgb(var(--color-gold-rgb) / 0.72);
-  font-variant-numeric: tabular-nums;
-}
-
-.histogram-col--player .histogram-count {
-  color: var(--color-gold-bright);
-}
-
-.histogram-bar-wrap {
+.graph-plot {
   display: flex;
-  align-items: end;
-  width: 100%;
-  max-width: 3.4rem;
-  height: clamp(84px, 22vw, 132px);
-  padding: 0 0.1rem;
+  align-items: flex-end;
+  gap: clamp(3px, 1.2vw, 6px);
+  height: 8rem;
+  margin-top: 0.5rem;
+  padding-bottom: 0;
+  border-bottom: 1px solid rgb(var(--color-gold-rgb) / 0.4);
 }
 
-.histogram-bar {
-  width: 100%;
-  min-height: 3px;
-  border-radius: var(--radius-sm) var(--radius-sm) 4px 4px;
-  background: linear-gradient(
-    180deg,
-    rgb(var(--color-gold-rgb) / 0.34) 0%,
-    rgb(var(--color-gold-rgb) / 0.16) 100%
-  );
-  border: 1px solid rgb(var(--color-gold-rgb) / 0.22);
-  border-bottom: 0;
+.graph-entry {
+  position: relative;
+  width: clamp(4px, 1.4vw, 6px);
+  border-radius: 2px 2px 0 0;
+  background: rgb(var(--color-gold-rgb) / 0.35);
   transition: height var(--transition-slow);
 }
 
-.histogram-col--player .histogram-bar {
-  background: linear-gradient(
-    180deg,
-    rgb(var(--hist-accent-rgb) / 0.95) 0%,
-    rgb(var(--hist-accent-rgb) / 0.5) 100%
-  );
-  border-color: rgb(var(--hist-accent-rgb) / 0.7);
-  box-shadow: 0 0 16px rgb(var(--hist-accent-rgb) / 0.4);
+.graph-entry--you {
+  background: var(--color-gold-bright);
+  box-shadow: 0 0 10px rgb(var(--color-gold-rgb) / 0.55);
 }
 
-.histogram-label {
-  font-size: 0.9rem;
-  font-weight: 800;
-  color: rgb(var(--color-gold-rgb) / 0.82);
+.graph-entry--you::after {
+  content: '👇';
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  margin-left: -6px;
+  font-size: 12px;
+  line-height: 1;
 }
 
-.histogram-col--player .histogram-label {
+.axis-marker {
+  position: absolute;
+  bottom: -1.15rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.64rem;
+  font-weight: 700;
+  color: rgb(var(--color-gold-rgb) / 0.6);
+  white-space: nowrap;
+}
+
+.graph-entry--you .axis-marker {
   color: var(--color-gold-bright);
 }
 
-.histogram-caption {
-  font-size: 0.66rem;
-  line-height: 1.15;
-  text-align: center;
-  color: rgb(var(--color-gold-rgb) / 0.52);
+.graph-label {
+  margin-top: 1.4rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: rgb(var(--color-gold-rgb) / 0.6);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .histogram-bar {
+  .graph-entry {
     transition: none;
-  }
-}
-
-@media (max-width: 520px) {
-  .histogram-caption {
-    display: none;
   }
 }
 </style>

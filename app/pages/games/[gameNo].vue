@@ -68,7 +68,7 @@ const formattedDate = computed(() => {
 
 watchEffect(() => {
   currentRoadLabel.value = game.value
-    ? `Road ${game.value.gameNo} · Archive`
+    ? `Road ${game.value.gameNo} · ${formattedDate.value}`
     : null;
 });
 
@@ -154,22 +154,6 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
       </section>
 
       <section v-else-if="game" class="board-column">
-        <header class="replay-bar">
-          <NuxtLink
-            to="/games"
-            class="replay-back"
-            aria-label="Back to Past Roads"
-            title="Back to Past Roads"
-          >
-            ←
-          </NuxtLink>
-          <h1 class="replay-title">
-            Road {{ game.gameNo }}
-            <span class="replay-date">· {{ formattedDate }}</span>
-          </h1>
-          <span class="replay-tag">Replay</span>
-        </header>
-
         <GameBoardHeader
           :selected-mode="selectedMode"
           :has-expedition="Boolean(availableGames.expedition)"
@@ -212,7 +196,7 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
           :hints-used="hintsUsed"
           :ended="ended"
           :solved="lastSolved"
-          :can-retry="ended || moves > 1 || lastSolved"
+          :can-retry="ended || moves > 1"
           :can-switch-to-expedition="false"
           :loading="loading"
           :submitting="submitting"
@@ -267,60 +251,6 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
   background: var(--gradient-card-status);
   border: 1px solid rgb(var(--color-gold-rgb) / 0.2);
   box-shadow: var(--shadow-lg);
-}
-
-/* Compact replay identity bar — the board is the content here. */
-.replay-bar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.6rem;
-  width: 100%;
-}
-
-.replay-back {
-  display: inline-grid;
-  place-items: center;
-  width: 2rem;
-  height: 2rem;
-  border-radius: var(--radius-circle);
-  border: 1px solid rgb(var(--color-gold-rgb) / 0.24);
-  background: rgb(var(--color-gold-rgb) / 0.08);
-  color: var(--color-gold);
-  font-size: 1.05rem;
-  text-decoration: none;
-  transition:
-    transform var(--transition-fast),
-    background var(--transition-fast);
-}
-
-.replay-back:hover {
-  transform: translateX(-1px);
-  background: rgb(var(--color-gold-rgb) / 0.15);
-}
-
-.replay-title {
-  margin: 0;
-  color: var(--color-gold-bright);
-  font-size: 1.1rem;
-  font-weight: 800;
-}
-
-.replay-date {
-  color: rgb(var(--color-gold-rgb) / 0.66);
-  font-weight: 700;
-}
-
-.replay-tag {
-  padding: 0.18rem 0.5rem;
-  border-radius: var(--radius-full);
-  border: 1px solid rgb(var(--color-gold-rgb) / 0.24);
-  background: rgb(var(--color-gold-rgb) / 0.06);
-  color: rgb(var(--color-gold-rgb) / 0.7);
-  font-size: 0.7rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 
 .state-card {

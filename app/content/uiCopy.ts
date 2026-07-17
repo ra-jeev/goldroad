@@ -62,16 +62,6 @@ export const UI_COPY = {
     hintUsedLabel: (count: number) =>
       count === 0 ? 'Hint' : `Hint used ${count} time${count === 1 ? '' : 's'}`,
   },
-  statsHistogram: {
-    distributionLabel: 'Distribution of how many attempts roadgoers took',
-    barAriaLabel: (input: {
-      caption: string;
-      count: number;
-      share: number;
-      isPlayer: boolean;
-    }) =>
-      `${input.caption}: ${input.count} result${input.count === 1 ? '' : 's'}, ${input.share}%${input.isPlayer ? ' — your result' : ''}`,
-  },
   helpSheet: {
     ariaLabel: 'How to play',
     close: 'Close',
@@ -194,22 +184,15 @@ export const UI_COPY = {
   },
 
   runtime: {
-    loadingGame: 'Loading game...',
+    loadingGame: 'Loading the road...',
     loadingTodaysRoad: "Loading today's road...",
     findingAnotherRoad: 'Finding another road...',
-    preRun: (maxScore: number) =>
-      `You’re on the footprints. Reach the finish with a score of ${maxScore}.`,
-    needMore: (delta: number) => `${delta} more before the finish — keep walking.`,
-    exactNowFinish: 'Target reached. Now find the finish.',
-    overBy: (delta: number) => `Over by ${delta}.`,
+    preRun: 'You’re on the footprints. Step onto any glowing tile to begin.',
     destinationSolved: 'Solved.',
     destinationShort: (delta: number) =>
       `You reached the finish ${delta} short of the target.`,
     destinationOver: (delta: number) =>
-      `You reached the finish ${delta} over the target. Try another path.`,
-    alreadySolved: 'Already solved. You can replay or switch modes.',
-    alreadySolvedWithMedal: (medal: string) =>
-      `Already solved with ${medal.toLowerCase()}. You can replay or switch modes.`,
+      `You reached the finish ${delta} over the target.`,
     deadEnd: 'Dead end. Walk it again to find the way through.',
     hintNextStep:
       'Hint applied. The highlighted guide shows the next correct move.',

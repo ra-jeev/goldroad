@@ -14,6 +14,35 @@ import type {
   StatsRoadDay,
 } from '../../shared/types/game';
 
+export type SolvedAttemptsRow = {
+  gameNo: number;
+  puzzleType: PuzzleType;
+  attempts: number;
+  count: number;
+};
+
+/**
+ * Bucket solved-attempt rows for one road+mode into a distribution keyed by
+ * attempt count, with everything at or beyond `upperBound` pooled into one
+ * `${upperBound}+` bucket — v1's histogram contract. Only relative shape is
+ * ever shown to players; absolute counts stay server-side data.
+ */
+export function buildSolvedAttemptsDistribution(
+  rows: SolvedAttemptsRow[],
+  upperBound = 25,
+): Record<string, number> {
+  const distribution: Record<string, number> = {};
+
+  for (const row of rows) {
+    if (row.attempts < 1 || row.count <= 0) continue;
+    const key =
+      row.attempts >= upperBound ? `${upperBound}+` : String(row.attempts);
+    distribution[key] = (distribution[key] ?? 0) + row.count;
+  }
+
+  return distribution;
+}
+
 export type AggregatedRoadStatsRow = {
   gameNo: number;
   puzzleType: PuzzleType;
@@ -57,6 +86,7 @@ export function buildEmptyCommunityRoadStats(
     gold: 0,
     silver: 0,
     bronze: 0,
+    solvedAttempts: {},
     behavior: {
       hintUsers: 0,
       totalHints: 0,
@@ -72,6 +102,7 @@ export function buildEmptyCommunityRoadStats(
 
 export function toCommunityRoadStats(
   row: AggregatedRoadStatsRow,
+  solvedAttempts: Record<string, number> = {},
 ): CommunityRoadStats {
   const solveRate =
     row.plays > 0 ? Math.round((row.exactSolves / row.plays) * 100) : 0;
@@ -87,6 +118,7 @@ export function toCommunityRoadStats(
     gold: row.gold,
     silver: row.silver,
     bronze: row.bronze,
+    solvedAttempts,
     behavior: {
       hintUsers: row.hintUsers,
       totalHints: row.totalHints,

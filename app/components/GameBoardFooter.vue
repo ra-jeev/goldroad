@@ -152,33 +152,25 @@ const showSecondaryLink = computed(
 );
 const secondaryLinkTo = computed(() => props.secondaryLinkTo ?? '/');
 const secondaryLinkLabel = computed(() => props.secondaryLinkLabel ?? '');
-const showActionRow = computed(
-  () =>
-    showHintAction.value ||
-    showRetryAction.value ||
-    showShareAction.value ||
-    showStatsAction.value ||
-    showSecondaryLink.value ||
-    props.canSwitchToExpedition,
+// Transient share feedback borrows the message slot so the footer's height
+// never changes.
+const displayMessage = computed(
+  () => shareMessage.value ?? footerMessage.value,
 );
 </script>
 
 <template>
-  <section
-    class="board-footer-card"
-    :class="{ 'board-footer-card--actions-only': !footerMessage }"
-  >
-    <div v-if="footerMessage" class="footer-top">
-      <div class="footer-copy">
-        <p class="footer-message">{{ footerMessage }}</p>
-      </div>
+  <section class="board-footer-card">
+    <!-- Both slots always render at fixed heights so the board never
+         shifts as messages and actions come and go. -->
+    <div class="footer-message-slot" aria-live="polite">
+      <p v-if="displayMessage" class="footer-message">{{ displayMessage }}</p>
+    </div>
 
+    <div class="action-row">
       <span v-if="showAttemptPill" class="attempt-pill">
         {{ UI_COPY.boardFooter.attemptLabel }} #{{ attemptNumber }}
       </span>
-    </div>
-
-    <div v-if="showActionRow" class="action-row">
       <button
         v-if="showRetryAction"
         type="button"
@@ -277,14 +269,6 @@ const showActionRow = computed(
       </button>
     </div>
 
-    <p
-      v-if="shareMessage"
-      class="share-message"
-      role="status"
-      aria-live="polite"
-    >
-      {{ shareMessage }}
-    </p>
   </section>
 </template>
 
@@ -292,14 +276,18 @@ const showActionRow = computed(
 .board-footer-card {
   display: grid;
   justify-items: center;
-  gap: 0.62rem;
-  min-height: 2.9rem;
+  gap: 0.5rem;
   padding: 0.2rem 0;
   text-align: center;
 }
 
-.board-footer-card--actions-only {
-  min-height: 2.35rem;
+/* Fixed-height message slot: tall enough for the longest two-line message
+   at mobile width, occupied or not, so the board below never jumps. */
+.footer-message-slot {
+  display: grid;
+  align-items: center;
+  justify-items: center;
+  min-height: 3rem;
 }
 
 .footer-message {
@@ -308,26 +296,6 @@ const showActionRow = computed(
   font-size: 1rem;
   font-weight: 650;
   line-height: var(--line-height-snug);
-}
-
-.footer-copy {
-  display: grid;
-  gap: 0.25rem;
-  justify-items: center;
-}
-
-.footer-top {
-  display: grid;
-  justify-items: center;
-  gap: 0.48rem;
-  min-width: 0;
-}
-
-.share-message {
-  margin: 0;
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: rgb(var(--color-gold-rgb) / 0.7);
 }
 
 .attempt-pill {
@@ -347,6 +315,7 @@ const showActionRow = computed(
   gap: 0.5rem;
   justify-content: center;
   align-items: center;
+  min-height: 2.35rem;
 }
 
 button,

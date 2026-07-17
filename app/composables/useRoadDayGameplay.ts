@@ -426,13 +426,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     hintMessage.value = null;
     hintedTiles.value = new Set();
     expeditionJustUnlocked.value = false;
-    status.value = progress.solved && !replaySolved
-      ? solvedMedal
-        ? UI_COPY.runtime.alreadySolvedWithMedal(
-            UI_COPY.boardHeader.medals[solvedMedal],
-          )
-        : UI_COPY.runtime.alreadySolved
-      : UI_COPY.runtime.preRun(next.maxScore);
+    status.value = UI_COPY.runtime.preRun;
     lastTier.value = null;
     lastMedal.value = progress.solved && !replaySolved ? solvedMedal : null;
     lastSolved.value = progress.solved && !replaySolved;
@@ -810,7 +804,9 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
   async function retryCurrentGame() {
     if (!game.value || loading.value) return;
     if (submitting.value && !ended.value) return;
-    if (!ended.value && moves.value <= 1 && !lastSolved.value) return;
+    // No moves made yet: the board is already at its starting state, so a
+    // retry would only churn messages. Pure no-op.
+    if (!ended.value && moves.value <= 1) return;
 
     const nextAttemptNumber = trackingDisabled.value
       ? attemptNumber.value
@@ -899,14 +895,6 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
       await finalizeRun('dead-end');
       return;
     }
-
-    const delta = game.value.maxScore - nextScore;
-    status.value =
-      delta === 0
-        ? UI_COPY.runtime.exactNowFinish
-        : delta > 0
-          ? UI_COPY.runtime.needMore(delta)
-          : UI_COPY.runtime.overBy(Math.abs(delta));
 
     if (solveTimerStartedAtMs.value !== null) {
       persistSolveTimerState(true);

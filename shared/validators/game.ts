@@ -235,6 +235,10 @@ export const CommunityRoadStatsSchema = z.object({
   gold: z.number().int().min(0),
   silver: z.number().int().min(0),
   bronze: z.number().int().min(0),
+  // Solved-attempts distribution keyed by attempt count ("1".."24", "25+").
+  // Clients render only its relative shape — absolute counts are never
+  // shown to players (v1 decision: don't reveal how many played).
+  solvedAttempts: z.record(z.string(), z.number().int().min(0)),
   behavior: CommunityBehaviorStatsSchema,
 });
 

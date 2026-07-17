@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildEmptyCommunityRoadStats,
+  buildSolvedAttemptsDistribution,
   createEmptyStatsRoadDay,
   roundNullable,
   toCommunityRoadStats,
@@ -53,6 +54,35 @@ describe('roundNullable', () => {
   });
 });
 
+describe('buildSolvedAttemptsDistribution', () => {
+  it('keys buckets by attempt count and pools the tail into upperBound+', () => {
+    const distribution = buildSolvedAttemptsDistribution([
+      { gameNo: 1, puzzleType: 'classic', attempts: 1, count: 4 },
+      { gameNo: 1, puzzleType: 'classic', attempts: 2, count: 2 },
+      { gameNo: 1, puzzleType: 'classic', attempts: 24, count: 1 },
+      { gameNo: 1, puzzleType: 'classic', attempts: 25, count: 1 },
+      { gameNo: 1, puzzleType: 'classic', attempts: 40, count: 2 },
+    ]);
+
+    expect(distribution).toEqual({
+      '1': 4,
+      '2': 2,
+      '24': 1,
+      '25+': 3,
+    });
+  });
+
+  it('ignores zero counts and nonsense attempt values', () => {
+    const distribution = buildSolvedAttemptsDistribution([
+      { gameNo: 1, puzzleType: 'classic', attempts: 0, count: 3 },
+      { gameNo: 1, puzzleType: 'classic', attempts: 2, count: 0 },
+      { gameNo: 1, puzzleType: 'classic', attempts: 3, count: 5 },
+    ]);
+
+    expect(distribution).toEqual({ '3': 5 });
+  });
+});
+
 describe('buildEmptyCommunityRoadStats', () => {
   it('produces a fully-zeroed stats block for a road with zero plays', () => {
     const stats = buildEmptyCommunityRoadStats(7, 'expedition');
@@ -65,6 +95,7 @@ describe('buildEmptyCommunityRoadStats', () => {
       gold: 0,
       silver: 0,
       bronze: 0,
+      solvedAttempts: {},
       behavior: {
         hintUsers: 0,
         totalHints: 0,

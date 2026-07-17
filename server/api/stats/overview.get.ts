@@ -5,15 +5,17 @@ import type { StatsOverview, StatsRoadDay } from '../../../shared/types/game';
 import {
   createEmptyStatsRoadDay,
   buildEmptyCommunityRoadStats,
+  buildSolvedAttemptsDistribution,
   toCommunityRoadStats,
   type AggregatedRoadStatsRow,
+  type SolvedAttemptsRow,
 } from '../../utils/statsAggregation';
 
 async function getRoadDayStats(
   db: ReturnType<typeof useDb>,
   gameNo: number,
 ): Promise<StatsRoadDay> {
-  const [gameRows, aggregateRows] = await Promise.all([
+  const [gameRows, aggregateRows, solvedAttemptRows] = await Promise.all([
     db
       .select({
         gameNo: games.gameNo,
@@ -51,6 +53,25 @@ async function getRoadDayStats(
       .from(playerRoadAnalytics)
       .where(eq(playerRoadAnalytics.gameNo, gameNo))
       .groupBy(playerRoadAnalytics.gameNo, playerRoadAnalytics.puzzleType),
+    db
+      .select({
+        gameNo: playerRoadAnalytics.gameNo,
+        puzzleType: playerRoadAnalytics.puzzleType,
+        attempts: playerRoadAnalytics.attempts,
+        count: sql<number>`COUNT(*)`,
+      })
+      .from(playerRoadAnalytics)
+      .where(
+        and(
+          eq(playerRoadAnalytics.gameNo, gameNo),
+          eq(playerRoadAnalytics.solved, true),
+        ),
+      )
+      .groupBy(
+        playerRoadAnalytics.gameNo,
+        playerRoadAnalytics.puzzleType,
+        playerRoadAnalytics.attempts,
+      ),
   ]);
 
   const roadDay = createEmptyStatsRoadDay(gameNo);
@@ -63,7 +84,13 @@ async function getRoadDayStats(
   }
 
   for (const row of aggregateRows as AggregatedRoadStatsRow[]) {
-    roadDay[row.puzzleType] = toCommunityRoadStats(row);
+    const modeAttemptRows = (solvedAttemptRows as SolvedAttemptsRow[]).filter(
+      (attemptRow) => attemptRow.puzzleType === row.puzzleType,
+    );
+    roadDay[row.puzzleType] = toCommunityRoadStats(
+      row,
+      buildSolvedAttemptsDistribution(modeAttemptRows),
+    );
   }
 
   return roadDay;
