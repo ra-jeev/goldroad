@@ -5,6 +5,7 @@ import type { StatsOverview, StatsRoadDay } from '../../../shared/types/game';
 import {
   createEmptyStatsRoadDay,
   buildEmptyCommunityRoadStats,
+  buildExactSolvedAttemptsDistribution,
   buildSolvedAttemptsDistribution,
   toCommunityRoadStats,
   type AggregatedRoadStatsRow,
@@ -90,6 +91,7 @@ async function getRoadDayStats(
     roadDay[row.puzzleType] = toCommunityRoadStats(
       row,
       buildSolvedAttemptsDistribution(modeAttemptRows),
+      buildExactSolvedAttemptsDistribution(modeAttemptRows),
     );
   }
 

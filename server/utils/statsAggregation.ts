@@ -43,6 +43,27 @@ export function buildSolvedAttemptsDistribution(
   return distribution;
 }
 
+/**
+ * Same solved-attempt rows as `buildSolvedAttemptsDistribution`, but with no
+ * pooled tail bucket — every attempt count is its own exact key. This isn't
+ * for histogram display (the pooled version keeps that): it lets the client
+ * compute an exact "top N%" for players whose attempt count falls in or past
+ * the display bucket's pooled 25+ range (RP0-4).
+ */
+export function buildExactSolvedAttemptsDistribution(
+  rows: SolvedAttemptsRow[],
+): Record<string, number> {
+  const distribution: Record<string, number> = {};
+
+  for (const row of rows) {
+    if (row.attempts < 1 || row.count <= 0) continue;
+    const key = String(row.attempts);
+    distribution[key] = (distribution[key] ?? 0) + row.count;
+  }
+
+  return distribution;
+}
+
 export type AggregatedRoadStatsRow = {
   gameNo: number;
   puzzleType: PuzzleType;
@@ -87,6 +108,7 @@ export function buildEmptyCommunityRoadStats(
     silver: 0,
     bronze: 0,
     solvedAttempts: {},
+    solvedAttemptsExact: {},
     behavior: {
       hintUsers: 0,
       totalHints: 0,
@@ -103,6 +125,7 @@ export function buildEmptyCommunityRoadStats(
 export function toCommunityRoadStats(
   row: AggregatedRoadStatsRow,
   solvedAttempts: Record<string, number> = {},
+  solvedAttemptsExact: Record<string, number> = {},
 ): CommunityRoadStats {
   const solveRate =
     row.plays > 0 ? Math.round((row.exactSolves / row.plays) * 100) : 0;
@@ -119,6 +142,7 @@ export function toCommunityRoadStats(
     silver: row.silver,
     bronze: row.bronze,
     solvedAttempts,
+    solvedAttemptsExact,
     behavior: {
       hintUsers: row.hintUsers,
       totalHints: row.totalHints,

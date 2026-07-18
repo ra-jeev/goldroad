@@ -243,6 +243,11 @@ export const CommunityRoadStatsSchema = z.object({
   // Clients render only its relative shape — absolute counts are never
   // shown to players (v1 decision: don't reveal how many played).
   solvedAttempts: z.record(z.string(), z.number().int().min(0)),
+  // Same solved-attempts data, unpooled (exact attempt-count keys, no "25+"
+  // bucket). Never rendered as a histogram — it exists only so the client
+  // can compute an exact "top N%" for players above the display bucket's
+  // pooling threshold (RP0-4).
+  solvedAttemptsExact: z.record(z.string(), z.number().int().min(0)),
   behavior: CommunityBehaviorStatsSchema,
 });
 
@@ -265,6 +270,16 @@ export const StatsOverviewSchema = z.object({
 // API payloads
 // ---------------------------------------------------------------------------
 
+// Sanity ceilings for client-reported result fields. These are not gameplay
+// rules (the client is still trusted for the shape of a run) but a backstop
+// against corrupted or abusive payloads inflating stored analytics and
+// aggregate stats (RP0-4). Values are generous relative to any plausible
+// human play session.
+const MAX_PLAUSIBLE_ATTEMPTS = 1000;
+const MAX_PLAUSIBLE_MOVES = 5000;
+const MAX_PLAUSIBLE_HINTS = 1000;
+const MAX_PLAUSIBLE_SOLVE_TIME_MS = 24 * 60 * 60 * 1000; // 24 hours
+
 export const SessionEndPayloadSchema = z
   .object({
     playerUUID: z.string().uuid(),
@@ -272,12 +287,18 @@ export const SessionEndPayloadSchema = z
     puzzleType: PuzzleTypeSchema,
     sessionId: z.string().uuid(),
     score: z.number().int().min(0),
-    moves: z.number().int().min(0),
-    attemptNumber: z.number().int().positive(),
+    moves: z.number().int().min(0).max(MAX_PLAUSIBLE_MOVES),
+    attemptNumber: z.number().int().positive().max(MAX_PLAUSIBLE_ATTEMPTS),
     solved: z.boolean(),
     endReason: RunEndReasonSchema,
-    hintsUsed: z.number().int().min(0).default(0),
-    solveTimeMs: z.number().int().min(0).nullable().optional(),
+    hintsUsed: z.number().int().min(0).max(MAX_PLAUSIBLE_HINTS).default(0),
+    solveTimeMs: z
+      .number()
+      .int()
+      .min(0)
+      .max(MAX_PLAUSIBLE_SOLVE_TIME_MS)
+      .nullable()
+      .optional(),
   })
   .superRefine((payload, ctx) => {
     if (payload.solved && payload.endReason !== 'solved') {
@@ -295,6 +316,14 @@ export const SessionEndPayloadSchema = z
         message: 'unsolved runs cannot use the solved endReason',
       });
     }
+
+    if (payload.hintsUsed > payload.attemptNumber * 20) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['hintsUsed'],
+        message: 'hintsUsed is implausible relative to attemptNumber',
+      });
+    }
   });
 
 export const HintRequestPayloadSchema = z.object({
@@ -302,8 +331,8 @@ export const HintRequestPayloadSchema = z.object({
   gameNo: z.number().int().positive(),
   puzzleType: PuzzleTypeSchema,
   sessionId: z.string().uuid(),
-  attemptNumber: z.number().int().positive(),
-  pathHistory: z.array(z.number().int().min(0)).min(1),
+  attemptNumber: z.number().int().positive().max(MAX_PLAUSIBLE_ATTEMPTS),
+  pathHistory: z.array(z.number().int().min(0)).min(1).max(MAX_PLAUSIBLE_MOVES),
 });
 
 // ---------------------------------------------------------------------------

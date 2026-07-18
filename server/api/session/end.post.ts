@@ -1,3 +1,4 @@
+import type { H3Event } from 'h3';
 import { and, eq, sql } from 'drizzle-orm';
 import { calcMedalForAttempt } from '../../../lib/gameTiers';
 import { games, playerRoadAnalytics } from '../../db/schema';
@@ -7,7 +8,7 @@ import { parsePayload } from '../../utils/validation';
 
 const route = 'POST /api/session/end';
 
-type RateLimitedEvent = {
+type RateLimitedEvent = H3Event & {
   context: {
     cloudflare?: {
       env?: {
@@ -49,7 +50,14 @@ function logContext(payload: { playerUUID: string; sessionId: string; gameNo: nu
   };
 }
 
-async function limitByPlayerUUID(event: RateLimitedEvent, playerUUID: string) {
+/**
+ * Rate limit on both the player-supplied UUID and the request's network
+ * address. Keying on the UUID alone lets one client bypass the limit simply
+ * by generating a fresh UUID per request; the IP dimension makes that free
+ * rotation cost nothing to defeat (RP0-4). Either key tripping is enough to
+ * reject the request.
+ */
+async function checkRateLimit(event: RateLimitedEvent, playerUUID: string) {
   const rateLimiter = event.context.cloudflare?.env?.RATE_LIMITER;
   if (!rateLimiter) {
     throw createError({
@@ -58,7 +66,14 @@ async function limitByPlayerUUID(event: RateLimitedEvent, playerUUID: string) {
     });
   }
 
-  return rateLimiter.limit({ key: playerUUID });
+  const ip = getRequestIP(event, { xForwardedFor: true }) ?? 'unknown';
+
+  const [byPlayer, byIp] = await Promise.all([
+    rateLimiter.limit({ key: `player:${playerUUID}` }),
+    rateLimiter.limit({ key: `ip:${ip}` }),
+  ]);
+
+  return { success: byPlayer.success && byIp.success };
 }
 
 export default defineEventHandler(async (event) => {
@@ -79,7 +94,7 @@ export default defineEventHandler(async (event) => {
     })();
     context = logContext(payload);
 
-    const rateLimit = await limitByPlayerUUID(event, payload.playerUUID);
+    const rateLimit = await checkRateLimit(event, payload.playerUUID);
     if (!rateLimit.success) {
       console.error('[api/session/end] rate limit exceeded', context);
       setResponseStatus(event, 429);
@@ -90,26 +105,43 @@ export default defineEventHandler(async (event) => {
     }
 
     const db = useDb(event);
+    // Only the current road accepts analytics writes. Archive/replay play is
+    // local-only by product decision (RP0-5) and must not be able to reach
+    // this contract even if a client tried to call it directly (RP0-4).
     const gameRows = await db
       .select({
         gameNo: games.gameNo,
         puzzleType: games.puzzleType,
+        maxScore: games.maxScore,
       })
       .from(games)
       .where(
         and(
           eq(games.gameNo, payload.gameNo),
           eq(games.puzzleType, payload.puzzleType),
+          eq(games.current, true),
         ),
       )
       .limit(1);
 
     const game = gameRows[0];
     if (!game) {
-      console.error('[api/session/end] game not found', context);
+      console.error('[api/session/end] game not found or not current', context);
       throw createError({
         statusCode: 404,
-        statusMessage: `Game ${payload.gameNo} not found`,
+        statusMessage: `Game ${payload.gameNo} not found or not the current road`,
+      });
+    }
+
+    if (payload.score > game.maxScore) {
+      console.error('[api/session/end] score exceeds board maxScore', {
+        ...context,
+        score: payload.score,
+        maxScore: game.maxScore,
+      });
+      throw createError({
+        statusCode: 400,
+        statusMessage: 'score exceeds this road\'s maximum possible score',
       });
     }
 

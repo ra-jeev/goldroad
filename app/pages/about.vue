@@ -90,11 +90,17 @@ onMounted(() => {
             that identifies you ever leaves it.
           </li>
           <li>
-            The server keeps only anonymous, aggregated gameplay analytics:
-            attempts, hints used, and solve times, keyed to a random
-            anonymous id generated on your device. This is what powers
-            global comparison on the stats page and helps tune future
-            puzzles.
+            The server stores one gameplay row per road you play, per mode,
+            keyed to a random id generated on your device, the day it
+            generated that id, and nothing else that identifies you. Each
+            row holds your attempts, hints used, and solve time for that
+            road. These are the raw rows the stats page's community numbers
+            are built from, not a separate aggregated copy.
+          </li>
+          <li>
+            Archived (Past Roads) play never reaches the server at all.
+            Hints and solves there are computed on your device and change
+            nothing on the server, ever.
           </li>
           <li>There are no accounts and no email collection.</li>
           <li>There is no tracking beyond that anonymous gameplay id.</li>

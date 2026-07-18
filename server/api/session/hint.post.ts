@@ -1,3 +1,4 @@
+import type { H3Event } from 'h3';
 import { and, eq, sql } from 'drizzle-orm';
 import { games, playerRoadAnalytics } from '../../db/schema';
 import { useDb } from '../../db/client';
@@ -8,7 +9,7 @@ import { parsePayload } from '../../utils/validation';
 
 const route = 'POST /api/session/hint';
 
-type RateLimitedEvent = {
+type RateLimitedEvent = H3Event & {
   context: {
     cloudflare?: {
       env?: {
@@ -50,7 +51,12 @@ function logContext(payload: { playerUUID: string; sessionId: string; gameNo: nu
   };
 }
 
-async function limitByPlayerUUID(event: RateLimitedEvent, playerUUID: string) {
+/**
+ * Rate limit on both the player-supplied UUID and the request's network
+ * address, so rotating the client-generated UUID alone cannot bypass the
+ * limit (RP0-4). Either key tripping is enough to reject the request.
+ */
+async function checkRateLimit(event: RateLimitedEvent, playerUUID: string) {
   const rateLimiter = event.context.cloudflare?.env?.RATE_LIMITER;
   if (!rateLimiter) {
     throw createError({
@@ -59,7 +65,14 @@ async function limitByPlayerUUID(event: RateLimitedEvent, playerUUID: string) {
     });
   }
 
-  return rateLimiter.limit({ key: playerUUID });
+  const ip = getRequestIP(event, { xForwardedFor: true }) ?? 'unknown';
+
+  const [byPlayer, byIp] = await Promise.all([
+    rateLimiter.limit({ key: `player:${playerUUID}` }),
+    rateLimiter.limit({ key: `ip:${ip}` }),
+  ]);
+
+  return { success: byPlayer.success && byIp.success };
 }
 
 export default defineEventHandler(async (event) => {
@@ -80,7 +93,7 @@ export default defineEventHandler(async (event) => {
     })();
     context = logContext(payload);
 
-    const rateLimit = await limitByPlayerUUID(event, payload.playerUUID);
+    const rateLimit = await checkRateLimit(event, payload.playerUUID);
     if (!rateLimit.success) {
       console.error('[api/session/hint] rate limit exceeded', context);
       setResponseStatus(event, 429);
@@ -91,6 +104,9 @@ export default defineEventHandler(async (event) => {
     }
 
     const db = useDb(event);
+    // Only the current road can request server-computed hints. Archive/replay
+    // play computes hints locally from client-shipped optimal paths (RP0-5)
+    // and must never reach this contract (RP0-4).
     const rows = await db
       .select({
         boardJson: games.boardJson,
@@ -102,16 +118,17 @@ export default defineEventHandler(async (event) => {
           eq(games.gameNo, payload.gameNo),
           eq(games.puzzleType, payload.puzzleType),
           eq(games.active, true),
+          eq(games.current, true),
         ),
       )
       .limit(1);
 
     const row = rows[0];
     if (!row) {
-      console.error('[api/session/hint] game not found', context);
+      console.error('[api/session/hint] game not found or not current', context);
       throw createError({
         statusCode: 404,
-        statusMessage: `Game ${payload.gameNo} not found`,
+        statusMessage: `Game ${payload.gameNo} not found or not the current road`,
       });
     }
 

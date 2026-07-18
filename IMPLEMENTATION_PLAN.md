@@ -845,7 +845,7 @@ The v2 UI is visually good; these decisions are about behavior and information r
 
 ### Issue RP0-4 — Make anonymous analytics trustworthy and accurately described
 - Priority: `P0` (launch-blocking)
-- Status: `planned`
+- Status: `done`
 - Goal: ensure global comparison cannot be trivially distorted and public privacy copy matches stored data.
 - Why it matters: session analytics currently accepts important solve fields from the client, and rate limiting uses a player-supplied UUID. The privacy page describes aggregated data even though the database keeps pseudonymous per-player, per-road, per-mode rows. Archived solves currently use the same analytics path as live play, and the 25+ histogram bucket is too coarse to support an exact percentile for every player inside it.
 - Scope:
@@ -863,6 +863,16 @@ The v2 UI is visually good; these decisions are about behavior and information r
   - the chart may keep its visual 25+ bucket, but a player's “top N%” statement is calculated from unpooled attempts or from a separate server-derived at-or-better value
   - privacy copy plainly describes pseudonymous event/result storage and aggregation
 - Dependencies: none
+- Completion notes:
+  - `server/api/session/end.post.ts` and `hint.post.ts` now gate their `games` lookup on `current = true` (in addition to the existing `active`/`gameNo`/`puzzleType` match): a payload for any non-current road 404s before any row is read or written, making the archive-is-local boundary (RP0-5) a server guarantee rather than only client behavior
+  - `end.post.ts` also validates the reported `score` against that road's stored `maxScore` and rejects payloads that exceed it (400)
+  - `shared/validators/game.ts`: `SessionEndPayloadSchema`/`HintRequestPayloadSchema` gained sanity ceilings (`moves` ≤ 5000, `attemptNumber` ≤ 1000, `hintsUsed` ≤ 1000, `pathHistory` length ≤ 5000, `solveTimeMs` ≤ 24h) plus a cross-field check rejecting `hintsUsed` wildly disproportionate to `attemptNumber`; full server-side session-timestamp derivation was out of scope since no session-start record exists yet, so this round hardens via validation/clamping rather than adding new session-tracking infrastructure
+  - rate limiting in both session routes now checks two independent keys (`player:<uuid>` and `ip:<CF-Connecting-IP via getRequestIP>`) against the same `RATE_LIMITER` binding and fails closed if either trips, so rotating the client-supplied UUID alone no longer bypasses the limit
+  - `CommunityRoadStats` gained `solvedAttemptsExact` (`server/utils/statsAggregation.ts`: `buildExactSolvedAttemptsDistribution`), an unpooled attempts→count map alongside the existing pooled `solvedAttempts` histogram; `stats.vue`'s `topPercent` now sums the exact map instead of the pooled one, so a player above the pooled 25+ bucket still gets an exact percentile
+  - added a percentile-specific minimum sample gate (`PERCENTILE_SAMPLE_MIN = 10` solvers, separate from the existing `COMMUNITY_SAMPLE_MIN = 5` used for the histogram/headline): below it the "top N%" line is replaced with an explicit "not enough solvers yet" line rather than showing a number
+  - `about.vue` Privacy card rewritten to state plainly that the server stores one row per player per road per mode (attempts, hints, solve time) keyed to the on-device random id, that these are the raw rows the stats page's community numbers come from, and that archived (Past Roads) play never reaches the server
+  - tests: `tests/statsAggregation.test.ts` extended for `buildExactSolvedAttemptsDistribution` and the pooled/exact split on `toCommunityRoadStats`; new `tests/sessionPayloadValidation.test.ts` covers the new schema ceilings and cross-field checks
+  - `pnpm typecheck`, `pnpm test` (59/59), and `pnpm build` all green
 
 ### Issue RP0-5 — Make archive completion local, mode-specific, and stats-free
 - Priority: `P0` (launch-blocking)

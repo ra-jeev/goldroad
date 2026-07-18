@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildEmptyCommunityRoadStats,
+  buildExactSolvedAttemptsDistribution,
   buildSolvedAttemptsDistribution,
   createEmptyStatsRoadDay,
   roundNullable,
@@ -83,6 +84,57 @@ describe('buildSolvedAttemptsDistribution', () => {
   });
 });
 
+describe('buildExactSolvedAttemptsDistribution', () => {
+  it('keeps every attempt count as its own exact key, with no pooled tail bucket', () => {
+    const distribution = buildExactSolvedAttemptsDistribution([
+      { gameNo: 1, puzzleType: 'classic', attempts: 1, count: 4 },
+      { gameNo: 1, puzzleType: 'classic', attempts: 24, count: 1 },
+      { gameNo: 1, puzzleType: 'classic', attempts: 25, count: 1 },
+      { gameNo: 1, puzzleType: 'classic', attempts: 40, count: 2 },
+    ]);
+
+    expect(distribution).toEqual({
+      '1': 4,
+      '24': 1,
+      '25': 1,
+      '40': 2,
+    });
+  });
+
+  it('ignores zero counts and nonsense attempt values, same as the pooled variant', () => {
+    const distribution = buildExactSolvedAttemptsDistribution([
+      { gameNo: 1, puzzleType: 'classic', attempts: 0, count: 3 },
+      { gameNo: 1, puzzleType: 'classic', attempts: 2, count: 0 },
+      { gameNo: 1, puzzleType: 'classic', attempts: 3, count: 5 },
+    ]);
+
+    expect(distribution).toEqual({ '3': 5 });
+  });
+
+  it('lets a percentile computed from it stay exact past the pooled histogram bucket', () => {
+    // 30 solvers at attempts=30, 1 solver at attempts=50. The pooled
+    // histogram collapses both into "25+", which can't tell them apart;
+    // the exact distribution can.
+    const rows = [
+      { gameNo: 1, puzzleType: 'classic' as const, attempts: 30, count: 30 },
+      { gameNo: 1, puzzleType: 'classic' as const, attempts: 50, count: 1 },
+    ];
+    const pooled = buildSolvedAttemptsDistribution(rows);
+    const exact = buildExactSolvedAttemptsDistribution(rows);
+
+    expect(pooled).toEqual({ '25+': 31 });
+    expect(exact).toEqual({ '30': 30, '50': 1 });
+
+    // A player who solved in 50 attempts is dead last against the exact
+    // distribution (31/31 = 100th percentile), not indistinguishable from
+    // the 30-attempt solvers as the pooled bucket would suggest.
+    const atOrBetterForFifty = Object.entries(exact)
+      .filter(([key]) => Number(key) <= 50)
+      .reduce((sum, [, count]) => sum + count, 0);
+    expect(atOrBetterForFifty).toBe(31);
+  });
+});
+
 describe('buildEmptyCommunityRoadStats', () => {
   it('produces a fully-zeroed stats block for a road with zero plays', () => {
     const stats = buildEmptyCommunityRoadStats(7, 'expedition');
@@ -96,6 +148,7 @@ describe('buildEmptyCommunityRoadStats', () => {
       silver: 0,
       bronze: 0,
       solvedAttempts: {},
+      solvedAttemptsExact: {},
       behavior: {
         hintUsers: 0,
         totalHints: 0,
@@ -123,6 +176,22 @@ describe('toCommunityRoadStats', () => {
     expect(stats.solveRate).toBe(100);
     expect(stats.behavior.hintUseRate).toBe(0);
     expect(stats.gold).toBe(1);
+  });
+
+  it('defaults both solved-attempts fields to empty when not provided', () => {
+    const stats = toCommunityRoadStats(makeRow());
+    expect(stats.solvedAttempts).toEqual({});
+    expect(stats.solvedAttemptsExact).toEqual({});
+  });
+
+  it('carries the pooled and exact solved-attempts distributions through independently', () => {
+    const stats = toCommunityRoadStats(
+      makeRow({ plays: 31, exactSolves: 31 }),
+      { '25+': 31 },
+      { '30': 30, '50': 1 },
+    );
+    expect(stats.solvedAttempts).toEqual({ '25+': 31 });
+    expect(stats.solvedAttemptsExact).toEqual({ '30': 30, '50': 1 });
   });
 
   it('distinguishes hint users (distinct players) from total hints (sum of hints)', () => {
