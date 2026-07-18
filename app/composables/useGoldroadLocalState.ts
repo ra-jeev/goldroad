@@ -44,7 +44,7 @@ type HistoryModeRecord = {
   updatedAt: string;
 };
 
-type HistoryDayRecord = {
+export type HistoryDayRecord = {
   day: string;
   gameNo: number;
   modes: Partial<Record<PuzzleType, HistoryModeRecord>>;
@@ -71,7 +71,7 @@ type GoldroadSettings = {
  * only the Past Roads calendar and archive solved/unlock presentation,
  * never medals, streaks, or stats (RP0-5).
  */
-type ArchiveCompletionRecord = Partial<Record<PuzzleType, true>>;
+export type ArchiveCompletionRecord = Partial<Record<PuzzleType, true>>;
 
 type GoldroadLocalState = {
   version: typeof STORAGE_VERSION;
@@ -440,7 +440,7 @@ function cloneArchiveCompletionMap(
  * Tolerant sanitizer: keep only well-formed entries so corrupted or
  * hand-edited storage degrades to "not completed" rather than wedging load.
  */
-function normalizeStoredArchiveCompletionMap(
+export function normalizeStoredArchiveCompletionMap(
   value: unknown,
 ): Record<string, ArchiveCompletionRecord> {
   if (!isPlainObject(value)) return {};
@@ -606,6 +606,27 @@ function setProgressMap(
 
 export function getRoadDayKeyFromPlayableAt(playableAt: string): string {
   return playableAt.split('T')[0] ?? playableAt;
+}
+
+/**
+ * Pure merge used by `isRoadModeSolved`: a road+mode presents as solved if
+ * either the archive-completion map or any live history day says so. Kept
+ * as a standalone export so the merge rule is unit-testable without a
+ * storage/browser environment (RP1-9).
+ */
+export function computeIsRoadModeSolved(
+  historyByDay: Record<string, HistoryDayRecord>,
+  archiveCompletionByGame: Record<string, ArchiveCompletionRecord>,
+  gameNo: number,
+  puzzleType: PuzzleType,
+): boolean {
+  if (archiveCompletionByGame[String(gameNo)]?.[puzzleType]) {
+    return true;
+  }
+
+  return Object.values(historyByDay).some(
+    (day) => day.gameNo === gameNo && day.modes[puzzleType]?.solved === true,
+  );
 }
 
 export function useGoldroadLocalState() {
@@ -863,12 +884,11 @@ export function useGoldroadLocalState() {
    */
   function isRoadModeSolved(gameNo: number, puzzleType: PuzzleType): boolean {
     const nextState = ensureLoaded();
-    if (nextState.archiveCompletionByGame[String(gameNo)]?.[puzzleType]) {
-      return true;
-    }
-
-    return Object.values(nextState.historyByDay).some(
-      (day) => day.gameNo === gameNo && day.modes[puzzleType]?.solved === true,
+    return computeIsRoadModeSolved(
+      nextState.historyByDay,
+      nextState.archiveCompletionByGame,
+      gameNo,
+      puzzleType,
     );
   }
 

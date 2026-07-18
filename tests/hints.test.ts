@@ -125,4 +125,48 @@ describe('computeHint', () => {
       guidePath: [0, 3, 4, 5],
     });
   });
+
+  // Archived roads ship their `optimalPaths` in the board payload and the
+  // client runs this exact same computeHint locally (RP0-5/RP1-9) — no
+  // server round trip. These cases exercise that path shape end to end.
+  describe('local archive hint calculation', () => {
+    it('computes a next-step hint purely from a shipped optimalPaths array, no server call involved', () => {
+      const shippedOptimalPaths = [[0, 4, 8, 12]];
+      const localPathHistory = [0, 4];
+
+      const hint = computeHint(shippedOptimalPaths, localPathHistory);
+
+      expect(hint).toEqual({
+        kind: 'next-step',
+        nextTileIndex: 8,
+        guidePath: [0, 4, 8],
+      });
+    });
+
+    it('computes a diverged hint for an archive replay that left the shipped optimal path', () => {
+      const shippedOptimalPaths = [[0, 4, 8, 12]];
+      const localPathHistory = [0, 4, 9];
+
+      const hint = computeHint(shippedOptimalPaths, localPathHistory);
+
+      expect(hint).toEqual({
+        kind: 'diverged',
+        divergenceTileIndex: 4,
+        correctTileIndex: 8,
+        guidePath: [0, 4, 8],
+      });
+    });
+
+    it('computes already-solved for a completed archive replay against a shipped path', () => {
+      const shippedOptimalPaths = [[0, 4, 8, 12]];
+      const localPathHistory = [0, 4, 8, 12];
+
+      const hint = computeHint(shippedOptimalPaths, localPathHistory);
+
+      expect(hint).toEqual({
+        kind: 'already-solved',
+        guidePath: [0, 4, 8, 12],
+      });
+    });
+  });
 });

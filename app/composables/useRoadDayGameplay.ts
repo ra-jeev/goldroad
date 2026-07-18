@@ -28,7 +28,7 @@ import {
   type ShareRoadResultResponse,
 } from './useRoadResultShare';
 
-type EntryType = 'live' | 'archive';
+export type EntryType = 'live' | 'archive';
 
 export type CelebrationTier = 'gold' | 'medal' | 'relief';
 
@@ -59,6 +59,31 @@ export type CelebrationState = {
   classicResult: CelebrationModeResult | null;
   expeditionResult: CelebrationModeResult | null;
 };
+
+/**
+ * An archive solve writes exactly one durable fact locally (RP0-5): this
+ * road+mode is complete. Starting, failing, or abandoning a run must never
+ * write anything. Exported standalone so the solved-only gate is
+ * unit-testable without the full gameplay composable (RP1-9).
+ */
+export function shouldRecordArchiveCompletion(
+  entryType: EntryType,
+  solved: boolean,
+): boolean {
+  return entryType !== 'live' && solved;
+}
+
+/**
+ * Only live, tracked runs ever talk to the server (RP0-5) — archive play
+ * (and any untracked replay of an already-solved board) never calls
+ * session/end or session/hint. Exported standalone for unit testing.
+ */
+export function shouldCallSessionApi(
+  entryType: EntryType,
+  isUntrackedReplay: boolean,
+): boolean {
+  return entryType === 'live' && !isUntrackedReplay;
+}
 
 function celebrationTierForMedal(medal: Medal | null): CelebrationTier {
   if (medal === 'gold') return 'gold';
@@ -778,7 +803,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     }
     // An archive solve writes exactly one durable fact: this road+mode is
     // complete. It feeds only the calendar and solved/unlock presentation.
-    if (!isLive && solved) {
+    if (shouldRecordArchiveCompletion(options.entryType, solved)) {
       localProgress.recordArchiveCompletion(
         game.value.gameNo,
         game.value.puzzleType,
@@ -796,7 +821,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     }
 
     // Archived play never creates analytics rows (RP0-5).
-    if (isUntrackedReplay || !isLive) {
+    if (!shouldCallSessionApi(options.entryType, isUntrackedReplay)) {
       submitting.value = false;
       return;
     }

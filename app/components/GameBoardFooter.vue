@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue';
 import type { ShareRoadResultResponse } from '../composables/useRoadResultShare';
 import { UI_COPY } from '../content/uiCopy';
+import { computeFooterState, type FooterState } from '../utils/footerState';
 
 const props = withDefaults(
   defineProps<{
@@ -75,29 +76,16 @@ const retryBusy = computed(
   () => props.loading || (props.submitting && !props.ended),
 );
 
-/**
- * The footer shows exactly one contextual message (or none) plus the
- * state-relevant actions — v1's GameFooter contract, with Hint as the
- * one deliberate addition since v1 had no hint feature.
- */
-type FooterState =
-  | 'resting-first' // board at rest, first attempt: one instruction
-  | 'resting-retry' // board at rest after a retry: attempt count only
-  | 'mid-run' // moves made: no text, quiet retry + hint icons only
-  | 'failed' // run ended unsolved: what happened + promoted Try again
-  | 'solved-next' // solved, Expedition waiting: actions only
-  | 'solved-final'; // solved, day done here: ticker + quiet actions
-
-const footerState = computed<FooterState>(() => {
-  if (props.solved) {
-    return props.canSwitchToExpedition ? 'solved-next' : 'solved-final';
-  }
-  if (props.ended) return 'failed';
-  if (props.hasMoved) return 'mid-run';
-  return props.attemptNumber > 1 && !props.trackingDisabled
-    ? 'resting-retry'
-    : 'resting-first';
-});
+const footerState = computed<FooterState>(() =>
+  computeFooterState({
+    solved: props.solved,
+    ended: props.ended,
+    hasMoved: props.hasMoved,
+    attemptNumber: props.attemptNumber,
+    trackingDisabled: props.trackingDisabled,
+    canSwitchToExpedition: props.canSwitchToExpedition,
+  }),
+);
 
 const footerMessage = computed<string | null>(() => {
   // A hint the player just asked for always replaces the resting message.

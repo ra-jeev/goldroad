@@ -1,0 +1,138 @@
+import { describe, expect, it } from 'vitest';
+import {
+  buildEmptyCommunityRoadStats,
+  buildExactSolvedAttemptsDistribution,
+  buildSolvedAttemptsDistribution,
+  toCommunityRoadStats,
+  type AggregatedRoadStatsRow,
+  type SolvedAttemptsRow,
+} from '../server/utils/statsAggregation';
+import {
+  COMMUNITY_SAMPLE_MIN,
+  PERCENTILE_SAMPLE_MIN,
+  hasCommunitySample,
+  hasPercentileSample,
+  toPercent,
+  topPercent,
+} from '../app/utils/statsPresentation';
+
+function makeAggregatedRow(
+  overrides: Partial<AggregatedRoadStatsRow> = {},
+): AggregatedRoadStatsRow {
+  return {
+    gameNo: 1,
+    puzzleType: 'classic',
+    plays: 0,
+    exactSolves: 0,
+    gold: 0,
+    silver: 0,
+    bronze: 0,
+    hintUsers: 0,
+    totalHints: 0,
+    averageAttemptsBeforeFirstHint: null,
+    averageFirstHintMoveIndex: null,
+    averageDeadEndCount: null,
+    averageWrongExitCount: null,
+    averageSolveTimeMs: null,
+    ...overrides,
+  };
+}
+
+describe('toPercent', () => {
+  it('clamps and rounds', () => {
+    expect(toPercent(0, 0)).toBe(0);
+    expect(toPercent(1, 3)).toBe(33);
+    expect(toPercent(3, 3)).toBe(100);
+  });
+});
+
+describe('pooled 25+ bucket vs exact percentile (RP0-4 / RP1-9)', () => {
+  // 30 solvers total: attempts 1..29 solved once each, plus one solver at 40.
+  const rows: SolvedAttemptsRow[] = [
+    ...Array.from({ length: 29 }, (_, i) => ({
+      gameNo: 1,
+      puzzleType: 'classic' as const,
+      attempts: i + 1,
+      count: 1,
+    })),
+    { gameNo: 1, puzzleType: 'classic', attempts: 40, count: 1 },
+  ];
+  const totalSolvers = rows.reduce((sum, r) => sum + r.count, 0);
+
+  const pooled = buildSolvedAttemptsDistribution(rows, 25);
+  const exact = buildExactSolvedAttemptsDistribution(rows);
+
+  it('the pooled histogram collapses everyone at/after 25 into one 25+ bucket', () => {
+    // attempts 25..29 (5 solvers) + the 40-attempt solver = 6 in "25+"
+    expect(pooled['25+']).toBe(6);
+    expect(pooled['24']).toBe(1);
+    expect(pooled['40']).toBeUndefined();
+  });
+
+  it('the exact distribution keeps every attempt count distinct, including past the pooled bucket', () => {
+    expect(exact['25']).toBe(1);
+    expect(exact['29']).toBe(1);
+    expect(exact['40']).toBe(1);
+    expect(exact['25+']).toBeUndefined();
+  });
+
+  function communityStatsFor(exactSolves: number) {
+    return toCommunityRoadStats(
+      makeAggregatedRow({ plays: totalSolvers, exactSolves }),
+      pooled,
+      exact,
+    );
+  }
+
+  it('a player inside the pooled bucket (attempts 25) still gets the correct exact percentile', () => {
+    const stat = communityStatsFor(totalSolvers);
+    // At-or-better than 25 attempts: everyone from 1..25 = 25 solvers of 30.
+    expect(topPercent(stat, 25)).toBe(toPercent(25, totalSolvers));
+  });
+
+  it('a player past the pooled bucket (attempts 40) gets an exact percentile, not "25+"-pooled 100%', () => {
+    const stat = communityStatsFor(totalSolvers);
+    // Everyone (all 30) did at least as well as the 40-attempt solver.
+    expect(topPercent(stat, 40)).toBe(100);
+  });
+
+  it('a player at the very edge of the pooled bucket (attempts 30, between 29 and 40) is still exact', () => {
+    const stat = communityStatsFor(totalSolvers);
+    // At-or-better than 30 attempts: everyone from 1..29 = 29 of 30.
+    expect(topPercent(stat, 30)).toBe(toPercent(29, totalSolvers));
+  });
+
+  it('matches a same-shaped manual computation off the exact map directly (proves independence from the pooled map)', () => {
+    const stat = communityStatsFor(totalSolvers);
+    const manualAtOrBetter = Object.entries(exact).reduce(
+      (sum, [key, count]) =>
+        Number.parseInt(key, 10) <= 29 ? sum + count : sum,
+      0,
+    );
+    expect(topPercent(stat, 29)).toBe(toPercent(manualAtOrBetter, totalSolvers));
+  });
+});
+
+describe('sparse-sample gates', () => {
+  it('COMMUNITY_SAMPLE_MIN gates the histogram/headline at 5 plays', () => {
+    const below = buildEmptyCommunityRoadStats(1, 'classic');
+    below.plays = COMMUNITY_SAMPLE_MIN - 1;
+    expect(hasCommunitySample(below)).toBe(false);
+
+    const atMin = buildEmptyCommunityRoadStats(1, 'classic');
+    atMin.plays = COMMUNITY_SAMPLE_MIN;
+    expect(hasCommunitySample(atMin)).toBe(true);
+  });
+
+  it('PERCENTILE_SAMPLE_MIN gates the top-N% line at 10 exact solvers, independent of plays', () => {
+    const below = buildEmptyCommunityRoadStats(1, 'classic');
+    below.plays = 1000;
+    below.exactSolves = PERCENTILE_SAMPLE_MIN - 1;
+    expect(hasPercentileSample(below)).toBe(false);
+
+    const atMin = buildEmptyCommunityRoadStats(1, 'classic');
+    atMin.plays = 1000;
+    atMin.exactSolves = PERCENTILE_SAMPLE_MIN;
+    expect(hasPercentileSample(atMin)).toBe(true);
+  });
+});

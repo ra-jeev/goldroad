@@ -6,6 +6,12 @@ import {
   buildRoadResultShareText,
   useRoadResultShare,
 } from '../composables/useRoadResultShare';
+import {
+  COMMUNITY_SAMPLE_MIN,
+  PERCENTILE_SAMPLE_MIN,
+  hasPercentileSample,
+  topPercent,
+} from '../utils/statsPresentation';
 
 const localStats = useLocalPlayerStats();
 const localProgress = useLocalGameProgress();
@@ -24,13 +30,6 @@ const loading = ref(true);
 
 const selectedMode = ref<PuzzleType>('classic');
 const showFieldDetail = ref(false);
-const COMMUNITY_SAMPLE_MIN = 5;
-// Percentile claims need their own, higher bar: "top N%" is a specific,
-// authoritative-sounding number, and a tiny solved count can make ties or
-// single solvers look like a meaningful ranking. Below this many solvers,
-// the top-N% line is omitted even though the histogram and headline may
-// still show (RP0-4).
-const PERCENTILE_SAMPLE_MIN = 10;
 
 const todayShare = ref<{ busy: boolean; feedback: FeedbackMessage | null }>({
   busy: false,
@@ -70,11 +69,6 @@ function formatDurationMs(value: number | null): string {
     : `${seconds}s`;
 }
 
-function toPercent(value: number, total: number): number {
-  if (total <= 0) return 0;
-  return Math.max(0, Math.min(100, Math.round((value / total) * 100)));
-}
-
 // ---------------------------------------------------------------------------
 // Per-game local results (durable history keyed by gameNo + mode)
 // ---------------------------------------------------------------------------
@@ -105,36 +99,6 @@ function playerResult(
 function medalOf(result: PlayerRoadResult | null): Medal | null {
   if (!result) return null;
   return calcMedalForAttempt(result.attempts, result.solved);
-}
-
-/**
- * v1's "top X%": the share of the whole field that did as well as or better
- * than the player, the player included. Smaller is better. Computed from the
- * *unpooled* solved-attempts distribution (`solvedAttemptsExact`) against
- * everyone who played, independent of the display histogram's pooled 25+
- * bucket, so it stays exact for players above that bucket too (RP0-4).
- */
-function topPercent(stat: CommunityRoadStats, playerAttempts: number): number {
-  if (playerAttempts < 1 || stat.plays <= 0) return 0;
-
-  let atOrBetter = 0;
-  for (const [key, count] of Object.entries(stat.solvedAttemptsExact)) {
-    const attempts = Number.parseInt(key, 10);
-    if (attempts <= playerAttempts) {
-      atOrBetter += count;
-    }
-  }
-
-  return Math.max(1, toPercent(atOrBetter, stat.plays));
-}
-
-/**
- * Tiny or suspicious solver samples shouldn't produce an authoritative
- * "top N%" claim (RP0-4). Gated on solved count, not raw plays, since the
- * percentile is a statement about the solved field.
- */
-function hasPercentileSample(stat: CommunityRoadStats): boolean {
-  return stat.exactSolves >= PERCENTILE_SAMPLE_MIN;
 }
 
 // ---------------------------------------------------------------------------
