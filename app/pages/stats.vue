@@ -535,7 +535,9 @@ onMounted(async () => {
             {{ todayShare.feedback.message }}
           </p>
 
-          <p v-if="todayCard.state === 'solved'" class="next-road-line">
+          <!-- Always visible: after a solve it's the wait for tomorrow,
+               before one it's the time left to walk today's road. -->
+          <p class="next-road-line">
             Next road in {{ nextRoadCountdown }}
           </p>
         </section>

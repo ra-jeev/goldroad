@@ -1,5 +1,17 @@
 <script setup lang="ts">
 import { UPDATES as updates } from '../content/updates';
+
+const localState = useGoldroadLocalState();
+const { hasUnseenUpdate, acknowledgeLatestUpdate } = useUpdatesNotice();
+
+// Capture the unread state before acknowledging, so the "new" marker shows
+// on the visit that reads the update and is gone on every visit after.
+const showUnreadDot = ref(false);
+onMounted(() => {
+  localState.load();
+  showUnreadDot.value = hasUnseenUpdate.value;
+  acknowledgeLatestUpdate();
+});
 </script>
 
 <template>
@@ -25,18 +37,15 @@ import { UPDATES as updates } from '../content/updates';
             class="update-entry"
             :class="{ 'update-entry--latest': index === 0 }"
           >
-            <div class="update-marker" aria-hidden="true">
-              <span class="update-dot" />
-              <span
-                v-if="index !== updates.length - 1"
-                class="update-line"
-              />
-            </div>
-
             <div class="update-body">
               <div class="update-meta">
                 <span v-if="index === 0" class="update-badge">Latest</span>
                 <span class="update-date">{{ entry.date }}</span>
+                <span
+                  v-if="index === 0 && showUnreadDot"
+                  class="update-unread"
+                  aria-label="New update"
+                />
               </div>
               <h3>{{ entry.title }}</h3>
               <p v-for="(paragraph, pIndex) in entry.body" :key="pIndex">
@@ -206,45 +215,27 @@ import { UPDATES as updates } from '../content/updates';
 
 .updates-timeline {
   display: grid;
-  gap: 0;
+  gap: 1.2rem;
 }
 
-.update-entry {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 0.9rem;
-}
-
-.update-marker {
-  display: grid;
-  justify-items: center;
-  gap: 0.2rem;
-}
-
-.update-dot {
-  margin-top: 0.35rem;
-  width: 0.65rem;
-  height: 0.65rem;
-  border-radius: var(--radius-circle);
-  background: rgb(var(--color-gold-rgb) / 0.4);
-}
-
-.update-entry--latest .update-dot {
-  background: var(--color-gold-bright);
-  box-shadow: var(--shadow-glow-gold-soft);
-}
-
-.update-line {
-  width: 2px;
-  flex: 1;
-  min-height: 1.2rem;
-  background: rgb(var(--color-gold-rgb) / 0.18);
+.update-entry + .update-entry {
+  padding-top: 1.2rem;
+  border-top: 1px solid rgb(var(--color-gold-rgb) / 0.14);
 }
 
 .update-body {
   display: grid;
   gap: 0.4rem;
-  padding-bottom: 1.2rem;
+}
+
+/* Unread marker: glows on the visit that reads the update, gone after. */
+.update-unread {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: var(--radius-circle);
+  background: var(--color-gold-bright);
+  box-shadow: var(--shadow-glow-gold-soft);
+  animation: rise-in var(--transition-slow) both;
 }
 
 .update-meta {

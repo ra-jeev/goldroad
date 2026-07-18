@@ -13,6 +13,12 @@ export type TutorialLesson = {
     isEnd?: boolean;
     isHinted?: boolean;
     showHintButton?: boolean;
+    /**
+     * Render the real pre-run state: the start tile already occupied
+     * (current) and its neighbor glowing (a legal move) — exactly how a
+     * road actually begins.
+     */
+    showStartState?: boolean;
   };
 };
 
@@ -27,7 +33,7 @@ export const TUTORIAL_LESSONS: TutorialLesson[] = [
   {
     id: 'icons',
     title: 'From the footprints to the flag',
-    body: 'Start on the footprints. Reach the finish flag with a score matching the target.',
+    body: 'Every road begins with you already standing on the footprints. Glowing tiles are the moves you can take. Reach the finish flag with a score matching the target.',
     visual: {
       fromValue: 5,
       toValue: 6,
@@ -35,6 +41,7 @@ export const TUTORIAL_LESSONS: TutorialLesson[] = [
       edgeType: 'open',
       isStart: true,
       isEnd: true,
+      showStartState: true,
     },
   },
   {

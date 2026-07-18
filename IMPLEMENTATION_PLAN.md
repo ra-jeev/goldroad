@@ -768,6 +768,15 @@ The v2 UI is visually good; these decisions are about behavior and information r
 - **Archive hints are local** (owner-confirmed; a deliberate carve-out from P0-3's server-side-paths boundary, for archived roads only — protecting yesterday's solutions is pointless load once the road is history). Fetch the archived boards with their valid solution paths, then reuse the client hint calculation. Archived play makes no session, hint, or result analytics calls. Current/live solution paths must remain protected behind the existing live-game contract.
 - **Deep-archive random play stays** (owner decision, upholding the §2 locked decision "random deep-archive play is allowed"). **Surprise me** is retained in simplified, identity-free form: it picks any road older than the calendar window with no player-identity or analytics lookup; repeats are acceptable.
 
+### Clarified product decisions — July 2026 feedback round 3 (tutorial, help sheet, updates dot)
+
+- **Tutorial lesson 1 shows the real pre-run state.** The mini board renders the footprints tile already occupied and its neighbor glowing, matching what a player actually sees before their first move, with copy explaining that every road begins with you standing on the footprints.
+- **The How to Play sheet is a pure game reference.** Its About and Updates sections were removed; that content lives on the About page. In-game copy says "Try again", not "Retry".
+- **The next-road countdown on stats is always visible** — after a solve it's the wait for tomorrow's road; before one it's the time left to play today's.
+- **The About page owns update acknowledgment.** A glowing inline "new" marker sits beside the Latest badge on the visit that first reads the update and is gone on every visit after; the nav dot clears at the same moment. The old timeline-marker column, which read as a stray bullet, is gone.
+- **Client state writes must never build on the SSR placeholder.** Mutations go through `ensureLoadedForWrite()`, which loads real storage before cloning, so hydration-time placeholder state can never clobber stored player data. Reads keep hydration-safe behavior (no load side effects during render).
+- **`V1WelcomeSheet` keeps its name deliberately**: it is cutover-transition furniture shown only to detected returning v1 players (new players get the tutorial), and the `V1` prefix marks it as removable after the v1 sunset.
+
 ### Issue RP0-1 — Restore a trustworthy release verification gate
 - Priority: `P0` (launch-blocking)
 - Status: `in progress`

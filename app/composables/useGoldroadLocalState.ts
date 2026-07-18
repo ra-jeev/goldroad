@@ -656,6 +656,28 @@ export function useGoldroadLocalState() {
     return state.value ?? createEmptyState(FALLBACK_UUID);
   }
 
+  /**
+   * Like ensureLoaded, but safe to build a WRITE on. The server renders
+   * with a FALLBACK_UUID placeholder that Nuxt hydrates into the shared
+   * state; committing a mutation derived from that placeholder would
+   * clobber the player's real stored data. Mutators run from event
+   * handlers and lifecycle hooks (never during render), so loading here
+   * is side-effect-safe.
+   */
+  function ensureLoadedForWrite(): GoldroadLocalState {
+    if (
+      typeof window !== 'undefined' &&
+      state.value?.playerUUID === FALLBACK_UUID
+    ) {
+      const loaded = load();
+      if (loaded) {
+        return loaded;
+      }
+    }
+
+    return ensureLoaded();
+  }
+
   function updatePuzzleProgress(options: {
     gameNo: number;
     puzzleType: PuzzleType;
@@ -664,7 +686,7 @@ export function useGoldroadLocalState() {
     syncHistory?: boolean;
     updater: (progress: PuzzleProgressRecord) => PuzzleProgressRecord;
   }): LocalPuzzleProgress {
-    const nextState = cloneState(ensureLoaded());
+    const nextState = cloneState(ensureLoadedForWrite());
     const key = buildPuzzleKey(options.gameNo, options.puzzleType);
     const progressMap = getProgressMap(nextState, options.scope);
     const existing = progressMap[key];
@@ -696,7 +718,7 @@ export function useGoldroadLocalState() {
     puzzleType: PuzzleType,
     scope: LocalProgressScope,
   ) {
-    const nextState = cloneState(ensureLoaded());
+    const nextState = cloneState(ensureLoadedForWrite());
     const key = buildPuzzleKey(gameNo, puzzleType);
     const progressMap = getProgressMap(nextState, scope);
     if (!(key in progressMap)) {
@@ -822,7 +844,7 @@ export function useGoldroadLocalState() {
   }
 
   function recordArchiveCompletion(gameNo: number, puzzleType: PuzzleType) {
-    const nextState = cloneState(ensureLoaded());
+    const nextState = cloneState(ensureLoadedForWrite());
     const key = String(gameNo);
     const existing = nextState.archiveCompletionByGame[key];
     if (existing?.[puzzleType]) return;
@@ -851,7 +873,7 @@ export function useGoldroadLocalState() {
   }
 
   function setCurrentRoadContext(update: Partial<CurrentRoadContext>) {
-    const nextState = cloneState(ensureLoaded());
+    const nextState = cloneState(ensureLoadedForWrite());
     nextState.currentRoadContext = {
       ...nextState.currentRoadContext,
       ...update,
@@ -861,7 +883,7 @@ export function useGoldroadLocalState() {
   }
 
   function markTutorialSeen() {
-    const nextState = cloneState(ensureLoaded());
+    const nextState = cloneState(ensureLoadedForWrite());
     nextState.tutorialState = {
       ...nextState.tutorialState,
       lastSeenAt: nowIso(),
@@ -871,7 +893,7 @@ export function useGoldroadLocalState() {
   }
 
   function markTutorialCompleted() {
-    const nextState = cloneState(ensureLoaded());
+    const nextState = cloneState(ensureLoadedForWrite());
     nextState.tutorialState = {
       completed: true,
       lastSeenAt: nowIso(),
@@ -895,7 +917,7 @@ export function useGoldroadLocalState() {
     day: string,
   ) {
     const key = buildCelebrationKey(gameNo, puzzleType, day);
-    const nextState = cloneState(ensureLoaded());
+    const nextState = cloneState(ensureLoadedForWrite());
     if (nextState.celebratedSolveKeys.includes(key)) {
       return;
     }
@@ -905,7 +927,7 @@ export function useGoldroadLocalState() {
   }
 
   function dismissV1Notice() {
-    const nextState = cloneState(ensureLoaded());
+    const nextState = cloneState(ensureLoadedForWrite());
     if (nextState.v1NoticeDismissed) {
       return;
     }
@@ -915,7 +937,7 @@ export function useGoldroadLocalState() {
   }
 
   function acknowledgeUpdate(updateId: string) {
-    const nextState = cloneState(ensureLoaded());
+    const nextState = cloneState(ensureLoadedForWrite());
     if (nextState.lastAcknowledgedUpdateId === updateId) {
       return;
     }
@@ -925,7 +947,7 @@ export function useGoldroadLocalState() {
   }
 
   function setMuted(muted: boolean) {
-    const nextState = cloneState(ensureLoaded());
+    const nextState = cloneState(ensureLoadedForWrite());
     nextState.settings = {
       ...nextState.settings,
       muted,

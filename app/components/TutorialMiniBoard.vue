@@ -16,6 +16,8 @@ const props = defineProps<{
   isEnd?: boolean;
   isHinted?: boolean;
   showHintButton?: boolean;
+  /** Show the real pre-run state: start occupied, its neighbor glowing. */
+  showStartState?: boolean;
 }>();
 
 const values = computed(() =>
@@ -71,9 +73,9 @@ function roadStyle(index: number): Record<string, string> {
         :value="value"
         :is-start="Boolean(isStart) && index === 0"
         :is-end="Boolean(isEnd) && index === values.length - 1"
-        :is-current="false"
-        :is-active="false"
-        :is-done="false"
+        :is-current="Boolean(showStartState) && index === 0"
+        :is-active="Boolean(showStartState) && index === 1"
+        :is-done="Boolean(showStartState) && index === 0"
         :is-hinted="Boolean(isHinted) && index === values.length - 1"
         :tab-index="-1"
         disabled

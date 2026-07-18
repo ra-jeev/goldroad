@@ -11,7 +11,10 @@ const currentRoadLabel = useState<string | null>(
 const { muted, toggleMuted } = useGoldroadLocalState();
 const { openHowToPlay, closeHowToPlay } = useHowToPlaySheet();
 const { closeTutorial } = useTutorialFlow();
-const { hasUnseenUpdate, acknowledgeLatestUpdate } = useUpdatesNotice();
+// Acknowledgment of the latest update is owned by the About page itself,
+// which needs to capture the pre-acknowledgment state to show its own
+// unread marker exactly once.
+const { hasUnseenUpdate } = useUpdatesNotice();
 
 watch(
   () => route.fullPath,
@@ -19,10 +22,6 @@ watch(
     closeHowToPlay();
     closeTutorial();
     closeMobileMenu();
-
-    if (route.path === '/about') {
-      acknowledgeLatestUpdate();
-    }
   },
   { immediate: true },
 );

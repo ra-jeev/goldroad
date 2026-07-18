@@ -83,22 +83,9 @@ export const UI_COPY = {
       tools: {
         title: 'Tools',
         items: [
-          'Retry restarts the same road and increases your attempt count.',
+          'Try again restarts the same road and increases your attempt count.',
           'Hints highlight a guide route and do not reduce your score or medal.',
           'Solving Classic unlocks Expedition for the day when one is available.',
-          'How to Play is always available from the question button in the toolbar.',
-        ],
-      },
-      about: {
-        title: 'About GoldRoad',
-        body: 'GoldRoad is a daily route puzzle about finding the best legal path, not collecting every coin on the board.',
-      },
-      updates: {
-        title: 'What’s new',
-        items: [
-          'Target-score solving is back at the center of the game.',
-          'Gold, silver, and bronze are based on solve attempts 1, 2, and 3.',
-          'Hints now act as recovery tools instead of score penalties.',
         ],
       },
     },
@@ -197,7 +184,7 @@ export const UI_COPY = {
     hintNextStep:
       'Hint applied. The highlighted guide shows the next correct move.',
     hintDiverged:
-      'Hint applied. The target route broke at the highlighted turn. Retry and follow the highlighted branch.',
+      'Hint applied. The target route broke at the highlighted turn. Try again and follow the highlighted branch.',
     hintAlreadySolved:
       'Hint applied. You already found the best route; follow the highlighted road.',
   },

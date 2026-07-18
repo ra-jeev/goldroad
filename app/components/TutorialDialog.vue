@@ -133,6 +133,7 @@ onBeforeUnmount(() => {
               :is-end="lesson.visual.isEnd"
               :is-hinted="lesson.visual.isHinted"
               :show-hint-button="lesson.visual.showHintButton"
+              :show-start-state="lesson.visual.showStartState"
             />
 
             <div>
