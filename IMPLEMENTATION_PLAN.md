@@ -1082,7 +1082,7 @@ The v2 UI is visually good; these decisions are about behavior and information r
 
 ### Issue RP1-7 — Give v2 one warm, concrete product voice
 - Priority: `P1`
-- Status: `in progress`
+- Status: `done`
 - Goal: restore character without bringing back v1's less precise rules or inventing extra game jargon.
 - Why it matters: v2 mixes run/attempt/try, start/exit/finish, road/game, analytics language, and internal phrases such as **Milestone 1**. Correct mechanics still feel unfinished when their language drifts.
 - Scope:
@@ -1104,6 +1104,7 @@ The v2 UI is visually good; these decisions are about behavior and information r
   - removed the player-facing internal "Milestone 1" heading
   - stats now uses **attempt** for medal-counting units and reserves **result** for community histogram counts
   - remaining audit drift: About still uses **start/exit** where the game teaches **footprints/finish**; Help and one runtime hint still use **Retry** where the player-facing action is **Try again**
+  - final drift sweep: About's road paragraph now reads "footprints" and "finish flag/finish" instead of "start tile"/"exit tile"/"reach the exit"; the stats field-behavior line now reads dead ends "per attempt" instead of "per run"; a repo-wide grep confirmed no remaining player-facing **Retry** text, no stray em-dashes outside code comments, and no internal jargon (milestone/analytics/session/issue codes) in UI copy — `pnpm typecheck` and `pnpm test` (59 tests) both pass
 
 ### Issue RP1-8 — Complete keyboard and dialog accessibility
 - Priority: `P1`

@@ -66,9 +66,9 @@ onMounted(() => {
           Classic.
         </p>
         <p>
-          Build a path from the start tile to the exit tile without
+          Build a path from your footprints to the finish flag without
           retracing your steps. A puzzle is
-          <strong>solved</strong> only when you reach the exit with your
+          <strong>solved</strong> only when you reach the finish with your
           score exactly on the target: not more, not less.
         </p>
         <p>

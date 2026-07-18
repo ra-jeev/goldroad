@@ -332,7 +332,7 @@ const yesterdayBehaviorRows = computed(() => {
   }
   if (field.behavior.averageDeadEndCount !== null) {
     rows.push(
-      `Around ${field.behavior.averageDeadEndCount} dead end${field.behavior.averageDeadEndCount === 1 ? '' : 's'} per run on average`,
+      `Around ${field.behavior.averageDeadEndCount} dead end${field.behavior.averageDeadEndCount === 1 ? '' : 's'} per attempt on average`,
     );
   }
 
