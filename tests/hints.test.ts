@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computeHint } from '../server/utils/hints';
+import { computeHint } from '../shared/utils/hints';
 
 describe('computeHint', () => {
   it('returns the next tile when the player path is a valid prefix of the optimal path', () => {

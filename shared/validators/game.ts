@@ -208,6 +208,10 @@ export const PublicGameSchema = z.object({
   difficultyBand: DifficultyBandSchema,
   playableAt: z.string().datetime({ offset: true }),
   nextGameAt: z.string().datetime({ offset: true }).nullable(),
+  // Present ONLY on archived (non-current) roads, where they power local
+  // hint computation so archive play needs no analytics calls (RP0-5).
+  // The live road's paths stay server-side per the P0-3 boundary.
+  optimalPaths: z.array(z.array(z.number().int().min(0))).optional(),
 });
 
 export const CurrentGamesResponseSchema = z.object({

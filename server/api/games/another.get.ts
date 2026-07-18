@@ -1,15 +1,18 @@
 import { and, desc, eq, lt, lte } from 'drizzle-orm';
-import { games, playerRoadAnalytics } from '../../db/schema';
+import { games } from '../../db/schema';
 import { useDb } from '../../db/client';
 import {
   getDeepArchiveCutoffGameNo,
   hasDeepArchiveRoads,
 } from '../../../shared/utils/archive';
 
+/**
+ * Deep-archive random road: purely random among roads older than the
+ * recent-archive window. Deliberately identity-free (RP0-5): no player
+ * lookup against analytics, so repeats are possible and acceptable.
+ */
 export default defineEventHandler(async (event) => {
   const db = useDb(event);
-  const query = getQuery(event);
-  const playerId = typeof query.playerId === 'string' ? query.playerId : null;
 
   const nowIso = new Date().toISOString();
 
@@ -49,28 +52,7 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  let candidateGameNos = candidateRows.map((row) => row.gameNo);
-
-  if (playerId) {
-    const playedRows = await db
-      .select({ gameNo: playerRoadAnalytics.gameNo })
-      .from(playerRoadAnalytics)
-      .where(
-        and(
-          eq(playerRoadAnalytics.playerId, playerId),
-          lt(playerRoadAnalytics.gameNo, cutoffGameNo),
-        ),
-      );
-
-    const playedSet = new Set(playedRows.map((row) => row.gameNo));
-    const unplayedGameNos = candidateGameNos.filter(
-      (gameNo) => !playedSet.has(gameNo),
-    );
-    if (unplayedGameNos.length) {
-      candidateGameNos = unplayedGameNos;
-    }
-  }
-
+  const candidateGameNos = candidateRows.map((row) => row.gameNo);
   const randomIndex = Math.floor(Math.random() * candidateGameNos.length);
   const gameNo = candidateGameNos[randomIndex] ?? candidateGameNos[0];
 

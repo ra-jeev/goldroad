@@ -12,6 +12,7 @@ const currentRoadLabel = useState<string | null>(
 const {
   availableGames,
   selectedMode,
+  isExpeditionUnlocked,
   game,
   tiles,
   currentTileIndex,
@@ -157,7 +158,7 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
         <GameBoardHeader
           :selected-mode="selectedMode"
           :has-expedition="Boolean(availableGames.expedition)"
-          :is-expedition-unlocked="true"
+          :is-expedition-unlocked="isExpeditionUnlocked"
           :classic-solved="classicSolvedToday"
           :classic-medal="classicMedalToday"
           :expedition-solved="expeditionSolvedToday"

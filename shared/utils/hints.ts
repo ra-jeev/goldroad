@@ -1,8 +1,12 @@
 /**
- * Server-side hint computation.
+ * Hint computation, shared between server and client.
  *
- * The optimal paths remain server-side. The client sends its committed
- * `pathHistory`, and the server returns only the next actionable hint result.
+ * For the LIVE road, optimal paths remain server-side (the P0-3 boundary):
+ * the client sends its committed `pathHistory` and the server returns only
+ * the next actionable hint result. For ARCHIVED roads, the board payload
+ * ships its solution paths and the client runs this same computation
+ * locally — a deliberate RP0-5 carve-out so archive play makes no
+ * analytics calls at all.
  *
  * Hint behavior:
  *   - If the current path is still a valid prefix of an optimal path, return

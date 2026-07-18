@@ -65,6 +65,14 @@ type GoldroadSettings = {
   muted: boolean;
 };
 
+/**
+ * Archive completion is deliberately minimal: just "this mode of this road
+ * was solved at some point". No attempts, no times, no medals — it feeds
+ * only the Past Roads calendar and archive solved/unlock presentation,
+ * never medals, streaks, or stats (RP0-5).
+ */
+type ArchiveCompletionRecord = Partial<Record<PuzzleType, true>>;
+
 type GoldroadLocalState = {
   version: typeof STORAGE_VERSION;
   playerUUID: string;
@@ -73,6 +81,7 @@ type GoldroadLocalState = {
   puzzleProgressByKey: Record<string, PuzzleProgressRecord>;
   replayProgressByKey: Record<string, PuzzleProgressRecord>;
   historyByDay: Record<string, HistoryDayRecord>;
+  archiveCompletionByGame: Record<string, ArchiveCompletionRecord>;
   tutorialState: TutorialState;
   celebratedSolveKeys: string[];
   v1NoticeDismissed: boolean;
@@ -337,6 +346,7 @@ function createEmptyState(playerUUID = createPlayerUUID()): GoldroadLocalState {
     puzzleProgressByKey: {},
     replayProgressByKey: {},
     historyByDay: {},
+    archiveCompletionByGame: {},
     tutorialState: {
       completed: false,
       lastSeenAt: null,
@@ -418,6 +428,38 @@ function cloneHistoryByDayMap(
   );
 }
 
+function cloneArchiveCompletionMap(
+  value: Record<string, ArchiveCompletionRecord>,
+): Record<string, ArchiveCompletionRecord> {
+  return Object.fromEntries(
+    Object.entries(value).map(([gameNo, record]) => [gameNo, { ...record }]),
+  );
+}
+
+/**
+ * Tolerant sanitizer: keep only well-formed entries so corrupted or
+ * hand-edited storage degrades to "not completed" rather than wedging load.
+ */
+function normalizeStoredArchiveCompletionMap(
+  value: unknown,
+): Record<string, ArchiveCompletionRecord> {
+  if (!isPlainObject(value)) return {};
+
+  const normalized: Record<string, ArchiveCompletionRecord> = {};
+  for (const [gameNo, record] of Object.entries(value)) {
+    if (!/^\d+$/.test(gameNo) || !isPlainObject(record)) continue;
+
+    const entry: ArchiveCompletionRecord = {};
+    if (record.classic === true) entry.classic = true;
+    if (record.expedition === true) entry.expedition = true;
+    if (entry.classic || entry.expedition) {
+      normalized[gameNo] = entry;
+    }
+  }
+
+  return normalized;
+}
+
 function cloneState(value: GoldroadLocalState): GoldroadLocalState {
   return {
     version: STORAGE_VERSION,
@@ -431,6 +473,9 @@ function cloneState(value: GoldroadLocalState): GoldroadLocalState {
     puzzleProgressByKey: clonePuzzleProgressMap(value.puzzleProgressByKey),
     replayProgressByKey: clonePuzzleProgressMap(value.replayProgressByKey),
     historyByDay: cloneHistoryByDayMap(value.historyByDay),
+    archiveCompletionByGame: cloneArchiveCompletionMap(
+      value.archiveCompletionByGame,
+    ),
     tutorialState: {
       ...value.tutorialState,
     },
@@ -503,6 +548,9 @@ function normalizeStoredState(value: unknown): GoldroadLocalState | null {
     puzzleProgressByKey,
     replayProgressByKey: replayProgressByKey ?? {},
     historyByDay: value.historyByDay,
+    archiveCompletionByGame: normalizeStoredArchiveCompletionMap(
+      value.archiveCompletionByGame,
+    ),
     tutorialState: value.tutorialState,
     celebratedSolveKeys,
     v1NoticeDismissed:
@@ -773,6 +821,35 @@ export function useGoldroadLocalState() {
     });
   }
 
+  function recordArchiveCompletion(gameNo: number, puzzleType: PuzzleType) {
+    const nextState = cloneState(ensureLoaded());
+    const key = String(gameNo);
+    const existing = nextState.archiveCompletionByGame[key];
+    if (existing?.[puzzleType]) return;
+
+    nextState.archiveCompletionByGame = {
+      ...nextState.archiveCompletionByGame,
+      [key]: { ...existing, [puzzleType]: true },
+    };
+    commit(nextState);
+  }
+
+  /**
+   * Has this road+mode ever been solved, live or in the archive?
+   * Live history and the archive-completion map merge ONLY here (and for
+   * the calendar) — never into medals, streaks, or stats.
+   */
+  function isRoadModeSolved(gameNo: number, puzzleType: PuzzleType): boolean {
+    const nextState = ensureLoaded();
+    if (nextState.archiveCompletionByGame[String(gameNo)]?.[puzzleType]) {
+      return true;
+    }
+
+    return Object.values(nextState.historyByDay).some(
+      (day) => day.gameNo === gameNo && day.modes[puzzleType]?.solved === true,
+    );
+  }
+
   function setCurrentRoadContext(update: Partial<CurrentRoadContext>) {
     const nextState = cloneState(ensureLoaded());
     nextState.currentRoadContext = {
@@ -886,6 +963,11 @@ export function useGoldroadLocalState() {
     recordHint,
     setSolveTimerState,
     recordRun,
+    recordArchiveCompletion,
+    isRoadModeSolved,
+    archiveCompletionByGame: computed(
+      () => ensureLoaded().archiveCompletionByGame,
+    ),
     setCurrentRoadContext,
     markTutorialSeen,
     markTutorialCompleted,

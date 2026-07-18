@@ -152,10 +152,8 @@ async function checkGameBoard(gameNo: number) {
   logOk(`returns a schema-valid board payload for game ${gameNo}`);
 }
 
-async function checkAnotherGame(playerId: string) {
-  const { status, body, text } = await request(
-    `/api/games/another?playerId=${playerId}`,
-  );
+async function checkAnotherGame() {
+  const { status, body, text } = await request('/api/games/another');
 
   if (status === 200) {
     parseOrThrow(
@@ -386,7 +384,7 @@ async function run() {
   await checkGameBoard(currentGame.gameNo);
 
   console.log('\ngames/another (random deep-archive road)');
-  await checkAnotherGame(crypto.randomUUID());
+  await checkAnotherGame();
 
   console.log('\nsession/hint');
   await checkHint(

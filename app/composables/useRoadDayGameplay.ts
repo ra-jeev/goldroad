@@ -9,6 +9,7 @@ import {
   parseTileIndex,
 } from '../../shared/utils/puzzleEngine';
 import { calcMedalForAttempt } from '../../lib/gameTiers';
+import { computeHint } from '../../shared/utils/hints';
 import type {
   CurrentGamesResponse,
   Direction,
@@ -134,51 +135,57 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
   const roadHeading = computed(() =>
     game.value ? `Road ${game.value.gameNo}` : 'Road ...',
   );
+  /**
+   * Has the loaded road day's given mode ever been solved?
+   * Live pages read live progress; archive pages merge live history with
+   * the dedicated archive-completion map (RP0-5) — that merge exists only
+   * for solved/unlock presentation, never for stats.
+   */
+  function isModeCompleted(puzzleType: PuzzleType): boolean {
+    const target =
+      puzzleType === 'classic'
+        ? availableGames.value.classic
+        : availableGames.value.expedition;
+    if (!target) return false;
+
+    if (options.entryType === 'archive') {
+      return localProgress.isRoadModeSolved(target.gameNo, puzzleType);
+    }
+
+    return localProgress.getGameProgress(target.gameNo, puzzleType).solved;
+  }
+
   const isExpeditionUnlocked = computed(() => {
-    if (options.entryType === 'archive') return true;
-    if (!availableGames.value.classic) return false;
+    if (!availableGames.value.classic) {
+      // Defensive: a road day without a Classic half cannot gate.
+      return options.entryType === 'archive';
+    }
 
-    const classicProgress = localProgress.getGameProgress(
-      availableGames.value.classic.gameNo,
-      'classic',
-    );
-    return classicProgress.solved;
+    // Expedition is always gated behind that road's Classic solve — live
+    // or archive alike (RP0-5 superseded the frictionless-archive model).
+    return isModeCompleted('classic');
   });
-  const classicSolvedToday = computed(() => {
-    if (!availableGames.value.classic) return false;
-
-    const classicProgress = localProgress.getGameProgress(
-      availableGames.value.classic.gameNo,
-      'classic',
-    );
-    return classicProgress.solved;
-  });
+  const classicSolvedToday = computed(() => isModeCompleted('classic'));
   const classicMedalToday = computed<Medal | null>(() => {
     const classic = availableGames.value.classic;
     if (!classic) return null;
-    const progress = localProgress.getGameProgress(
-      classic.gameNo,
-      'classic',
-      progressScope,
-    );
+    if (options.entryType === 'archive') {
+      // Archive completions store no attempt count, so no medal to show.
+      return null;
+    }
+    const progress = localProgress.getGameProgress(classic.gameNo, 'classic');
     return calcMedalForAttempt(Math.max(progress.attempts, 1), progress.solved);
   });
-  const expeditionSolvedToday = computed(() => {
-    const expedition = availableGames.value.expedition;
-    if (!expedition) return false;
-    return localProgress.getGameProgress(
-      expedition.gameNo,
-      'expedition',
-      progressScope,
-    ).solved;
-  });
+  const expeditionSolvedToday = computed(() => isModeCompleted('expedition'));
   const expeditionMedalToday = computed<Medal | null>(() => {
     const expedition = availableGames.value.expedition;
     if (!expedition) return null;
+    if (options.entryType === 'archive') {
+      return null;
+    }
     const progress = localProgress.getGameProgress(
       expedition.gameNo,
       'expedition',
-      progressScope,
     );
     return calcMedalForAttempt(Math.max(progress.attempts, 1), progress.solved);
   });
@@ -400,7 +407,13 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
       progressScope,
     );
     const progressAttemptNumber = Math.max(progress.attempts, 0) + 1;
-    const hasSolvedHistory = progress.solved;
+    // Archive progress is transient (cleared on solve); the durable solved
+    // signal for archived roads is the completion map merged with live
+    // history. Live pages keep reading their own progress records.
+    const hasSolvedHistory =
+      progress.solved ||
+      (progressScope === 'replay' &&
+        localProgress.isRoadModeSolved(next.gameNo, next.puzzleType));
     const solvedMedal = progress.solved
       ? calcMedalForAttempt(Math.max(progress.attempts, 1), true)
       : null;
@@ -423,8 +436,8 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     // A solved puzzle always presents as solved at rest — even after a
     // mid-replay retry. Moving off the start tile is what begins an
     // untracked replay run.
-    lastMedal.value = progress.solved ? solvedMedal : null;
-    lastSolved.value = progress.solved;
+    lastMedal.value = hasSolvedHistory ? solvedMedal : null;
+    lastSolved.value = hasSolvedHistory;
     attemptNumber.value = hasSolvedHistory
       ? 1
       : (options.attemptNumber ?? progressAttemptNumber);
@@ -432,11 +445,11 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     guidePath.value = [...progress.guidePath];
     sessionId.value = createSessionId();
     trackingDisabled.value = hasSolvedHistory;
-    activeSolveTimeMs.value = progress.solved
+    activeSolveTimeMs.value = hasSolvedHistory
       ? (progress.solveTimeMs ?? 0)
       : progress.activeTimeMs;
     solveTimerStartedAtMs.value = null;
-    solveTimerCanResume.value = !progress.solved;
+    solveTimerCanResume.value = !hasSolvedHistory;
 
     const edgeMap = buildEdgeMap(next.board);
     const active = getActiveNeighbors(
@@ -463,7 +476,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     if (
       preferredMode === 'expedition' &&
       roadDay.expedition &&
-      (options.entryType === 'archive' || isExpeditionUnlocked.value)
+      isExpeditionUnlocked.value
     ) {
       return 'expedition';
     }
@@ -724,7 +737,10 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     }
 
     const isUntrackedReplay = trackingDisabled.value;
-    submitting.value = !isUntrackedReplay;
+    const isLive = options.entryType === 'live';
+    // Only live, tracked runs ever talk to the server; archive play is
+    // fully local (RP0-5), so it never enters a submitting state either.
+    submitting.value = !isUntrackedReplay && isLive;
     const expeditionWasUnlocked = isExpeditionUnlocked.value;
     const solved = endReason === 'solved';
     const dayKey = getProgressDayKey(game.value);
@@ -760,6 +776,14 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
         null,
       );
     }
+    // An archive solve writes exactly one durable fact: this road+mode is
+    // complete. It feeds only the calendar and solved/unlock presentation.
+    if (!isLive && solved) {
+      localProgress.recordArchiveCompletion(
+        game.value.gameNo,
+        game.value.puzzleType,
+      );
+    }
     if (solved) {
       guidePath.value = [];
       hintedTiles.value = new Set();
@@ -771,7 +795,8 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
       });
     }
 
-    if (isUntrackedReplay) {
+    // Archived play never creates analytics rows (RP0-5).
+    if (isUntrackedReplay || !isLive) {
       submitting.value = false;
       return;
     }
@@ -911,14 +936,24 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
       persistSolveTimerState(true);
     }
 
-    const res = await sessionApi.requestHint({
-      playerUUID: playerUUID.value,
-      gameNo: game.value.gameNo,
-      puzzleType: game.value.puzzleType,
-      sessionId: sessionId.value,
-      attemptNumber: attemptNumber.value,
-      pathHistory: [...pathHistory.value],
-    });
+    // Archived boards ship their solution paths, so hints compute locally
+    // with zero analytics calls (RP0-5). Only the live road asks the server.
+    let hint: ReturnType<typeof computeHint>;
+    if (options.entryType !== 'live') {
+      const optimalPaths = game.value.optimalPaths;
+      if (!optimalPaths?.length) return;
+      hint = computeHint(optimalPaths, [...pathHistory.value]);
+    } else {
+      const res = await sessionApi.requestHint({
+        playerUUID: playerUUID.value,
+        gameNo: game.value.gameNo,
+        puzzleType: game.value.puzzleType,
+        sessionId: sessionId.value,
+        attemptNumber: attemptNumber.value,
+        pathHistory: [...pathHistory.value],
+      });
+      hint = res.hint;
+    }
 
     const existingProgress = localProgress.getGameProgress(
       game.value.gameNo,
@@ -926,19 +961,21 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
       progressScope,
     );
 
+    const hintCopy =
+      hint.kind === 'next-step'
+        ? UI_COPY.runtime.hintNextStep
+        : hint.kind === 'already-solved'
+          ? UI_COPY.runtime.hintAlreadySolved
+          : UI_COPY.runtime.hintDiverged;
+
     if (existingProgress.solved) {
       hintsUsed.value += 1;
       guidePath.value =
-        res.hint.guidePath.length >= guidePath.value.length
-          ? [...res.hint.guidePath]
+        hint.guidePath.length >= guidePath.value.length
+          ? [...hint.guidePath]
           : [...guidePath.value];
       syncGuideHighlight();
-      hintMessage.value =
-        res.hint.kind === 'next-step'
-          ? UI_COPY.runtime.hintNextStep
-          : res.hint.kind === 'already-solved'
-            ? UI_COPY.runtime.hintAlreadySolved
-            : UI_COPY.runtime.hintDiverged;
+      hintMessage.value = hintCopy;
       return;
     }
 
@@ -946,19 +983,14 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
       game.value.gameNo,
       game.value.puzzleType,
       getRoadDayKeyFromPlayableAt(game.value.playableAt),
-      res.hint.guidePath,
+      hint.guidePath,
       progressScope,
     );
 
     hintsUsed.value = progress.hintsUsed;
     guidePath.value = [...progress.guidePath];
     syncGuideHighlight();
-    hintMessage.value =
-      res.hint.kind === 'next-step'
-        ? UI_COPY.runtime.hintNextStep
-        : res.hint.kind === 'already-solved'
-          ? UI_COPY.runtime.hintAlreadySolved
-          : UI_COPY.runtime.hintDiverged;
+    hintMessage.value = hintCopy;
   }
 
   function handlePageExit() {

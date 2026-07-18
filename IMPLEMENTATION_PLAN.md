@@ -857,7 +857,7 @@ The v2 UI is visually good; these decisions are about behavior and information r
 
 ### Issue RP0-5 — Make archive completion local, mode-specific, and stats-free
 - Priority: `P0` (launch-blocking)
-- Status: `in progress`
+- Status: `done`
 - Goal: let players complete missed roads from Past Roads without turning archive replay into live competition or corrupting personal/global records.
 - Why it matters: archive mode currently unlocks Expedition without requiring that road's Classic solve, and its gameplay can travel through the live session/hint/end analytics contract. The calendar also collapses both modes into one best-result marker, so it cannot answer the useful question: which half of this road day is still unfinished?
 - Scope:
@@ -880,6 +880,16 @@ The v2 UI is visually good; these decisions are about behavior and information r
 - Dependencies:
   - coordinate with RP0-4 so archive requests cannot reach analytics writes
   - RP1-9 for the completion, unlock, hint, and storage regression matrix
+- Completion notes:
+  - `computeHint` moved to `shared/utils/hints.ts` (used server-side for the live road, client-side for archived roads); tests updated
+  - `/api/games/[gameNo]/board` now attaches `optimalPaths` only when the road is not current — verified the live road never ships paths even through the archive URL; `PublicGameSchema` gained the optional field with the boundary documented inline
+  - `useRoadDayGameplay`: archive entry type never calls `session/hint` or `session/end` (browser-verified zero requests across a full hint + solve session); hints compute locally from the shipped paths; an archive solve writes exactly one durable fact to the new `archiveCompletionByGame` map
+  - solved/unlock presentation for archived roads derives from live history merged with the completion map (`isRoadModeSolved`), so a solved archive road presents as solved across reloads; the merge feeds only presentation and the calendar, never stats — `historyByDay` verified untouched after an archive solve
+  - Expedition gating unified: `isExpeditionUnlocked` now gates archive play behind that road's Classic solve (the archive-bypass branch and the replay page's hardcoded `true` both removed); the tab unlocks live at the moment of the Classic solve
+  - calendar renders two fixed-position per-mode discs (Classic left, Expedition right): gold/silver/bronze from live history, solved-green for archive completions, faint hollow when unsolved, with a legend row and full per-day accessible labels ("Road 2, 2 Jan 2026. Classic solved. Expedition not solved.")
+  - `/api/games/another` simplified to identity-free pure random (analytics lookup and `playerId` param removed end to end)
+  - stored-state sanitizer tolerates corrupted completion entries (degrades to "not completed")
+  - typecheck, 43/43 tests, and 12/12 API smoke checks green; browser-verified gating, local hint, solve, persistence, calendar discs, and a11y labels
 
 ### Issue RP1-1 — Rebuild onboarding around the production game language
 - Priority: `P1`

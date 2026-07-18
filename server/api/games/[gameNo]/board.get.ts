@@ -1,7 +1,10 @@
 import { and, eq } from 'drizzle-orm';
+import { z } from 'zod';
 import { games } from '../../../db/schema';
 import { useDb } from '../../../db/client';
 import { parsePublicGameRow } from '../../../utils/apiGames';
+
+const OptimalPathsSchema = z.array(z.array(z.number().int().min(0)));
 
 export default defineEventHandler(async (event) => {
   const db = useDb(event);
@@ -25,6 +28,8 @@ export default defineEventHandler(async (event) => {
       difficultyBand: games.difficultyBand,
       playableAt: games.playableAt,
       nextGameAt: games.nextGameAt,
+      current: games.current,
+      optimalPathsJson: games.optimalPathsJson,
     })
     .from(games)
     .where(and(eq(games.gameNo, gameNo), eq(games.active, true)))
@@ -37,36 +42,39 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  const parsedGames = rows.map((row) => parsePublicGameRow(row));
-  const classic = parsedGames.find((entry) => entry.puzzleType === 'classic');
-  const expedition = parsedGames.find(
-    (entry) => entry.puzzleType === 'expedition',
-  );
+  function serializeMode(
+    row: (typeof rows)[number] | undefined,
+  ): Record<string, unknown> | null {
+    if (!row) return null;
+
+    const parsed = parsePublicGameRow(row);
+
+    // Archived (non-current) roads ship their solution paths so hints can
+    // run locally with zero analytics calls (RP0-5). The live road's paths
+    // never leave the server (P0-3 boundary).
+    const optimalPaths = row.current
+      ? undefined
+      : OptimalPathsSchema.parse(JSON.parse(row.optimalPathsJson));
+
+    return {
+      gameNo: parsed.gameNo,
+      puzzleType: parsed.puzzleType,
+      board: parsed.board,
+      maxScore: parsed.maxScore,
+      totalCoins: parsed.totalCoins,
+      difficultyBand: parsed.difficultyBand,
+      playableAt: parsed.playableAt,
+      nextGameAt: parsed.nextGameAt,
+      ...(optimalPaths ? { optimalPaths } : {}),
+    };
+  }
 
   return {
-    classic: classic
-      ? {
-          gameNo: classic.gameNo,
-          puzzleType: classic.puzzleType,
-          board: classic.board,
-          maxScore: classic.maxScore,
-          totalCoins: classic.totalCoins,
-          difficultyBand: classic.difficultyBand,
-          playableAt: classic.playableAt,
-          nextGameAt: classic.nextGameAt,
-        }
-      : null,
-    expedition: expedition
-      ? {
-          gameNo: expedition.gameNo,
-          puzzleType: expedition.puzzleType,
-          board: expedition.board,
-          maxScore: expedition.maxScore,
-          totalCoins: expedition.totalCoins,
-          difficultyBand: expedition.difficultyBand,
-          playableAt: expedition.playableAt,
-          nextGameAt: expedition.nextGameAt,
-        }
-      : null,
+    classic: serializeMode(
+      rows.find((entry) => entry.puzzleType === 'classic'),
+    ),
+    expedition: serializeMode(
+      rows.find((entry) => entry.puzzleType === 'expedition'),
+    ),
   };
 });

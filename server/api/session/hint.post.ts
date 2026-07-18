@@ -2,7 +2,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import { games, playerRoadAnalytics } from '../../db/schema';
 import { useDb } from '../../db/client';
 import { HintRequestPayloadSchema } from '../../db/validators';
-import { computeHint } from '../../utils/hints';
+import { computeHint } from '../../../shared/utils/hints';
 import { parseHintGameRow } from '../../utils/apiGames';
 import { parsePayload } from '../../utils/validation';
 

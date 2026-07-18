@@ -30,10 +30,8 @@ export function useGamesApi() {
     return api.get<CurrentGamesResponse>('/api/games/current');
   }
 
-  function getAnotherGame(playerId?: string) {
-    return api.get<RandomRoadResponse>('/api/games/another', {
-      playerId,
-    });
+  function getAnotherGame() {
+    return api.get<RandomRoadResponse>('/api/games/another');
   }
 
   function getPastGames(limit = 30) {

@@ -16,12 +16,13 @@ const randomBusy = ref(false);
 const randomError = ref<string | null>(null);
 
 type DayMark = Medal | 'solved';
+type ModeMarks = { classic: DayMark | null; expedition: DayMark | null };
 
 type CalendarCell = {
   key: string;
   dayNum: number | null;
   gameNo: number | null;
-  mark: DayMark | null;
+  marks: ModeMarks;
   label: string | null;
 };
 
@@ -46,26 +47,50 @@ function formatDate(value: string): string {
   }).format(new Date(value));
 }
 
-/** Best personal result per road day: gold > silver > bronze > plain solved. */
+/**
+ * Per-mode completion marks: gold/silver/bronze from live history's attempt
+ * counts, solved-green for no-medal solves and archive completions (which
+ * store no attempt count). The two sources merge here and for solved/unlock
+ * presentation only — never into stats (RP0-5).
+ */
 const marksByGameNo = computed(() => {
-  const rank: Record<DayMark, number> = { gold: 3, silver: 2, bronze: 1, solved: 0 };
-  const marks = new Map<number, DayMark>();
+  const marks = new Map<number, ModeMarks>();
+  const entry = (gameNo: number): ModeMarks => {
+    const existing = marks.get(gameNo);
+    if (existing) return existing;
+    const fresh: ModeMarks = { classic: null, expedition: null };
+    marks.set(gameNo, fresh);
+    return fresh;
+  };
 
   for (const day of localStats.recentDays.value) {
     (['classic', 'expedition'] as const).forEach((mode) => {
       const record = day.modes[mode];
       if (!record?.solved) return;
-      const medal = calcMedalForAttempt(record.attempts, record.solved);
-      const mark: DayMark = medal ?? 'solved';
-      const existing = marks.get(day.gameNo);
-      if (!existing || rank[mark] > rank[existing]) {
-        marks.set(day.gameNo, mark);
+      entry(day.gameNo)[mode] =
+        calcMedalForAttempt(record.attempts, record.solved) ?? 'solved';
+    });
+  }
+
+  for (const [gameNoKey, completion] of Object.entries(
+    localProgress.archiveCompletionByGame.value,
+  )) {
+    const gameNo = Number.parseInt(gameNoKey, 10);
+    if (!Number.isInteger(gameNo)) continue;
+    (['classic', 'expedition'] as const).forEach((mode) => {
+      if (completion[mode] && !entry(gameNo)[mode]) {
+        entry(gameNo)[mode] = 'solved';
       }
     });
   }
 
   return marks;
 });
+
+function describeModeMark(mode: string, mark: DayMark | null): string {
+  if (!mark) return `${mode} not solved`;
+  return mark === 'solved' ? `${mode} solved` : `${mode} solved, ${mark}`;
+}
 
 const calendarMonths = computed<CalendarMonth[]>(() => {
   if (!games.value.length) return [];
@@ -98,7 +123,7 @@ const calendarMonths = computed<CalendarMonth[]>(() => {
         key: `blank-${year}-${month}-${blank}`,
         dayNum: null,
         gameNo: null,
-        mark: null,
+        marks: { classic: null, expedition: null },
         label: null,
       });
     }
@@ -106,15 +131,20 @@ const calendarMonths = computed<CalendarMonth[]>(() => {
     for (let dayNum = 1; dayNum <= daysInMonth; dayNum += 1) {
       const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
       const game = gamesByDate.get(dateKey);
-      const mark = game ? (marksByGameNo.value.get(game.gameNo) ?? null) : null;
+      const marks = game
+        ? (marksByGameNo.value.get(game.gameNo) ?? {
+            classic: null,
+            expedition: null,
+          })
+        : { classic: null, expedition: null };
 
       cells.push({
         key: dateKey,
         dayNum,
         gameNo: game?.gameNo ?? null,
-        mark,
+        marks,
         label: game
-          ? `Road ${game.gameNo}, ${formatDate(game.playableAt)}${mark ? `, solved${mark === 'solved' ? '' : ` · ${mark}`}` : ''}`
+          ? `Road ${game.gameNo}, ${formatDate(game.playableAt)}. ${describeModeMark('Classic', marks.classic)}. ${describeModeMark('Expedition', marks.expedition)}.`
           : null,
       });
     }
@@ -150,9 +180,7 @@ async function playRandomOlderRoad() {
   randomError.value = null;
 
   try {
-    const response = await gamesApi.getAnotherGame(
-      localProgress.playerUUID.value ?? undefined,
-    );
+    const response = await gamesApi.getAnotherGame();
     await navigateTo(`/games/${response.gameNo}`);
   } catch {
     randomError.value = 'No older road is available right now.';
@@ -221,12 +249,21 @@ onMounted(async () => {
                 v-if="cell.gameNo !== null"
                 :to="`/games/${cell.gameNo}`"
                 class="calendar-day calendar-day--playable"
-                :class="cell.mark ? `calendar-day--${cell.mark}` : null"
                 :aria-label="cell.label ?? undefined"
                 :title="cell.label ?? undefined"
               >
                 <span class="day-num">{{ cell.dayNum }}</span>
-                <span v-if="cell.mark" class="day-mark" aria-hidden="true" />
+                <!-- Fixed positions: Classic left, Expedition right -->
+                <span class="day-marks" aria-hidden="true">
+                  <span
+                    class="day-mark"
+                    :class="cell.marks.classic ? `day-mark--${cell.marks.classic}` : 'day-mark--open'"
+                  />
+                  <span
+                    class="day-mark"
+                    :class="cell.marks.expedition ? `day-mark--${cell.marks.expedition}` : 'day-mark--open'"
+                  />
+                </span>
               </NuxtLink>
               <span
                 v-else
@@ -240,6 +277,20 @@ onMounted(async () => {
             </template>
           </div>
         </section>
+
+        <div class="calendar-legend" aria-hidden="true">
+          <span class="legend-item">
+            <span class="day-marks day-marks--legend">
+              <span class="day-mark day-mark--gold" />
+              <span class="day-mark day-mark--open" />
+            </span>
+            Classic · Expedition
+          </span>
+          <span class="legend-item">
+            <span class="day-mark day-mark--open legend-single" />
+            not solved yet
+          </span>
+        </div>
 
         <p class="calendar-hint">
           The latest {{ RECENT_ARCHIVE_DAY_LIMIT }} road days are open for
@@ -400,25 +451,63 @@ onMounted(async () => {
   line-height: 1;
 }
 
-.day-mark {
+/* Two fixed-position completion marks: Classic left, Expedition right. */
+.day-marks {
   position: absolute;
-  bottom: 15%;
-  width: 0.34rem;
-  height: 0.34rem;
+  bottom: 12%;
+  display: flex;
+  gap: 0.22rem;
+}
+
+.day-mark {
+  width: 0.32rem;
+  height: 0.32rem;
   border-radius: var(--radius-circle);
+}
+
+.day-mark--open {
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.35);
+  background: transparent;
+}
+
+.day-mark--solved {
   background: var(--color-active);
 }
 
-.calendar-day--gold .day-mark {
+.day-mark--gold {
   background: var(--color-gold-bright);
 }
 
-.calendar-day--silver .day-mark {
+.day-mark--silver {
   background: var(--color-medal-silver-bright);
 }
 
-.calendar-day--bronze .day-mark {
+.day-mark--bronze {
   background: var(--color-medal-bronze-bright);
+}
+
+.calendar-legend {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.4rem;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: rgb(var(--color-gold-rgb) / 0.6);
+}
+
+.day-marks--legend {
+  position: static;
+}
+
+.legend-single {
+  display: inline-block;
 }
 
 .calendar-hint {
