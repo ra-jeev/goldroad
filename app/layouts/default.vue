@@ -247,34 +247,6 @@ onClickOutside(menuShell, closeMobileMenu);
   font-weight: 700;
 }
 
-.nav-link {
-  text-decoration: none;
-  color: var(--color-gold-muted);
-  font-size: 0.95rem;
-  font-weight: 750;
-  padding: 0.4rem 0.8rem;
-  border-radius: 8px;
-  transition: all var(--transition-fast);
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-family: inherit;
-}
-
-.nav-link--compact {
-  padding-inline: 0.75rem;
-}
-
-.nav-link:hover {
-  color: var(--color-gold);
-  background: rgb(var(--color-gold-rgb) / 0.1);
-}
-
-.nav-link.router-link-active {
-  color: var(--color-gold);
-  background: rgb(var(--color-gold-rgb) / 0.15);
-}
-
 .icon-button {
   position: relative;
   width: 2.25rem;
@@ -412,10 +384,6 @@ onClickOutside(menuShell, closeMobileMenu);
 
   .header-content {
     padding: 0.8rem 0.9rem;
-  }
-
-  .nav-link--compact {
-    padding-inline: 0.55rem;
   }
 
   .menu-panel {

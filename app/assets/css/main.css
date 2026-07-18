@@ -8,68 +8,31 @@
   --color-gold: goldenrod;
   --color-gold-dark: darkgoldenrod;
   --color-gold-rgb: 218 165 32;
-  --color-gold-dark-rgb: 184 134 11;
   --color-gold-bright: #d4af37;
   --color-gold-muted: #d4a044;
-  --color-gold-light: #e8c84a;
 
   /* ── Backgrounds ──────────────────────────────────────────── */
   --color-bg-deepest: #0d0702;
   --color-bg-dark: #110900;
   --color-bg-base: #1a0e03;
 
-  /* ── Mode-specific backgrounds ────────────────────────────── */
-  /* Classic mode - warm brown tones (default) */
-  --color-bg-classic-deepest: #0d0702;
-  --color-bg-classic-dark: #110900;
-  --color-bg-classic-base: #1a0e03;
-
-  /* Expedition mode - deep blue-teal tones */
-  --color-bg-expedition-deepest: #020a0d;
-  --color-bg-expedition-dark: #031419;
-  --color-bg-expedition-base: #041f26;
-
   /* Mode-specific card tints */
-  --mode-tint-classic: rgb(160 90 0 / 0.22);
-  --mode-tint-classic-alt: rgb(90 40 0 / 0.2);
   --mode-tint-expedition: rgb(0 90 120 / 0.18);
-  --mode-tint-expedition-alt: rgb(0 60 80 / 0.16);
 
   /* ── Semantic colors ──────────────────────────────────────── */
-  --color-start: #c0c0c0;
-  --color-silver-rgb: 192 192 192;
-  --color-start-light: #e8e8e8;
-  --color-start-dark: #808080;
-  --color-end: #cd7f32;
-  --color-end-light: #e8a75c;
-  --color-end-dark: #8b5a2b;
-  --color-active: #4ade80;
-  --color-active-rgb: 74 222 128;
-  --color-blocked: #8b4513;
+  --color-solved: #4ade80;
+  --color-solved-rgb: 74 222 128;
   --color-success: #1c8a4a;
   --color-text-on-success: #eafff2;
 
-  --color-medal-silver: #b9c2cc;
   --color-medal-silver-bright: #e9edf2;
   --color-medal-silver-muted: #dbe2ea;
-  --color-medal-silver-light: #eef2f7;
-  --color-medal-silver-rgb: 226 232 240;
-  --color-medal-silver-segment: #c4ccd6;
   --color-text-on-silver: #1c1c1c;
   --gradient-medal-silver: linear-gradient(135deg, #e9edf2 0%, #b9c2cc 100%);
 
-  --color-medal-bronze: #b9702f;
   --color-medal-bronze-bright: #e6a866;
-  --color-medal-bronze-rgb: 205 127 50;
-  --color-medal-bronze-segment: #c67f34;
   --color-text-on-bronze: #2a1608;
   --gradient-medal-bronze: linear-gradient(135deg, #e6a866 0%, #b9702f 100%);
-
-  --color-expedition-accent: #00b4c8;
-  --color-expedition-accent-rgb: 0 180 200;
-  --color-expedition-accent-bright: #00dcf0;
-  --color-expedition-accent-bright-rgb: 0 220 240;
-  --color-text-on-expedition: #012026;
 
   /* ── Road edge hierarchy ──────────────────────────────────── */
   /* open roads = neutral gold (var(--color-gold)); scoring roads
@@ -81,7 +44,6 @@
   --color-bonus: #ffce3a;
   --color-bonus-rgb: 255 206 58;
   --color-bonus-bright: #ffe07a;
-  --road-missing-opacity: 0.32;
 
   --color-hint: #d6336c;
   --color-hint-rgb: 214 51 108;
@@ -89,7 +51,6 @@
   --color-focus-rgb: 75 158 255;
 
   /* ── Text ─────────────────────────────────────────────────── */
-  --color-text-primary: var(--color-gold);
   --color-text-dark: #2d1c02;
   --color-text-on-gold: #1a0e00;
 
@@ -117,7 +78,6 @@
   --font-size-2xl: 1.5rem;
   --font-size-3xl: 1.72rem;
 
-  --letter-spacing-tight: 0.01em;
   --letter-spacing-wide: 0.16em;
 
   --line-height-snug: 1.42;
@@ -125,21 +85,14 @@
 
   /* ── Shadows ──────────────────────────────────────────────── */
   --shadow-sm: 0 8px 18px rgb(0 0 0 / 0.35);
-  --shadow-md: 0 10px 22px rgb(0 0 0 / 0.4);
   --shadow-lg: 0 20px 42px rgb(0 0 0 / 0.4);
   --shadow-xl: 0 24px 48px rgb(0 0 0 / 0.42);
   --shadow-2xl: 0 28px 56px rgb(0 0 0 / 0.48);
 
   --shadow-glow-gold: 0 0 12px 4px rgb(var(--color-gold-rgb) / 0.54);
   --shadow-glow-gold-soft: 0 0 8px rgb(var(--color-gold-rgb) / 0.36);
-  --shadow-glow-road: 0 0 8px rgb(var(--color-gold-rgb) / 0.55);
-  --shadow-glow-active: 0 0 14px rgb(var(--color-active-rgb) / 0.3);
-  --shadow-glow-active-hover: 0 0 14px rgb(var(--color-active-rgb) / 0.45);
   --shadow-glow-hint: 0 0 14px rgb(var(--color-hint-rgb) / 0.45);
   --shadow-glow-focus: 0 0 12px rgb(var(--color-focus-rgb) / 0.35);
-  --shadow-glow-start: 0 0 6px rgb(34 197 94 / 0.6);
-  --shadow-glow-end: 0 0 6px rgb(220 38 38 / 0.5);
-  --shadow-glow-end-subtle: 0 0 10px rgb(180 60 20 / 0.2);
 
   --shadow-inset-gold: inset 0 1px 0 rgb(255 215 0 / 0.1);
   --shadow-border-dark: 0 0 0 1px rgb(0 0 0 / 0.5);
@@ -156,38 +109,11 @@
       var(--color-bg-base) 0%,
       var(--color-bg-dark) 55%,
       var(--color-bg-deepest) 100%);
-  --gradient-bg-classic:
-    radial-gradient(ellipse 70% 50% at 15% 0%,
-      rgb(160 90 0 / 0.22) 0%,
-      transparent 55%),
-    radial-gradient(ellipse 55% 45% at 85% 100%,
-      rgb(90 40 0 / 0.2) 0%,
-      transparent 60%),
-    linear-gradient(175deg,
-      var(--color-bg-classic-base) 0%,
-      var(--color-bg-classic-dark) 55%,
-      var(--color-bg-classic-deepest) 100%);
-  --gradient-bg-expedition:
-    radial-gradient(ellipse 70% 50% at 15% 0%,
-      rgb(0 90 120 / 0.18) 0%,
-      transparent 55%),
-    radial-gradient(ellipse 55% 45% at 85% 100%,
-      rgb(0 60 80 / 0.16) 0%,
-      transparent 60%),
-    linear-gradient(175deg,
-      var(--color-bg-expedition-base) 0%,
-      var(--color-bg-expedition-dark) 55%,
-      var(--color-bg-expedition-deepest) 100%);
   --gradient-card-hero:
     radial-gradient(ellipse 120% 90% at 10% 0%,
       rgb(var(--color-gold-rgb) / 0.14) 0%,
       transparent 60%),
     linear-gradient(160deg, #1e1004 0%, #150c03 62%, #0e0802 100%);
-  --gradient-card-board:
-    radial-gradient(ellipse 80% 60% at 18% 10%,
-      rgb(255 212 59 / 0.06) 0%,
-      transparent 60%),
-    linear-gradient(175deg, #1c1108 0%, #160e05 50%, #0e0a04 100%);
   --gradient-card-status: linear-gradient(180deg, #1e1407 0%, #150e04 100%);
   --gradient-card-overlay:
     radial-gradient(ellipse 110% 80% at 10% 0%,
@@ -210,9 +136,6 @@
   --gradient-button-primary: linear-gradient(135deg,
       goldenrod 0%,
       #b8860b 100%);
-  --gradient-radial-active: radial-gradient(circle,
-      rgb(var(--color-gold-rgb) / 0.75) 0%,
-      transparent 96%);
 
   /* ── Transitions ──────────────────────────────────────────── */
   --transition-fast: 140ms ease;
@@ -287,12 +210,6 @@ body {
 }
 
 /* ── Mode-specific backgrounds ────────────────────────────────── */
-
-body.mode-classic .hero-card,
-body.mode-classic .board-stage {
-  --mode-tint-classic: rgb(160 90 0 / 0.22);
-  --mode-tint-classic-alt: rgb(90 40 0 / 0.2);
-}
 
 body.mode-expedition .hero-card {
   background: radial-gradient(ellipse 120% 90% at 10% 0%,

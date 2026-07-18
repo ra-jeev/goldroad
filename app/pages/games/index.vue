@@ -326,9 +326,6 @@ onMounted(async () => {
 
 .container {
   width: 100%;
-}
-
-.container {
   max-width: 480px;
   margin: 0 auto;
   display: grid;
@@ -471,7 +468,7 @@ onMounted(async () => {
 }
 
 .day-mark--solved {
-  background: var(--color-active);
+  background: var(--color-solved);
 }
 
 .day-mark--gold {

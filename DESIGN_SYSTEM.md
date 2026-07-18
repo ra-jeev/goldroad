@@ -24,33 +24,27 @@ These are the decided visual rules the v2 UI implements. They came out of the P1
 ### Colors
 
 #### Primary Palette
-- `--color-gold` - Main gold color (goldenrod), with `--color-gold-dark`, `--color-gold-bright` (#d4af37), `--color-gold-muted`, `--color-gold-light`
-- `--color-gold-rgb`, `--color-gold-dark-rgb` - RGB triplets for use with opacity
+- `--color-gold` - Main gold color (goldenrod), with `--color-gold-dark`, `--color-gold-bright` (#d4af37), `--color-gold-muted`
+- `--color-gold-rgb` - RGB triplet for use with opacity
 
 #### Backgrounds
 - `--color-bg-deepest` / `--color-bg-dark` / `--color-bg-base` - Warm near-black browns for the app shell
-- `--color-bg-classic-*` - Classic mode backgrounds (same warm browns)
-- `--color-bg-expedition-*` - Expedition mode backgrounds (deep blue-teal)
-- `--mode-tint-classic(-alt)`, `--mode-tint-expedition(-alt)` - Mode card tints
+- `--mode-tint-expedition` - Expedition hero-card tint
 
 #### Semantic Colors
-- Start/finish markers carry **no semantic color**: both render as gold-on-dark icon badges (`GameTile.vue` `.marker`), distinguished purely by icon — footprints for start, finish flag for the exit. The `--color-start`/`--color-end` token families (and `--color-silver-rgb`) are declared but referenced by nothing — cleanup candidates (see `IMPLEMENTATION_PLAN.md` RP1-13)
-- `--color-active` (+ `-rgb`) - Available-move green; also used as the positive accent on stats surfaces
-- `--color-blocked` - Dead legacy token (pre-P0-1 "blocked road" naming); referenced by nothing, cleanup candidate
+- Start/finish markers carry **no semantic color**: both render as gold-on-dark icon badges (`GameTile.vue` `.marker`), distinguished purely by icon — footprints for start, finish flag for the exit. No color tokens exist for start/finish.
+- `--color-solved` (+ `-rgb`) - Solved-state green: the calendar's solved-day marker (`app/pages/games/index.vue` `.day-mark--solved`) and the stats page's positive feedback text
 - `--color-success`, `--color-text-on-success` - Success badge fill and readable text color
-- `--color-medal-silver`, `--color-medal-silver-bright`, `--color-medal-silver-muted`, `--color-medal-silver-light`, `--color-medal-silver-rgb`, `--color-medal-silver-segment` - Silver medal tier colors
+- `--color-medal-silver-bright`, `--color-medal-silver-muted` - Silver medal tier colors
 - `--color-text-on-silver`, `--gradient-medal-silver` - Text and gradient for silver medal surfaces
-- `--color-medal-bronze`, `--color-medal-bronze-bright`, `--color-medal-bronze-rgb`, `--color-medal-bronze-segment` - Bronze medal tier colors
+- `--color-medal-bronze-bright` - Bronze medal tier color
 - `--color-text-on-bronze`, `--gradient-medal-bronze` - Text and gradient for bronze medal surfaces
-- `--color-expedition-accent`, `--color-expedition-accent-rgb`, `--color-expedition-accent-bright`, `--color-expedition-accent-bright-rgb` - Expedition cyan accent colors — **referenced by no component** (July 2026 decision: no cyan element accents; Expedition identity comes from its background tint alone; secondary emphasis uses silver). Cleanup candidates (RP1-13)
 - `--color-toll` (+ `-rgb`, `-bright`) - Toll roads, cautionary rust (#d2691e)
 - `--color-bonus` (+ `-rgb`, `-bright`) - Bonus roads, honey-gold (#ffce3a)
-- `--road-missing-opacity` - How far missing-road remnants recede (used by closed-road states, not the live board, where missing roads are true empty space)
 - `--color-hint` (+ `-rgb`) - Hint highlighting (pink)
 - `--color-focus` (+ `-rgb`) - The single focus color (#4b9eff blue) used by both component focus styles and the global `:focus-visible` outline
 
 #### Text
-- `--color-text-primary` - Defaults to gold
 - `--color-text-dark`, `--color-text-on-gold` - Dark text for gold-filled surfaces
 
 #### Opacity
@@ -75,21 +69,21 @@ There is not currently a shared spacing scale. Components use local `rem` values
 ### Typography
 
 - Font sizes: `--font-size-xs` through `--font-size-3xl`
-- Letter spacing: `--letter-spacing-tight`, `--letter-spacing-wide`
+- Letter spacing: `--letter-spacing-wide`
 - Line heights: `--line-height-snug`, `--line-height-base`
 
 ### Shadows
 
 Predefined shadow styles:
-- `--shadow-sm` through `--shadow-2xl` - Drop shadows
-- `--shadow-glow-*` - Glow effects for various elements
+- `--shadow-sm`, `--shadow-lg`, `--shadow-xl`, `--shadow-2xl` - Drop shadows
+- `--shadow-glow-gold`, `--shadow-glow-gold-soft`, `--shadow-glow-hint`, `--shadow-glow-focus` - Glow effects for various elements
 - `--shadow-inset-*` - Inset highlights
 - `--shadow-border-*` - Border-like shadows
 
 ### Gradients
 
 Reusable gradient patterns:
-- `--gradient-bg-main`, `--gradient-bg-classic`, `--gradient-bg-expedition` - Page backgrounds
+- `--gradient-bg-main` - Page background
 - `--gradient-card-*` - Card and overlay backgrounds
 - `--gradient-tile-done` - Completed tile gradient
 - `--gradient-button-primary` - Primary button gradient

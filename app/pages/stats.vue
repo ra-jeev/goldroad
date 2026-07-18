@@ -1079,7 +1079,7 @@ onMounted(async () => {
   margin: 0;
   font-size: 0.84rem;
   font-weight: 700;
-  color: rgb(var(--color-active-rgb) / 0.9);
+  color: rgb(var(--color-solved-rgb) / 0.9);
 }
 
 .feedback--error {
@@ -1095,12 +1095,6 @@ onMounted(async () => {
 @media (max-width: 560px) {
   .medal-grid {
     gap: 0.5rem;
-  }
-
-  .medal-disc {
-    width: 2.9rem;
-    height: 2.9rem;
-    font-size: 1.15rem;
   }
 }
 </style>

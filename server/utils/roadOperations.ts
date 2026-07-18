@@ -4,7 +4,6 @@ import * as schema from '../db/schema';
 import { games, type NewGame } from '../db/schema';
 import { generatePuzzle } from './puzzleGenerator';
 
-export const ROAD_ROTATION_CRON = '0 0 * * *';
 export const ROAD_POOL_BUFFER_DAYS = 5;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
