@@ -26,6 +26,7 @@ These are the decided visual rules the v2 UI implements. They came out of the P1
 #### Primary Palette
 - `--color-gold` - Main gold color (goldenrod), with `--color-gold-dark`, `--color-gold-bright` (#d4af37), `--color-gold-muted`
 - `--color-gold-rgb` - RGB triplet for use with opacity
+- `--color-gold-muted` also carries Expedition's secondary emphasis (the stats page's Expedition streak line, `.streak-expedition` in `app/pages/stats.vue`). Silver was tried and rejected there: it read as an unrelated accent against a page that is otherwise gold/bronze, so a muted gold tone keeps it in the same family while still reading as secondary. No cyan accent tokens remain anywhere in the palette; Expedition's page-level identity comes only from `--mode-tint-expedition` (its hero-card background tint) and the mode switcher, never a colored board frame.
 
 #### Backgrounds
 - `--color-bg-deepest` / `--color-bg-dark` / `--color-bg-base` - Warm near-black browns for the app shell

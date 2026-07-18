@@ -1058,7 +1058,7 @@ The v2 UI is visually good; these decisions are about behavior and information r
 
 ### Issue RP1-6 — Simplify Past Roads around replay decisions
 - Priority: `P1`
-- Status: `done`
+- Status: `done` (card presentation superseded by RP1-12)
 - Goal: make the archive easier to scan and less card-heavy.
 - Why it matters: each current road-day card nests multiple cards, repeats secondary metadata, and makes the replay action visually clumsy.
 - Scope:
@@ -1286,7 +1286,7 @@ The v2 UI is visually good; these decisions are about behavior and information r
 
 ### Issue RP1-14 — Bring release documentation back in sync with the shipped app
 - Priority: `P1`
-- Status: `planned`
+- Status: `done`
 - Goal: make the repository's release and design documents describe the product that is actually being reviewed for launch.
 - Why it matters: README and architecture notes still call shipped About, Tutorial, sounds, celebration, stats, and archive work “planned.” The tracker itself leaves superseded work looking active, and design/cutover notes preserve decisions that the UI has since replaced. That makes release review slower and invites old behavior to be reintroduced.
 - Scope:
@@ -1305,6 +1305,14 @@ The v2 UI is visually good; these decisions are about behavior and information r
   - no release checklist points at a route, file, or behavior that does not exist without also recording the required migration/redirect decision
 - Dependencies:
   - finalize RP0-4 and RP0-5 behavior before closing this documentation pass
+- Completion notes:
+  - `README.md` and `ARCHITECTURE.md`: moved About, the interactive tutorial, sounds, celebration sheets, PWA installability, and the v1's-shape stats page out of "planned" language into current-behavior description; added `/about` to the route lists (verified `app/pages/about.vue` exists and is routed)
+  - `ARCHITECTURE.md`: rewrote the Past road behavior section to describe archive play as fully local (archived boards return `optimalPaths`, hints compute client-side, no `/api/session` calls) and to fix a real contradiction — it previously still said Expedition unlocks directly in archive replay, which the July 2026 archive/replay review explicitly superseded (Expedition stays gated behind Classic everywhere, live and archived); added the `archiveCompletionByGame` local-storage contract (RP0-5); added the current-road-only + UUID+IP rate-limit contract for `/api/session/end` and `/api/session/hint` (verified directly in `server/api/session/end.post.ts`); added the yesterday-only, pooled-histogram-plus-unpooled-percentile, 5/10 sample-size-gated stats contract (verified in `app/utils/statsPresentation.ts`: `COMMUNITY_SAMPLE_MIN = 5`, `PERCENTILE_SAMPLE_MIN = 10`); documented the two-level update dot and `app/content/updates.ts` as the Updates-content source of truth
+  - `DESIGN_SYSTEM.md`: was already substantially correct post-RP1-13; added an explicit note tying `--color-gold-muted` to Expedition's secondary emphasis (the stats page's `.streak-expedition` line) and confirming no cyan tokens remain, closing the one acceptance-criterion gap that was implicit rather than stated
+  - tracker cleanup: added a superseded-pointer to RP1-6's Status line ("card presentation superseded by RP1-12"), matching the pattern RP1-5 already used, so both P1-era redesign issues that were followed by a later RP1 issue read the same way
+  - `LAUNCH_CUTOVER_NOTES.md`: decided to track it (removed the `LAUNCH_CUTOVER_NOTES.md` line from `.gitignore`). It holds a still-open, still-accurate P2-4/RP0-2 launch checklist, not settled product decisions, so it stays a separate tracked file rather than being merged into `ARCHITECTURE.md`. Reworded its header (no longer "not committed" / "delete once launch is done" as an ignore-file, since it is now itself the artifact that gets deleted post-launch), fixed a stale reference (the `'Jul 2026'` placeholder date lives in `app/content/updates.ts` now, not `about.vue`, since that content was extracted during the P2-4 work), and added an explicit paragraph distinguishing the v1-detection-specific hamburger dot from the general two-level Updates dot and naming `app/content/updates.ts` as its source of truth
+  - verified every route/file the touched docs reference actually exists: `app/pages/about.vue`, `app/content/updates.ts`, `app/composables/useUpdatesNotice.ts`, `app/composables/useV1ReturningPlayerNotice.ts`, `app/components/V1WelcomeSheet.vue`, `server/api/session/end.post.ts`, `server/api/session/hint.post.ts`, `app/utils/statsPresentation.ts`, `server/db/README.md`, and the `wrangler.jsonc` `database_id`/`crons`/`observability` keys the cutover checklist points at
+  - `pnpm typecheck` and `pnpm test` (101/101) pass unchanged; this was a docs-and-`.gitignore`-only pass with no source changes
 
 ### Recommended implementation order
 

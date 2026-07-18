@@ -29,20 +29,18 @@ These rules are the current source of truth:
 ## Current routes
 
 The app currently exposes these main surfaces:
-- `/` — current road day
-- `/games` — recent past roads archive
-- `/games/:gameNo` — past road day replay
-- `/stats` — local stats plus global comparison
+- `/` — current road day, with a first-run interactive tutorial for new players
+- `/games` — recent past roads, presented as a calendar rather than a card grid
+- `/games/:gameNo` — past road day replay, played entirely locally (no server calls, including for hints)
+- `/stats` — local stats plus global comparison, in v1's shape
+- `/about` — About / Privacy / Contact, leading with the Updates timeline that announces the v2 fresh start
 
-Planned surfaces:
-- lightweight About / Privacy / Contact surface with an Updates section announcing the v2 fresh start
-
-Planned polish (see `IMPLEMENTATION_PLAN.md` for the full issue list):
+Shipped app-shell requirements:
 - post-solve celebration and share sheets: a Classic-solve sheet that funnels into Expedition, and a day-complete sheet after Expedition
-- game sounds with a mute toggle (launch requirement)
-- PWA installability with new v2-style icons and social link metadata (launch requirement)
-- elevate toll/bonus road visuals with hue and cost chips; re-center the board on the page
-- stats page redesign: one global mode toggle, the tries histogram with your bar highlighted, percentile headline, and a design system shared with the past-roads pages
+- game sounds with a persisted mute toggle
+- PWA installability with v2-style icons and Open Graph / social link metadata
+
+Remaining polish and cutover work is tracked in `IMPLEMENTATION_PLAN.md`.
 
 ## Tech stack
 
@@ -69,7 +67,7 @@ That root object holds the local player experience data for:
 - local history used by the stats page
 - lightweight settings and tutorial state
 
-Replay progress is kept under a separate child key so archive/random play does not pollute daily stats or streak history.
+Replay progress is kept under a separate child key so archive/random play does not pollute daily stats or streak history. Archive completion (whether a past road's Classic or Expedition was ever solved) is tracked separately again, per game and per mode, in `archiveCompletionByGame`; it only drives the Past Roads calendar markers and that road's local unlock state, never medals, streaks, or stats.
 
 Older split local-storage keys are treated as legacy and cleaned up on load.
 
@@ -80,7 +78,7 @@ The server stores only the data needed for:
 - puzzle difficulty tuning
 - aggregate behavior tracking
 
-It is not meant to be a user history or account-sync system.
+It is not meant to be a user history or account-sync system. Only the current road day accepts analytics writes; archive and random replay play never call the analytics endpoints, and a direct request for a past `gameNo` is rejected server-side. Writes are also rate-limited on both the client-supplied player id and the request's IP address.
 
 ## Development
 

@@ -44,9 +44,9 @@ Celebration energy tiers by result: first-attempt gold gets the full moment, med
 
 ### 1.5 App shell requirements
 
-Two v1 qualities are launch requirements for v2:
+Two v1 qualities are shipped as launch requirements for v2:
 
-- game sounds (move/coin, denied move, dead-end, solve) with a persisted mute toggle; audio plays only after user interaction
+- game sounds (move/coin, denied move, dead-end, solve) with a persisted mute toggle (`useSoundEffects`); audio plays only after user interaction
 - PWA installability: manifest and icon set in the v2 visual style, apple-touch-icon, and Open Graph / social metadata for link unfurls
 
 No service worker or offline app shell is included for the v2 launch. That is a deliberate launch-scope decision; offline shell work is deferred until after launch.
@@ -65,15 +65,11 @@ Personal history is stored only in the browser. Server-side persistence exists o
 
 ### Current routes
 
-- `/` — current road day
-- `/games` — recent past roads archive
+- `/` — current road day, including the first-run interactive tutorial and the `V1WelcomeSheet` transition flow for detected returning v1 players
+- `/games` — recent past roads calendar
 - `/games/:gameNo` — past road day replay
 - `/stats` — personal local stats plus anonymous global comparison
-
-### Planned routes / surfaces
-
-- interactive tutorial
-- lightweight About / Privacy / Contact
+- `/about` — About / Privacy / Contact, leading with the Updates timeline
 
 ## 3. Road-day model
 
@@ -126,9 +122,11 @@ Local testing options:
 ### Past road behavior
 
 - Past-road replay is also day-based.
-- A past-road fetch should return both puzzles in one response, mirroring the current-road API shape.
-- Past-road replay should use the same mode-switching board UI model as the current road.
-- Expedition should be directly available in archive replay rather than reusing the live-day unlock gate.
+- A past-road fetch returns both puzzles in one response, mirroring the current-road API shape, including their `optimalPaths` so hints work without a network call.
+- Past-road replay uses the same mode-switching board UI model as the current road.
+- Archive play is fully local: archived boards are fetched once, hints are computed client-side from the returned `optimalPaths`, and a solve makes no `/api/session` calls of any kind. Nothing about archive play reaches the analytics tables.
+- Expedition stays gated behind Classic in archive replay, the same as the live road (see the RP0-5 archive/replay decision below). This deliberately supersedes the earlier P0-4 acceptance criterion that called for Expedition to be directly available in archive replay; that frictionless model predated tracked archive completion.
+- An archive completion is recorded only when a mode is actually solved, per game and per mode, in `localStorage` under `goldroad-state-v2`'s `archiveCompletionByGame` map. It drives the Past Roads calendar markers and that road's local solved/unlock state only. It never touches medals, streaks, attempts, solve times, personal totals, today's result, yesterday's comparison, or server analytics.
 
 ### Random road behavior
 
@@ -358,6 +356,12 @@ This avoids fake session history semantics while still allowing correct aggregat
 
 The active implementation uses one anonymous analytics row per player, road day, and mode, then derives current-day and yesterday comparisons from those rows.
 
+### 9.2.1 Write boundary and rate limiting
+
+`/api/session/end` and `/api/session/hint` only accept writes for the road day currently flagged `current=true`. A request for any other `gameNo`, including a past or archived road, is rejected outright, so archive/replay play (which never calls these endpoints from the client either) cannot reach analytics even if called directly.
+
+Both endpoints rate-limit on two independent keys: the client-supplied `playerUUID` and the request's source IP, checked together so rotating the UUID alone cannot bypass the limit. Either key tripping is enough to reject the request with a `429`.
+
 ### 9.3 Recommended fields
 
 Recommended analytics fields:
@@ -424,31 +428,33 @@ Cross-mode facts (current streaks, all-time medal totals) live in a small always
 
 The tries-distribution histogram is the centerpiece of community comparison, with the player's own bar highlighted. A warm one-line percentile headline sits above it ("solved in 2 — better than X% today"). Comparison copy shows rather than tells; avoid analytics-flavored phrasing.
 
+Community data is yesterday-only: there is no dynamic comparison for the in-progress road. The histogram pools attempts 1 through 24 individually plus a pooled 25+ bucket and never reveals raw per-bucket counts, only shape relative to the busiest bucket. The unpooled `solvedAttemptsExact` percentile is computed separately from the pooled histogram data. Both are sample-size gated (`app/utils/statsPresentation.ts`): the histogram needs at least 5 plays for that road/mode, the percentile headline needs at least 10, and either section stays hidden below its threshold rather than showing a misleading result from a handful of players.
+
 ### 10.5 UI direction
 
 The v2 board grid is the strongest part of the current interface and should be preserved.
 
-The board shell, header, footer, mode switcher, road grammar, and navigation passes from the P1/RP1 series have landed. The remaining UI direction (July 2026 review):
+The board shell, header, footer, mode switcher, road grammar, and navigation passes from the P1/RP1 series have landed. So has the July 2026 UI direction that followed it:
 
-- board messaging becomes strictly contextual, following v1's footer contract: one message or affordance per state, attempt count shown only at rest after a retry and cleared on the first move (RP1-10)
-- the stats page returns to v1's shape — medal displays with a "+1" moment, a today's-result card with share, a previous-road global-stats story, and a key-value personal record — adapted to two modes via the single global mode toggle; no dynamic community stats for the in-progress road (RP1-11)
-- Past Roads becomes a calendar-style picker rather than a card grid, and replay pages shed header/label chrome (RP1-12)
+- board messaging is strictly contextual, following v1's footer contract: one message or affordance per state, attempt count shown only at rest after a retry and cleared on the first move (RP1-10)
+- the stats page follows v1's shape — medal displays with a "+1" moment, a today's-result card with share, a previous-road global-stats story, and a key-value personal record — adapted to two modes via the single global mode toggle; there are no dynamic community stats for the in-progress road (RP1-11)
+- Past Roads is a calendar-style picker rather than a card grid, and replay pages shed header/label chrome (RP1-12)
 
-This is a UI refinement, not a change to the underlying gameplay model.
+This was a UI refinement, not a change to the underlying gameplay model.
 
 ## 11. Interactive tutorial
 
-The main How to Play experience should become an interactive guided puzzle.
+The main How to Play experience is an interactive guided puzzle (`app/composables/useTutorialFlow.ts`, `useTutorialPractice.ts`, `TutorialDialog.vue`), shown on first run and reachable again from the header.
 
-The quick help sheet can stay as a compact reference, but it is not the primary onboarding surface.
+The How to Play sheet is a pure game-mechanics reference; its former About and Updates sections were removed and now live only on `/about`. In-game copy says "Try again", not "Retry".
 
-The tutorial should teach:
-- start and exit tiles
+The tutorial teaches:
+- start and exit tiles, including the pre-run state where the footprints tile is already occupied and its neighbor glowing
 - target-score solve requirement
 - self-avoiding movement
 - missing roads / road gaps
 - retry loop
-- hints at a basic level
+- hints at a basic level, including Expedition hands-on via the practice puzzle
 
 ## 12. Ops direction
 
@@ -465,7 +471,9 @@ Ops is intentionally not the first implementation priority, but the long-term di
 
 - launch happens as soon as the remaining launch-blocking issues are done
 - v2 is a clean break for v1 players: no history migration, no account import
-- the restart is announced through an Updates section on the About surface, visible to everyone; leftover v1 local data may be used to surface the note more prominently for returning players
+- the restart is announced through an Updates timeline on the About surface, visible to everyone; `app/content/updates.ts` is the source of truth for update entries, newest first, and a new entry there automatically surfaces the notification dot for every player until they visit `/about`
+- the notification dot appears at two levels: on the nav hamburger button, and again beside the About entry inside the open menu, so the destination is unambiguous. The About page itself owns acknowledgment: visiting it captures whether the update was still unseen (to show a one-time "new" marker on the newest entry), then clears the dot at both levels via `useUpdatesNotice`'s persisted `lastAcknowledgedUpdateId`
+- leftover v1 local data (a `caches` bucket named `audio-cache`, or an IndexedDB `firebaseLocalStorageDb`) triggers a one-time `V1WelcomeSheet` for returning v1 players in addition to the general Updates dot; see `LAUNCH_CUTOVER_NOTES.md` for the full detection rationale
 - the v1 Firebase stack gets a written shutdown checklist as part of cutover
 
 ## 13. Non-goals

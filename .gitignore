@@ -30,6 +30,3 @@ logs
 
 # Dev Crumbs directory
 .devcrumbs
-
-# Personal scratch planning docs (not part of the tracked doc set)
-LAUNCH_CUTOVER_NOTES.md
