@@ -607,8 +607,12 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     const attempts = attemptNumber.value;
 
     // Archive / random replays get a lightweight, non-persisted acknowledgment
-    // with no daily-streak or countdown implication.
+    // with no daily-streak or countdown implication. Only the first solve of a
+    // road+mode celebrates — re-walking an already-solved road (whether it was
+    // solved live or in the archive) just settles back into the solved rest
+    // state.
     if (options.entryType !== 'live') {
+      if (params.isUntrackedReplay) return;
       solveCelebrationSignal.value += 1;
       celebration.value = {
         variant: 'replay-solve',
@@ -725,23 +729,10 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
         solved: true,
         solveTimeMs: progress.solveTimeMs,
         hintsUsed: progress.hintsUsed,
-        isReplay: options.entryType !== 'live',
       });
     }
 
-    // Archive replays clear their stored progress on solve, so fall back to the
-    // in-session solve state to keep the footer Share affordance working.
-    if (!lastSolved.value) return null;
-
-    return resultShare.shareRoadResult({
-      gameNo: game.value.gameNo,
-      puzzleType: game.value.puzzleType,
-      attempts: Math.max(attemptNumber.value, 1),
-      solved: true,
-      solveTimeMs: null,
-      hintsUsed: hintsUsed.value,
-      isReplay: options.entryType !== 'live',
-    });
+    return null;
   }
 
   async function shareCelebrationResult(): Promise<ShareRoadResultResponse | null> {
@@ -775,7 +766,6 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
       solved: true,
       solveTimeMs: active.solveTimeMs,
       hintsUsed: active.hintsUsed,
-      isReplay: active.variant === 'replay-solve',
     });
   }
 

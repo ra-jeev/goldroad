@@ -8,7 +8,11 @@ export function useGoldroadGame() {
   const gamesApi = useGamesApi();
   const localProgress = useLocalGameProgress();
   const gameplay = useRoadDayGameplay({ entryType: 'live' });
-  const { countdown: nextResetCountdown } = useNextRoadCountdown();
+  const {
+    countdown: nextResetCountdown,
+    newRoadReady,
+    reset: resetNextRoadCountdown,
+  } = useNextRoadCountdown();
 
   const canSwitchToExpedition = computed(
     () =>
@@ -50,6 +54,33 @@ export function useGoldroadGame() {
     }
   }
 
+  // The rotation cron can lag UTC midnight by a moment, so the server may
+  // still answer with the old road (or briefly with none mid-flip). Keep the
+  // affordance up until a genuinely new road number arrives; tapping again
+  // is harmless.
+  async function loadNewRoad() {
+    const previousGameNo =
+      gameplay.availableGames.value.classic?.gameNo ??
+      gameplay.availableGames.value.expedition?.gameNo ??
+      null;
+    const previousStatus = gameplay.status.value;
+
+    try {
+      await loadCurrentGame();
+    } catch {
+      gameplay.status.value = previousStatus;
+      return;
+    }
+
+    const nextGameNo =
+      gameplay.availableGames.value.classic?.gameNo ??
+      gameplay.availableGames.value.expedition?.gameNo ??
+      null;
+    if (nextGameNo !== null && nextGameNo !== previousGameNo) {
+      resetNextRoadCountdown();
+    }
+  }
+
   onMounted(async () => {
     await loadCurrentGame();
   });
@@ -57,6 +88,8 @@ export function useGoldroadGame() {
   return {
     ...gameplay,
     nextResetCountdown,
+    newRoadReady,
+    loadNewRoad,
     canSwitchToExpedition,
   };
 }

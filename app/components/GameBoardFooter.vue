@@ -12,6 +12,7 @@ const props = withDefaults(
     hasMoved: boolean;
     nextResetCountdown?: string;
     showNextResetCountdown?: boolean;
+    newRoadReady?: boolean;
     expeditionJustUnlocked: boolean;
     hintsUsed: number;
     ended: boolean;
@@ -30,6 +31,7 @@ const props = withDefaults(
   {
     nextResetCountdown: '00:00:00',
     showNextResetCountdown: true,
+    newRoadReady: false,
     showStatsLink: true,
     trackingDisabled: false,
     secondaryLinkTo: null,
@@ -43,6 +45,7 @@ const emit = defineEmits<{
   hint: [];
   retry: [];
   switchExpedition: [];
+  loadNewRoad: [];
 }>();
 
 const shareBusy = ref(false);
@@ -103,9 +106,10 @@ const footerMessage = computed<string | null>(() => {
     // Both solved states carry the next-road ticker — the day's next beat.
     case 'solved-next':
     case 'solved-final':
-      return props.showNextResetCountdown
-        ? UI_COPY.boardFooter.nextRoadShort(props.nextResetCountdown)
-        : null;
+      if (!props.showNextResetCountdown) return null;
+      return props.newRoadReady
+        ? UI_COPY.boardFooter.newRoadReady
+        : UI_COPY.boardFooter.nextRoadShort(props.nextResetCountdown);
     default:
       return null;
   }
@@ -133,7 +137,20 @@ const showShareAction = computed(
   () => props.showShare && props.solved && Boolean(props.shareHandler),
 );
 const showStatsAction = computed(
-  () => props.showStatsLink && footerState.value === 'solved-final',
+  () =>
+    props.showStatsLink &&
+    footerState.value === 'solved-final' &&
+    !showNewRoadAction.value,
+);
+// Once the next road is live, loading it is the day's next beat — it takes
+// the primary slot (and the stats link steps back) until the fetch actually
+// returns a new road.
+const showNewRoadAction = computed(
+  () =>
+    props.newRoadReady &&
+    props.showNextResetCountdown &&
+    (footerState.value === 'solved-next' ||
+      footerState.value === 'solved-final'),
 );
 const showSecondaryLink = computed(
   () =>
@@ -242,6 +259,17 @@ const displayMessage = computed(
       >
         {{ UI_COPY.boardFooter.viewStats }}
       </NuxtLink>
+
+      <button
+        v-if="showNewRoadAction"
+        type="button"
+        class="action-button primary action-button--text"
+        :disabled="busy"
+        :title="UI_COPY.boardFooter.playNewRoad"
+        @click="emit('loadNewRoad')"
+      >
+        {{ UI_COPY.boardFooter.playNewRoad }}
+      </button>
 
       <button
         v-if="canSwitchToExpedition"

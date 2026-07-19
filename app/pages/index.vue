@@ -31,6 +31,8 @@ const {
   expeditionMedalToday,
   attemptNumber,
   nextResetCountdown,
+  newRoadReady,
+  loadNewRoad,
   roadHeading,
   canSwitchToExpedition,
   celebration,
@@ -186,6 +188,7 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
           :attempt-number="attemptNumber"
           :has-moved="moves > 1"
           :next-reset-countdown="nextResetCountdown"
+          :new-road-ready="newRoadReady"
           :expedition-just-unlocked="expeditionJustUnlocked"
           :hints-used="hintsUsed"
           :ended="ended"
@@ -202,6 +205,7 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
           @retry="retryCurrentGame"
           @hint="requestHint"
           @switch-expedition="switchToExpedition"
+          @load-new-road="loadNewRoad"
         />
       </section>
 

@@ -8,10 +8,11 @@ const props = withDefaults(
   defineProps<{
     celebration: CelebrationState | null;
     nextResetCountdown?: string;
-    shareHandler: () => Promise<ShareRoadResultResponse | null>;
+    shareHandler?: (() => Promise<ShareRoadResultResponse | null>) | null;
   }>(),
   {
     nextResetCountdown: '00:00:00',
+    shareHandler: null,
   },
 );
 
@@ -176,7 +177,7 @@ function setShareMessage(message: string | null) {
 }
 
 async function onShare() {
-  if (shareBusy.value) return;
+  if (!props.shareHandler || shareBusy.value) return;
   shareBusy.value = true;
   try {
     const response = await props.shareHandler();
@@ -371,6 +372,8 @@ onBeforeUnmount(() => {
               </NuxtLink>
             </template>
 
+            <!-- Replay solves: sharing is a live-road concept, so the only
+                 action is closing the moment. -->
             <template v-else>
               <button
                 type="button"
@@ -378,15 +381,6 @@ onBeforeUnmount(() => {
                 @click="onDismiss"
               >
                 {{ COPY.keepGoing }}
-              </button>
-
-              <button
-                type="button"
-                class="celebration-button celebration-button--ghost"
-                :disabled="shareBusy"
-                @click="onShare"
-              >
-                {{ COPY.share }}
               </button>
             </template>
           </div>

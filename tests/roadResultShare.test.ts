@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { buildRoadResultShareText } from '../app/composables/useRoadResultShare';
 
-describe('replay result sharing', () => {
+// Sharing is a live-road concept: archive replays expose no share affordance,
+// so the result line always presents the medal as genuinely awarded.
+describe('road result sharing', () => {
   const baseInput = {
     gameNo: 12,
     puzzleType: 'classic' as const,
@@ -11,16 +13,15 @@ describe('replay result sharing', () => {
     hintsUsed: 0,
   };
 
-  it('frames a replay medal as counterfactual rather than awarded', () => {
-    expect(buildRoadResultShareText({ ...baseInput, isReplay: true }).text).toContain(
-      'Solved in 1 attempt — live, that would have been 🥇 Gold.',
+  it('presents a first-attempt solve as an awarded gold medal', () => {
+    expect(buildRoadResultShareText(baseInput).text).toContain(
+      '🥇 Gold in 1 attempt',
     );
   });
 
-  it('keeps the plain solved wording when no replay medal tier applies', () => {
+  it('keeps the plain solved wording when no medal tier applies', () => {
     expect(
-      buildRoadResultShareText({ ...baseInput, attempts: 5, isReplay: true })
-        .text,
+      buildRoadResultShareText({ ...baseInput, attempts: 5 }).text,
     ).toContain('😅 Solved in 5 attempts');
   });
 });

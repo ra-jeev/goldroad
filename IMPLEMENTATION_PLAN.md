@@ -892,7 +892,7 @@ The v2 UI is visually good; these decisions are about behavior and information r
 - Acceptance criteria:
   - the archive fetch supplies both boards and their valid paths for local hint calculation without exposing the current live road's paths
   - archived play never creates or updates session, hint, end, player-road, or aggregate analytics data
-  - archive progress (attempts, hints, guide path, solve timer) lives per browser session only; the sole durable write is the road+mode completion mark; celebrations show a would-have medal but never award one; the calendar shows archive completions as solved-green only
+  - archive progress (attempts, hints, guide path, solve timer) lives per browser session only; the sole durable write is the road+mode completion mark; only the first solve of a road+mode celebrates (re-solving a road already solved live or in the archive just settles into the solved rest state), the celebration shows a would-have medal but never awards one, and archive plays expose no share affordance (sharing is live-only); the calendar shows archive completions as solved-green only
   - live completion history and archive completion are merged only when deriving the calendar and that archive road's local solved/unlock state; the archive map is not an input to medals, streaks, attempts, solve times, completion rate, personal totals, or community stats
   - each calendar day has fixed Classic and Expedition positions, each disc tinted by that mode's own result (gold/silver/bronze from live history, solved-green for no-medal solves and archive completions), faint hollow when uncompleted, plus a compact C/E legend
   - the calendar link's accessible name states both modes in full, including unsolved states

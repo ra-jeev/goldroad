@@ -57,6 +57,8 @@ export const UI_COPY = {
     nextRoadCountdown: (countdown: string) =>
       `Next road in ${countdown} · 00:00 UTC`,
     nextRoadShort: (countdown: string) => `Next road in ${countdown}`,
+    newRoadReady: 'A new road just opened.',
+    playNewRoad: 'Play the new road',
     hintTitle: 'Hint',
     helpTitle: 'How to play',
     hintUsedLabel: (count: number) =>
