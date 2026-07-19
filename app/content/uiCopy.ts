@@ -134,9 +134,10 @@ export const UI_COPY = {
       nextRoad: (countdown: string) => `Next road in ${countdown} · 00:00 UTC`,
     },
     replay: {
-      eyebrow: 'Replay',
+      eyebrow: 'Archive replay',
       title: 'Solved.',
-      body: "Nicely walked. This replay won't touch today's streak.",
+      body: 'Nicely walked. Archive roads keep your streak and stats untouched.',
+      wouldHaveLine: (medal: string) => `Live, that would have been ${medal}.`,
     },
     shareCopied: 'Result copied to your clipboard.',
     shareUnavailable: 'Unable to share this result right now.',

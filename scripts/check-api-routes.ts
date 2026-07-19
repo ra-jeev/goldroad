@@ -106,13 +106,6 @@ async function checkPastGames() {
   const { status, body, text } = await request('/api/games/past?limit=5');
   expectStatus('GET /api/games/past', status, 200, text);
 
-  // NOTE: shared/validators/game.ts still exports a flat PastGameSummarySchema
-  // ({ gameNo, maxScore, totalCoins, playableAt }) left over from before the
-  // P0-4 dual-puzzle archive rework. The actual route now returns
-  // { count, games: [{ gameNo, playableAt, classic, expedition }] } grouped
-  // per road day. That schema is stale and does not match this endpoint, so
-  // this check validates the real shape directly instead of importing it.
-  // Flagged for cleanup - see report.
   const PastGamesResponseSchema = z.object({
     count: z.number().int().min(0),
     games: z.array(

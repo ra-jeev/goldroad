@@ -3,6 +3,7 @@ import { StorageSerializers, useStorage } from '@vueuse/core';
 import type { PuzzleType } from '../../shared/types/game';
 
 const STORAGE_KEY = 'goldroad-state-v2';
+const REPLAY_PROGRESS_STORAGE_KEY = 'goldroad-replay-progress-v2';
 const STORAGE_VERSION = 2 as const;
 const FALLBACK_UUID = '00000000-0000-4000-8000-000000000000';
 const LEGACY_STORAGE_KEYS = [
@@ -87,6 +88,11 @@ type GoldroadLocalState = {
   v1NoticeDismissed: boolean;
   lastAcknowledgedUpdateId: string | null;
 };
+
+type PersistedGoldroadLocalState = Omit<
+  GoldroadLocalState,
+  'replayProgressByKey'
+>;
 
 function isPuzzleType(value: unknown): value is PuzzleType {
   return value === 'classic' || value === 'expedition';
@@ -485,6 +491,20 @@ function cloneState(value: GoldroadLocalState): GoldroadLocalState {
   };
 }
 
+/** Keep replay progress out of the durable localStorage state blob. */
+export function serializeGoldroadLocalStorageSnapshot<T extends {
+  replayProgressByKey?: unknown;
+}>(value: T): Omit<T, 'replayProgressByKey'> {
+  const { replayProgressByKey: _replayProgressByKey, ...localState } = value;
+  return localState;
+}
+
+function createLocalStorageSnapshot(
+  value: GoldroadLocalState,
+): PersistedGoldroadLocalState {
+  return serializeGoldroadLocalStorageSnapshot(cloneState(value));
+}
+
 function toLocalPuzzleProgress(
   progress: PuzzleProgressRecord,
 ): LocalPuzzleProgress {
@@ -532,10 +552,6 @@ function normalizeStoredState(value: unknown): GoldroadLocalState | null {
   );
   if (!puzzleProgressByKey) return null;
 
-  const replayProgressByKey = normalizeStoredPuzzleProgressMap(
-    value.replayProgressByKey,
-  );
-
   const celebratedSolveKeys = isStringArray(value.celebratedSolveKeys)
     ? value.celebratedSolveKeys
     : [];
@@ -546,7 +562,9 @@ function normalizeStoredState(value: unknown): GoldroadLocalState | null {
     settings,
     currentRoadContext: value.currentRoadContext,
     puzzleProgressByKey,
-    replayProgressByKey: replayProgressByKey ?? {},
+    // Legacy replay progress in the localStorage blob is deliberately
+    // dropped. Replay progress is session-scoped under its own storage key.
+    replayProgressByKey: {},
     historyByDay: value.historyByDay,
     archiveCompletionByGame: normalizeStoredArchiveCompletionMap(
       value.archiveCompletionByGame,
@@ -562,6 +580,39 @@ function normalizeStoredState(value: unknown): GoldroadLocalState | null {
         ? value.lastAcknowledgedUpdateId
         : null,
   };
+}
+
+function loadReplayProgressFromSessionStorage(): Record<
+  string,
+  PuzzleProgressRecord
+> {
+  if (typeof window === 'undefined') return {};
+
+  try {
+    const serialized = window.sessionStorage.getItem(
+      REPLAY_PROGRESS_STORAGE_KEY,
+    );
+    if (!serialized) return {};
+    return normalizeStoredPuzzleProgressMap(JSON.parse(serialized)) ?? {};
+  } catch {
+    return {};
+  }
+}
+
+function persistReplayProgressToSessionStorage(
+  replayProgressByKey: Record<string, PuzzleProgressRecord>,
+) {
+  if (typeof window === 'undefined') return;
+
+  try {
+    window.sessionStorage.setItem(
+      REPLAY_PROGRESS_STORAGE_KEY,
+      JSON.stringify(replayProgressByKey),
+    );
+  } catch {
+    // Session storage can be unavailable (for example, restrictive privacy
+    // settings). Replay progress is intentionally best-effort and ephemeral.
+  }
 }
 
 function removeLegacyKeys() {
@@ -630,7 +681,7 @@ export function computeIsRoadModeSolved(
 }
 
 export function useGoldroadLocalState() {
-  const storedState = useStorage<GoldroadLocalState | null>(
+  const storedState = useStorage<PersistedGoldroadLocalState | null>(
     STORAGE_KEY,
     null,
     undefined,
@@ -647,7 +698,8 @@ export function useGoldroadLocalState() {
   function commit(nextState: GoldroadLocalState) {
     const snapshot = cloneState(nextState);
     state.value = snapshot;
-    storedState.value = snapshot;
+    storedState.value = createLocalStorageSnapshot(snapshot);
+    persistReplayProgressToSessionStorage(snapshot.replayProgressByKey);
     return snapshot;
   }
 
@@ -663,6 +715,7 @@ export function useGoldroadLocalState() {
 
     const normalized =
       normalizeStoredState(storedState.value) ?? createEmptyState();
+    normalized.replayProgressByKey = loadReplayProgressFromSessionStorage();
     return commit(normalized);
   }
 

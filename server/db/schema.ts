@@ -5,8 +5,9 @@
  *   games                 — puzzle definitions + lightweight aggregate counts
  *   player_road_analytics — anonymous per-player-per-road analytics rows
  *
- * The optimal paths (gold routes) are stored in `games.optimal_paths_json` and are
- * NEVER returned to the client — only used server-side for hint computation.
+ * Optimal paths (gold routes) are stored in `games.optimal_paths_json`. They
+ * are served only for archived (non-current, playable) roads; the live road's
+ * paths never leave the server.
  */
 
 import { sql } from 'drizzle-orm';
@@ -36,7 +37,8 @@ export const games = sqliteTable(
 
     /**
      * Array of all gold route paths (each path is an array of tile IDs).
-     * Server-side only — used exclusively for hint computation.
+     * Served only for archived (non-current, playable) roads; the live road's
+     * paths never leave the server.
      */
     optimalPathsJson: text('optimal_paths_json').notNull(),
 

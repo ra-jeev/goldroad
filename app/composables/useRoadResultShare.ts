@@ -8,6 +8,7 @@ export type ShareRoadResultInput = {
   solved: boolean;
   solveTimeMs: number | null;
   hintsUsed: number;
+  isReplay?: boolean;
 };
 
 export type ShareRoadResultResponse = {
@@ -50,8 +51,19 @@ function formatAttemptLabel(attempts: number): string {
 function formatResultLine(input: {
   attempts: number;
   solved: boolean;
+  isReplay?: boolean;
 }): string {
   const medal = calcMedalForAttempt(input.attempts, input.solved);
+
+  if (input.solved && input.isReplay && medal) {
+    const medalDetail =
+      medal === 'gold'
+        ? '🥇 Gold'
+        : medal === 'silver'
+          ? '🥈 Silver'
+          : '🥉 Bronze';
+    return `Solved in ${formatAttemptLabel(input.attempts)} — live, that would have been ${medalDetail}.`;
+  }
 
   if (input.solved && medal === 'gold') {
     return `🥇 Gold in ${formatAttemptLabel(input.attempts)}`;

@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, lte } from 'drizzle-orm';
 import { z } from 'zod';
 import { games } from '../../../db/schema';
 import { useDb } from '../../../db/client';
@@ -17,6 +17,7 @@ export default defineEventHandler(async (event) => {
       statusMessage: 'Invalid gameNo param',
     });
   }
+  const nowIso = new Date().toISOString();
 
   const rows = await db
     .select({
@@ -28,11 +29,17 @@ export default defineEventHandler(async (event) => {
       difficultyBand: games.difficultyBand,
       playableAt: games.playableAt,
       nextGameAt: games.nextGameAt,
-      current: games.current,
       optimalPathsJson: games.optimalPathsJson,
     })
     .from(games)
-    .where(and(eq(games.gameNo, gameNo), eq(games.active, true)))
+    .where(
+      and(
+        eq(games.gameNo, gameNo),
+        eq(games.active, true),
+        eq(games.current, false),
+        lte(games.playableAt, nowIso),
+      ),
+    )
     .limit(2);
 
   if (rows.length === 0) {
@@ -49,12 +56,11 @@ export default defineEventHandler(async (event) => {
 
     const parsed = parsePublicGameRow(row);
 
-    // Archived (non-current) roads ship their solution paths so hints can
-    // run locally with zero analytics calls (RP0-5). The live road's paths
-    // never leave the server (P0-3 boundary).
-    const optimalPaths = row.current
-      ? undefined
-      : OptimalPathsSchema.parse(JSON.parse(row.optimalPathsJson));
+    // This route serves archived roads only. Live and future roads 404 here;
+    // archived paths ship so hints can run locally with zero analytics calls.
+    const optimalPaths = OptimalPathsSchema.parse(
+      JSON.parse(row.optimalPathsJson),
+    );
 
     return {
       gameNo: parsed.gameNo,
@@ -65,7 +71,7 @@ export default defineEventHandler(async (event) => {
       difficultyBand: parsed.difficultyBand,
       playableAt: parsed.playableAt,
       nextGameAt: parsed.nextGameAt,
-      ...(optimalPaths ? { optimalPaths } : {}),
+      optimalPaths,
     };
   }
 

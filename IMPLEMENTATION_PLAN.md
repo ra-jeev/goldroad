@@ -113,6 +113,7 @@ Recommended treatment:
 - Acceptance criteria:
   - the chosen approach is documented explicitly in `ARCHITECTURE.md`
   - implementation follows the documented boundary
+  - _(superseded: archive hints are local per RP0-5's owner carve-out; live/current road paths stay server-only)_
 - Dependencies:
   - P0-2
 
@@ -131,6 +132,7 @@ Recommended treatment:
   - the archive replay page supports the same mode-switching pattern as the live road page
   - Expedition is directly available in archive replay
   - old single-board replay semantics are removed from the active experience
+  - _(superseded: archive Expedition is gated per RP0-5; archive hints are local per RP0-5's owner carve-out)_
 - Dependencies:
   - ideally P0-2 so hints work consistently in current and archive contexts
 
@@ -763,7 +765,7 @@ The v2 UI is visually good; these decisions are about behavior and information r
 
 - **Archive completion is local, mode-specific, and calendar-only.** Solving an old road records only that Classic or Expedition was completed for the Past Roads calendar and for restoring that archive road's local solved/unlock state. It must not change medals, streaks, attempts, solve times, personal totals, today's result, yesterday's comparison, or server/global analytics.
 - **An archive attempt counts only when it is solved.** Starting, retrying, abandoning, or failing an archived road creates no completion mark. This intentionally treats an unfinished archive attempt the same as an unplayed road.
-- **The calendar shows two per-mode, medal-tinted completion discs** (owner decision, replacing the reviewer's neutral-disc proposal). Classic and Expedition each have a fixed marker position, so the day answers "which half is unfinished" at a glance. Each disc tints by that mode's own result: gold/silver/bronze from live history's attempt count, and the game's existing solved-green (`--color-active`) for no-medal solves and for archive completions (which store no attempt count). Uncompleted modes show a faint hollow marker. A short C/E legend explains the positions, and each playable day exposes the full state to assistive technology, for example: "Road 1. Classic solved, gold. Expedition not solved."
+- **The calendar shows two per-mode, medal-tinted completion discs** (owner decision, replacing the reviewer's neutral-disc proposal). Classic and Expedition each have a fixed marker position, so the day answers "which half is unfinished" at a glance. Each disc tints by that mode's own result: gold/silver/bronze from live history's attempt count, and the game's existing solved-green (`--color-solved`) for no-medal solves and for archive completions (which store no attempt count). Uncompleted modes show a faint hollow marker. A short C/E legend explains the positions, and each playable day exposes the full state to assistive technology, for example: "Road 1. Classic solved, gold. Expedition not solved."
 - **Expedition remains gated in archive play** (owner-confirmed; this deliberately supersedes P0-4's "Expedition is directly available in archive replay" acceptance criterion — that frictionless model predates tracked archive completion). It unlocks only after Classic for that road has been solved, whether the Classic solve originally happened live or later in the archive. "Expedition solved while Classic unsolved" is not a valid reachable state.
 - **Archive hints are local** (owner-confirmed; a deliberate carve-out from P0-3's server-side-paths boundary, for archived roads only — protecting yesterday's solutions is pointless load once the road is history). Fetch the archived boards with their valid solution paths, then reuse the client hint calculation. Archived play makes no session, hint, or result analytics calls. Current/live solution paths must remain protected behind the existing live-game contract.
 - **Deep-archive random play stays** (owner decision, upholding the §2 locked decision "random deep-archive play is allowed"). **Surprise me** is retained in simplified, identity-free form: it picks any road older than the calendar window with no player-identity or analytics lookup; repeats are acceptable.
@@ -890,7 +892,7 @@ The v2 UI is visually good; these decisions are about behavior and information r
 - Acceptance criteria:
   - the archive fetch supplies both boards and their valid paths for local hint calculation without exposing the current live road's paths
   - archived play never creates or updates session, hint, end, player-road, or aggregate analytics data
-  - an unfinished archived attempt writes nothing; a solve writes only that road number and mode to a dedicated local completion map
+  - archive progress (attempts, hints, guide path, solve timer) lives per browser session only; the sole durable write is the road+mode completion mark; celebrations show a would-have medal but never award one; the calendar shows archive completions as solved-green only
   - live completion history and archive completion are merged only when deriving the calendar and that archive road's local solved/unlock state; the archive map is not an input to medals, streaks, attempts, solve times, completion rate, personal totals, or community stats
   - each calendar day has fixed Classic and Expedition positions, each disc tinted by that mode's own result (gold/silver/bronze from live history, solved-green for no-medal solves and archive completions), faint hollow when uncompleted, plus a compact C/E legend
   - the calendar link's accessible name states both modes in full, including unsolved states
@@ -1133,7 +1135,7 @@ The v2 UI is visually good; these decisions are about behavior and information r
 
 ### Issue RP1-9 — Add UI regression coverage for the release surfaces
 - Priority: `P1`
-- Status: `in progress`
+- Status: `done`
 - Goal: protect the interactions most likely to regress during the polish pass.
 - Why it matters: existing tests cover pure game and aggregation logic well, but there are no component or browser tests for the screens now being redesigned.
 - Scope:
@@ -1155,7 +1157,7 @@ The v2 UI is visually good; these decisions are about behavior and information r
   - the latest suite is 43/43; the archive-mode, solved-retry, and pooled-percentile cases above are still missing
   - automated component/browser coverage for the listed visual and state transitions remains outstanding
   - July 2026: turned the previously-missing acceptance criteria into automated Vitest coverage at the composable/pure-function level (no browser-test infra added, per the repo's existing node-environment Vitest setup with no jsdom/@nuxt/test-utils/@vue/test-utils installed). Suite is now 101/101 (`pnpm typecheck`, `pnpm test`, `pnpm build` all green).
-  - archive contract (`tests/archiveState.test.ts`, 18 tests): `normalizeStoredArchiveCompletionMap` tolerance (bad keys, non-boolean/false mode values, empty records all dropped; `/^\d+$/` keys with a true mode kept) is now exported and directly tested; the historyByDay/archiveCompletionByGame merge behind `isRoadModeSolved` was extracted into an exported pure `computeIsRoadModeSolved(historyByDay, archiveCompletionByGame, gameNo, puzzleType)` in `useGoldroadLocalState.ts` and tested for archive-only, history-only, merged, unsolved, and wrong-gameNo cases; solved-only local completion writes and the archive-analytics boundary were extracted from `useRoadDayGameplay.ts`'s `finalizeRun` into exported pure gates `shouldRecordArchiveCompletion(entryType, solved)` and `shouldCallSessionApi(entryType, isUntrackedReplay)` (used in place of the previous inline booleans, behavior unchanged) and both are exhaustively tested, proving starting/failing/abandoning an archive run writes nothing and archive play never reaches the session API
+  - archive contract (`tests/archiveState.test.ts`, 18 tests): `normalizeStoredArchiveCompletionMap` tolerance (bad keys, non-boolean/false mode values, empty records all dropped; `/^\d+$/` keys with a true mode kept) is now exported and directly tested; the historyByDay/archiveCompletionByGame merge behind `isRoadModeSolved` was extracted into an exported pure `computeIsRoadModeSolved(historyByDay, archiveCompletionByGame, gameNo, puzzleType)` in `useGoldroadLocalState.ts` and tested for archive-only, history-only, merged, unsolved, and wrong-gameNo cases; solved-only local completion writes and the archive-analytics boundary were extracted from `useRoadDayGameplay.ts`'s `finalizeRun` into exported pure gates `shouldRecordArchiveCompletion(entryType, solved)` and `shouldCallSessionApi(entryType, isUntrackedReplay)` (used in place of the previous inline booleans, behavior unchanged) and both are exhaustively tested, proving starting/failing/abandoning an archive run writes no completion, history, medal, or statistics and archive play never reaches the session API
   - local hint calculation for archive boards: extended `tests/hints.test.ts` with a `computeHint` suite driven directly by a shipped `optimalPaths` array (next-step, diverged, already-solved), matching how archived boards compute hints locally with no server round trip
   - Classic→Expedition unlock: covered indirectly through `computeIsRoadModeSolved` (the gate `isExpeditionUnlocked` reads from) plus the existing manual browser verification recorded under RP0-5; a live composable-level test of `isExpeditionUnlocked` itself remains out of reach without Nuxt auto-import stubbing (see below)
   - pooled-percentile proof (`tests/statsPresentation.test.ts`): extracted `stats.vue`'s `topPercent`/`toPercent`/`hasPercentileSample`/`COMMUNITY_SAMPLE_MIN`/`PERCENTILE_SAMPLE_MIN` into a new pure module `app/utils/statsPresentation.ts` (page behavior unchanged, now imports from it) plus a new `hasCommunitySample` helper; a 30-solver fixture (1..29 attempts once each, plus one solver at 40) proves the exact percentile stays correct for a player exactly at the pooled 25+ boundary, past it (attempt 40, correctly 100% rather than a bucket artifact), and at the interior edge (attempt 30) — cross-checked against a manual sum over the exact map, independent of `buildSolvedAttemptsDistribution`'s pooled bucket
@@ -1253,7 +1255,7 @@ The v2 UI is visually good; these decisions are about behavior and information r
   - RP1-6 (supersedes its card-grid presentation; its copy and metadata decisions carry forward)
 - Completion notes:
   - `/games` now renders month calendars (UTC, newest month first): playable archive days are tappable cells and other days recede; the originally shipped single best-result medal dot is superseded by RP0-5's two per-mode medal-tinted completion discs (owner-approved)
-  - the deep-archive random-road entry was found to have lost its UI entry point during RP1-5's panel removal and was restored here as a "Surprise me with an older road" action; RP0-5 now reopens whether this action and `/api/games/another` should survive at all
+  - the deep-archive random-road entry was found to have lost its UI entry point during RP1-5's panel removal and was restored here as a "Surprise me with an older road" action; the question was resolved in RP0-5: the action and `/api/games/another` survive in simplified identity-free form
   - `/games/[gameNo]` dropped the archive-header card (eyebrow, h1, subtitle, note) for one compact identity bar — back arrow, "Road N · date", and a small REPLAY tag — so the board leads the page
   - browser-verified the calendar (playable vs. inert days) and the de-chromed replay page; typecheck and 41/41 tests pass
 

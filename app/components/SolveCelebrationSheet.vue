@@ -107,6 +107,15 @@ const primaryMedalLabel = computed(() =>
 const resultChips = computed(() => {
   if (!props.celebration) return [];
   const chips: string[] = [];
+  if (isReplay.value) {
+    chips.push(COPY.solved);
+    chips.push(COPY.attemptLabel(props.celebration.attemptNumber));
+    const time = formatTime(props.celebration.solveTimeMs);
+    if (time) chips.push(COPY.solveTimeLine(time));
+    const wouldHaveMedal = medalLabel(props.celebration.wouldHaveMedal);
+    if (wouldHaveMedal) chips.push(COPY.replay.wouldHaveLine(wouldHaveMedal));
+    return chips;
+  }
   const medal = primaryMedalLabel.value;
   chips.push(medal ? COPY.medalLine(medal) : COPY.solved);
   chips.push(COPY.attemptLabel(props.celebration.attemptNumber));

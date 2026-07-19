@@ -52,6 +52,7 @@ export type CelebrationState = {
   gameNo: number;
   puzzleType: PuzzleType;
   medal: Medal | null;
+  wouldHaveMedal: Medal | null;
   attemptNumber: number;
   solveTimeMs: number | null;
   hintsUsed: number;
@@ -83,6 +84,26 @@ export function shouldCallSessionApi(
   isUntrackedReplay: boolean,
 ): boolean {
   return entryType === 'live' && !isUntrackedReplay;
+}
+
+/**
+ * Archive solves retain their counterfactual tier for playful presentation,
+ * but never award a medal. Kept pure so the finalizeRun contract is testable.
+ */
+export function resolveRunMedals(
+  entryType: EntryType,
+  isUntrackedReplay: boolean,
+  attempts: number,
+  solved: boolean,
+): { medal: Medal | null; wouldHaveMedal: Medal | null } {
+  const wouldHaveMedal =
+    entryType === 'live' ? null : calcMedalForAttempt(attempts, solved);
+  const medal =
+    entryType !== 'live' || isUntrackedReplay
+      ? null
+      : calcMedalForAttempt(attempts, solved);
+
+  return { medal, wouldHaveMedal };
 }
 
 function celebrationTierForMedal(medal: Medal | null): CelebrationTier {
@@ -571,6 +592,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
 
   function triggerCelebration(params: {
     medal: Medal | null;
+    wouldHaveMedal: Medal | null;
     solveTimeMs: number | null;
     isUntrackedReplay: boolean;
     dayKey: string | null;
@@ -579,7 +601,9 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
 
     const current = game.value;
     const mode = current.puzzleType;
-    const tier = celebrationTierForMedal(params.medal);
+    const tier = celebrationTierForMedal(
+      params.wouldHaveMedal ?? params.medal,
+    );
     const attempts = attemptNumber.value;
 
     // Archive / random replays get a lightweight, non-persisted acknowledgment
@@ -591,7 +615,8 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
         tier,
         gameNo: current.gameNo,
         puzzleType: mode,
-        medal: params.medal,
+        medal: null,
+        wouldHaveMedal: params.wouldHaveMedal,
         attemptNumber: attempts,
         solveTimeMs: params.solveTimeMs,
         hintsUsed: hintsUsed.value,
@@ -619,6 +644,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
         gameNo: current.gameNo,
         puzzleType: mode,
         medal: params.medal,
+        wouldHaveMedal: null,
         attemptNumber: attempts,
         solveTimeMs: params.solveTimeMs,
         hintsUsed: hintsUsed.value,
@@ -645,6 +671,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
       gameNo: current.gameNo,
       puzzleType: mode,
       medal: params.medal,
+      wouldHaveMedal: null,
       attemptNumber: attempts,
       solveTimeMs: params.solveTimeMs,
       hintsUsed: hintsUsed.value,
@@ -698,6 +725,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
         solved: true,
         solveTimeMs: progress.solveTimeMs,
         hintsUsed: progress.hintsUsed,
+        isReplay: options.entryType !== 'live',
       });
     }
 
@@ -712,6 +740,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
       solved: true,
       solveTimeMs: null,
       hintsUsed: hintsUsed.value,
+      isReplay: options.entryType !== 'live',
     });
   }
 
@@ -746,6 +775,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
       solved: true,
       solveTimeMs: active.solveTimeMs,
       hintsUsed: active.hintsUsed,
+      isReplay: active.variant === 'replay-solve',
     });
   }
 
@@ -771,9 +801,12 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     const dayKey = getProgressDayKey(game.value);
     const elapsedSolveTimeMs = isUntrackedReplay ? 0 : stopSolveTimer();
     const solveTimeMs = solved ? elapsedSolveTimeMs : null;
-    const medal = isUntrackedReplay
-      ? null
-      : calcMedalForAttempt(attemptNumber.value, solved);
+    const { medal, wouldHaveMedal } = resolveRunMedals(
+      options.entryType,
+      isUntrackedReplay,
+      attemptNumber.value,
+      solved,
+    );
     const tier: OutcomeTier =
       medal ?? (endReason === 'wrong-exit' ? 'finished' : 'unfinished');
 
@@ -814,6 +847,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
       hintedTiles.value = new Set();
       triggerCelebration({
         medal,
+        wouldHaveMedal,
         solveTimeMs,
         isUntrackedReplay,
         dayKey,

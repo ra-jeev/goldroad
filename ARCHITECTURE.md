@@ -191,7 +191,7 @@ The generator computes the target score and the set of optimal paths for each pu
 
 - `optimalPaths` remain a server-side generation artifact.
 - They power hint logic and validation support.
-- They are not part of normal public board payloads.
+- Live/current road paths never leave the server; archived, playable roads ship paths for local hints.
 
 ### Important implementation note
 
@@ -290,7 +290,7 @@ Recommended categories:
 - `settings`
 - `currentRoadContext`
 - `puzzleProgressByKey` for the live daily road
-- `replayProgressByKey` for archive/random replay-only persistence
+- `replayProgressByKey` for archive/random replay-only session persistence (`sessionStorage`)
 - `historyByDay`
 - `tutorialState`
 
@@ -300,7 +300,7 @@ For each puzzle key such as `classic:42` or `expedition:42`, store only the mini
 
 Important separation:
 - live daily-road progress can feed `historyByDay` and personal stats
-- archive/random replay progress can persist locally when useful, but it should live under `replayProgressByKey` so it does not affect daily stats or streak history
+- archive/random replay progress is session-scoped in `replayProgressByKey` (`sessionStorage`) and is cleared when the browser session ends, so it does not affect daily stats or streak history
 
 Recommended fields:
 - `attempts`

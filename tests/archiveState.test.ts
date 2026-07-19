@@ -2,13 +2,16 @@ import { describe, expect, it } from 'vitest';
 import {
   computeIsRoadModeSolved,
   normalizeStoredArchiveCompletionMap,
+  serializeGoldroadLocalStorageSnapshot,
   type ArchiveCompletionRecord,
   type HistoryDayRecord,
 } from '../app/composables/useGoldroadLocalState';
 import {
   shouldCallSessionApi,
   shouldRecordArchiveCompletion,
+  resolveRunMedals,
 } from '../app/composables/useRoadDayGameplay';
+import { calcMedalForAttempt } from '../lib/gameTiers';
 
 describe('normalizeStoredArchiveCompletionMap', () => {
   it('returns an empty map for non-object input', () => {
@@ -191,5 +194,39 @@ describe('shouldCallSessionApi (zero analytics writes for archive play)', () => 
 
   it('never calls the session API for an untracked live replay', () => {
     expect(shouldCallSessionApi('live', true)).toBe(false);
+  });
+});
+
+describe('archive solve medal contract', () => {
+  it('keeps the awarded medal null while preserving the would-have tier', () => {
+    for (const attempts of [1, 3]) {
+      expect(resolveRunMedals('archive', false, attempts, true)).toEqual({
+        medal: null,
+        wouldHaveMedal: calcMedalForAttempt(attempts, true),
+      });
+    }
+  });
+
+  it('does not set a would-have medal for live variants', () => {
+    expect(resolveRunMedals('live', false, 1, true)).toEqual({
+      medal: 'gold',
+      wouldHaveMedal: null,
+    });
+  });
+});
+
+describe('local state serialization', () => {
+  it('excludes replay progress from the localStorage snapshot', () => {
+    const localSnapshot = serializeGoldroadLocalStorageSnapshot({
+      version: 2,
+      puzzleProgressByKey: { 'classic:10': { attempts: 1 } },
+      replayProgressByKey: { 'classic:9': { attempts: 2 } },
+    });
+
+    expect(localSnapshot).toEqual({
+      version: 2,
+      puzzleProgressByKey: { 'classic:10': { attempts: 1 } },
+    });
+    expect(localSnapshot).not.toHaveProperty('replayProgressByKey');
   });
 });

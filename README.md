@@ -31,7 +31,7 @@ These rules are the current source of truth:
 The app currently exposes these main surfaces:
 - `/` — current road day, with a first-run interactive tutorial for new players
 - `/games` — recent past roads, presented as a calendar rather than a card grid
-- `/games/:gameNo` — past road day replay, played entirely locally (no server calls, including for hints)
+- `/games/:gameNo` — past road day replay, played locally after a single board fetch (no analytics or hint calls)
 - `/stats` — local stats plus global comparison, in v1's shape
 - `/about` — About / Privacy / Contact, leading with the Updates timeline that announces the v2 fresh start
 
