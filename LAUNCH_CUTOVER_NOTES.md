@@ -13,8 +13,8 @@ permanent documentation once the checklist items are done.
 
 ## Open decisions (fill in before executing)
 
-- [ ] Subdomain to soft-launch on (e.g. `beta.playgoldroad.com`, `v2.playgoldroad.com`)
-- [ ] Observation window length (you said "a couple of days" — pick an actual end date once phase 1 ships)
+- [x] Subdomain: `v2.playgoldroad.com`
+- [x] Observation window: through at least two successful automatic rotations (Roads 2 and 3; earliest cutover review on 22 July 2026 IST)
 - [ ] Go-live date for the real cutover (needed to replace `app/content/updates.ts`'s `'Jul 2026'` placeholder date on its fresh-start entry)
 - [x] Whether to add proactive v1-returning-player messaging before the *production* cutover — **done**, see below
 
@@ -111,41 +111,22 @@ exists) until real v1 traffic ever hits the same origin.
 Goal: get the real Cloudflare Worker + D1 stack live somewhere real, under your
 own control, with zero risk to current `playgoldroad.com` traffic (still on v1/Firebase).
 
-1. **Create the production D1 database** (this is the actual step the
-   `<database_id>` placeholder in `wrangler.jsonc` is waiting on):
-   ```
-   wrangler d1 create goldroad
-   ```
-   Paste the returned `database_id` into `wrangler.jsonc`.
-2. **Apply migrations to the real D1**:
-   ```
-   wrangler d1 migrations apply goldroad
-   ```
-   (no `--local` flag — see `server/db/README.md` for the local-vs-prod distinction)
-3. **Seed the initial road pool.** The new `rotate-road` cron task
-   (`server/tasks/rotate-road.ts`) bootstraps an initial pool itself if it
-   finds zero current rows on first run, but you may want to run/seed this
-   deliberately rather than relying on the first cron tick — check the
-   "Road rotation and puzzle pool" section in `ARCHITECTURE.md`.
-4. **Deploy**:
-   ```
-   pnpm deploy
-   ```
-   (runs `pnpm run build && wrangler deploy`)
-5. **Attach the subdomain** in the Cloudflare dashboard (or via `wrangler.jsonc`
-   `routes`/custom domains) — pick the subdomain from the open decisions above.
-6. **Confirm the cron trigger is actually registered** in the Cloudflare
-   dashboard (Workers → Triggers) — this only becomes real after a real deploy;
-   local `wrangler dev` cannot confirm this end-to-end (see the P2-2 completion
-   notes in `IMPLEMENTATION_PLAN.md` for the local-tooling limitation we hit).
+1. [x] Created isolated `goldroad-v2-staging` and `goldroad-v2-production` D1 databases; both have the squashed migration and no placeholder IDs remain.
+2. [x] Bootstrapped staging only: Road 1 is current and Roads 2–6 form the future pool. Production remains empty so its Road 1 starts on the actual cutover day.
+3. [x] Deployed Worker `goldroad-v2-staging` and attached the custom domain `v2.playgoldroad.com`.
+4. [x] Registered the `0 0 * * *` UTC cron trigger. Deployment version: `c9e9a86a-6149-4bbb-9134-154adb6e4bb3`.
+5. [x] Added staging `noindex, nofollow`, a blocking `robots.txt`, request-origin canonical/social URLs, and a permanent `/sign-in` → `/about` redirect.
+6. [x] Ran the read-only deployed smoke (`pnpm test:deployed:staging`) and an in-app browser pass of the live board/tutorial, Stats, and empty Past Roads state with no browser errors.
 7. **Launch-day verification pass** on the subdomain:
-   - [ ] current road loads for both Classic and Expedition
-   - [ ] a solve writes analytics (check via `pnpm db:studio` or a D1 query against prod)
-   - [ ] hint requests work and are rate-limited correctly (20/min per player)
-   - [ ] share links unfurl correctly (Open Graph image/title/description)
+   - [x] current road loads for both Classic and Expedition
+   - [x] a synthetic solve wrote the expected analytics row and counters to staging D1; the test row/counters were then removed
+   - [x] a live hint request returned a valid hint and recorded `hints_used`
+   - [ ] deliberately trip the 20/min staging rate limit and confirm the 429 path (avoid doing this during a player test session)
+   - [x] Open Graph metadata uses an absolute staging image URL and the image returns 200
+   - [ ] confirm a real third-party share unfurl (not just source metadata)
    - [ ] PWA installs correctly (manifest, icons) on at least one Android and one iOS device
    - [ ] sounds + haptics work, mute toggle persists
-   - [ ] `/about` Updates entry renders
+   - [x] `/about` returns 200 and renders in the deployed app
 
 ## Phase 2 — Observation window
 
@@ -170,8 +151,10 @@ Only after phase 2 looks clean.
    to close out here.
 2. Replace the `'Jul 2026'` placeholder date in `app/content/updates.ts`'s
    fresh-start entry with the real go-live date.
-3. Point `playgoldroad.com` DNS at the Cloudflare deployment (same mechanism as
-   the subdomain in phase 1, just the apex/root domain now).
+3. Immediately before cutover, run `pnpm db:bootstrap:production`, add the apex
+   custom-domain route to the `production` Wrangler environment, remove/replace
+   the old Firebase DNS target, and run `pnpm deploy:production`. Production is
+   already migrated but intentionally has zero roads until this step.
 4. Re-run the full launch-day verification checklist from phase 1 against the
    real domain.
 5. Make sure old v1 routes don't hard-break — check what routes the v1 app

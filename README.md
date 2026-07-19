@@ -82,25 +82,76 @@ It is not meant to be a user history or account-sync system. Only the current ro
 
 ## Development
 
-Install dependencies with `pnpm install`.
+GoldRoad follows Nuxt's supported Node releases (`22.12+`, `24.11+`, or
+`26+`) and pins pnpm in `package.json`. Enable Corepack, then install the
+dependencies and Chromium used by the browser smoke suite:
+
+```sh
+corepack enable
+pnpm install --frozen-lockfile
+pnpm exec playwright install chromium
+```
 
 Main commands:
 - `pnpm dev` — start the app locally
 - `pnpm typecheck` — run Nuxt type checking
 - `pnpm build` — create a production build
 - `pnpm preview` — preview the Worker build locally
-- `pnpm deploy` — build and deploy the Worker with `pnpm run build && wrangler deploy`
+- `pnpm deploy` / `pnpm deploy:staging` — build and deploy the isolated staging Worker
+- `pnpm deploy:production` — build and deploy the production Worker (only during the TLD cutover)
 - `pnpm db:generate` — generate Drizzle migrations
 - `pnpm db:migrate` — apply local D1 migrations
+- `pnpm db:migrate:staging` — apply checked-in migrations to the remote staging D1
+- `pnpm db:migrate:production` — apply checked-in migrations to the remote production D1
 - `pnpm db:seed:local` — generate and load local seed puzzles
+- `pnpm db:bootstrap:staging` — one-time, guarded bootstrap of an empty staging D1
+- `pnpm db:bootstrap:production` — one-time, guarded production bootstrap; run only on launch day
 - `pnpm test` — run unit/regression tests (Vitest)
-- `pnpm test:api` — run the API smoke checks against a running `pnpm dev` + seeded DB
+- `pnpm verify:static` — run typecheck, unit/regression tests, and the production build
+- `pnpm test:api` — reseed local D1 and run the API contract smoke checks against a dev server on port 3100
+- `pnpm test:browser` — reseed local D1 and run the Playwright route smoke suite at desktop and mobile widths; it starts or reuses a dev server on port 3100
+- `pnpm test:deployed:staging` — run a read-only smoke against `https://v2.playgoldroad.com`
 
-Production deploys use Nitro's `cloudflare_module` preset. `pnpm deploy` should
-be run from the repository root after the target Cloudflare account has a
-`goldroad` D1 database and `wrangler.jsonc` has its real `database_id`. The
-build output deployed by Wrangler is `./.output/server/index.mjs`, with assets
-served from `./.output/public/`.
+### Release verification
+
+Run the static gate first:
+
+```sh
+pnpm verify:static
+```
+
+Then keep the app running in one terminal:
+
+```sh
+pnpm dev --port 3100
+```
+
+Run the server and browser gates from a second terminal:
+
+```sh
+pnpm test:api
+pnpm test:browser
+```
+
+The API gate covers current and archived roads, hint/session boundaries,
+stats, expected error responses, and the intentional deep-archive 404 case.
+The browser gate covers the live board and tutorial, Stats, Past Roads, and an
+archived replay using Chromium at both 1280×900 and Pixel 7 widths. Both smoke
+commands replace local D1 data with the deterministic development seed; do not
+run them against local data you need to keep.
+
+Remote deploys use Nitro's `cloudflare_module` preset and two explicit Wrangler
+environments. Staging is `goldroad-v2-staging` with its own D1 database and is
+served at `https://v2.playgoldroad.com`; production is
+`goldroad-v2-production` with a separate, empty-until-launch D1 database. Never
+deploy remotely without `--env staging` or `--env production` (the package
+scripts include this). Keeping the databases separate lets staging rotate
+through test roads without changing the production Road 1 launch date.
+
+Staging blocks indexing in both page metadata and `robots.txt`. Canonical and
+social image URLs are generated from the active request origin, so the same
+build will use the TLD after cutover. The build output deployed by Wrangler is
+`./.output/server/index.mjs`, with assets served from `./.output/public/`.
 
 ## Docs
 

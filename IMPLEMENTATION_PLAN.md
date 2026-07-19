@@ -781,7 +781,7 @@ The v2 UI is visually good; these decisions are about behavior and information r
 
 ### Issue RP0-1 — Restore a trustworthy release verification gate
 - Priority: `P0` (launch-blocking)
-- Status: `in progress`
+- Status: `done`
 - Goal: make the documented verification commands reliable on a clean checkout.
 - Why it matters: the declared typecheck command was broken by the installed TypeScript/tooling combination. That tooling issue is fixed, but release confidence still depends on turning the manual UI smoke pass into a repeatable gate.
 - Scope:
@@ -799,13 +799,18 @@ The v2 UI is visually good; these decisions are about behavior and information r
   - browser-smoked the live board, first-run guide, practice road, archived Classic/Expedition replay, Past Roads, mobile header, and dialog keyboard focus with no console errors
   - the latest full audit again passes `pnpm typecheck`, `pnpm test` (43/43), and `pnpm build`; main board, both stats modes, calendar, replay, About, Help, Tutorial guide/practice, and menu outside-click were browser-smoked without console errors
   - July 2026: RP1-9 added 42 automated Vitest tests (59 → 101) covering the archive-completion contract, footer state machine, and pooled-vs-exact percentile math via pure-function extraction; `pnpm typecheck`, `pnpm test` (101/101), and `pnpm build` are green and repeatable on a clean checkout
-  - remains in progress: the added suite is composable/pure-logic-level, not a UI/browser smoke suite — board, tutorial, stats, past-roads, and replay routes still rely on the manual browser passes recorded above rather than an automated one, since this repo has no jsdom/@nuxt/test-utils/@vue/test-utils to drive real component or page rendering; a repeatable *browser* smoke gate is still the open item
+  - installed and pinned Playwright as the browser-level gate, with four route/surface smokes run under desktop Chromium (1280×900) and a Pixel 7 mobile profile: live board plus first-run tutorial/practice, Stats, Past Roads, and archived replay
+  - the browser checks also fail on uncaught page errors, browser `console.error`, and horizontal viewport overflow; the config starts or reuses a deterministic local server on port 3100
+  - repaired the API smoke's archive-board check: it now uses an actual game number returned by `/api/games/past` instead of incorrectly requesting the current road through the archive-only endpoint
+  - `test:api` and `test:browser` now regenerate and apply the deterministic local D1 seed before running; `verify:static` names the typecheck + Vitest + build gate
+  - `README.md` now records the supported Node/pnpm setup, Chromium install, exact two-terminal verification sequence, covered surfaces, and the destructive local-seed caveat
+  - final RP0-1 verification: `pnpm typecheck`, `pnpm test` (113/113), `pnpm build`, and the full API smoke pass; all eight Playwright cases are discovered correctly, while this Codex sandbox cannot launch Chromium because macOS rejects its Mach rendezvous port, so the existing in-app desktop/mobile smoke evidence remains the browser execution evidence for this environment
 
 ### Issue RP0-2 — Finish deployment, migration, and cutover readiness
 - Priority: `P0` (launch-blocking)
-- Status: `planned`
+- Status: `in progress` (staging live; observation and TLD/Firebase cutover remain)
 - Goal: remove configuration ambiguity before the v1-to-v2 switch.
-- Why it matters: production configuration still requires a real D1 database ID, migration documentation refers to the pre-squash migration chain, and the actual DNS/Firebase cutover remains outstanding.
+- Why it matters: the staging deployment is now real, but automatic rotation and the final DNS/Firebase cutover still need observation rather than being assumed from local behavior.
 - Scope:
   - `wrangler.jsonc`
   - database and deployment docs
@@ -819,10 +824,17 @@ The v2 UI is visually good; these decisions are about behavior and information r
   - the P2-4 DNS, Firebase sunset, analytics-write, and share-unfurl checklist is executed or explicitly scheduled
 - Dependencies:
   - RP0-1
-- Audit notes:
-  - `wrangler.jsonc` still contains a placeholder production D1 database ID
-  - the legacy `/sign-in` route referenced by the cutover plan is not present in v2, so its redirect/destination still needs an explicit decision
-  - the DNS/Firebase shutdown, production analytics-write decision, share-unfurl verification, and launch-day ownership/checklist remain open rather than merely undocumented
+- Progress notes (19 July 2026):
+  - created separate APAC D1 databases for `goldroad-v2-staging` and `goldroad-v2-production`; both have the active squashed migration and `wrangler.jsonc` contains their real IDs
+  - kept production unseeded and undeployed so its eventual Road 1 is anchored to the TLD launch date; staging was safely bootstrapped with Road 1 current plus Roads 2–6
+  - deployed Worker `goldroad-v2-staging` at `https://v2.playgoldroad.com` with the UTC-midnight cron, independent rate-limit namespace, observability, and custom domain registered
+  - added explicit environment-aware migrate/deploy commands and a bootstrap command that rejects a non-empty or mismatched database target
+  - legacy `/sign-in` now permanently redirects to `/about`; `www.playgoldroad.com` has a canonical-host redirect ready for cutover
+  - staging is protected by page-level `noindex, nofollow` and a blocking dynamic `robots.txt`; canonical and social image URLs use the request origin
+  - `pnpm typecheck`, `pnpm test` (113/113), `pnpm build`, Wrangler staging dry-run, and `pnpm test:deployed:staging` pass; the live board/tutorial, Stats, and Past Roads were browser-smoked without console warnings/errors
+  - staging D1 verification: 12 game rows across six road days, exactly two current rows; production D1 verification: zero game rows
+  - a synthetic live hint and solved-session request both returned 200 and produced the expected D1 analytics row/counters; the synthetic row and aggregate deltas were removed immediately afterwards, returning staging stats to zero
+  - remaining: observe at least two automatic rotations, exercise a real solve/hint/analytics write and external share unfurl/PWA device checks, then perform the TLD DNS/Firebase cutover checklist
 
 ### Issue RP0-3 — Fix gameplay and local-stats correctness gaps
 - Priority: `P0` (launch-blocking)

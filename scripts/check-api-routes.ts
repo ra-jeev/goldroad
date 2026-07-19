@@ -130,8 +130,19 @@ async function checkPastGames() {
     ),
   });
 
-  parseOrThrow('GET /api/games/past', PastGamesResponseSchema, body);
+  const parsed = parseOrThrow(
+    'GET /api/games/past',
+    PastGamesResponseSchema,
+    body,
+  );
+  const archivedGame = parsed.games[0];
+  if (!archivedGame) {
+    throw new Error(
+      'GET /api/games/past: expected at least one archived road for the board smoke check',
+    );
+  }
   logOk('returns a schema-valid grouped past-games payload');
+  return archivedGame.gameNo;
 }
 
 async function checkGameBoard(gameNo: number) {
@@ -371,10 +382,10 @@ async function run() {
   }
 
   console.log('\ngames/past');
-  await checkPastGames();
+  const archivedGameNo = await checkPastGames();
 
   console.log('\ngames/[gameNo]/board');
-  await checkGameBoard(currentGame.gameNo);
+  await checkGameBoard(archivedGameNo);
 
   console.log('\ngames/another (random deep-archive road)');
   await checkAnotherGame();

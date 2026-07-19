@@ -20,11 +20,9 @@ export default defineNuxtConfig({
             'A daily route puzzle. Build a path from the start tile to the exit tile and land exactly on the target score.',
         },
         { property: 'og:type', content: 'website' },
-        { property: 'og:image', content: '/icons/og-1200x630.png' },
         { property: 'og:image:width', content: '1200' },
         { property: 'og:image:height', content: '630' },
         { name: 'twitter:card', content: 'summary_large_image' },
-        { name: 'twitter:image', content: '/icons/og-1200x630.png' },
       ],
       link: [
         { rel: 'manifest', href: '/manifest.webmanifest' },
@@ -54,4 +52,8 @@ export default defineNuxtConfig({
   },
 
   modules: ['nitro-cloudflare-dev', '@vueuse/nuxt'],
+
+  routeRules: {
+    '/sign-in': { redirect: { to: '/about', statusCode: 301 } },
+  },
 });

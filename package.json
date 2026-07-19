@@ -2,22 +2,35 @@
 	"name": "goldroad",
 	"type": "module",
 	"private": true,
+	"packageManager": "pnpm@11.13.0",
+	"engines": {
+		"node": "^22.12.0 || ^24.11.0 || >=26.0.0"
+	},
 	"scripts": {
 		"build": "nuxt build",
 		"dev": "nuxt dev",
 		"generate": "nuxt generate",
 		"preview": "pnpm run build && wrangler dev",
 		"postinstall": "nuxt prepare",
-		"deploy": "pnpm run build && wrangler deploy",
+		"deploy": "pnpm run deploy:staging",
+		"deploy:staging": "pnpm run build && wrangler deploy --config wrangler.jsonc --env staging",
+		"deploy:production": "pnpm run build && wrangler deploy --config wrangler.jsonc --env production",
 		"typecheck": "nuxt typecheck",
-		"cf-typegen": "wrangler types",
+		"cf-typegen": "wrangler types --config wrangler.jsonc --env staging",
 		"db:generate": "drizzle-kit generate",
-		"db:migrate": "wrangler d1 migrations apply goldroad --local",
+		"db:migrate": "wrangler d1 migrations apply DB --local --config wrangler.jsonc",
+		"db:migrate:staging": "wrangler d1 migrations apply goldroad-v2-staging --remote --config wrangler.jsonc --env staging",
+		"db:migrate:production": "wrangler d1 migrations apply goldroad-v2-production --remote --config wrangler.jsonc --env production",
+		"db:bootstrap:staging": "tsx scripts/bootstrap-road-pool.ts --database goldroad-v2-staging --env staging",
+		"db:bootstrap:production": "tsx scripts/bootstrap-road-pool.ts --database goldroad-v2-production --env production",
 		"db:studio": "drizzle-kit studio",
-		"db:seed:local": "pnpm exec tsx scripts/generate-dev-seed.ts && wrangler d1 execute goldroad --local --file server/db/seeds/dev_seed.sql",
+		"db:seed:local": "pnpm exec tsx scripts/generate-dev-seed.ts && XDG_CONFIG_HOME=.wrangler/xdg-config XDG_CACHE_HOME=.wrangler/xdg-cache wrangler d1 execute DB --local --config wrangler.jsonc --file server/db/seeds/dev_seed.sql",
 		"test": "vitest run",
 		"test:watch": "vitest",
-		"test:api": "pnpm exec tsx scripts/check-api-routes.ts"
+		"test:api": "pnpm db:seed:local && API_BASE_URL=http://localhost:3100 pnpm exec tsx scripts/check-api-routes.ts",
+		"test:browser": "pnpm db:seed:local && playwright test",
+		"test:deployed:staging": "tsx scripts/check-deployed-app.ts https://v2.playgoldroad.com",
+		"verify:static": "pnpm typecheck && pnpm test && pnpm build"
 	},
 	"dependencies": {
 		"@vueuse/core": "^14.3.0",
@@ -29,6 +42,7 @@
 		"zod": "^4.4.3"
 	},
 	"devDependencies": {
+		"@playwright/test": "^1.61.1",
 		"@types/node": "^26.1.1",
 		"drizzle-kit": "^0.31.10",
 		"drizzle-zod": "^0.8.3",
