@@ -126,12 +126,15 @@ const showHintAction = computed(
     (footerState.value === 'resting-first' ||
       footerState.value === 'resting-retry' ||
       footerState.value === 'mid-run') &&
-    !props.trackingDisabled,
+    !props.trackingDisabled &&
+    !props.newRoadReady,
 );
 // Mid-run keeps Hint reachable but drops its label so nothing competes
 // with the board.
 const hintIsQuiet = computed(() => footerState.value === 'mid-run');
-const showRetryAction = computed(() => props.canRetry);
+// Expiry removes retry and hint but never touches the board: the active
+// attempt may finish; afterwards the only forward action is the new road.
+const showRetryAction = computed(() => props.canRetry && !props.newRoadReady);
 const retryIsPrimary = computed(() => footerState.value === 'failed');
 const showShareAction = computed(
   () => props.showShare && props.solved && Boolean(props.shareHandler),
@@ -144,13 +147,10 @@ const showStatsAction = computed(
 );
 // Once the next road is live, loading it is the day's next beat — it takes
 // the primary slot (and the stats link steps back) until the fetch actually
-// returns a new road.
+// returns a new road. It shows in every state: mid-run it sits quietly next
+// to the board without replacing any message.
 const showNewRoadAction = computed(
-  () =>
-    props.newRoadReady &&
-    props.showNextResetCountdown &&
-    (footerState.value === 'solved-next' ||
-      footerState.value === 'solved-final'),
+  () => props.newRoadReady && props.showNextResetCountdown,
 );
 const showSecondaryLink = computed(
   () =>

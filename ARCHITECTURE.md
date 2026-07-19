@@ -114,13 +114,27 @@ If the pool is unexpectedly dry at rotation time, the task generates the next
 day's missing rows before flipping `current`, and logs an error so the rotation
 does not silently stall.
 
-On the client, the live page's countdown anchors its target midnight once and
-flips a `newRoadReady` flag when it passes (instead of silently restarting for
-the next day). The solved-state footer then swaps the ticker for a "Play the
-new road" action that refetches the current road. Because the rotation cron can
-lag midnight by a moment, the affordance clears only when the response carries
-a genuinely new road number — taps during the lag (old road still current, or
-the brief mid-flip 404) are graceful no-ops and the player simply taps again.
+On the client, the live page's countdown anchors to the loaded road's own
+`nextGameAt` (falling back to wall-clock UTC midnight until a road loads), so a
+page opened while the cron lags is immediately "ready" rather than counting a
+fresh 24 hours against yesterday's road. The midnight contract when that
+anchor passes: **the board itself is never touched.** Retry, Hint, and mode
+switching disappear, server calls stop, and every footer state gains a "Play
+the new road" action — but the in-flight (or one first) attempt may finish
+with full local credit: history, medal, streak, and celebration all count (the
+solve belongs to the road, not the wall clock), only the analytics call is
+skipped. With retry gone the old road can be walked at most once more, and the
+celebration for a post-expiry Classic solve suppresses the Expedition CTA
+(the mode switch is locked) so "Play the new road" leads instead.
+
+There is no polling: the new-road fetch happens on user action. It fetches
+first, compares `gameNo`, and applies only a genuinely new road — a same-road
+or mid-flip-404 response changes nothing and the action stays for the next
+tap. Reloading during the few-second cron window could technically grant one
+more final attempt; that race is accepted rather than policed with persistent
+state. The stats page follows the same passive model: at midnight its
+countdown becomes "A new road is available · Play now", and the live page
+performs the authoritative fetch on arrival.
 
 Local testing options:
 - `wrangler dev --test-scheduled`, then request

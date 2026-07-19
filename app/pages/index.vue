@@ -195,7 +195,9 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
           :solved="lastSolved"
           :can-retry="ended || moves > 1"
           :can-switch-to-expedition="
-            canSwitchToExpedition && (ended || moves <= 1 || lastSolved)
+            canSwitchToExpedition &&
+            (ended || moves <= 1 || lastSolved) &&
+            !newRoadReady
           "
           :loading="loading"
           :submitting="submitting"

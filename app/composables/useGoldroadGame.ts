@@ -8,11 +8,18 @@ export function useGoldroadGame() {
   const gamesApi = useGamesApi();
   const localProgress = useLocalGameProgress();
   const gameplay = useRoadDayGameplay({ entryType: 'live' });
+  // Anchored to the loaded road's own schedule: a tab open at rotation (or a
+  // page first opened while the cron lags) flips ready as soon as this road's
+  // nextGameAt passes, and clears once a newer road is applied.
   const {
     countdown: nextResetCountdown,
     newRoadReady,
-    reset: resetNextRoadCountdown,
-  } = useNextRoadCountdown();
+  } = useNextRoadCountdown(
+    () =>
+      gameplay.availableGames.value.classic?.nextGameAt ??
+      gameplay.availableGames.value.expedition?.nextGameAt ??
+      null,
+  );
 
   const canSwitchToExpedition = computed(
     () =>
@@ -55,30 +62,31 @@ export function useGoldroadGame() {
   }
 
   // The rotation cron can lag UTC midnight by a moment, so the server may
-  // still answer with the old road (or briefly with none mid-flip). Keep the
-  // affordance up until a genuinely new road number arrives; tapping again
-  // is harmless.
+  // still answer with the old road (or briefly with none mid-flip). Fetch
+  // first and apply only a genuinely new road: re-applying the same road
+  // would rebuild the board and hand out a fresh attempt on an expired day.
+  // On a no-op the board is untouched and the affordance stays for the next
+  // tap.
   async function loadNewRoad() {
     const previousGameNo =
       gameplay.availableGames.value.classic?.gameNo ??
       gameplay.availableGames.value.expedition?.gameNo ??
       null;
-    const previousStatus = gameplay.status.value;
 
+    let response: CurrentGamesResponse;
     try {
-      await loadCurrentGame();
+      response = await gamesApi.getCurrentGames();
     } catch {
-      gameplay.status.value = previousStatus;
       return;
     }
 
     const nextGameNo =
-      gameplay.availableGames.value.classic?.gameNo ??
-      gameplay.availableGames.value.expedition?.gameNo ??
-      null;
-    if (nextGameNo !== null && nextGameNo !== previousGameNo) {
-      resetNextRoadCountdown();
-    }
+      response.classic?.gameNo ?? response.expedition?.gameNo ?? null;
+    if (nextGameNo === null || nextGameNo === previousGameNo) return;
+
+    gameplay.applyRoadDay(response, {
+      preferredMode: getPreferredMode(response),
+    });
   }
 
   onMounted(async () => {

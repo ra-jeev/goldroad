@@ -82,8 +82,24 @@ export function shouldRecordArchiveCompletion(
 export function shouldCallSessionApi(
   entryType: EntryType,
   isUntrackedReplay: boolean,
+  roadExpired = false,
 ): boolean {
-  return entryType === 'live' && !isUntrackedReplay;
+  return entryType === 'live' && !isUntrackedReplay && !roadExpired;
+}
+
+/**
+ * The midnight contract (RP1-16): once the loaded road's own nextGameAt has
+ * passed, the board stays exactly as it is, but retry, hints, mode switching,
+ * and server analytics all stop — the in-flight (or one first) attempt may
+ * still finish with full local credit, streak included.
+ */
+export function isRoadExpired(
+  nextGameAt: string | null | undefined,
+  nowMs: number,
+): boolean {
+  if (!nextGameAt) return false;
+  const parsed = Date.parse(nextGameAt);
+  return !Number.isNaN(parsed) && nowMs >= parsed;
 }
 
 /**
@@ -550,8 +566,19 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     selectMode(nextMode);
   }
 
+  // True only for the live road once its own schedule has moved on. Archive
+  // and random play never expire.
+  function isLiveRoadExpired(): boolean {
+    return (
+      options.entryType === 'live' &&
+      isRoadExpired(game.value?.nextGameAt, Date.now())
+    );
+  }
+
   function selectMode(mode: PuzzleType) {
     if (mode === 'expedition' && !isExpeditionUnlocked.value) return;
+    // Rebuilding the other mode's board after expiry would act as a retry.
+    if (isLiveRoadExpired()) return;
 
     const next =
       mode === 'classic'
@@ -652,7 +679,10 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
         attemptNumber: attempts,
         solveTimeMs: params.solveTimeMs,
         hintsUsed: hintsUsed.value,
-        hasExpedition: Boolean(availableGames.value.expedition),
+        // After expiry the mode switch is locked, so the Expedition CTA
+        // would dead-end; the footer's "Play the new road" leads instead.
+        hasExpedition:
+          Boolean(availableGames.value.expedition) && !isLiveRoadExpired(),
         classicResult: null,
         expeditionResult: null,
       };
@@ -806,6 +836,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     expeditionJustUnlocked.value =
       options.entryType === 'live' &&
       !isUntrackedReplay &&
+      !isLiveRoadExpired() &&
       selectedMode.value === 'classic' &&
       solved &&
       !expeditionWasUnlocked &&
@@ -844,8 +875,16 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
       });
     }
 
-    // Archived play never creates analytics rows (RP0-5).
-    if (!shouldCallSessionApi(options.entryType, isUntrackedReplay)) {
+    // Archived play never creates analytics rows (RP0-5), and an expired
+    // road's grandfathered finish keeps its full local result but skips the
+    // server, which only accepts the current road (RP1-16).
+    if (
+      !shouldCallSessionApi(
+        options.entryType,
+        isUntrackedReplay,
+        isLiveRoadExpired(),
+      )
+    ) {
       submitting.value = false;
       return;
     }
@@ -872,6 +911,8 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
   async function retryCurrentGame() {
     if (!game.value || loading.value) return;
     if (submitting.value && !ended.value) return;
+    // No fresh attempts on an expired road — the active one may finish.
+    if (isLiveRoadExpired()) return;
     // No moves made yet: the board is already at its starting state, so a
     // retry would only churn messages. Pure no-op.
     if (!ended.value && moves.value <= 1) return;
@@ -980,6 +1021,9 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     ) {
       return;
     }
+    // The live hint endpoint no longer accepts this road once it rotates
+    // out; already-visible guide tiles stay, new hints quietly retire.
+    if (isLiveRoadExpired()) return;
 
     if (solveTimerStartedAtMs.value !== null) {
       persistSolveTimerState(true);

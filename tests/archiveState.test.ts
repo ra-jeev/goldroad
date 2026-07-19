@@ -7,6 +7,7 @@ import {
   type HistoryDayRecord,
 } from '../app/composables/useGoldroadLocalState';
 import {
+  isRoadExpired,
   shouldCallSessionApi,
   shouldRecordArchiveCompletion,
   resolveRunMedals,
@@ -194,6 +195,32 @@ describe('shouldCallSessionApi (zero analytics writes for archive play)', () => 
 
   it('never calls the session API for an untracked live replay', () => {
     expect(shouldCallSessionApi('live', true)).toBe(false);
+  });
+
+  it('skips the session API for a grandfathered finish on an expired road', () => {
+    expect(shouldCallSessionApi('live', false, true)).toBe(false);
+    expect(shouldCallSessionApi('live', false, false)).toBe(true);
+  });
+});
+
+describe('isRoadExpired (midnight contract, RP1-16)', () => {
+  const nextGameAt = '2026-07-20T00:00:00.000Z';
+  const beforeMs = Date.parse('2026-07-19T23:59:59.000Z');
+  const atMs = Date.parse(nextGameAt);
+
+  it('is not expired before nextGameAt', () => {
+    expect(isRoadExpired(nextGameAt, beforeMs)).toBe(false);
+  });
+
+  it('expires exactly at nextGameAt and after', () => {
+    expect(isRoadExpired(nextGameAt, atMs)).toBe(true);
+    expect(isRoadExpired(nextGameAt, atMs + 60_000)).toBe(true);
+  });
+
+  it('never expires without a valid schedule', () => {
+    expect(isRoadExpired(null, atMs)).toBe(false);
+    expect(isRoadExpired(undefined, atMs)).toBe(false);
+    expect(isRoadExpired('not-a-date', atMs)).toBe(false);
   });
 });
 

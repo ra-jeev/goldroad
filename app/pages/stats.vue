@@ -17,7 +17,7 @@ const localStats = useLocalPlayerStats();
 const localProgress = useLocalGameProgress();
 const statsApi = useStatsApi();
 const roadResultShare = useRoadResultShare();
-const { countdown: nextRoadCountdown } = useNextRoadCountdown();
+const { countdown: nextRoadCountdown, newRoadReady } = useNextRoadCountdown();
 
 const summary = localStats.summary;
 const recentDays = localStats.recentDays;
@@ -516,9 +516,15 @@ onMounted(async () => {
           </p>
 
           <!-- Always visible: after a solve it's the wait for tomorrow,
-               before one it's the time left to walk today's road. -->
+               before one it's the time left to walk today's road. At UTC
+               midnight it becomes a passive link — the live page performs
+               the authoritative fetch on arrival. -->
           <p class="next-road-line">
-            Next road in {{ nextRoadCountdown }}
+            <template v-if="newRoadReady">
+              A new road is available ·
+              <NuxtLink to="/" class="next-road-link">Play now</NuxtLink>
+            </template>
+            <template v-else>Next road in {{ nextRoadCountdown }}</template>
           </p>
         </section>
 
@@ -931,6 +937,12 @@ onMounted(async () => {
   font-weight: 700;
   color: rgb(var(--color-gold-rgb) / 0.66);
   font-variant-numeric: tabular-nums;
+}
+
+.next-road-link {
+  color: var(--color-gold-bright);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
 }
 
 /* ── Yesterday's field ────────────────────────────────────── */

@@ -1336,6 +1336,28 @@ The v2 UI is visually good; these decisions are about behavior and information r
   - documentation sweep: the eight stale statements the review listed (P0-3/P0-4 superseded criteria, `--color-active`, RP1-9 status, RP1-12 Surprise-Me note, ARCHITECTURE optimal-path wording, schema comment, README "no server calls", dead `PastGameSummarySchema` note) all corrected
   - `pnpm typecheck` and `pnpm test` (109/109) green; browser-verified on a seeded archive road: first solve shows the would-have sheet with no share, reload presents solved-at-rest from the completion map, and an untracked re-solve produces no sheet
 
+### Issue RP1-16 — The midnight contract: grandfather the active attempt, never touch the board
+- Priority: `P0` (launch-blocking; completes RP1-15's rollover affordance)
+- Status: `done`
+- Goal: define and implement what happens to a live board that is open — untouched, mid-run, failed, or solved — when its road rotates out.
+- Why it matters: RP1-15 added the new-road affordance only to solved footer states. An unsolved tab could keep playing yesterday's road against hint/result endpoints that now only accept the current road, the stats countdown froze at `00:00:00`, and a page opened during a delayed cron anchored to the *following* midnight instead of noticing the loaded road had already expired. `loadNewRoad` also applied a same-road response, which would have rebuilt the board and handed out a free retry.
+- Owner decisions locked here (after a three-way review convergence):
+  - **Midnight does not touch the board.** At the loaded road's `nextGameAt`: Retry, Hint, and mode switching disappear, server calls stop, and "Play the new road" appears in every footer state. Nothing else changes.
+  - The in-flight (or one first) attempt may finish — with no time limit and **full local credit: history, medal, streak, and celebration all count**. The solve belongs to the road, not the wall clock; only the analytics call is skipped. Streak-keeping is a decision, not an oversight: streaks are local-only and self-reported, so policing the parked-tab case is not worth the state it would require.
+  - With retry gone, "one final attempt" enforces itself — no grace timer, no untouched/mid-run state machine, no disabling the board.
+  - The server stays strictly current-road-only; no grace window on `session/end` or `session/hint`.
+  - No polling: the new-road fetch is user-action-driven (button tap, F5). Fetch first, compare `gameNo`, apply only a genuinely new road; same-road and 404 responses are no-ops that keep the affordance. The F5-during-cron-lag race (one extra final attempt) is accepted rather than policed.
+  - A post-expiry Classic solve celebrates normally but suppresses the Expedition CTA (the mode switch is locked); the footer's "Play the new road" leads after dismissal.
+  - Stats page is passive: at midnight the countdown becomes "A new road is available · Play now" linking to the live page, which performs the authoritative fetch on arrival.
+- Completion notes:
+  - `useNextRoadCountdown` accepts a `getAnchor` callback: the live page anchors to the loaded road's `nextGameAt` (immediately ready on a delayed-cron page load; clears automatically once a newer road is applied), the stats page keeps a mount-anchored wall-clock target with a sticky ready state
+  - `useRoadDayGameplay`: exported pure `isRoadExpired(nextGameAt, nowMs)` gate; expiry blocks `retryCurrentGame`, `requestHint`, and `selectMode`, suppresses `expeditionJustUnlocked` and the celebration's `hasExpedition`, and `shouldCallSessionApi` gained a `roadExpired` parameter so a grandfathered finish skips `session/end` while `recordRun` (history/medal/streak, written before any server call) is untouched
+  - `GameBoardFooter`: `newRoadReady` hides Hint and Retry and shows the new-road action in every state; `useGoldroadGame.loadNewRoad` now fetches first and applies only a new `gameNo`
+  - `stats.vue`: countdown swaps to the passive ready line with a `Play now` link
+  - tests: `isRoadExpired` boundary cases (before/at/after `nextGameAt`, null/invalid schedules) and the expired-run session-API skip added to `tests/archiveState.test.ts` (113/113 green with `pnpm typecheck`)
+  - browser-verified on the dev seed (whose stale `nextGameAt` reproduces the delayed-cron case exactly): page loads directly into ready state with Hint gone and "Play the new road" showing, the board stays fully playable mid-run, tapping the button against an un-rotated server is a clean no-op that keeps board and button intact, and the stats line flips from a ticking countdown to "A new road is available · Play now" when the clock crosses midnight
+- Dependencies: RP1-15 (built on its affordance and countdown), RP0-4 (preserves the current-road-only server boundary)
+
 ### Recommended implementation order
 
 1. RP0-1 — verification gate
@@ -1357,4 +1379,5 @@ The v2 UI is visually good; these decisions are about behavior and information r
 17. RP1-13 — dead-declaration cleanup once the UI has settled
 18. RP1-9 — regression coverage throughout the work, completed as a release gate
 19. RP1-15 — external-review fixes (archive boundary, session-scoped replay state, midnight rollover)
-20. RP0-2 — production cutover after every local release gate is green
+20. RP1-16 — the midnight contract (grandfathered attempts, event-driven new-road handoff)
+21. RP0-2 — production cutover after every local release gate is green
