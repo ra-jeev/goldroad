@@ -904,7 +904,7 @@ The v2 UI is visually good; these decisions are about behavior and information r
   - RP1-9 for the completion, unlock, hint, and storage regression matrix
 - Completion notes:
   - `computeHint` moved to `shared/utils/hints.ts` (used server-side for the live road, client-side for archived roads); tests updated
-  - `/api/games/[gameNo]/board` now attaches `optimalPaths` only when the road is not current — verified the live road never ships paths even through the archive URL; `PublicGameSchema` gained the optional field with the boundary documented inline
+  - `/api/games/[gameNo]/board` now attaches `optimalPaths` only when the road is not current — verified the live road never ships paths even through the archive URL; `PublicGameSchema` gained the optional field with the boundary documented inline _(superseded by RP1-15: the endpoint now 404s current and future roads outright and always ships `optimalPaths` for the archived roads it does serve)_
   - `useRoadDayGameplay`: archive entry type never calls `session/hint` or `session/end` (browser-verified zero requests across a full hint + solve session); hints compute locally from the shipped paths; an archive solve writes exactly one durable fact to the new `archiveCompletionByGame` map
   - solved/unlock presentation for archived roads derives from live history merged with the completion map (`isRoadModeSolved`), so a solved archive road presents as solved across reloads; the merge feeds only presentation and the calendar, never stats — `historyByDay` verified untouched after an archive solve
   - Expedition gating unified: `isExpeditionUnlocked` now gates archive play behind that road's Classic solve (the archive-bypass branch and the replay page's hardcoded `true` both removed); the tab unlocks live at the moment of the Classic solve
@@ -1316,6 +1316,26 @@ The v2 UI is visually good; these decisions are about behavior and information r
   - verified every route/file the touched docs reference actually exists: `app/pages/about.vue`, `app/content/updates.ts`, `app/composables/useUpdatesNotice.ts`, `app/composables/useV1ReturningPlayerNotice.ts`, `app/components/V1WelcomeSheet.vue`, `server/api/session/end.post.ts`, `server/api/session/hint.post.ts`, `app/utils/statsPresentation.ts`, `server/db/README.md`, and the `wrangler.jsonc` `database_id`/`crons`/`observability` keys the cutover checklist points at
   - `pnpm typecheck` and `pnpm test` (101/101) pass unchanged; this was a docs-and-`.gitignore`-only pass with no source changes
 
+### Issue RP1-15 — External-review fixes: archive boundary, session-scoped replay state, and the midnight rollover
+- Priority: `P0` (launch-blocking; contains a solution-leak fix)
+- Status: `done`
+- Goal: close the gaps a July 2026 external model review found between the locked archive contract and the shipped code, and give players on an open page a way onto the new road at rotation.
+- Why it matters: the archive board endpoint filtered only on `gameNo` + `active`, so the current road was playable through archive rules and the five pre-generated future roads were fetchable **with their solution paths**. Replay progress also persisted durably against the "unfinished archive attempt writes nothing" contract, archive solves presented awarded medals, and at 00:00 UTC the live page silently restarted its countdown without ever offering the new road.
+- Owner decisions locked here:
+  - archive progress (attempts, hints, guide path, solve timer) is session-scoped; returning days later is a fresh game
+  - the archive solve timer stays (session-based) and feeds the celebration's solve-time line
+  - archive celebrations award no medal; they show a playful counterfactual ("Live, that would have been Gold") — celebration-sheet only, the calendar stays solved-green
+  - sharing is live-only; archive play has no share affordance anywhere
+  - only the first solve of a road+mode celebrates, whether the road was first solved live or in the archive; re-solves settle into the solved rest state
+- Completion notes (commits `a9793fb`, `5ecc747`):
+  - `server/api/games/[gameNo]/board.get.ts` requires `current = false` and `playableAt <= now`; current and future roads 404, archived roads always ship `optimalPaths` (`tests/archiveBoardRoute.test.ts`; also browser-verified: past road 200 with paths, current and future 404)
+  - `replayProgressByKey` moved to `sessionStorage` (`goldroad-replay-progress-v2`) and is excluded from the `goldroad-state-v2` localStorage blob; legacy replay progress in old blobs is dropped one-way on load
+  - `finalizeRun` awards no medal for archive runs; `resolveRunMedals` (exported, tested) computes the separate `wouldHaveMedal` that only the replay celebration presents; the replay sheet's sole action is dismissal
+  - share plumbing is live-only again (`isReplay` flag removed end to end); the replay page passes no share handler and the celebration sheet's share prop is optional
+  - `useNextRoadCountdown` anchors its target midnight and flips `newRoadReady` instead of silently restarting; the solved-state footer swaps the ticker for "A new road just opened." + a primary "Play the new road" action; `loadNewRoad` refetches and clears the affordance only when a genuinely new road number arrives, so taps during the rotation cron's lag (old road still current, or the brief mid-flip 404) are graceful no-ops
+  - documentation sweep: the eight stale statements the review listed (P0-3/P0-4 superseded criteria, `--color-active`, RP1-9 status, RP1-12 Surprise-Me note, ARCHITECTURE optimal-path wording, schema comment, README "no server calls", dead `PastGameSummarySchema` note) all corrected
+  - `pnpm typecheck` and `pnpm test` (109/109) green; browser-verified on a seeded archive road: first solve shows the would-have sheet with no share, reload presents solved-at-rest from the completion map, and an untracked re-solve produces no sheet
+
 ### Recommended implementation order
 
 1. RP0-1 — verification gate
@@ -1336,4 +1356,5 @@ The v2 UI is visually good; these decisions are about behavior and information r
 16. RP1-14 — synchronize release/design documentation after behavior contracts settle
 17. RP1-13 — dead-declaration cleanup once the UI has settled
 18. RP1-9 — regression coverage throughout the work, completed as a release gate
-19. RP0-2 — production cutover after every local release gate is green
+19. RP1-15 — external-review fixes (archive boundary, session-scoped replay state, midnight rollover)
+20. RP0-2 — production cutover after every local release gate is green

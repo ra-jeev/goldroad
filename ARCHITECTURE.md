@@ -42,6 +42,8 @@ Solving never navigates away from the board. Celebration happens on a sheet over
 
 Celebration energy tiers by result: first-attempt gold gets the full moment, medal solves get a standard celebration, late no-medal solves get warm relief with the Expedition CTA leading. A sheet fires once per solve event and never re-pops on later visits; a quiet Share affordance persists in the solved-board footer instead.
 
+Sharing is a live-road concept: archive replay exposes no share affordance anywhere (sheet or footer). An archive replay sheet fires only for the first solve of a road+mode — re-solving a road already solved live or in the archive settles into the solved rest state with no sheet. That first-solve sheet awards no medal; it shows a counterfactual line ("Live, that would have been Gold") with the session solve time, and its only action is dismissal.
+
 ### 1.5 App shell requirements
 
 Two v1 qualities are shipped as launch requirements for v2:
@@ -112,6 +114,14 @@ If the pool is unexpectedly dry at rotation time, the task generates the next
 day's missing rows before flipping `current`, and logs an error so the rotation
 does not silently stall.
 
+On the client, the live page's countdown anchors its target midnight once and
+flips a `newRoadReady` flag when it passes (instead of silently restarting for
+the next day). The solved-state footer then swaps the ticker for a "Play the
+new road" action that refetches the current road. Because the rotation cron can
+lag midnight by a moment, the affordance clears only when the response carries
+a genuinely new road number — taps during the lag (old road still current, or
+the brief mid-flip 404) are graceful no-ops and the player simply taps again.
+
 Local testing options:
 - `wrangler dev --test-scheduled`, then request
   `http://localhost:8787/cdn-cgi/handler/scheduled` to fire the scheduled
@@ -127,6 +137,8 @@ Local testing options:
 - Archive play is fully local: archived boards are fetched once, hints are computed client-side from the returned `optimalPaths`, and a solve makes no `/api/session` calls of any kind. Nothing about archive play reaches the analytics tables.
 - Expedition stays gated behind Classic in archive replay, the same as the live road (see the RP0-5 archive/replay decision below). This deliberately supersedes the earlier P0-4 acceptance criterion that called for Expedition to be directly available in archive replay; that frictionless model predated tracked archive completion.
 - An archive completion is recorded only when a mode is actually solved, per game and per mode, in `localStorage` under `goldroad-state-v2`'s `archiveCompletionByGame` map. It drives the Past Roads calendar markers and that road's local solved/unlock state only. It never touches medals, streaks, attempts, solve times, personal totals, today's result, yesterday's comparison, or server analytics.
+- In-progress archive state (attempts, hints, guide path, solve timer) is session-scoped (see §8): leaving and returning days later starts a fresh game. Archive solves celebrate only on the first solve of a road+mode, award no medal (a counterfactual "would have been" line stands in), and offer no share (see §1.4).
+- The archive board endpoint serves archived roads only: requests for the current or a future road number 404, and every road it serves ships its `optimalPaths`.
 
 ### Random road behavior
 
