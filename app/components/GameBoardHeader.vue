@@ -15,6 +15,9 @@ const props = defineProps<{
   maxScore: number;
   totalCoins: number;
   pulse?: { type: 'toll' | 'bonus'; key: number } | null;
+  // Expired roads lock mode switching (RP1-16): rebuilding the other mode's
+  // board would act as a retry. The inactive tab disables to say so.
+  modeSwitchLocked?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -72,6 +75,7 @@ function statusLabel(solved: boolean, medal: Medal | null): string {
         class="mode-option"
         :class="{ 'mode-option--active': selectedMode === 'classic' }"
         :aria-selected="selectedMode === 'classic'"
+        :disabled="modeSwitchLocked && selectedMode !== 'classic'"
         role="tab"
         :title="
           classicSolved
@@ -104,7 +108,10 @@ function statusLabel(solved: boolean, medal: Medal | null): string {
         class="mode-option"
         :class="{ 'mode-option--active': selectedMode === 'expedition' }"
         :aria-selected="selectedMode === 'expedition'"
-        :disabled="!isExpeditionUnlocked"
+        :disabled="
+          !isExpeditionUnlocked ||
+          (modeSwitchLocked && selectedMode !== 'expedition')
+        "
         role="tab"
         :title="
           isExpeditionUnlocked

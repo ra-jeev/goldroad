@@ -67,26 +67,36 @@ export function useGoldroadGame() {
   // would rebuild the board and hand out a fresh attempt on an expired day.
   // On a no-op the board is untouched and the affordance stays for the next
   // tap.
+  let loadNewRoadInFlight = false;
+
   async function loadNewRoad() {
-    const previousGameNo =
-      gameplay.availableGames.value.classic?.gameNo ??
-      gameplay.availableGames.value.expedition?.gameNo ??
-      null;
+    if (loadNewRoadInFlight) return;
+    loadNewRoadInFlight = true;
 
-    let response: CurrentGamesResponse;
     try {
-      response = await gamesApi.getCurrentGames();
-    } catch {
-      return;
+      let response: CurrentGamesResponse;
+      try {
+        response = await gamesApi.getCurrentGames();
+      } catch {
+        return;
+      }
+
+      // Compare against the state at apply time, not at tap time: a slower
+      // concurrent tap must not re-apply the road a faster one just loaded.
+      const currentGameNo =
+        gameplay.availableGames.value.classic?.gameNo ??
+        gameplay.availableGames.value.expedition?.gameNo ??
+        null;
+      const nextGameNo =
+        response.classic?.gameNo ?? response.expedition?.gameNo ?? null;
+      if (nextGameNo === null || nextGameNo === currentGameNo) return;
+
+      gameplay.applyRoadDay(response, {
+        preferredMode: getPreferredMode(response),
+      });
+    } finally {
+      loadNewRoadInFlight = false;
     }
-
-    const nextGameNo =
-      response.classic?.gameNo ?? response.expedition?.gameNo ?? null;
-    if (nextGameNo === null || nextGameNo === previousGameNo) return;
-
-    gameplay.applyRoadDay(response, {
-      preferredMode: getPreferredMode(response),
-    });
   }
 
   onMounted(async () => {

@@ -903,6 +903,10 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
         hintsUsed: hintsUsed.value,
         solveTimeMs,
       });
+    } catch {
+      // Analytics only: a request that started just before rotation can be
+      // rejected once the server no longer accepts this road. Local credit
+      // was already recorded above.
     } finally {
       submitting.value = false;
     }
@@ -1037,15 +1041,21 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
       if (!optimalPaths?.length) return;
       hint = computeHint(optimalPaths, [...pathHistory.value]);
     } else {
-      const res = await sessionApi.requestHint({
-        playerUUID: playerUUID.value,
-        gameNo: game.value.gameNo,
-        puzzleType: game.value.puzzleType,
-        sessionId: sessionId.value,
-        attemptNumber: attemptNumber.value,
-        pathHistory: [...pathHistory.value],
-      });
-      hint = res.hint;
+      try {
+        const res = await sessionApi.requestHint({
+          playerUUID: playerUUID.value,
+          gameNo: game.value.gameNo,
+          puzzleType: game.value.puzzleType,
+          sessionId: sessionId.value,
+          attemptNumber: attemptNumber.value,
+          pathHistory: [...pathHistory.value],
+        });
+        hint = res.hint;
+      } catch {
+        // A hint fired right at rotation can be rejected server-side once
+        // the road is no longer current; retire quietly like the expiry gate.
+        return;
+      }
     }
 
     const existingProgress = localProgress.getGameProgress(
