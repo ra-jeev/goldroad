@@ -467,8 +467,9 @@ Recommended treatment:
 - Dependencies:
   - P1-10 for the solve-tier hookup (partial overlap is fine)
 - Completion notes:
-  - reused v1's exact `_archive/frontend/src/assets/audio/*.mp3` set, copied into `public/sounds/` as `move.mp3` (from `coin.mp3`), `deny.mp3`, `dead-end.mp3` (from `no-moves.mp3`), `solve.mp3` (from `win.mp3`)
-  - new `useSoundEffects.ts` composable lazily creates/reuses `HTMLAudioElement`s, gated by a new `settings.muted` field in `goldroad-state-v2` (same extension pattern as `celebratedSolveKeys`)
+  - the shipped set keeps v1's `coin.mp3` and `win.mp3` character for `move.mp3` and `solve.mp3`, remastered below a −3 dB true-peak ceiling; `deny.mp3` and `dead-end.mp3` are new synthesized cues with tactile impacts and restrained metallic-gold resonance to fit the quest theme, exposed under the same stable `public/sounds/` filenames
+  - `scripts/synthesize-sound-candidates.mjs` retains the deterministic synthesis recipe for the new cues so their duration, decay, and tonal balance can be tuned after device testing without replacing them with opaque binaries
+  - `useSoundEffects.ts` now exposes one shared `@vueuse/sound`/Howler sound bank, initialized by the persistent layout so all four assets preload before the first board tap; Howler uses Web Audio by default, handles mobile gesture unlock, and falls back to HTML5 Audio, while playback remains gated by the persisted `settings.muted` field in `goldroad-state-v2` (same extension pattern as `celebratedSolveKeys`)
   - denied-move taps previously fell through silently in `moveTo()`; added a `deniedMoveSignal` counter so the deny sound has something real to hook into
   - wrong-exit and dead-end both play the dead-end sound (no 5th sound invented); solve sound fires once per celebration trigger across both classic-solve and day-complete variants
   - haptics (`navigator.vibrate`) fire on move (short pulse) and solve (short pattern), scoped to the same mute setting, moves/solves only per spec

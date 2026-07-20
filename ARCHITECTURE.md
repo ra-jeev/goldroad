@@ -48,7 +48,7 @@ Sharing is a live-road concept: archive replay exposes no share affordance anywh
 
 Two v1 qualities are shipped as launch requirements for v2:
 
-- game sounds (move/coin, denied move, dead-end, solve) with a persisted mute toggle (`useSoundEffects`); audio plays only after user interaction
+- game sounds (move/coin, denied move, dead-end, solve) with a persisted mute toggle (`useSoundEffects`); the mastered public assets stay below a −3 dB true-peak ceiling, while a shared `@vueuse/sound`/Howler bank begins preloading from the persistent layout, uses Web Audio by default, unlocks playback on the first user gesture, and falls back to HTML5 Audio when Web Audio is unavailable
 - PWA installability: manifest and icon set in the v2 visual style, apple-touch-icon, and Open Graph / social metadata for link unfurls
 
 No service worker or offline app shell is included for the v2 launch. That is a deliberate launch-scope decision; offline shell work is deferred until after launch.
