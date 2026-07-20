@@ -9,6 +9,9 @@ const currentRoadLabel = useState<string | null>(
   () => null,
 );
 const { muted, toggleMuted } = useGoldroadLocalState();
+// Start loading the shared sound bank from the persistent app shell instead of
+// making the player's first board tap pay the network and decode cost.
+useSoundEffects();
 const { openHowToPlay, closeHowToPlay } = useHowToPlaySheet();
 const { closeTutorial } = useTutorialFlow();
 // Acknowledgment of the latest update is owned by the About page itself,
