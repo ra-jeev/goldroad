@@ -271,7 +271,7 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
   border: 1px solid transparent;
   font: inherit;
   font-weight: 800;
-  font-size: 0.86rem;
+  font-size: var(--font-size-caption);
   text-decoration: none;
   transition:
     transform var(--transition-fast),
@@ -301,7 +301,7 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
   color: rgb(var(--color-gold-rgb) / 0.88);
   background: rgb(var(--color-gold-rgb) / 0.08);
   border-color: rgb(var(--color-gold-rgb) / 0.28);
-  font-size: 0.86rem;
+  font-size: var(--font-size-caption);
 }
 
 @media (max-width: 760px) {

@@ -311,7 +311,7 @@ const displayMessage = computed(
 .footer-message {
   margin: 0;
   color: var(--color-gold-bright);
-  font-size: 1rem;
+  font-size: var(--font-size-board-meta);
   font-weight: 650;
   line-height: var(--line-height-snug);
 }
@@ -323,14 +323,14 @@ const displayMessage = computed(
   background: rgb(var(--color-gold-rgb) / 0.12);
   border: 1px solid rgb(var(--color-gold-rgb) / 0.24);
   color: rgb(var(--color-gold-rgb) / 0.84);
-  font-size: 0.88rem;
+  font-size: var(--font-size-caption);
   font-weight: 700;
 }
 
 .action-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 1.5rem;
   justify-content: center;
   align-items: center;
   min-height: 2.35rem;
@@ -340,8 +340,8 @@ button,
 .link-button {
   border: 0;
   border-radius: var(--radius-circle);
-  width: 2.35rem;
-  height: 2.35rem;
+  width: var(--control-size);
+  height: var(--control-size);
   padding: 0;
   font-weight: 700;
   cursor: pointer;
@@ -354,7 +354,7 @@ button,
   justify-content: center;
   gap: 0.45rem;
   font: inherit;
-  font-size: 0.94rem;
+  font-size: var(--font-size-control);
   font-weight: 800;
   line-height: 1;
 }
@@ -362,14 +362,14 @@ button,
 .action-button--text,
 .link-button.action-button--text {
   width: auto;
-  min-width: 2.35rem;
+  min-width: var(--control-size);
   border-radius: var(--radius-full);
   padding: 0 0.85rem;
 }
 
 .action-button svg {
-  width: 1.12rem;
-  height: 1.12rem;
+  width: var(--icon-size);
+  height: var(--icon-size);
   flex: 0 0 auto;
 }
 

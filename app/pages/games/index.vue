@@ -348,7 +348,7 @@ onMounted(async () => {
 
 .eyebrow {
   margin: 0;
-  font-size: 0.72rem;
+  font-size: var(--font-size-caption);
   font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -400,7 +400,7 @@ onMounted(async () => {
 
 .calendar-weekday {
   text-align: center;
-  font-size: 0.7rem;
+  font-size: var(--font-size-caption);
   font-weight: 800;
   letter-spacing: 0.08em;
   color: rgb(var(--color-gold-rgb) / 0.45);
@@ -494,7 +494,7 @@ onMounted(async () => {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-size: 0.78rem;
+  font-size: var(--font-size-caption);
   font-weight: 700;
   color: rgb(var(--color-gold-rgb) / 0.6);
 }
@@ -510,7 +510,7 @@ onMounted(async () => {
 .calendar-hint {
   margin: 0;
   text-align: center;
-  font-size: 0.86rem;
+  font-size: var(--font-size-caption);
   color: rgb(var(--color-gold-rgb) / 0.6);
 }
 
@@ -530,7 +530,7 @@ onMounted(async () => {
 
 .random-error {
   margin: 0;
-  font-size: 0.86rem;
+  font-size: var(--font-size-caption);
   color: rgb(var(--color-gold-rgb) / 0.66);
 }
 

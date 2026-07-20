@@ -64,7 +64,13 @@ onBeforeUnmount(() => {
       <header class="tutorial-top">
         <div>
           <p class="eyebrow">{{ COPY.eyebrow }}</p>
-          <h2 id="tutorial-title">{{ COPY.title }}</h2>
+          <h2
+            id="tutorial-title"
+            data-dialog-initial-focus
+            tabindex="-1"
+          >
+            {{ COPY.title }}
+          </h2>
           <p class="tutorial-description">{{ COPY.description }}</p>
         </div>
 
@@ -234,6 +240,7 @@ onBeforeUnmount(() => {
   max-height: min(92dvh, 900px);
   overflow: auto;
   display: grid;
+  align-content: start;
   gap: 1rem;
   border-radius: var(--radius-lg);
   padding: clamp(0.9rem, 2.5vw, 1.25rem);
@@ -258,6 +265,10 @@ onBeforeUnmount(() => {
   color: var(--color-gold-bright);
 }
 
+.tutorial-top h2:focus {
+  outline: none;
+}
+
 .tutorial-description {
   margin: 0.35rem 0 0;
   color: rgb(var(--color-gold-rgb) / 0.72);
@@ -268,8 +279,8 @@ onBeforeUnmount(() => {
   position: absolute;
   top: 0.75rem;
   right: 0.75rem;
-  width: 2.1rem;
-  height: 2.1rem;
+  width: var(--control-size);
+  height: var(--control-size);
   display: inline-grid;
   place-items: center;
   border: 1px solid rgb(var(--color-gold-rgb) / 0.22);
@@ -281,8 +292,8 @@ onBeforeUnmount(() => {
 }
 
 .tutorial-close svg {
-  width: 1.05rem;
-  height: 1.05rem;
+  width: var(--icon-size);
+  height: var(--icon-size);
 }
 
 .tutorial-close:hover {
@@ -340,13 +351,14 @@ onBeforeUnmount(() => {
 }
 
 .step-switch button {
-  min-height: 1.9rem;
+  min-height: 2.5rem;
   border: 0;
   border-radius: var(--radius-full);
-  padding: 0.32rem 0.8rem;
+  padding: 0.18rem 0.8rem;
   background: transparent;
   color: rgb(var(--color-gold-rgb) / 0.62);
   font: inherit;
+  font-size: var(--font-size-control);
   font-weight: 800;
   cursor: pointer;
 }
@@ -426,12 +438,26 @@ onBeforeUnmount(() => {
   .tutorial-top,
   .lesson-card {
     display: grid;
-    justify-items: center;
-    text-align: center;
+    justify-items: start;
+    text-align: left;
   }
 
   .lesson-card {
     grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .lesson-card > :first-child {
+    justify-self: start;
+  }
+
+  .step-switch {
+    width: min(100%, 29rem);
+    grid-template-columns: 1fr 1.45fr;
+  }
+
+  .step-switch button {
+    width: 100%;
   }
 }
 </style>

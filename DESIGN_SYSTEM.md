@@ -70,8 +70,16 @@ There is not currently a shared spacing scale. Components use local `rem` values
 ### Typography
 
 - Font sizes: `--font-size-xs` through `--font-size-3xl`
+- No visible copy is set below `--font-size-caption` (14px at the default root size).
+- Shared semantic roles are `--font-size-caption`, `--font-size-control`, and `--font-size-board-meta`. Board headers and contextual footers use the board-meta role and do not shrink on mobile.
+- Board-footer actions use a consistent `1.5rem` (24px at the default root size) gap.
 - Letter spacing: `--letter-spacing-wide`
 - Line heights: `--line-height-snug`, `--line-height-base`
+
+### Controls and icons
+
+- `--control-size` is the shared 44px interactive target.
+- `--icon-size` is the shared 24px UI icon size. Decorative road arrows and notification dots are geometry, not standalone UI icons, and remain board-scaled.
 
 ### Shadows
 
@@ -161,7 +169,9 @@ Rotate the SVG for different directions:
 
 ## Responsive Design
 
-Board dimension tokens (`--tile-size`, `--tile-gap`, `--road-thickness`) shrink at **760px and below** in `main.css`; most components use the same 760px breakpoint for mobile layout. A few surfaces carry local breakpoints (980px on the current-road page for the wide layout, 768px on about/layout) — component-local by design.
+Board dimension tokens (`--tile-size`, `--tile-gap`, `--road-thickness`) become fluid at **760px and below** in `main.css`. A six-column board fits a 320px viewport while ordinary phone widths reach 48–50px tiles instead of leaving unused side space. Most components use the same 760px breakpoint for mobile layout. A few surfaces carry local breakpoints (980px on the current-road page for the wide layout, 768px on about/layout) — component-local by design.
+
+On mobile, the app header keeps Sound and Menu visible. Stats and How to Play move into the icon-labelled menu alongside Past Roads and About; the current road reads as plain context (`Daily Road #N`), not a badge.
 
 ## Accessibility
 

@@ -8,8 +8,6 @@ import {
   type SolvedAttemptsRow,
 } from '../server/utils/statsAggregation';
 import {
-  COMMUNITY_SAMPLE_MIN,
-  PERCENTILE_SAMPLE_MIN,
   hasCommunitySample,
   hasPercentileSample,
   toPercent,
@@ -114,25 +112,24 @@ describe('pooled 25+ bucket vs exact percentile (RP0-4 / RP1-9)', () => {
 });
 
 describe('sparse-sample gates', () => {
-  it('COMMUNITY_SAMPLE_MIN gates the histogram/headline at 5 plays', () => {
-    const below = buildEmptyCommunityRoadStats(1, 'classic');
-    below.plays = COMMUNITY_SAMPLE_MIN - 1;
-    expect(hasCommunitySample(below)).toBe(false);
+  it('shows the histogram/headline as soon as one play exists', () => {
+    const empty = buildEmptyCommunityRoadStats(1, 'classic');
+    empty.plays = 0;
+    expect(hasCommunitySample(empty)).toBe(false);
 
-    const atMin = buildEmptyCommunityRoadStats(1, 'classic');
-    atMin.plays = COMMUNITY_SAMPLE_MIN;
-    expect(hasCommunitySample(atMin)).toBe(true);
+    const firstPlay = buildEmptyCommunityRoadStats(1, 'classic');
+    firstPlay.plays = 1;
+    expect(hasCommunitySample(firstPlay)).toBe(true);
   });
 
-  it('PERCENTILE_SAMPLE_MIN gates the top-N% line at 10 exact solvers, independent of plays', () => {
-    const below = buildEmptyCommunityRoadStats(1, 'classic');
-    below.plays = 1000;
-    below.exactSolves = PERCENTILE_SAMPLE_MIN - 1;
-    expect(hasPercentileSample(below)).toBe(false);
+  it('shows the top-N% line from the first recorded solve', () => {
+    const noSolves = buildEmptyCommunityRoadStats(1, 'classic');
+    noSolves.plays = 1;
+    expect(hasPercentileSample(noSolves)).toBe(false);
 
-    const atMin = buildEmptyCommunityRoadStats(1, 'classic');
-    atMin.plays = 1000;
-    atMin.exactSolves = PERCENTILE_SAMPLE_MIN;
-    expect(hasPercentileSample(atMin)).toBe(true);
+    const firstSolve = buildEmptyCommunityRoadStats(1, 'classic');
+    firstSolve.plays = 1;
+    firstSolve.exactSolves = 1;
+    expect(hasPercentileSample(firstSolve)).toBe(true);
   });
 });

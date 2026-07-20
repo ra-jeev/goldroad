@@ -60,6 +60,12 @@
   --tile-border: 3px;
   --road-thickness: 12px;
 
+  /* Interactive controls and icons keep the same physical presence across
+     shared surfaces. Mobile navigation may expose fewer controls, but never
+     smaller ones. */
+  --control-size: 2.75rem;
+  --icon-size: 1.5rem;
+
   /* ── Border radius ────────────────────────────────────────── */
   --radius-xs: 8px;
   --radius-sm: 14px;
@@ -70,13 +76,18 @@
   --radius-circle: 50%;
 
   /* ── Typography ───────────────────────────────────────────── */
-  --font-size-xs: 0.7rem;
-  --font-size-sm: 0.75rem;
-  --font-size-base: 0.82rem;
-  --font-size-lg: 1rem;
+  --font-size-xs: 0.875rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.0625rem;
   --font-size-xl: 1.25rem;
-  --font-size-2xl: 1.5rem;
-  --font-size-3xl: 1.72rem;
+  --font-size-2xl: 1.625rem;
+  --font-size-3xl: 1.875rem;
+
+  /* Semantic roles used by the high-frequency game surfaces. */
+  --font-size-caption: 0.875rem;
+  --font-size-control: 1rem;
+  --font-size-board-meta: 1.0625rem;
 
   --letter-spacing-wide: 0.16em;
 
@@ -180,6 +191,8 @@ html {
   margin: 0;
   min-height: 100%;
   background: var(--color-bg-deepest);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
@@ -191,6 +204,7 @@ body {
     'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-size: var(--font-size-base);
 }
 
 *,
@@ -222,9 +236,11 @@ body.mode-expedition .hero-card {
 
 @media (max-width: 760px) {
   :root {
-    --tile-size: 42px;
-    --tile-gap: 12px;
-    --road-thickness: 10px;
+    /* A six-column road now uses the available phone width. The lower clamp
+       still fits a 320px viewport; ordinary iPhones reach 48–50px tiles. */
+    --tile-size: clamp(40px, calc((100vw - 84px) / 6), 50px);
+    --tile-gap: clamp(9px, 2.8vw, 12px);
+    --road-thickness: clamp(10px, 2.8vw, 12px);
   }
 }
 

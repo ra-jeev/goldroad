@@ -1,25 +1,9 @@
 /**
  * Pure stats-page presentation helpers, extracted from `app/pages/stats.vue`
- * so the percentile math and sparse-sample gates are unit-testable without
- * mounting the page (RP1-9). Behavior is unchanged from the inline
- * implementation this replaces.
+ * so the percentile math and empty-data states are unit-testable without
+ * mounting the page (RP1-9).
  */
 import type { CommunityRoadStats } from '../../shared/types/game';
-
-/**
- * Below this many plays, community numbers (histogram, headline solve rate)
- * are too small a sample to show as authoritative (RP0-4).
- */
-export const COMMUNITY_SAMPLE_MIN = 5;
-
-/**
- * Percentile claims need their own, higher bar: "top N%" is a specific,
- * authoritative-sounding number, and a tiny solved count can make ties or
- * single solvers look like a meaningful ranking. Below this many solvers,
- * the top-N% line is omitted even though the histogram and headline may
- * still show (RP0-4).
- */
-export const PERCENTILE_SAMPLE_MIN = 10;
 
 export function toPercent(value: number, total: number): number {
   if (total <= 0) return 0;
@@ -51,15 +35,14 @@ export function topPercent(
 }
 
 /**
- * Tiny or suspicious solver samples shouldn't produce an authoritative
- * "top N%" claim (RP0-4). Gated on solved count, not raw plays, since the
- * percentile is a statement about the solved field.
+ * A percentile can be shown as soon as the field contains one recorded
+ * solve. With no recorded solves there is no comparison to calculate.
  */
 export function hasPercentileSample(stat: CommunityRoadStats): boolean {
-  return stat.exactSolves >= PERCENTILE_SAMPLE_MIN;
+  return stat.exactSolves > 0;
 }
 
-/** Below this many plays, community histogram/headline numbers are hidden. */
+/** A single completed field entry is enough to show the histogram. */
 export function hasCommunitySample(stat: CommunityRoadStats): boolean {
-  return stat.plays >= COMMUNITY_SAMPLE_MIN;
+  return stat.plays > 0;
 }

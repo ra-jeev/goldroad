@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import type { Medal } from '../../shared/types/game';
 import type { CelebrationState } from '../composables/useRoadDayGameplay';
 import type { ShareRoadResultResponse } from '../composables/useRoadResultShare';
 import { UI_COPY } from '../content/uiCopy';
@@ -43,9 +44,6 @@ const expeditionLeads = computed(
 );
 const showExpeditionCta = computed(
   () => isClassic.value && Boolean(props.celebration?.hasExpedition),
-);
-const showStatsLink = computed(
-  () => isDayComplete.value || (isClassic.value && !showExpeditionCta.value),
 );
 const showStreakTick = computed(() => !isReplay.value);
 
@@ -125,7 +123,7 @@ const resultChips = computed(() => {
   return chips;
 });
 
-type DayRow = { label: string; result: string };
+type DayRow = { label: string; result: string; medal: Medal | null };
 
 const dayRows = computed<DayRow[]>(() => {
   if (!props.celebration) return [];
@@ -148,12 +146,14 @@ const dayRows = computed<DayRow[]>(() => {
 
   rows.push({
     label: COPY.dayComplete.classicLabel,
+    medal: classic?.medal ?? null,
     result: classic
       ? describe(classic.solved, classic.medal, classic.attempts)
       : COPY.dayComplete.notPlayed,
   });
   rows.push({
     label: COPY.dayComplete.expeditionLabel,
+    medal: expedition?.medal ?? null,
     result: expedition
       ? describe(expedition.solved, expedition.medal, expedition.attempts)
       : COPY.dayComplete.notPlayed,
@@ -256,34 +256,48 @@ onBeforeUnmount(() => {
         </button>
 
         <div class="celebration-body">
-          <div
-            v-if="!isDayComplete"
-            class="celebration-medal"
-            :class="[
-              primaryMedalLabel
-                ? `celebration-medal--${celebration.medal}`
-                : 'celebration-medal--plain',
-            ]"
-          >
-            <span class="celebration-medal-core">
-              {{ primaryMedalLabel ?? COPY.solved }}
+          <div v-if="!isDayComplete" class="celebration-medal">
+            <MedalIcon
+              v-if="celebration.medal"
+              :tier="celebration.medal"
+              class="celebration-medal-art"
+            />
+            <span v-else class="celebration-medal-plain" aria-hidden="true">
+              ✓
             </span>
             <span v-if="showStreakTick" class="celebration-tick">
               {{ COPY.solveIncrement }}
             </span>
           </div>
 
-          <div v-else class="celebration-day-badge" aria-hidden="true">
-            <span class="celebration-day-badge-core">
-              {{ COPY.dayComplete.bothSolved }}
-            </span>
+          <div v-else class="celebration-day-medals">
+            <div
+              v-for="row in dayRows"
+              :key="`medal-${row.label}`"
+              class="celebration-day-medal"
+            >
+              <MedalIcon
+                v-if="row.medal"
+                :tier="row.medal"
+                class="celebration-day-medal-art"
+              />
+              <span v-else class="celebration-medal-plain" aria-hidden="true">
+                ✓
+              </span>
+              <span>{{ row.label }}</span>
+            </div>
             <span v-if="showStreakTick" class="celebration-tick">
               {{ COPY.solveIncrement }}
             </span>
           </div>
 
           <p class="celebration-eyebrow">{{ heading.eyebrow }}</p>
-          <h2 id="celebration-title" class="celebration-title">
+          <h2
+            id="celebration-title"
+            class="celebration-title"
+            data-dialog-initial-focus
+            tabindex="-1"
+          >
             {{ heading.title }}
           </h2>
           <p class="celebration-lede">{{ heading.body }}</p>
@@ -441,8 +455,8 @@ onBeforeUnmount(() => {
   position: absolute;
   top: 0.75rem;
   right: 0.75rem;
-  width: 2.1rem;
-  height: 2.1rem;
+  width: var(--control-size);
+  height: var(--control-size);
   display: inline-grid;
   place-items: center;
   border: 1px solid rgb(var(--color-gold-rgb) / 0.22);
@@ -454,8 +468,8 @@ onBeforeUnmount(() => {
 }
 
 .celebration-close svg {
-  width: 1.05rem;
-  height: 1.05rem;
+  width: var(--icon-size);
+  height: var(--icon-size);
 }
 
 .celebration-close:hover {
@@ -471,61 +485,55 @@ onBeforeUnmount(() => {
 }
 
 .celebration-medal,
-.celebration-day-badge {
+.celebration-day-medals {
   position: relative;
-  display: inline-grid;
-  place-items: center;
   margin-bottom: 0.2rem;
 }
 
-.celebration-medal-core {
+.celebration-medal {
   display: inline-grid;
   place-items: center;
-  min-width: 4.6rem;
-  min-height: 4.6rem;
-  padding: 0 0.8rem;
+}
+
+.celebration-medal-art {
+  display: block;
+  font-size: 5.25rem;
+  filter: drop-shadow(0 0 14px rgb(var(--color-gold-rgb) / 0.28));
+}
+
+.celebration-medal-plain {
+  display: inline-grid;
+  place-items: center;
+  width: 4.5rem;
+  height: 4.5rem;
   border-radius: var(--radius-circle);
-  font-weight: 900;
-  font-size: 1.02rem;
-  letter-spacing: 0.01em;
-  color: var(--color-text-on-gold);
-  background: var(--gradient-button-primary);
-  box-shadow: var(--shadow-glow-gold), var(--shadow-inset-gold);
-}
-
-.celebration-medal--silver .celebration-medal-core {
-  color: var(--color-text-on-silver);
-  background: var(--gradient-medal-silver);
-  box-shadow:
-    0 0 16px rgb(210 220 230 / 0.4),
-    var(--shadow-inset-gold);
-}
-
-.celebration-medal--bronze .celebration-medal-core {
-  color: var(--color-text-on-bronze);
-  background: var(--gradient-medal-bronze);
-  box-shadow:
-    0 0 16px rgb(210 140 80 / 0.42),
-    var(--shadow-inset-gold);
-}
-
-.celebration-medal--plain .celebration-medal-core {
   color: var(--color-gold-bright);
   background: rgb(var(--color-gold-rgb) / 0.14);
   border: 1px solid rgb(var(--color-gold-rgb) / 0.4);
-  box-shadow: none;
+  font-size: 2rem;
+  font-weight: 900;
 }
 
-.celebration-day-badge-core {
-  display: inline-grid;
-  place-items: center;
-  padding: 0.55rem 1.1rem;
-  border-radius: var(--radius-full);
-  font-weight: 900;
-  font-size: 0.9rem;
-  color: var(--color-text-on-gold);
-  background: var(--gradient-button-primary);
-  box-shadow: var(--shadow-glow-gold-soft), var(--shadow-inset-gold);
+.celebration-day-medals {
+  display: flex;
+  justify-content: center;
+  align-items: start;
+  gap: 1.25rem;
+}
+
+.celebration-day-medal {
+  display: grid;
+  justify-items: center;
+  gap: 0.2rem;
+  color: var(--color-gold-bright);
+  font-size: var(--font-size-caption);
+  font-weight: 800;
+}
+
+.celebration-day-medal-art {
+  display: block;
+  font-size: 4.25rem;
+  filter: drop-shadow(0 0 12px rgb(var(--color-gold-rgb) / 0.22));
 }
 
 .celebration-tick {
@@ -537,7 +545,7 @@ onBeforeUnmount(() => {
   border-radius: var(--radius-full);
   background: var(--color-success);
   color: var(--color-text-on-success);
-  font-size: 0.82rem;
+  font-size: var(--font-size-caption);
   font-weight: 900;
   box-shadow: 0 0 10px rgb(30 160 90 / 0.6);
   animation: celebration-pop var(--transition-slow) both;
@@ -546,7 +554,7 @@ onBeforeUnmount(() => {
 
 .celebration-eyebrow {
   margin: 0;
-  font-size: 0.72rem;
+  font-size: var(--font-size-caption);
   letter-spacing: 0.14em;
   text-transform: uppercase;
   font-weight: 800;
@@ -558,6 +566,10 @@ onBeforeUnmount(() => {
   font-size: clamp(1.5rem, 5vw, 1.85rem);
   line-height: 1.12;
   color: var(--color-gold-bright);
+}
+
+.celebration-title:focus {
+  outline: none;
 }
 
 .celebration-lede {
@@ -581,7 +593,7 @@ onBeforeUnmount(() => {
   background: rgb(0 0 0 / 0.24);
   border: 1px solid rgb(var(--color-gold-rgb) / 0.24);
   color: rgb(var(--color-gold-rgb) / 0.86);
-  font-size: 0.82rem;
+  font-size: var(--font-size-caption);
   font-weight: 800;
 }
 
@@ -611,13 +623,13 @@ onBeforeUnmount(() => {
 .celebration-day-result {
   color: rgb(var(--color-gold-rgb) / 0.82);
   font-weight: 700;
-  font-size: 0.88rem;
+  font-size: var(--font-size-caption);
   text-align: right;
 }
 
 .celebration-countdown {
   margin: 0.1rem 0 0;
-  font-size: 0.82rem;
+  font-size: var(--font-size-caption);
   font-weight: 800;
   color: rgb(var(--color-gold-rgb) / 0.68);
 }
@@ -638,6 +650,7 @@ onBeforeUnmount(() => {
   border-radius: var(--radius-full);
   border: 1px solid transparent;
   font: inherit;
+  font-size: var(--font-size-control);
   font-weight: 800;
   cursor: pointer;
   text-decoration: none;
@@ -677,7 +690,7 @@ onBeforeUnmount(() => {
 .celebration-share-message {
   margin: 0.15rem 0 0;
   min-height: 1.1rem;
-  font-size: 0.82rem;
+  font-size: var(--font-size-caption);
   font-weight: 700;
   color: rgb(var(--color-gold-rgb) / 0.72);
   opacity: 0;

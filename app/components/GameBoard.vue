@@ -288,7 +288,7 @@ watch(
   align-items: center;
   gap: 0.5rem;
   color: rgb(var(--color-gold-rgb) / 0.64);
-  font-size: 0.9rem;
+  font-size: var(--font-size-board-meta);
   line-height: 1;
 }
 
@@ -325,7 +325,7 @@ watch(
 
   .info-item {
     padding: 0.35rem 0.65rem;
-    font-size: 0.82rem;
+    font-size: var(--font-size-board-meta);
   }
 }
 </style>

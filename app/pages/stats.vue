@@ -7,8 +7,7 @@ import {
   useRoadResultShare,
 } from '../composables/useRoadResultShare';
 import {
-  COMMUNITY_SAMPLE_MIN,
-  PERCENTILE_SAMPLE_MIN,
+  hasCommunitySample,
   hasPercentileSample,
   topPercent,
 } from '../utils/statsPresentation';
@@ -153,13 +152,9 @@ const streakCard = computed(() => {
     current,
     lit: current > 0,
     headline: current > 0 ? `${current}-day streak` : 'No streak yet',
-    // Rides right beside the headline, same golden tone, just smaller —
-    // "your best" when the current run IS the longest one.
-    bestNote:
+    classicLine:
       current > 0
-        ? isBest
-          ? 'Your best yet'
-          : `Best ${best} day${best === 1 ? '' : 's'}`
+        ? `Classic best ${best} day${best === 1 ? '' : 's'}${isBest ? ' · current best' : ''}`
         : null,
     prompt: current > 0 ? null : 'Solve today’s road to light the flame.',
     expeditionLine:
@@ -243,7 +238,7 @@ const yesterdayResult = computed(() =>
 const showYesterdayHistogram = computed(
   () =>
     Boolean(yesterdayField.value) &&
-    yesterdayField.value!.plays >= COMMUNITY_SAMPLE_MIN,
+    hasCommunitySample(yesterdayField.value!),
 );
 
 const yesterdayPlayerAttempts = computed(() => {
@@ -254,10 +249,10 @@ const yesterdayPlayerAttempts = computed(() => {
 const yesterdayHeadline = computed(() => {
   const field = yesterdayField.value;
   const gameNo = yesterdayGameNo.value;
-  if (!field || field.plays <= 0) return null;
+  if (!field) return null;
 
-  if (field.plays < COMMUNITY_SAMPLE_MIN) {
-    return `The field for Road ${gameNo} is still too small for a fair comparison.`;
+  if (field.plays <= 0) {
+    return `No community results were recorded for Road ${gameNo}.`;
   }
 
   return `${field.solveRate}% of the roadgoers who walked down Road ${gameNo} reached the finish.`;
@@ -266,11 +261,11 @@ const yesterdayHeadline = computed(() => {
 const yesterdayPlayerLine = computed(() => {
   const field = yesterdayField.value;
   const result = yesterdayResult.value;
-  if (!field || field.plays < COMMUNITY_SAMPLE_MIN) return null;
+  if (!field) return null;
 
   if (result?.solved) {
     if (!hasPercentileSample(field)) {
-      return `You got to the finish in ${formatRunCount(result.attempts)}. Not enough solvers yet for a fair comparison.`;
+      return `You got to the finish in ${formatRunCount(result.attempts)}. No community comparison was recorded for this road.`;
     }
     const top = topPercent(field, result.attempts);
     return `You got to the finish in ${formatRunCount(result.attempts)}, in the top ${top}% of the field.`;
@@ -280,7 +275,9 @@ const yesterdayPlayerLine = computed(() => {
     return 'You walked it too, but the finish stayed out of reach that day.';
   }
 
-  return 'Walk down today’s road and come back tomorrow to see how you fared against the field.';
+  return field.plays > 0
+    ? `You did not finish Road ${yesterdayGameNo.value}.`
+    : null;
 });
 
 const yesterdayBehaviorRows = computed(() => {
@@ -441,18 +438,14 @@ onMounted(async () => {
           </svg>
         </div>
         <div class="streak-text">
-          <div class="streak-headline-row">
-            <strong class="streak-headline">{{ streakCard.headline }}</strong>
-            <span v-if="streakCard.bestNote" class="streak-best">
-              {{ streakCard.bestNote }}
-            </span>
-          </div>
+          <strong class="streak-headline">{{ streakCard.headline }}</strong>
           <p v-if="streakCard.prompt" class="streak-sub">
             {{ streakCard.prompt }}
           </p>
-          <p v-if="streakCard.expeditionLine" class="streak-expedition">
-            {{ streakCard.expeditionLine }}
-          </p>
+          <div v-else class="streak-details">
+            <span v-if="streakCard.classicLine">{{ streakCard.classicLine }}</span>
+            <span v-if="streakCard.expeditionLine">{{ streakCard.expeditionLine }}</span>
+          </div>
         </div>
       </section>
 
@@ -530,7 +523,7 @@ onMounted(async () => {
 
         <!-- 3 · Yesterday's road: the completed field's global story -->
         <section
-          v-if="yesterdayField && yesterdayField.plays > 0"
+          v-if="yesterdayGameNo !== null && yesterdayField"
           class="panel panel--field"
         >
           <div class="section-head">
@@ -634,7 +627,7 @@ onMounted(async () => {
 
 .eyebrow {
   margin: 0;
-  font-size: 0.78rem;
+  font-size: var(--font-size-caption);
   font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -696,7 +689,7 @@ onMounted(async () => {
 }
 
 .medal-sub {
-  font-size: 0.74rem;
+  font-size: var(--font-size-caption);
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -709,7 +702,7 @@ onMounted(async () => {
   top: 0.4rem;
   right: 0.5rem;
   color: gold;
-  font-size: 0.8rem;
+  font-size: var(--font-size-caption);
   font-weight: 800;
   animation: rise-in var(--transition-slow) both;
   animation-delay: 260ms;
@@ -739,7 +732,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 1.1rem;
+  gap: 0.85rem;
   text-align: left;
   padding: clamp(0.9rem, 2.5vw, 1.15rem) clamp(1.1rem, 3vw, 1.5rem);
 }
@@ -747,16 +740,16 @@ onMounted(async () => {
 .streak-flame-col {
   display: grid;
   place-items: center;
-  width: 3.4rem;
-  height: 3.4rem;
+  width: var(--control-size);
+  height: var(--control-size);
   border-radius: var(--radius-circle);
   background: rgb(0 0 0 / 0.25);
   border: 1px solid rgb(var(--color-gold-rgb) / 0.16);
 }
 
 .streak-flame {
-  width: 2rem;
-  height: 2rem;
+  width: var(--icon-size);
+  height: var(--icon-size);
   filter: grayscale(1) opacity(0.4);
 }
 
@@ -774,13 +767,6 @@ onMounted(async () => {
   gap: 0.18rem;
 }
 
-.streak-headline-row {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
 .streak-headline {
   font-size: 1.3rem;
   font-weight: 900;
@@ -788,27 +774,17 @@ onMounted(async () => {
   line-height: 1.1;
 }
 
-/* Same golden tone as the headline, just quieter and smaller — not a
-   separate line, so it reads as one fact rather than two. */
-.streak-best {
-  font-size: 0.86rem;
-  font-weight: 700;
-  color: rgb(var(--color-gold-rgb) / 0.75);
-}
-
 .streak-sub {
   margin: 0;
-  font-size: 0.88rem;
+  font-size: var(--font-size-caption);
   color: rgb(var(--color-gold-rgb) / 0.7);
 }
 
-/* A warm gold shade, not silver — silver read as an unrelated accent
-   against the rest of the game's gold/bronze palette. */
-.streak-expedition {
-  margin: 0;
-  font-size: 0.8rem;
+.streak-details {
+  display: grid;
+  gap: 0.12rem;
+  font-size: var(--font-size-caption);
   font-weight: 700;
-  letter-spacing: 0.03em;
   color: var(--color-gold-muted);
 }
 
@@ -907,9 +883,10 @@ onMounted(async () => {
   gap: 0.35rem;
   padding: 1rem 2.2rem;
   border-radius: var(--radius-md);
-  background: gold;
-  color: var(--color-text-dark);
-  box-shadow: 0 8px 20px rgb(0 0 0 / 0.3);
+  background: rgb(var(--color-gold-rgb) / 0.12);
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.32);
+  color: var(--color-gold-bright);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05);
   line-height: 1.4;
 }
 
@@ -933,7 +910,7 @@ onMounted(async () => {
 
 .next-road-line {
   margin: 0;
-  font-size: 0.86rem;
+  font-size: var(--font-size-caption);
   font-weight: 700;
   color: rgb(var(--color-gold-rgb) / 0.66);
   font-variant-numeric: tabular-nums;
@@ -1038,7 +1015,7 @@ onMounted(async () => {
   border-radius: var(--radius-full);
   border: 1px solid transparent;
   font: inherit;
-  font-size: 0.94rem;
+  font-size: var(--font-size-control);
   font-weight: 800;
   text-decoration: none;
   cursor: pointer;
@@ -1089,7 +1066,7 @@ onMounted(async () => {
 
 .feedback {
   margin: 0;
-  font-size: 0.84rem;
+  font-size: var(--font-size-caption);
   font-weight: 700;
   color: rgb(var(--color-solved-rgb) / 0.9);
 }

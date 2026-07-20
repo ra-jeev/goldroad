@@ -187,7 +187,7 @@ function statusLabel(solved: boolean, medal: Medal | null): string {
   background: transparent;
   color: rgb(var(--color-gold-rgb) / 0.62);
   font: inherit;
-  font-size: 0.94rem;
+  font-size: var(--font-size-control);
   font-weight: 800;
   display: inline-flex;
   align-items: center;
@@ -213,9 +213,9 @@ function statusLabel(solved: boolean, medal: Medal | null): string {
 
 .mode-status {
   position: relative;
-  width: 1rem;
-  height: 1rem;
-  flex: 0 0 1rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  flex: 0 0 1.5rem;
   display: inline-grid;
   place-items: center;
   border-radius: var(--radius-circle);
@@ -224,8 +224,8 @@ function statusLabel(solved: boolean, medal: Medal | null): string {
 }
 
 .mode-status svg {
-  width: 0.72rem;
-  height: 0.72rem;
+  width: 1rem;
+  height: 1rem;
   fill: none;
   stroke: currentColor;
   stroke-width: 2.3;
@@ -273,7 +273,7 @@ function statusLabel(solved: boolean, medal: Medal | null): string {
 .metric-line {
   margin: 0;
   color: rgb(var(--color-gold-rgb) / 0.76);
-  font-size: 1rem;
+  font-size: var(--font-size-board-meta);
   font-weight: 700;
 }
 
@@ -301,8 +301,5 @@ function statusLabel(solved: boolean, medal: Medal | null): string {
     padding: 0.1rem 0;
   }
 
-  .metric-line {
-    font-size: 0.92rem;
-  }
 }
 </style>

@@ -167,7 +167,7 @@ onMounted(() => {
 
 .eyebrow {
   margin: 0;
-  font-size: 0.78rem;
+  font-size: var(--font-size-caption);
   font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -255,7 +255,7 @@ onMounted(() => {
   border-radius: var(--radius-full);
   background: var(--gradient-button-primary);
   color: var(--color-text-on-gold);
-  font-size: 0.68rem;
+  font-size: var(--font-size-caption);
   font-weight: 800;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -263,7 +263,7 @@ onMounted(() => {
 
 .update-date {
   color: rgb(var(--color-gold-rgb) / 0.62);
-  font-size: 0.78rem;
+  font-size: var(--font-size-caption);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;

@@ -118,8 +118,8 @@ function roadStyle(index: number): Record<string, string> {
   justify-content: center;
   gap: 0.45rem;
   width: auto;
-  min-width: 2.35rem;
-  height: 2.35rem;
+  min-width: var(--control-size);
+  height: var(--control-size);
   border: 1px solid rgb(var(--color-gold-rgb) / 0.28);
   border-radius: var(--radius-full);
   padding: 0 0.85rem;
@@ -131,7 +131,7 @@ function roadStyle(index: number): Record<string, string> {
 }
 
 .mini-hint svg {
-  width: 1.12rem;
-  height: 1.12rem;
+  width: var(--icon-size);
+  height: var(--icon-size);
 }
 </style>

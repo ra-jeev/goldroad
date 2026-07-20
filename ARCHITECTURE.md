@@ -454,7 +454,7 @@ Cross-mode facts (current streaks, all-time medal totals) live in a small always
 
 The tries-distribution histogram is the centerpiece of community comparison, with the player's own bar highlighted. A warm one-line percentile headline sits above it ("solved in 2 — better than X% today"). Comparison copy shows rather than tells; avoid analytics-flavored phrasing.
 
-Community data is yesterday-only: there is no dynamic comparison for the in-progress road. The histogram pools attempts 1 through 24 individually plus a pooled 25+ bucket and never reveals raw per-bucket counts, only shape relative to the busiest bucket. The unpooled `solvedAttemptsExact` percentile is computed separately from the pooled histogram data. Both are sample-size gated (`app/utils/statsPresentation.ts`): the histogram needs at least 5 plays for that road/mode, the percentile headline needs at least 10, and either section stays hidden below its threshold rather than showing a misleading result from a handful of players.
+Community data is yesterday-only: there is no dynamic comparison for the in-progress road. The histogram pools attempts 1 through 24 individually plus a pooled 25+ bucket and never reveals raw per-bucket counts, only shape relative to the busiest bucket. The histogram appears as soon as one play exists; a one-player field is still meaningful feedback to that player. At zero plays, the previous-road card remains visible with an explicit empty state. The unpooled `solvedAttemptsExact` percentile is computed separately from the pooled histogram data and appears from the first recorded solve; no minimum field-size gate is applied.
 
 ### 10.5 UI direction
 

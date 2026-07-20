@@ -33,7 +33,6 @@ const {
   nextResetCountdown,
   newRoadReady,
   loadNewRoad,
-  roadHeading,
   canSwitchToExpedition,
   celebration,
   successfulMoveSignal,
@@ -98,7 +97,9 @@ function onV1DismissWelcome() {
 }
 
 watchEffect(() => {
-  currentRoadLabel.value = game.value ? roadHeading.value : null;
+  currentRoadLabel.value = game.value
+    ? `Daily Road #${game.value.gameNo}`
+    : null;
 });
 
 watch(

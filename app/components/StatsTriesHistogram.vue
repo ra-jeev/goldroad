@@ -130,7 +130,7 @@ const ariaLabel = computed(() =>
   bottom: -1.15rem;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 0.64rem;
+  font-size: var(--font-size-caption);
   font-weight: 700;
   color: rgb(var(--color-gold-rgb) / 0.6);
   white-space: nowrap;
@@ -142,7 +142,7 @@ const ariaLabel = computed(() =>
 
 .graph-label {
   margin-top: 1.4rem;
-  font-size: 0.8rem;
+  font-size: var(--font-size-caption);
   font-weight: 700;
   color: rgb(var(--color-gold-rgb) / 0.6);
 }

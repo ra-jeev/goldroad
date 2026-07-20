@@ -82,7 +82,12 @@ onBeforeUnmount(() => {
 
         <div class="v1welcome-body">
           <p class="v1welcome-eyebrow">{{ COPY.eyebrow }}</p>
-          <h2 id="v1welcome-title" class="v1welcome-title">
+          <h2
+            id="v1welcome-title"
+            class="v1welcome-title"
+            data-dialog-initial-focus
+            tabindex="-1"
+          >
             {{ COPY.title }}
           </h2>
           <p
@@ -157,8 +162,8 @@ onBeforeUnmount(() => {
   position: absolute;
   top: 0.75rem;
   right: 0.75rem;
-  width: 2.1rem;
-  height: 2.1rem;
+  width: var(--control-size);
+  height: var(--control-size);
   display: inline-grid;
   place-items: center;
   border: 1px solid rgb(var(--color-gold-rgb) / 0.22);
@@ -170,8 +175,8 @@ onBeforeUnmount(() => {
 }
 
 .v1welcome-close svg {
-  width: 1.05rem;
-  height: 1.05rem;
+  width: var(--icon-size);
+  height: var(--icon-size);
 }
 
 .v1welcome-close:hover {
@@ -186,9 +191,13 @@ onBeforeUnmount(() => {
   text-align: center;
 }
 
+.v1welcome-title:focus {
+  outline: none;
+}
+
 .v1welcome-eyebrow {
   margin: 0;
-  font-size: 0.72rem;
+  font-size: var(--font-size-caption);
   letter-spacing: 0.14em;
   text-transform: uppercase;
   font-weight: 800;

@@ -56,7 +56,13 @@ onBeforeUnmount(() => {
       <div class="sheet-header">
         <div>
           <p class="eyebrow">{{ UI_COPY.boardFooter.openHelp }}</p>
-          <h2 id="game-help-title">{{ UI_COPY.boardFooter.helpTitle }}</h2>
+          <h2
+            id="game-help-title"
+            data-dialog-initial-focus
+            tabindex="-1"
+          >
+            {{ UI_COPY.boardFooter.helpTitle }}
+          </h2>
         </div>
 
         <button
@@ -146,12 +152,16 @@ onBeforeUnmount(() => {
   color: var(--color-gold);
 }
 
+.sheet-header h2:focus {
+  outline: none;
+}
+
 .sheet-close {
   position: absolute;
   top: 0.75rem;
   right: 0.75rem;
-  width: 2.1rem;
-  height: 2.1rem;
+  width: var(--control-size);
+  height: var(--control-size);
   display: inline-grid;
   place-items: center;
   border: 1px solid rgb(var(--color-gold-rgb) / 0.22);
@@ -163,8 +173,8 @@ onBeforeUnmount(() => {
 }
 
 .sheet-close svg {
-  width: 1.05rem;
-  height: 1.05rem;
+  width: var(--icon-size);
+  height: var(--icon-size);
 }
 
 .sheet-close:hover {

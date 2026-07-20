@@ -42,7 +42,7 @@ onClickOutside(menuShell, closeMobileMenu);
             <span class="logo-text">GoldRoad</span>
           </NuxtLink>
 
-          <p v-if="currentRoadLabel" class="road-chip">
+          <p v-if="currentRoadLabel" class="road-label">
             {{ currentRoadLabel }}
           </p>
         </div>
@@ -94,7 +94,7 @@ onClickOutside(menuShell, closeMobileMenu);
 
           <NuxtLink
             to="/stats"
-            class="icon-button"
+            class="icon-button header-direct-action"
             aria-label="View stats"
             title="Stats"
             data-tooltip="Stats"
@@ -113,7 +113,7 @@ onClickOutside(menuShell, closeMobileMenu);
           </NuxtLink>
 
           <button
-            class="icon-button"
+            class="icon-button header-direct-action"
             aria-label="Open How to Play"
             title="How to play"
             data-tooltip="How to play"
@@ -164,10 +164,66 @@ onClickOutside(menuShell, closeMobileMenu);
             </button>
 
             <div v-if="showMobileMenu" class="menu-panel">
+              <NuxtLink
+                to="/stats"
+                class="menu-link menu-link--mobile"
+                @click="closeMobileMenu"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M5 19V9m7 10V5m7 14v-7M3 19.5h18"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2.5"
+                  />
+                </svg>
+                Stats
+              </NuxtLink>
+              <button
+                type="button"
+                class="menu-link menu-link--mobile"
+                @click="
+                  openHowToPlay();
+                  closeMobileMenu();
+                "
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M9.2 9a2.8 2.8 0 1 1 5.23 1.4c-.33.5-.86.92-1.4 1.3c-.78.56-1.53 1.1-1.53 2.3m.01 3h.01M22 12a10 10 0 1 1-20 0a10 10 0 0 1 20 0Z"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2.5"
+                  />
+                </svg>
+                How to Play
+              </button>
               <NuxtLink to="/games" class="menu-link" @click="closeMobileMenu">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M4 7h16M4 12h16M4 17h10"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-width="2.5"
+                  />
+                </svg>
                 Past Roads
               </NuxtLink>
               <NuxtLink to="/about" class="menu-link menu-link--update" @click="closeMobileMenu">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M12 16v-5m0-3h.01M22 12a10 10 0 1 1-20 0a10 10 0 0 1 20 0Z"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2.5"
+                  />
+                </svg>
                 About
                 <span
                   v-if="hasUnseenUpdate"
@@ -235,22 +291,18 @@ onClickOutside(menuShell, closeMobileMenu);
   letter-spacing: 0;
 }
 
-.road-chip {
+.road-label {
   flex-shrink: 0;
   margin: 0;
-  padding: 0.28rem 0.62rem;
-  border-radius: 8px;
-  border: 1px solid rgb(var(--color-gold-rgb) / 0.22);
-  background: rgb(var(--color-gold-rgb) / 0.08);
-  color: rgb(var(--color-gold-rgb) / 0.86);
-  font-size: 0.84rem;
+  color: rgb(var(--color-gold-rgb) / 0.78);
+  font-size: var(--font-size-caption);
   font-weight: 700;
 }
 
 .icon-button {
   position: relative;
-  width: 2.25rem;
-  height: 2.25rem;
+  width: var(--control-size);
+  height: var(--control-size);
   border-radius: 8px;
   border: 1px solid rgb(var(--color-gold-rgb) / 0.18);
   background: rgb(var(--color-gold-rgb) / 0.06);
@@ -277,7 +329,7 @@ onClickOutside(menuShell, closeMobileMenu);
     background: rgb(20 11 3 / 0.97);
     box-shadow: var(--shadow-sm);
     color: var(--color-gold-bright);
-    font-size: 0.72rem;
+    font-size: var(--font-size-caption);
     font-weight: 750;
     line-height: 1;
     white-space: nowrap;
@@ -313,8 +365,8 @@ onClickOutside(menuShell, closeMobileMenu);
 }
 
 .icon-button svg {
-  width: 1.25rem;
-  height: 1.25rem;
+  width: var(--icon-size);
+  height: var(--icon-size);
 }
 
 .icon-button:hover,
@@ -344,12 +396,29 @@ onClickOutside(menuShell, closeMobileMenu);
 .menu-link {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.7rem;
   padding: 0.75rem 0.9rem;
   border-radius: 6px;
   text-decoration: none;
   color: rgb(var(--color-gold-rgb) / 0.86);
+  background: transparent;
+  border: 0;
+  width: 100%;
+  font: inherit;
+  font-size: var(--font-size-control);
   font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.menu-link svg {
+  width: var(--icon-size);
+  height: var(--icon-size);
+  flex: 0 0 var(--icon-size);
+}
+
+.menu-link--mobile {
+  display: none;
 }
 
 .notification-dot--inline {
@@ -375,11 +444,19 @@ onClickOutside(menuShell, closeMobileMenu);
     font-size: 1.3rem;
   }
 
-  .road-chip {
-    max-width: 110px;
+  .road-label {
+    max-width: min(42vw, 145px);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .header-direct-action {
+    display: none;
+  }
+
+  .menu-link--mobile {
+    display: flex;
   }
 
   .header-content {
