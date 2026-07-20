@@ -275,8 +275,10 @@ const yesterdayPlayerLine = computed(() => {
     return 'You walked it too, but the finish stayed out of reach that day.';
   }
 
+  // No local result at all: the player never walked yesterday's road.
+  // That's an invitation, not a failure to report.
   return field.plays > 0
-    ? `You did not finish Road ${yesterdayGameNo.value}.`
+    ? 'Walk down today’s road and come back tomorrow to see how you fared against the field.'
     : null;
 });
 
