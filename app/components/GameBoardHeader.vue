@@ -66,14 +66,14 @@ function statusLabel(solved: boolean, medal: Medal | null): string {
     :aria-label="UI_COPY.boardHeader.ariaLabels.controls"
   >
     <div
-      class="mode-switch"
+      class="mode-switch segmented-control segmented-control--compact"
       role="tablist"
       :aria-label="UI_COPY.boardHeader.ariaLabels.puzzleMode"
     >
       <button
         type="button"
-        class="mode-option"
-        :class="{ 'mode-option--active': selectedMode === 'classic' }"
+        class="mode-option segmented-control__option"
+        :class="{ 'mode-option--active is-active': selectedMode === 'classic' }"
         :aria-selected="selectedMode === 'classic'"
         :disabled="modeSwitchLocked && selectedMode !== 'classic'"
         role="tab"
@@ -105,8 +105,8 @@ function statusLabel(solved: boolean, medal: Medal | null): string {
       <button
         v-if="hasExpedition"
         type="button"
-        class="mode-option"
-        :class="{ 'mode-option--active': selectedMode === 'expedition' }"
+        class="mode-option segmented-control__option"
+        :class="{ 'mode-option--active is-active': selectedMode === 'expedition' }"
         :aria-selected="selectedMode === 'expedition'"
         :disabled="
           !isExpeditionUnlocked ||
@@ -176,11 +176,11 @@ function statusLabel(solved: boolean, medal: Medal | null): string {
   padding: 0.16rem;
   border: 1px solid rgb(var(--color-gold-rgb) / 0.22);
   border-radius: var(--radius-full);
-  background: rgb(0 0 0 / 0.28);
+  background: rgb(var(--color-gold-rgb) / 0.08);
 }
 
 .mode-option {
-  min-height: 2.15rem;
+  min-height: 2.75rem;
   border: 0;
   border-radius: var(--radius-full);
   padding: 0.32rem 0.72rem;

@@ -8,7 +8,10 @@ import {
 } from '../app/composables/useGoldroadLocalState';
 import {
   isRoadExpired,
+  getClassicOverTargetWarning,
   shouldCallSessionApi,
+  shouldStartSessionApi,
+  shouldSubmitSessionEnd,
   shouldRecordArchiveCompletion,
   resolveRunMedals,
 } from '../app/composables/useRoadDayGameplay';
@@ -203,6 +206,26 @@ describe('shouldCallSessionApi (zero analytics writes for archive play)', () => 
   });
 });
 
+describe('start and solve-only analytics gates', () => {
+  it('starts once for a fresh live mode', () => {
+    expect(shouldStartSessionApi('live', false, false, false)).toBe(true);
+    expect(shouldStartSessionApi('live', false, false, true)).toBe(false);
+  });
+
+  it('never starts archive, replay, or expired play', () => {
+    expect(shouldStartSessionApi('archive', false, false, false)).toBe(false);
+    expect(shouldStartSessionApi('live', true, false, false)).toBe(false);
+    expect(shouldStartSessionApi('live', false, true, false)).toBe(false);
+  });
+
+  it('submits only exact solves, never failed outcomes or manual retries', () => {
+    expect(shouldSubmitSessionEnd('live', false, false, 'solved')).toBe(true);
+    expect(shouldSubmitSessionEnd('live', false, false, 'dead-end')).toBe(false);
+    expect(shouldSubmitSessionEnd('live', false, false, 'wrong-exit')).toBe(false);
+    expect(shouldSubmitSessionEnd('live', false, false, 'retry')).toBe(false);
+  });
+});
+
 describe('isRoadExpired (midnight contract, RP1-16)', () => {
   const nextGameAt = '2026-07-20T00:00:00.000Z';
   const beforeMs = Date.parse('2026-07-19T23:59:59.000Z');
@@ -221,6 +244,38 @@ describe('isRoadExpired (midnight contract, RP1-16)', () => {
     expect(isRoadExpired(null, atMs)).toBe(false);
     expect(isRoadExpired(undefined, atMs)).toBe(false);
     expect(isRoadExpired('not-a-date', atMs)).toBe(false);
+  });
+});
+
+describe('Classic over-target warning', () => {
+  it('warns on a non-terminal Classic route at or above target', () => {
+    expect(
+      getClassicOverTargetWarning({
+        puzzleType: 'classic',
+        score: 109,
+        target: 109,
+        terminal: false,
+      }),
+    ).toBe('This route may not lead to an exact finish.');
+  });
+
+  it('lets terminal outcomes and Expedition behavior take precedence', () => {
+    expect(
+      getClassicOverTargetWarning({
+        puzzleType: 'classic',
+        score: 110,
+        target: 109,
+        terminal: true,
+      }),
+    ).toBeNull();
+    expect(
+      getClassicOverTargetWarning({
+        puzzleType: 'expedition',
+        score: 110,
+        target: 109,
+        terminal: false,
+      }),
+    ).toBeNull();
   });
 });
 

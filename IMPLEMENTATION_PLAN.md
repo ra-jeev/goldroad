@@ -1372,6 +1372,20 @@ The v2 UI is visually good; these decisions are about behavior and information r
   - review hardening (second Sol pass): `session/end` and the live `session/hint` calls catch rejections gracefully — a request that starts just before rotation and lands after it can no longer surface an uncaught error (local credit is recorded before the call either way; a failed hint quietly retires like the expiry gate); `loadNewRoad` is single-flight and compares `gameNo` against state at apply time, so concurrent taps cannot re-apply the road a faster tap just loaded; the board header's inactive mode tab renders disabled while the road is expired, making the behavioral lock visible (browser-verified: Expedition tab disabled on the expired seed, double-tap of "Play the new road" leaves board and affordance intact)
 - Dependencies: RP1-15 (built on its affordance and countdown), RP0-4 (preserves the current-road-only server boundary)
 
+### Issue SF0/SF1 — July 21 staging stabilization and mobile polish
+- Priority: `P0`/`P1`
+- Status: `implemented; deployment-gated iPhone verification pending`
+- Source: `STAGING_FEEDBACK_PLAN.md`
+- Completion notes:
+  - analytics now records one unique starter row from the first live move and one solve-only completion; hints and failed tries do not mutate analytics, exact-score validation rejects both under- and over-target session endings, and D1 batch guards make missed-start and sequential duplicate solves aggregate exactly once
+  - retryable failed solve delivery is app-wide, keepalive-first, persisted only after explicit failure, single-flight, lifecycle-triggered, road-day bounded, and covered for serialization, backoff, final/retryable classification, single-flight, and expiry
+  - shared audio explicitly resumes from the first eligible gesture, queues the initially requested effect until ready, reloads/resumes on foreground transitions, and preserves mute suppression; installed-iPhone launch/background verification remains open until the next staging deployment
+  - every result share, including archive/random replay and combined-day results, uses the configured canonical production homepage and player-facing copy uses `try`/`tries`; exact re-solves play sound and show `Solved again.` without another award, streak, analytics result, or full celebration
+  - Stats now has a proper separated arrow marker, `tries` axis/copy, direct hint-total and solve-time comparison, selected-mode streak below the common segmented control, larger token-colored flame, single-line `1 TRY`/`2 TRIES`/`3 TRIES` labels, and count-only medal animation; day-complete celebration rows include result, tries, time, and nonzero hints without duplicate medal blocks
+  - Tutorial, board, and Stats use the shared quiet segmented-control family; mobile Hint alignment and tall-screen practice centering are corrected; open/toll/bonus roads share the neutral-gold palette and remain distinguished by single-solid/double-dashed/double-solid patterns
+  - supersedes RP1-2's rust/honey road hues, RP1-7's player-facing `attempt` term, RP1-15's live-only sharing decision, and RP1-10's failed-state attempt pill; the manifest-only/no-service-worker launch decision remains unchanged
+  - automated verification: `pnpm typecheck`, `pnpm test`, `pnpm build`, local API smoke, and local D1 aggregate inspection; browser-width regression results and deployment-only device results are recorded separately rather than inferred from code inspection
+
 ### Recommended implementation order
 
 1. RP0-1 — verification gate

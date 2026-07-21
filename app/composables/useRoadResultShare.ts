@@ -44,7 +44,7 @@ function formatDurationMs(value: number | null): string {
 }
 
 function formatAttemptLabel(attempts: number): string {
-  return `${attempts} attempt${attempts === 1 ? '' : 's'}`;
+  return `${attempts} ${attempts === 1 ? 'try' : 'tries'}`;
 }
 
 function formatResultLine(input: {
@@ -72,8 +72,8 @@ function formatResultLine(input: {
   return `Still chasing the solve after ${formatAttemptLabel(input.attempts)}`;
 }
 
-function buildRoadPath(input: ShareRoadResultInput): string {
-  return `/games/${input.gameNo}`;
+function canonicalHomepage(origin: string): string {
+  return new URL('/', origin).toString();
 }
 
 function isAbortError(error: unknown): boolean {
@@ -112,10 +112,13 @@ async function copyText(text: string): Promise<boolean> {
   return copied;
 }
 
-export function buildRoadResultShareText(input: ShareRoadResultInput): {
+export function buildRoadResultShareText(
+  input: ShareRoadResultInput,
+  canonicalOrigin = 'https://playgoldroad.com',
+): {
   title: string;
   text: string;
-  urlPath: string;
+  url: string;
 } {
   const title = `GoldRoad Road ${input.gameNo} · ${formatModeLabel(input.puzzleType)}`;
   const resultLine = formatResultLine(input);
@@ -134,10 +137,12 @@ export function buildRoadResultShareText(input: ShareRoadResultInput): {
       resultLine,
       timeLine,
       hintLine,
+      "Walk today's road:",
+      canonicalHomepage(canonicalOrigin),
     ]
       .filter((line): line is string => Boolean(line))
       .join('\n'),
-    urlPath: buildRoadPath(input),
+    url: canonicalHomepage(canonicalOrigin),
   };
 }
 
@@ -159,10 +164,13 @@ function formatDayModeLine(
   return `${label}: ${formatResultLine(result)}${timeSuffix}`;
 }
 
-export function buildDayResultShareText(input: ShareDayResultInput): {
+export function buildDayResultShareText(
+  input: ShareDayResultInput,
+  canonicalOrigin = 'https://playgoldroad.com',
+): {
   title: string;
   text: string;
-  urlPath: string;
+  url: string;
 } {
   const title = `GoldRoad Road ${input.gameNo} · Full day`;
 
@@ -173,15 +181,17 @@ export function buildDayResultShareText(input: ShareDayResultInput): {
       `Road ${input.gameNo} · Full day`,
       formatDayModeLine('classic', input.classic),
       formatDayModeLine('expedition', input.expedition),
+      "Walk today's road:",
+      canonicalHomepage(canonicalOrigin),
     ].join('\n'),
-    urlPath: `/games/${input.gameNo}`,
+    url: canonicalHomepage(canonicalOrigin),
   };
 }
 
 async function deliverShare(payload: {
   title: string;
   text: string;
-  urlPath: string;
+  url: string;
 }): Promise<ShareRoadResultResponse> {
   if (!import.meta.client) {
     return {
@@ -190,15 +200,11 @@ async function deliverShare(payload: {
     };
   }
 
-  const url = new URL(payload.urlPath, window.location.origin).toString();
-  const textWithUrl = `${payload.text}\n${url}`;
-
   if (typeof navigator !== 'undefined' && 'share' in navigator) {
     try {
       await navigator.share({
         title: payload.title,
         text: payload.text,
-        url,
       });
 
       return {
@@ -215,7 +221,7 @@ async function deliverShare(payload: {
     }
   }
 
-  if (await copyText(textWithUrl)) {
+  if (await copyText(payload.text)) {
     return {
       outcome: 'copied',
       message: 'Result copied to your clipboard.',
@@ -229,16 +235,21 @@ async function deliverShare(payload: {
 }
 
 export function useRoadResultShare() {
+  const config = useRuntimeConfig();
+  const canonicalOrigin = String(
+    config.public?.siteUrl || 'https://playgoldroad.com',
+  );
+
   async function shareRoadResult(
     input: ShareRoadResultInput,
   ): Promise<ShareRoadResultResponse> {
-    return deliverShare(buildRoadResultShareText(input));
+    return deliverShare(buildRoadResultShareText(input, canonicalOrigin));
   }
 
   async function shareDayResult(
     input: ShareDayResultInput,
   ): Promise<ShareRoadResultResponse> {
-    return deliverShare(buildDayResultShareText(input));
+    return deliverShare(buildDayResultShareText(input, canonicalOrigin));
   }
 
   return {

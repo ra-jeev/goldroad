@@ -22,8 +22,6 @@ function makeRow(overrides: Partial<AggregatedRoadStatsRow> = {}): AggregatedRoa
     totalHints: 0,
     averageAttemptsBeforeFirstHint: null,
     averageFirstHintMoveIndex: null,
-    averageDeadEndCount: null,
-    averageWrongExitCount: null,
     averageSolveTimeMs: null,
     ...overrides,
   };
@@ -155,8 +153,6 @@ describe('buildEmptyCommunityRoadStats', () => {
         hintUseRate: 0,
         averageAttemptsBeforeFirstHint: null,
         averageFirstHintMoveIndex: null,
-        averageDeadEndCount: null,
-        averageWrongExitCount: null,
         averageSolveTimeMs: null,
       },
     });

@@ -60,6 +60,7 @@ onBeforeUnmount(() => {
       aria-modal="true"
       aria-labelledby="tutorial-title"
       :aria-label="COPY.ariaLabel"
+      :class="{ 'tutorial-panel--practice': step === 'practice' }"
     >
       <header class="tutorial-top">
         <div>
@@ -92,11 +93,16 @@ onBeforeUnmount(() => {
         </button>
       </header>
 
-      <div class="step-switch" role="tablist" :aria-label="COPY.stepsAriaLabel">
+      <div
+        class="step-switch segmented-control segmented-control--stretched"
+        role="tablist"
+        :aria-label="COPY.stepsAriaLabel"
+      >
         <button
           id="tutorial-guide-tab"
           type="button"
-          :class="{ active: step === 'guide' }"
+          class="segmented-control__option"
+          :class="{ 'active is-active': step === 'guide' }"
           :aria-selected="step === 'guide'"
           aria-controls="tutorial-guide-panel"
           role="tab"
@@ -107,7 +113,8 @@ onBeforeUnmount(() => {
         <button
           id="tutorial-practice-tab"
           type="button"
-          :class="{ active: step === 'practice' }"
+          class="segmented-control__option"
+          :class="{ 'active is-active': step === 'practice' }"
           :aria-selected="step === 'practice'"
           aria-controls="tutorial-practice-panel"
           role="tab"
@@ -351,7 +358,7 @@ onBeforeUnmount(() => {
 }
 
 .step-switch button {
-  min-height: 2.5rem;
+  min-height: 2.75rem;
   border: 0;
   border-radius: var(--radius-full);
   padding: 0.18rem 0.8rem;
@@ -458,6 +465,16 @@ onBeforeUnmount(() => {
 
   .step-switch button {
     width: 100%;
+  }
+}
+
+@media (min-height: 700px) {
+  .tutorial-panel--practice {
+    grid-template-rows: auto auto minmax(0, 1fr);
+  }
+
+  .tutorial-panel--practice .practice-section {
+    align-content: center;
   }
 }
 </style>

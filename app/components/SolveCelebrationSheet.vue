@@ -123,7 +123,7 @@ const resultChips = computed(() => {
   return chips;
 });
 
-type DayRow = { label: string; result: string; medal: Medal | null };
+type DayRow = { label: string; details: string[]; medal: Medal | null };
 
 const dayRows = computed<DayRow[]>(() => {
   if (!props.celebration) return [];
@@ -136,27 +136,48 @@ const dayRows = computed<DayRow[]>(() => {
     solved: boolean,
     medal: string | null,
     attempts: number,
-  ): string => {
-    if (!solved) return COPY.dayComplete.notPlayed;
+    solveTimeMs: number | null,
+    hintsUsed: number,
+  ): string[] => {
+    if (!solved) return [COPY.dayComplete.notPlayed];
     const label = medalLabel(medal);
-    return label
-      ? `${COPY.medalLine(label)} · ${COPY.attemptLabel(attempts)}`
-      : `${COPY.solved} · ${COPY.attemptLabel(attempts)}`;
+    const details = [
+      label ? COPY.medalLine(label) : COPY.solved,
+      COPY.attemptLabel(attempts),
+    ];
+    const time = formatTime(solveTimeMs);
+    if (time) details.push(COPY.solveTimeLine(time));
+    if (hintsUsed > 0) {
+      details.push(`${hintsUsed} hint${hintsUsed === 1 ? '' : 's'}`);
+    }
+    return details;
   };
 
   rows.push({
     label: COPY.dayComplete.classicLabel,
     medal: classic?.medal ?? null,
-    result: classic
-      ? describe(classic.solved, classic.medal, classic.attempts)
-      : COPY.dayComplete.notPlayed,
+    details: classic
+      ? describe(
+          classic.solved,
+          classic.medal,
+          classic.attempts,
+          classic.solveTimeMs,
+          classic.hintsUsed,
+        )
+      : [COPY.dayComplete.notPlayed],
   });
   rows.push({
     label: COPY.dayComplete.expeditionLabel,
     medal: expedition?.medal ?? null,
-    result: expedition
-      ? describe(expedition.solved, expedition.medal, expedition.attempts)
-      : COPY.dayComplete.notPlayed,
+    details: expedition
+      ? describe(
+          expedition.solved,
+          expedition.medal,
+          expedition.attempts,
+          expedition.solveTimeMs,
+          expedition.hintsUsed,
+        )
+      : [COPY.dayComplete.notPlayed],
   });
 
   return rows;
@@ -270,27 +291,6 @@ onBeforeUnmount(() => {
             </span>
           </div>
 
-          <div v-else class="celebration-day-medals">
-            <div
-              v-for="row in dayRows"
-              :key="`medal-${row.label}`"
-              class="celebration-day-medal"
-            >
-              <MedalIcon
-                v-if="row.medal"
-                :tier="row.medal"
-                class="celebration-day-medal-art"
-              />
-              <span v-else class="celebration-medal-plain" aria-hidden="true">
-                ✓
-              </span>
-              <span>{{ row.label }}</span>
-            </div>
-            <span v-if="showStreakTick" class="celebration-tick">
-              {{ COPY.solveIncrement }}
-            </span>
-          </div>
-
           <p class="celebration-eyebrow">{{ heading.eyebrow }}</p>
           <h2
             id="celebration-title"
@@ -308,8 +308,18 @@ onBeforeUnmount(() => {
               :key="row.label"
               class="celebration-day-row"
             >
-              <span class="celebration-day-mode">{{ row.label }}</span>
-              <span class="celebration-day-result">{{ row.result }}</span>
+              <span class="celebration-day-mode">
+                <MedalIcon
+                  v-if="row.medal"
+                  :tier="row.medal"
+                  class="celebration-day-row-medal"
+                />
+                <span v-else aria-hidden="true">✓</span>
+                {{ row.label }}
+              </span>
+              <span class="celebration-day-result">
+                {{ row.details.join(' · ') }}
+              </span>
             </div>
           </div>
 
@@ -386,9 +396,15 @@ onBeforeUnmount(() => {
               </NuxtLink>
             </template>
 
-            <!-- Replay solves: sharing is a live-road concept, so the only
-                 action is closing the moment. -->
             <template v-else>
+              <button
+                type="button"
+                class="celebration-button celebration-button--secondary"
+                :disabled="shareBusy"
+                @click="onShare"
+              >
+                {{ COPY.share }}
+              </button>
               <button
                 type="button"
                 class="celebration-button celebration-button--primary"
@@ -484,8 +500,7 @@ onBeforeUnmount(() => {
   text-align: center;
 }
 
-.celebration-medal,
-.celebration-day-medals {
+.celebration-medal {
   position: relative;
   margin-bottom: 0.2rem;
 }
@@ -512,28 +527,6 @@ onBeforeUnmount(() => {
   border: 1px solid rgb(var(--color-gold-rgb) / 0.4);
   font-size: 2rem;
   font-weight: 900;
-}
-
-.celebration-day-medals {
-  display: flex;
-  justify-content: center;
-  align-items: start;
-  gap: 1.25rem;
-}
-
-.celebration-day-medal {
-  display: grid;
-  justify-items: center;
-  gap: 0.2rem;
-  color: var(--color-gold-bright);
-  font-size: var(--font-size-caption);
-  font-weight: 800;
-}
-
-.celebration-day-medal-art {
-  display: block;
-  font-size: 4.25rem;
-  filter: drop-shadow(0 0 12px rgb(var(--color-gold-rgb) / 0.22));
 }
 
 .celebration-tick {
@@ -616,8 +609,16 @@ onBeforeUnmount(() => {
 }
 
 .celebration-day-mode {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
   font-weight: 900;
   color: var(--color-gold-bright);
+}
+
+.celebration-day-row-medal {
+  font-size: 1.65rem;
+  flex: 0 0 auto;
 }
 
 .celebration-day-result {

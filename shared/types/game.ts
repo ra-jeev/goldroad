@@ -26,6 +26,7 @@ export type {
   CommunityRoadStats,
   StatsRoadDay,
   StatsOverview,
+  SessionStartPayload,
   SessionEndPayload,
   HintRequestPayload,
 } from '../validators/game';

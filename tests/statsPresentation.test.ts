@@ -10,6 +10,7 @@ import {
 import {
   hasCommunitySample,
   hasPercentileSample,
+  formatFieldBehaviorRows,
   toPercent,
   topPercent,
 } from '../app/utils/statsPresentation';
@@ -29,8 +30,6 @@ function makeAggregatedRow(
     totalHints: 0,
     averageAttemptsBeforeFirstHint: null,
     averageFirstHintMoveIndex: null,
-    averageDeadEndCount: null,
-    averageWrongExitCount: null,
     averageSolveTimeMs: null,
     ...overrides,
   };
@@ -131,5 +130,34 @@ describe('sparse-sample gates', () => {
     firstSolve.plays = 1;
     firstSolve.exactSolves = 1;
     expect(hasPercentileSample(firstSolve)).toBe(true);
+  });
+});
+
+describe('field behavior copy', () => {
+  it('uses the exact zero-hint sentence and field-only time without a local time', () => {
+    const stats = buildEmptyCommunityRoadStats(1, 'classic');
+    stats.behavior.averageSolveTimeMs = 90_000;
+    expect(
+      formatFieldBehaviorRows(stats, null, (value) =>
+        value === 90_000 ? '1m 30s' : 'unexpected',
+      ),
+    ).toEqual([
+      'No hints were used on this road.',
+      'Field solve time averaged 1m 30s.',
+    ]);
+  });
+
+  it('reports total hints and compares field and player solve times directly', () => {
+    const stats = buildEmptyCommunityRoadStats(1, 'classic');
+    stats.behavior.totalHints = 3;
+    stats.behavior.averageSolveTimeMs = 90_000;
+    expect(
+      formatFieldBehaviorRows(stats, 645_000, (value) =>
+        value === 90_000 ? '1m 30s' : '10m 45s',
+      ),
+    ).toEqual([
+      'Solvers used 3 hints in total.',
+      'Field solve time averaged 1m 30s. You solved it in 10m 45s.',
+    ]);
   });
 });

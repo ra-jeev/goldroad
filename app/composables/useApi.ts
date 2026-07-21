@@ -10,11 +10,16 @@ export function useApi() {
     })
   }
 
-  function post<T>(url: string, body?: object | string | null) {
+  function post<T>(
+    url: string,
+    body?: object | string | null,
+    options: { keepalive?: boolean } = {},
+  ) {
     return $fetch<T>(url, {
       baseURL,
       method: 'POST',
       body,
+      keepalive: options.keepalive,
     })
   }
 

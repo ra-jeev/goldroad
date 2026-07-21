@@ -39,6 +39,7 @@ const {
   deniedMoveSignal,
   deadEndSignal,
   solveCelebrationSignal,
+  solveAcknowledgement,
   selectMode,
   retryCurrentGame,
   switchToExpedition,
@@ -187,6 +188,7 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
         <GameBoardFooter
           :status="status"
           :hint-message="hintMessage"
+          :solve-acknowledgement="solveAcknowledgement"
           :attempt-number="attemptNumber"
           :has-moved="moves > 1"
           :next-reset-countdown="nextResetCountdown"

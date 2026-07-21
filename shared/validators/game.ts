@@ -225,8 +225,6 @@ export const CommunityBehaviorStatsSchema = z.object({
   hintUseRate: z.number().min(0).max(100),
   averageAttemptsBeforeFirstHint: z.number().nullable(),
   averageFirstHintMoveIndex: z.number().nullable(),
-  averageDeadEndCount: z.number().nullable(),
-  averageWrongExitCount: z.number().nullable(),
   averageSolveTimeMs: z.number().nullable(),
 });
 
@@ -289,8 +287,6 @@ export const SessionEndPayloadSchema = z
     score: z.number().int().min(0),
     moves: z.number().int().min(0).max(MAX_PLAUSIBLE_MOVES),
     attemptNumber: z.number().int().positive().max(MAX_PLAUSIBLE_ATTEMPTS),
-    solved: z.boolean(),
-    endReason: RunEndReasonSchema,
     hintsUsed: z.number().int().min(0).max(MAX_PLAUSIBLE_HINTS).default(0),
     solveTimeMs: z
       .number()
@@ -300,23 +296,8 @@ export const SessionEndPayloadSchema = z
       .nullable()
       .optional(),
   })
+  .strict()
   .superRefine((payload, ctx) => {
-    if (payload.solved && payload.endReason !== 'solved') {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['endReason'],
-        message: 'solved runs must use the solved endReason',
-      });
-    }
-
-    if (!payload.solved && payload.endReason === 'solved') {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['endReason'],
-        message: 'unsolved runs cannot use the solved endReason',
-      });
-    }
-
     if (payload.hintsUsed > payload.attemptNumber * 20) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -325,6 +306,13 @@ export const SessionEndPayloadSchema = z
       });
     }
   });
+
+export const SessionStartPayloadSchema = z.object({
+  playerUUID: z.string().uuid(),
+  gameNo: z.number().int().positive(),
+  puzzleType: PuzzleTypeSchema,
+  sessionId: z.string().uuid(),
+});
 
 export const HintRequestPayloadSchema = z.object({
   playerUUID: z.string().uuid(),
@@ -369,4 +357,5 @@ export type StatsRoadDay = z.infer<typeof StatsRoadDaySchema>;
 export type StatsOverview = z.infer<typeof StatsOverviewSchema>;
 
 export type SessionEndPayload = z.infer<typeof SessionEndPayloadSchema>;
+export type SessionStartPayload = z.infer<typeof SessionStartPayloadSchema>;
 export type HintRequestPayload = z.infer<typeof HintRequestPayloadSchema>;

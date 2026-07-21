@@ -12,12 +12,12 @@ Current status: the shipped v2 UI is the reference implementation. This document
 
 These are the decided visual rules the v2 UI implements. They came out of the P1/RP1 design passes in `IMPLEMENTATION_PLAN.md` and are binding for new surfaces:
 
-- **Road grammar** — plain roads whisper, scoring roads speak, missing roads disappear. Open roads are solid neutral gold spanning the full tile gap. Toll roads are two dashed rails in rust; bonus roads are two solid rails in honey-gold (pattern first, color second, so the signal survives color-blindness). Missing roads are true empty space, never a faint road.
+- **Road grammar** — every traversable road uses the neutral-gold family. Open roads are one solid rail, toll roads are two dashed rails, and bonus roads are two solid rails. Pattern and rail count carry meaning without color; missing roads are true empty space.
 - **Board-global modifiers** — toll and bonus values are stated once in the board legend (**Toll cost N**, **Road bonus N**), never as per-edge chips.
 - **Mode identity is quiet** — Classic vs. Expedition reads from the mode switcher, background tint, and legend. No loud accent blocks behind the board.
 - **Chrome recedes, the road speaks** — cards, gradients, and shadows exist to frame the game, not to compete with it. Prefer fewer, flatter surfaces; a new page section must justify its card.
 - **Contextual messaging** — the board shows one contextual message or affordance per state, in the spirit of v1's footer (see `IMPLEMENTATION_PLAN.md` RP1-10). Information appears when the state demands it and disappears when play resumes.
-- **Voice** — warm, direct, lightly road-themed. Locked terms: footprints, finish, attempt, Try again, Past Roads, Board total, Solved (never "Solved on target"), brand casing **GoldRoad**.
+- **Voice** — warm, direct, lightly road-themed. Locked player terms: footprints, finish, try/tries, Try again, Past Roads, Board total, Solved (never "Solved on target"), brand casing **GoldRoad**. Internal storage and API fields may remain `attempts`.
 
 ## Design Tokens
 
@@ -40,8 +40,7 @@ These are the decided visual rules the v2 UI implements. They came out of the P1
 - `--color-text-on-silver`, `--gradient-medal-silver` - Text and gradient for silver medal surfaces
 - `--color-medal-bronze-bright` - Bronze medal tier color
 - `--color-text-on-bronze`, `--gradient-medal-bronze` - Text and gradient for bronze medal surfaces
-- `--color-toll` (+ `-rgb`, `-bright`) - Toll roads, cautionary rust (#d2691e)
-- `--color-bonus` (+ `-rgb`, `-bright`) - Bonus roads, honey-gold (#ffce3a)
+- `--color-toll` / `--color-bonus` families - retained for brief score-change pulses; road rails themselves use the neutral-gold palette
 - `--color-hint` (+ `-rgb`) - Hint highlighting (pink)
 - `--color-focus` (+ `-rgb`) - The single focus color (#4b9eff blue) used by both component focus styles and the global `:focus-visible` outline
 
@@ -80,6 +79,7 @@ There is not currently a shared spacing scale. Components use local `rem` values
 
 - `--control-size` is the shared 44px interactive target.
 - `--icon-size` is the shared 24px UI icon size. Decorative road arrows and notification dots are geometry, not standalone UI icons, and remain board-scaled.
+- `.segmented-control` and `.segmented-control__option` define the shared quiet bordered shell and soft-gold active tint used by Tutorial, the live board, and Stats. Use `--stretched` for full-width two-tab layouts; the board keeps a compact intrinsic-width layout. Preserve ARIA tab semantics and the 44px target.
 
 ### Shadows
 
@@ -177,7 +177,7 @@ On mobile, the app header keeps Sound and Menu visible. Stats and How to Play mo
 
 - Focus states use `--color-focus` everywhere — component focus styles and the global `:focus-visible` ridge outline
 - Reduced motion support via `@media (prefers-reduced-motion: reduce)`
-- Color is never the only signal: start/finish are distinguished by icon alone (footprints/flag — they share the same gold badge coloring), toll/bonus use distinct rail patterns (dashed/solid), medals pair color with counts and labels
+- Color is never the only signal: start/finish are distinguished by icon alone (footprints/flag — they share the same gold badge coloring), toll/bonus use distinct neutral-gold rail patterns (double dashed/double solid), medals pair color with counts and labels
 - Proper contrast ratios maintained
 
 ## Usage in Components

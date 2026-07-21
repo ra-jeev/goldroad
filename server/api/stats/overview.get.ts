@@ -41,12 +41,6 @@ async function getRoadDayStats(
         averageFirstHintMoveIndex: sql<
           number | null
         >`AVG(${playerRoadAnalytics.firstHintMoveIndex})`,
-        averageDeadEndCount: sql<
-          number | null
-        >`AVG(${playerRoadAnalytics.deadEndCount})`,
-        averageWrongExitCount: sql<
-          number | null
-        >`AVG(${playerRoadAnalytics.wrongExitCount})`,
         averageSolveTimeMs: sql<
           number | null
         >`AVG(${playerRoadAnalytics.solveTimeMs})`,

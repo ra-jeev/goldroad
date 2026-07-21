@@ -46,3 +46,26 @@ export function hasPercentileSample(stat: CommunityRoadStats): boolean {
 export function hasCommunitySample(stat: CommunityRoadStats): boolean {
   return stat.plays > 0;
 }
+
+export function formatFieldBehaviorRows(
+  stat: CommunityRoadStats,
+  playerSolveTimeMs: number | null,
+  formatDuration: (value: number) => string,
+): string[] {
+  const rows = [
+    stat.behavior.totalHints === 0
+      ? 'No hints were used on this road.'
+      : `Solvers used ${stat.behavior.totalHints} hints in total.`,
+  ];
+
+  if (stat.behavior.averageSolveTimeMs !== null) {
+    const fieldTime = formatDuration(stat.behavior.averageSolveTimeMs);
+    rows.push(
+      playerSolveTimeMs === null
+        ? `Field solve time averaged ${fieldTime}.`
+        : `Field solve time averaged ${fieldTime}. You solved it in ${formatDuration(playerSolveTimeMs)}.`,
+    );
+  }
+
+  return rows;
+}

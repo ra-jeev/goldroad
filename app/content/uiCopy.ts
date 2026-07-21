@@ -46,11 +46,10 @@ export const UI_COPY = {
     switchToExpedition: 'Play Expedition',
     shareResult: 'Share',
     viewStats: 'View stats',
-    attemptLabel: 'Attempt',
     attemptResting: (attempt: number) => {
       const ordinal =
         ['st', 'nd', 'rd'][((((attempt + 90) % 100) - 10) % 10) - 1] || 'th';
-      return `${attempt}${ordinal} attempt`;
+      return `${attempt}${ordinal} Try`;
     },
     expeditionUnlocked: 'Expedition unlocked',
     medalAwarded: (medal: string) => `${medal} medal`,
@@ -76,7 +75,7 @@ export const UI_COPY = {
         items: [
           'You begin on the footprints. Reach the finish flag with your score matching the target.',
           'Your score changes as you move from tile to tile.',
-          'You cannot revisit a tile during the same attempt.',
+          'You cannot revisit a tile during the same try.',
           'Only up, down, left, and right moves are legal.',
           "Some roads simply aren't there. Where there's no road, there's no way through.",
           'You may need to leave some tiles out. Board total shows the value of every tile, not the route you must take.',
@@ -85,7 +84,7 @@ export const UI_COPY = {
       tools: {
         title: 'Tools',
         items: [
-          'Try again restarts the same road and increases your attempt count.',
+          'Try again restarts the same road and increases your try count.',
           'Hints highlight a guide route and do not reduce your score or medal.',
           'Solving Classic unlocks Expedition for the day when one is available.',
         ],
@@ -104,7 +103,7 @@ export const UI_COPY = {
     solveIncrement: '+1',
     solved: 'Solved',
     attemptLabel: (count: number) =>
-      `${count} attempt${count === 1 ? '' : 's'}`,
+      `${count} ${count === 1 ? 'try' : 'tries'}`,
     medalLine: (medal: string) => `${medal} medal`,
     solveTimeLine: (time: string) => `Solve time ${time}`,
     classic: {
@@ -179,11 +178,13 @@ export const UI_COPY = {
     findingAnotherRoad: 'Finding another road...',
     preRun: 'You’re on the footprints. Step onto any glowing tile to begin.',
     destinationSolved: 'Solved.',
+    solvedAgain: 'Solved again.',
     destinationShort: (delta: number) =>
       `You reached the finish ${delta} short of the target.`,
     destinationOver: (delta: number) =>
       `You reached the finish ${delta} over the target.`,
     deadEnd: 'Dead end. Walk it again to find the way through.',
+    classicOverTarget: 'This route may not lead to an exact finish.',
     hintNextStep:
       'Hint applied. The highlighted guide shows the next correct move.',
     hintDiverged:

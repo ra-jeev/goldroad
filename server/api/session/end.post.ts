@@ -18,14 +18,6 @@ type RateLimitedEvent = H3Event & {
   };
 };
 
-type LogContext = {
-  route: string;
-  player: string;
-  session: string;
-  gameNo: number;
-  puzzleType: string;
-};
-
 function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error);
 }
@@ -40,23 +32,6 @@ function isExpectedHttpError(error: unknown) {
   );
 }
 
-function logContext(payload: { playerUUID: string; sessionId: string; gameNo: number; puzzleType: string }): LogContext {
-  return {
-    route,
-    player: payload.playerUUID.slice(0, 8),
-    session: payload.sessionId.slice(0, 8),
-    gameNo: payload.gameNo,
-    puzzleType: payload.puzzleType,
-  };
-}
-
-/**
- * Rate limit on both the player-supplied UUID and the request's network
- * address. Keying on the UUID alone lets one client bypass the limit simply
- * by generating a fresh UUID per request; the IP dimension makes that free
- * rotation cost nothing to defeat (RP0-4). Either key tripping is enough to
- * reject the request.
- */
 async function checkRateLimit(event: RateLimitedEvent, playerUUID: string) {
   const rateLimiter = event.context.cloudflare?.env?.RATE_LIMITER;
   if (!rateLimiter) {
@@ -67,53 +42,39 @@ async function checkRateLimit(event: RateLimitedEvent, playerUUID: string) {
   }
 
   const ip = getRequestIP(event, { xForwardedFor: true }) ?? 'unknown';
-
   const [byPlayer, byIp] = await Promise.all([
     rateLimiter.limit({ key: `player:${playerUUID}` }),
     rateLimiter.limit({ key: `ip:${ip}` }),
   ]);
 
-  return { success: byPlayer.success && byIp.success };
+  return byPlayer.success && byIp.success;
 }
 
 export default defineEventHandler(async (event) => {
-  let context: LogContext | null = null;
+  let context: Record<string, string | number> = { route };
 
   try {
-    const body = await readBody(event);
-    const payload = (() => {
-      try {
-        return parsePayload(SessionEndPayloadSchema, body);
-      } catch (error) {
-        console.error('[api/session/end] invalid request payload', {
-          route,
-          error: errorMessage(error),
-        });
-        throw error;
-      }
-    })();
-    context = logContext(payload);
+    const payload = parsePayload(
+      SessionEndPayloadSchema,
+      await readBody(event),
+    );
+    context = {
+      route,
+      player: payload.playerUUID.slice(0, 8),
+      session: payload.sessionId.slice(0, 8),
+      gameNo: payload.gameNo,
+      puzzleType: payload.puzzleType,
+    };
 
-    const rateLimit = await checkRateLimit(event, payload.playerUUID);
-    if (!rateLimit.success) {
+    if (!(await checkRateLimit(event, payload.playerUUID))) {
       console.error('[api/session/end] rate limit exceeded', context);
       setResponseStatus(event, 429);
-      return {
-        ok: false,
-        error: 'rate_limited',
-      };
+      return { ok: false, error: 'rate_limited' };
     }
 
     const db = useDb(event);
-    // Only the current road accepts analytics writes. Archive/replay play is
-    // local-only by product decision (RP0-5) and must not be able to reach
-    // this contract even if a client tried to call it directly (RP0-4).
     const gameRows = await db
-      .select({
-        gameNo: games.gameNo,
-        puzzleType: games.puzzleType,
-        maxScore: games.maxScore,
-      })
+      .select({ maxScore: games.maxScore })
       .from(games)
       .where(
         and(
@@ -126,167 +87,103 @@ export default defineEventHandler(async (event) => {
 
     const game = gameRows[0];
     if (!game) {
-      console.error('[api/session/end] game not found or not current', context);
       throw createError({
         statusCode: 404,
         statusMessage: `Game ${payload.gameNo} not found or not the current road`,
       });
     }
 
-    if (payload.score > game.maxScore) {
-      console.error('[api/session/end] score exceeds board maxScore', {
+    if (payload.score !== game.maxScore) {
+      console.error('[api/session/end] score is not an exact solve', {
         ...context,
         score: payload.score,
-        maxScore: game.maxScore,
+        target: game.maxScore,
       });
       throw createError({
         statusCode: 400,
-        statusMessage: 'score exceeds this road\'s maximum possible score',
+        statusMessage: 'score must equal this road\'s target',
       });
     }
 
-    const existingRows = await db
-      .select({
-        attempts: playerRoadAnalytics.attempts,
-        solved: playerRoadAnalytics.solved,
-        hintsUsed: playerRoadAnalytics.hintsUsed,
-        attemptsBeforeFirstHint: playerRoadAnalytics.attemptsBeforeFirstHint,
-        firstHintMoveIndex: playerRoadAnalytics.firstHintMoveIndex,
-        solveTimeMs: playerRoadAnalytics.solveTimeMs,
-        deadEndCount: playerRoadAnalytics.deadEndCount,
-        wrongExitCount: playerRoadAnalytics.wrongExitCount,
-        solvedAt: playerRoadAnalytics.solvedAt,
-        solveSessionId: playerRoadAnalytics.solveSessionId,
-      })
-      .from(playerRoadAnalytics)
-      .where(
-        and(
-          eq(playerRoadAnalytics.playerId, payload.playerUUID),
-          eq(playerRoadAnalytics.gameNo, payload.gameNo),
-          eq(playerRoadAnalytics.puzzleType, payload.puzzleType),
-        ),
-      )
-      .limit(1);
-
-    const existing = existingRows[0] ?? null;
-    const deadEndDelta = payload.endReason === 'dead-end' ? 1 : 0;
-    const wrongExitDelta = payload.endReason === 'wrong-exit' ? 1 : 0;
-    const finishedAt = new Date().toISOString();
-    const submittedMedal = calcMedalForAttempt(
-      payload.attemptNumber,
-      payload.solved,
-    );
-
-    if (existing?.solved) {
-      return {
-        ok: true,
-        gameNo: payload.gameNo,
-        medal: submittedMedal,
-        score: payload.score,
-        solved: payload.solved,
-      };
-    }
-
-    const nextSolved = payload.solved;
-    const nextAttempts = nextSolved
-      ? payload.attemptNumber
-      : Math.max(existing?.attempts ?? 0, payload.attemptNumber);
-    const nextHintsUsed = Math.max(existing?.hintsUsed ?? 0, payload.hintsUsed);
-    const nextDeadEndCount = (existing?.deadEndCount ?? 0) + deadEndDelta;
-    const nextWrongExitCount = (existing?.wrongExitCount ?? 0) + wrongExitDelta;
-    const nextSolveTimeMs = nextSolved
-      ? (payload.solveTimeMs ?? existing?.solveTimeMs ?? null)
-      : (existing?.solveTimeMs ?? null);
-    const nextSolvedAt = nextSolved ? finishedAt : (existing?.solvedAt ?? null);
-    const nextSolveSessionId = nextSolved
-      ? payload.sessionId
-      : (existing?.solveSessionId ?? null);
-    const medal = calcMedalForAttempt(nextAttempts, nextSolved);
-
-    await db
-      .insert(playerRoadAnalytics)
-      .values({
-        playerId: payload.playerUUID,
-        gameNo: payload.gameNo,
-        puzzleType: payload.puzzleType,
-        attempts: nextAttempts,
-        solved: nextSolved,
-        hintsUsed: nextHintsUsed,
-        attemptsBeforeFirstHint: existing?.attemptsBeforeFirstHint ?? null,
-        firstHintMoveIndex: existing?.firstHintMoveIndex ?? null,
-        solveTimeMs: nextSolveTimeMs,
-        deadEndCount: nextDeadEndCount,
-        wrongExitCount: nextWrongExitCount,
-        lastPlayedAt: finishedAt,
-        solvedAt: nextSolvedAt,
-        solveSessionId: nextSolveSessionId,
-        createdAt: finishedAt,
-        updatedAt: finishedAt,
-      })
-      .onConflictDoUpdate({
-        target: [
-          playerRoadAnalytics.playerId,
-          playerRoadAnalytics.gameNo,
-          playerRoadAnalytics.puzzleType,
-        ],
-        set: {
-          attempts: sql`CASE WHEN ${playerRoadAnalytics.solved} = 1 THEN ${playerRoadAnalytics.attempts} ELSE ${nextAttempts} END`,
-          solved: sql`CASE WHEN ${playerRoadAnalytics.solved} = 1 THEN ${playerRoadAnalytics.solved} ELSE ${nextSolved ? 1 : 0} END`,
-          hintsUsed: sql`CASE WHEN ${playerRoadAnalytics.solved} = 1 THEN ${playerRoadAnalytics.hintsUsed} ELSE MAX(${playerRoadAnalytics.hintsUsed}, ${payload.hintsUsed}) END`,
-          attemptsBeforeFirstHint: sql`CASE WHEN ${playerRoadAnalytics.solved} = 1 THEN ${playerRoadAnalytics.attemptsBeforeFirstHint} ELSE COALESCE(${playerRoadAnalytics.attemptsBeforeFirstHint}, ${existing?.attemptsBeforeFirstHint ?? null}) END`,
-          firstHintMoveIndex: sql`CASE WHEN ${playerRoadAnalytics.solved} = 1 THEN ${playerRoadAnalytics.firstHintMoveIndex} ELSE COALESCE(${playerRoadAnalytics.firstHintMoveIndex}, ${existing?.firstHintMoveIndex ?? null}) END`,
-          solveTimeMs: sql`CASE WHEN ${playerRoadAnalytics.solved} = 1 THEN ${playerRoadAnalytics.solveTimeMs} ELSE ${nextSolveTimeMs} END`,
-          deadEndCount: sql`CASE WHEN ${playerRoadAnalytics.solved} = 1 THEN ${playerRoadAnalytics.deadEndCount} ELSE ${playerRoadAnalytics.deadEndCount} + ${deadEndDelta} END`,
-          wrongExitCount: sql`CASE WHEN ${playerRoadAnalytics.solved} = 1 THEN ${playerRoadAnalytics.wrongExitCount} ELSE ${playerRoadAnalytics.wrongExitCount} + ${wrongExitDelta} END`,
-          lastPlayedAt: sql`CASE WHEN ${playerRoadAnalytics.solved} = 1 THEN ${playerRoadAnalytics.lastPlayedAt} ELSE ${finishedAt} END`,
-          solvedAt: sql`CASE WHEN ${playerRoadAnalytics.solved} = 1 THEN ${playerRoadAnalytics.solvedAt} ELSE ${nextSolvedAt} END`,
-          solveSessionId: sql`CASE WHEN ${playerRoadAnalytics.solved} = 1 THEN ${playerRoadAnalytics.solveSessionId} ELSE ${nextSolveSessionId} END`,
-          updatedAt: sql`CASE WHEN ${playerRoadAnalytics.solved} = 1 THEN ${playerRoadAnalytics.updatedAt} ELSE ${finishedAt} END`,
-        },
-      });
-
-    const playsDelta = existing ? 0 : 1;
-    const exactSolveDelta = nextSolved ? 1 : 0;
+    const nowIso = new Date().toISOString();
+    const medal = calcMedalForAttempt(payload.attemptNumber, true);
     const goldDelta = medal === 'gold' ? 1 : 0;
     const silverDelta = medal === 'silver' ? 1 : 0;
     const bronzeDelta = medal === 'bronze' ? 1 : 0;
+    const analyticsKey = and(
+      eq(playerRoadAnalytics.playerId, payload.playerUUID),
+      eq(playerRoadAnalytics.gameNo, payload.gameNo),
+      eq(playerRoadAnalytics.puzzleType, payload.puzzleType),
+    );
+    const gameKey = and(
+      eq(games.gameNo, payload.gameNo),
+      eq(games.puzzleType, payload.puzzleType),
+    );
 
-    if (
-      playsDelta > 0 ||
-      exactSolveDelta > 0 ||
-      goldDelta > 0 ||
-      silverDelta > 0 ||
-      bronzeDelta > 0
-    ) {
-      await db
+    // D1 batch execution is atomic. `changes()` lets each aggregate update
+    // consume the affected-row count of the immediately preceding statement:
+    // a missed start increments plays once, and only the first solve update
+    // increments finished/medal counts.
+    await db.batch([
+      db
+        .insert(playerRoadAnalytics)
+        .values({
+          playerId: payload.playerUUID,
+          gameNo: payload.gameNo,
+          puzzleType: payload.puzzleType,
+          attempts: 0,
+          solved: false,
+          hintsUsed: 0,
+          deadEndCount: 0,
+          wrongExitCount: 0,
+          lastPlayedAt: nowIso,
+          createdAt: nowIso,
+          updatedAt: nowIso,
+        })
+        .onConflictDoNothing(),
+      db
         .update(games)
         .set({
-          playsCount: sql`${games.playsCount} + ${playsDelta}`,
-          goldCount: sql`${games.goldCount} + ${goldDelta}`,
-          silverCount: sql`${games.silverCount} + ${silverDelta}`,
-          bronzeCount: sql`${games.bronzeCount} + ${bronzeDelta}`,
-          finishedCount: sql`${games.finishedCount} + ${exactSolveDelta}`,
-          updatedAt: sql`(datetime('now'))`,
+          playsCount: sql`${games.playsCount} + changes()`,
+          updatedAt: sql`CASE WHEN changes() > 0 THEN (datetime('now')) ELSE ${games.updatedAt} END`,
         })
-        .where(
-          and(
-            eq(games.gameNo, payload.gameNo),
-            eq(games.puzzleType, payload.puzzleType),
-          ),
-        );
-    }
+        .where(gameKey),
+      db
+        .update(playerRoadAnalytics)
+        .set({
+          attempts: payload.attemptNumber,
+          solved: true,
+          hintsUsed: payload.hintsUsed,
+          solveTimeMs: payload.solveTimeMs ?? null,
+          lastPlayedAt: nowIso,
+          solvedAt: nowIso,
+          solveSessionId: payload.sessionId,
+          updatedAt: nowIso,
+        })
+        .where(and(analyticsKey, eq(playerRoadAnalytics.solved, false))),
+      db
+        .update(games)
+        .set({
+          finishedCount: sql`${games.finishedCount} + changes()`,
+          goldCount: sql`${games.goldCount} + changes() * ${goldDelta}`,
+          silverCount: sql`${games.silverCount} + changes() * ${silverDelta}`,
+          bronzeCount: sql`${games.bronzeCount} + changes() * ${bronzeDelta}`,
+          updatedAt: sql`CASE WHEN changes() > 0 THEN (datetime('now')) ELSE ${games.updatedAt} END`,
+        })
+        .where(gameKey),
+    ]);
 
     return {
       ok: true,
       gameNo: payload.gameNo,
       medal,
       score: payload.score,
-      solved: payload.solved,
+      solved: true as const,
     };
   } catch (error) {
     if (!isExpectedHttpError(error)) {
       console.error('[api/session/end] request failed', {
-        ...(context ?? { route }),
+        ...context,
         error: errorMessage(error),
       });
     }

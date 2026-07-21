@@ -13,7 +13,6 @@ const props = defineProps<{
   style: Record<string, string>;
 }>();
 
-const isScoring = props.type === 'toll' || props.type === 'bonus';
 </script>
 
 <template>
@@ -23,7 +22,6 @@ const isScoring = props.type === 'toll' || props.type === 'bonus';
       `road--${type}`,
       {
         'road--active': state === 'active',
-        'road--scoring': isScoring,
         'road--closed': state === 'closed',
       },
     ]"
@@ -53,24 +51,4 @@ const isScoring = props.type === 'toll' || props.type === 'bonus';
   transform: scale(1.04);
 }
 
-/* Extra visual mass: a soft tinted rail behind scoring roads. */
-.road--scoring::before {
-  content: '';
-  position: absolute;
-  inset: -3px;
-  border-radius: var(--radius-full);
-  z-index: -1;
-}
-
-.road--toll::before {
-  background: rgb(var(--color-toll-rgb) / 0.16);
-}
-
-.road--bonus::before {
-  background: rgb(var(--color-bonus-rgb) / 0.16);
-}
-
-.road--closed::before {
-  opacity: 0.5;
-}
 </style>

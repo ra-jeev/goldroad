@@ -134,4 +134,11 @@ function roadStyle(index: number): Record<string, string> {
   width: var(--icon-size);
   height: var(--icon-size);
 }
+
+@media (max-width: 760px) {
+  .mini-hint {
+    min-width: 0;
+    place-items: start;
+  }
+}
 </style>

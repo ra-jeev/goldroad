@@ -14,10 +14,11 @@ import {
   PathResultSchema,
   HintResultSchema,
   PublicGameSchema,
+  SessionStartPayloadSchema,
   SessionEndPayloadSchema,
   HintRequestPayloadSchema,
 } from '../../shared/validators/game'
-import type { SessionEndPayload, HintRequestPayload } from '../../shared/validators/game'
+import type { SessionStartPayload, SessionEndPayload, HintRequestPayload } from '../../shared/validators/game'
 
 // Re-export shared validators (source of truth for domain shapes)
 export {
@@ -26,11 +27,12 @@ export {
   PathResultSchema,
   HintResultSchema,
   PublicGameSchema,
+  SessionStartPayloadSchema,
   SessionEndPayloadSchema,
   HintRequestPayloadSchema,
 }
 
-export type { SessionEndPayload, HintRequestPayload }
+export type { SessionStartPayload, SessionEndPayload, HintRequestPayload }
 
 // ---------------------------------------------------------------------------
 // Database table validators (derived from Drizzle)
@@ -97,4 +99,3 @@ export const selectGameSchema = createSelectSchema(games, {
 
 export type InsertGame = z.infer<typeof insertGameSchema>
 export type SelectGame = z.infer<typeof selectGameSchema>
-

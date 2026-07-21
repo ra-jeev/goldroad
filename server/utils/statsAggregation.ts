@@ -76,8 +76,6 @@ export type AggregatedRoadStatsRow = {
   totalHints: number;
   averageAttemptsBeforeFirstHint: number | null;
   averageFirstHintMoveIndex: number | null;
-  averageDeadEndCount: number | null;
-  averageWrongExitCount: number | null;
   averageSolveTimeMs: number | null;
 };
 
@@ -115,8 +113,6 @@ export function buildEmptyCommunityRoadStats(
       hintUseRate: 0,
       averageAttemptsBeforeFirstHint: null,
       averageFirstHintMoveIndex: null,
-      averageDeadEndCount: null,
-      averageWrongExitCount: null,
       averageSolveTimeMs: null,
     },
   };
@@ -151,8 +147,6 @@ export function toCommunityRoadStats(
         row.averageAttemptsBeforeFirstHint,
       ),
       averageFirstHintMoveIndex: roundNullable(row.averageFirstHintMoveIndex),
-      averageDeadEndCount: roundNullable(row.averageDeadEndCount),
-      averageWrongExitCount: roundNullable(row.averageWrongExitCount),
       averageSolveTimeMs: roundNullable(row.averageSolveTimeMs, 0),
     },
   };

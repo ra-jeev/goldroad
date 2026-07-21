@@ -79,6 +79,90 @@ function parseOrThrow<T>(
   return result.data;
 }
 
+const AggregateCountersSchema = z.object({
+  playsCount: z.number().int().min(0),
+  finishedCount: z.number().int().min(0),
+  goldCount: z.number().int().min(0),
+  silverCount: z.number().int().min(0),
+  bronzeCount: z.number().int().min(0),
+});
+
+type AggregateCounters = z.infer<typeof AggregateCountersSchema>;
+type AggregateCounterName = keyof AggregateCounters;
+
+/**
+ * Aggregate counters are deliberately not part of any public API response
+ * (today's road never exposes community aggregation), so idempotency checks
+ * read them straight from the local D1 database the dev server writes to.
+ */
+async function getCurrentGameAggregates(
+  gameNo: number,
+  puzzleType: 'classic' | 'expedition',
+): Promise<AggregateCounters> {
+  const query =
+    'SELECT plays_count AS playsCount, finished_count AS finishedCount, ' +
+    'gold_count AS goldCount, silver_count AS silverCount, bronze_count AS bronzeCount ' +
+    `FROM games WHERE game_no = ${gameNo} AND puzzle_type = '${puzzleType}' LIMIT 1`;
+  const { execFileSync } = await import('node:child_process');
+  const stdout = execFileSync(
+    'pnpm',
+    [
+      'exec',
+      'wrangler',
+      'd1',
+      'execute',
+      'DB',
+      '--local',
+      '--config',
+      'wrangler.jsonc',
+      '--json',
+      '--command',
+      query,
+    ],
+    {
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        XDG_CONFIG_HOME: '.wrangler/xdg-config',
+        XDG_CACHE_HOME: '.wrangler/xdg-cache',
+      },
+    },
+  );
+  const parsed = z
+    .array(z.object({ results: z.array(AggregateCountersSchema) }))
+    .parse(JSON.parse(stdout));
+  const counters = parsed[0]?.results[0];
+  if (!counters) {
+    throw new Error(
+      `local D1 aggregate counters: no games row for ${puzzleType} game ${gameNo}`,
+    );
+  }
+  return counters;
+}
+
+function expectAggregateDeltas(
+  context: string,
+  before: AggregateCounters,
+  after: AggregateCounters,
+  expected: Partial<Record<AggregateCounterName, number>>,
+) {
+  const counterNames: AggregateCounterName[] = [
+    'playsCount',
+    'finishedCount',
+    'goldCount',
+    'silverCount',
+    'bronzeCount',
+  ];
+  for (const counter of counterNames) {
+    const expectedValue = before[counter] + (expected[counter] ?? 0);
+    if (after[counter] !== expectedValue) {
+      throw new Error(
+        `${context}: expected ${counter} ${before[counter]} -> ${expectedValue}, got ${after[counter]}`,
+      );
+    }
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Individual checks
 // ---------------------------------------------------------------------------
@@ -222,102 +306,43 @@ async function checkHint(
   logOk(`returns a schema-valid ${parsed.hint.kind} hint from the start tile`);
 }
 
-async function checkSessionEndUnsolved(
+async function checkSessionStart(
   gameNo: number,
   puzzleType: 'classic' | 'expedition',
-  score: number,
 ) {
+  const before = await getCurrentGameAggregates(gameNo, puzzleType);
   const playerUUID = crypto.randomUUID();
   const sessionId = crypto.randomUUID();
+  const payload = { playerUUID, gameNo, puzzleType, sessionId };
 
-  const { status, body, text } = await request('/api/session/end', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({
-      playerUUID,
-      gameNo,
-      puzzleType,
-      sessionId,
-      score,
-      moves: 1,
-      attemptNumber: 1,
-      solved: false,
-      endReason: 'retry',
-      hintsUsed: 1,
-    }),
-  });
-
-  expectStatus('POST /api/session/end (unsolved)', status, 200, text);
-  const parsed = parseOrThrow(
-    'POST /api/session/end (unsolved)',
-    z.object({
-      ok: z.literal(true),
-      gameNo: z.number().int().positive(),
-      medal: z.enum(['gold', 'silver', 'bronze']).nullable(),
-      score: z.number().int().min(0),
-      solved: z.literal(false),
-    }),
-    body,
-  );
-
-  if (parsed.medal !== null) {
-    throw new Error(
-      `POST /api/session/end (unsolved): expected medal to be null for an unsolved run, got ${parsed.medal}`,
+  for (const label of ['initial', 'duplicate']) {
+    const { status, body, text } = await request('/api/session/start', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    expectStatus(`POST /api/session/start (${label})`, status, 200, text);
+    parseOrThrow(
+      `POST /api/session/start (${label})`,
+      z.object({ ok: z.literal(true), gameNo: z.number().int().positive() }),
+      body,
     );
   }
 
-  logOk('records an unsolved run with no medal');
-}
-
-async function checkSessionEndSolvedFirstAttempt(
-  gameNo: number,
-  puzzleType: 'classic' | 'expedition',
-  maxScore: number,
-) {
-  const playerUUID = crypto.randomUUID();
-  const sessionId = crypto.randomUUID();
-
-  const { status, body, text } = await request('/api/session/end', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({
-      playerUUID,
-      gameNo,
-      puzzleType,
-      sessionId,
-      score: maxScore,
-      moves: 4,
-      attemptNumber: 1,
-      solved: true,
-      endReason: 'solved',
-      hintsUsed: 0,
-      solveTimeMs: 12345,
-    }),
-  });
-
-  expectStatus('POST /api/session/end (solved)', status, 200, text);
-  const parsed = parseOrThrow(
-    'POST /api/session/end (solved)',
-    z.object({
-      ok: z.literal(true),
-      gameNo: z.number().int().positive(),
-      medal: z.enum(['gold', 'silver', 'bronze']).nullable(),
-      score: z.number().int().min(0),
-      solved: z.literal(true),
-    }),
-    body,
+  const after = await getCurrentGameAggregates(gameNo, puzzleType);
+  expectAggregateDeltas(
+    'POST /api/session/start duplicate aggregates',
+    before,
+    after,
+    { playsCount: 1 },
   );
 
-  if (parsed.medal !== 'gold') {
-    throw new Error(
-      `POST /api/session/end (solved): expected gold medal on attempt 1, got ${parsed.medal}`,
-    );
-  }
-
-  logOk('awards gold medal for a first-attempt solve');
+  logOk(
+    'accepts a unique start and its idempotent duplicate, incrementing plays once',
+  );
 }
 
-async function checkSessionEndRejectsInconsistentEndReason(
+async function checkSessionEndRejectsNonSolveContract(
   gameNo: number,
   puzzleType: 'classic' | 'expedition',
 ) {
@@ -332,19 +357,108 @@ async function checkSessionEndRejectsInconsistentEndReason(
       score: 1,
       moves: 1,
       attemptNumber: 1,
-      solved: true,
-      endReason: 'retry', // invalid: solved runs must use endReason 'solved'
+      solved: false,
+      endReason: 'retry',
       hintsUsed: 0,
     }),
   });
 
   expectStatus(
-    'POST /api/session/end (solved=true, endReason=retry)',
+    'POST /api/session/end (obsolete non-solve payload)',
     status,
     400,
     text,
   );
-  logOk('rejects solved:true paired with a non-"solved" endReason (400)');
+  logOk('rejects the obsolete non-solve session-end contract');
+}
+
+async function checkSessionEndSolvedFirstAttempt(
+  gameNo: number,
+  puzzleType: 'classic' | 'expedition',
+  maxScore: number,
+) {
+  const before = await getCurrentGameAggregates(gameNo, puzzleType);
+  const playerUUID = crypto.randomUUID();
+  const sessionId = crypto.randomUUID();
+  const payload = {
+    playerUUID,
+    gameNo,
+    puzzleType,
+    sessionId,
+    score: maxScore,
+    moves: 4,
+    attemptNumber: 1,
+    hintsUsed: 0,
+    solveTimeMs: 12345,
+  };
+
+  for (const label of ['initial', 'sequential duplicate']) {
+    const { status, body, text } = await request('/api/session/end', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    expectStatus(`POST /api/session/end (${label})`, status, 200, text);
+    const parsed = parseOrThrow(
+      `POST /api/session/end (${label})`,
+      z.object({
+        ok: z.literal(true),
+        gameNo: z.number().int().positive(),
+        medal: z.enum(['gold', 'silver', 'bronze']).nullable(),
+        score: z.number().int().min(0),
+        solved: z.literal(true),
+      }),
+      body,
+    );
+
+    if (parsed.medal !== 'gold') {
+      throw new Error(
+        `POST /api/session/end (${label}): expected gold medal on attempt 1, got ${parsed.medal}`,
+      );
+    }
+  }
+  const after = await getCurrentGameAggregates(gameNo, puzzleType);
+  expectAggregateDeltas(
+    'POST /api/session/end duplicate aggregates',
+    before,
+    after,
+    {
+      playsCount: 1,
+      finishedCount: 1,
+      goldCount: 1,
+    },
+  );
+
+  logOk(
+    'accepts an exact solve and its idempotent sequential duplicate, incrementing play/finish/gold once',
+  );
+}
+
+async function checkSessionEndRejectsNonExactScore(
+  gameNo: number,
+  puzzleType: 'classic' | 'expedition',
+  maxScore: number,
+) {
+  for (const score of [maxScore - 1, maxScore + 1]) {
+    const { status, text } = await request('/api/session/end', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        playerUUID: crypto.randomUUID(),
+        gameNo,
+        puzzleType,
+        sessionId: crypto.randomUUID(),
+        score,
+        moves: 4,
+        attemptNumber: 1,
+        hintsUsed: 0,
+        solveTimeMs: 12345,
+      }),
+    });
+    expectStatus(`POST /api/session/end (non-exact score ${score})`, status, 400, text);
+  }
+  logOk('rejects scores both below and above the exact target');
 }
 
 async function checkStatsOverview() {
@@ -398,19 +512,20 @@ async function run() {
   );
 
   console.log('\nsession/end');
-  await checkSessionEndUnsolved(
+  await checkSessionStart(currentGame.gameNo, currentGame.puzzleType);
+  await checkSessionEndRejectsNonSolveContract(
     currentGame.gameNo,
     currentGame.puzzleType,
-    currentGame.board.tiles[currentGame.board.start] ?? 0,
   );
   await checkSessionEndSolvedFirstAttempt(
     currentGame.gameNo,
     currentGame.puzzleType,
     currentGame.maxScore,
   );
-  await checkSessionEndRejectsInconsistentEndReason(
+  await checkSessionEndRejectsNonExactScore(
     currentGame.gameNo,
     currentGame.puzzleType,
+    currentGame.maxScore,
   );
 
   console.log('\nstats/overview');

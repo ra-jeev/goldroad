@@ -8,6 +8,7 @@ const props = withDefaults(
   defineProps<{
     status: string;
     hintMessage: string | null;
+    solveAcknowledgement?: string | null;
     attemptNumber: number;
     hasMoved: boolean;
     nextResetCountdown?: string;
@@ -37,6 +38,7 @@ const props = withDefaults(
     secondaryLinkTo: null,
     secondaryLinkLabel: null,
     showShare: false,
+    solveAcknowledgement: null,
     shareHandler: null,
   },
 );
@@ -91,6 +93,9 @@ const footerState = computed<FooterState>(() =>
 );
 
 const footerMessage = computed<string | null>(() => {
+  if (props.solveAcknowledgement && props.solved) {
+    return props.solveAcknowledgement;
+  }
   // A hint the player just asked for always replaces the resting message.
   if (props.hintMessage && !props.solved && !props.ended) {
     return props.hintMessage;
@@ -115,12 +120,6 @@ const footerMessage = computed<string | null>(() => {
   }
 });
 
-const showAttemptPill = computed(
-  () =>
-    footerState.value === 'failed' &&
-    props.attemptNumber > 1 &&
-    !props.trackingDisabled,
-);
 const showHintAction = computed(
   () =>
     (footerState.value === 'resting-first' ||
@@ -175,9 +174,6 @@ const displayMessage = computed(
     </div>
 
     <div class="action-row">
-      <span v-if="showAttemptPill" class="attempt-pill">
-        {{ UI_COPY.boardFooter.attemptLabel }} #{{ attemptNumber }}
-      </span>
       <button
         v-if="showRetryAction"
         type="button"
@@ -314,17 +310,6 @@ const displayMessage = computed(
   font-size: var(--font-size-board-meta);
   font-weight: 650;
   line-height: var(--line-height-snug);
-}
-
-.attempt-pill {
-  flex-shrink: 0;
-  padding: 0.25rem 0.55rem;
-  border-radius: var(--radius-xs);
-  background: rgb(var(--color-gold-rgb) / 0.12);
-  border: 1px solid rgb(var(--color-gold-rgb) / 0.24);
-  color: rgb(var(--color-gold-rgb) / 0.84);
-  font-size: var(--font-size-caption);
-  font-weight: 700;
 }
 
 .action-row {

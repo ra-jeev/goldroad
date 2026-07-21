@@ -19,11 +19,11 @@ GoldRoad is a daily route puzzle with a local-first player model.
 
 ### 1.2 Medal rules
 
-Medals are derived from the solve attempt count:
-- Gold: solved on attempt 1
-- Silver: solved on attempt 2
-- Bronze: solved on attempt 3
-- Attempt 4+: solved, but no medal
+Medals are derived from the solve try count (stored internally as `attempts`):
+- Gold: solved on try 1
+- Silver: solved on try 2
+- Bronze: solved on try 3
+- Try 4+: solved, but no medal
 
 Important: medals are derived data. They should not be stored directly when the attempt count already exists.
 
@@ -40,15 +40,15 @@ Solving never navigates away from the board. Celebration happens on a sheet over
 - Classic solve: a celebration bottom sheet with the medal/result moment, a shareable result preview with Share as the primary action, and Continue to Expedition as a prominent secondary action. Forward energy — "nice, now there's more."
 - Expedition solve: a day-complete sheet with both mode results, a combined-day share text, the next-road countdown, and the streak/stats link. Closing energy — "that's the day, see you tomorrow."
 
-Celebration energy tiers by result: first-attempt gold gets the full moment, medal solves get a standard celebration, late no-medal solves get warm relief with the Expedition CTA leading. A sheet fires once per solve event and never re-pops on later visits; a quiet Share affordance persists in the solved-board footer instead.
+Celebration energy tiers by result: first-try gold gets the full moment, medal solves get a standard celebration, late no-medal solves get warm relief with the Expedition CTA leading. A sheet fires once per first solve and never re-pops on later visits; every exact re-solve still plays its solve sound and shows a lightweight `Solved again.` acknowledgement without another award, streak change, analytics result, or full sheet.
 
-Sharing is a live-road concept: archive replay exposes no share affordance anywhere (sheet or footer). An archive replay sheet fires only for the first solve of a road+mode — re-solving a road already solved live or in the archive settles into the solved rest state with no sheet. That first-solve sheet awards no medal; it shows a counterfactual line ("Live, that would have been Gold") with the session solve time, and its only action is dismissal.
+All result sharing, including archive and random-road replay, points to the canonical production homepage and ends with `Walk today's road:`. Result text may name the solved road and mode, but never deep-links to `/games/:gameNo`. An archive replay sheet fires only for the first solve of a road+mode and awards no medal; it shows a counterfactual line ("Live, that would have been Gold") with the session solve time and may share that result through the homepage.
 
 ### 1.5 App shell requirements
 
 Two v1 qualities are shipped as launch requirements for v2:
 
-- game sounds (move/coin, denied move, dead-end, solve) with a persisted mute toggle (`useSoundEffects`); the mastered public assets stay below a −3 dB true-peak ceiling, while a shared `@vueuse/sound`/Howler bank begins preloading from the persistent layout, uses Web Audio by default, unlocks playback on the first user gesture, and falls back to HTML5 Audio when Web Audio is unavailable
+- game sounds (move/coin, denied move, dead-end, solve) with a persisted mute toggle (`useSoundEffects`); the mastered public assets stay below a −3 dB true-peak ceiling, while a shared `@vueuse/sound`/Howler bank begins preloading from the persistent layout, explicitly resumes on the first eligible gesture, replays the first queued effect when ready, and reloads/resumes on `pageshow` and foreground visibility transitions
 - PWA installability: manifest and icon set in the v2 visual style, apple-touch-icon, and Open Graph / social metadata for link unfurls
 
 No service worker or offline app shell is included for the v2 launch. That is a deliberate launch-scope decision; offline shell work is deferred until after launch.
@@ -151,7 +151,7 @@ Local testing options:
 - Archive play is fully local: archived boards are fetched once, hints are computed client-side from the returned `optimalPaths`, and a solve makes no `/api/session` calls of any kind. Nothing about archive play reaches the analytics tables.
 - Expedition stays gated behind Classic in archive replay, the same as the live road (see the RP0-5 archive/replay decision below). This deliberately supersedes the earlier P0-4 acceptance criterion that called for Expedition to be directly available in archive replay; that frictionless model predated tracked archive completion.
 - An archive completion is recorded only when a mode is actually solved, per game and per mode, in `localStorage` under `goldroad-state-v2`'s `archiveCompletionByGame` map. It drives the Past Roads calendar markers and that road's local solved/unlock state only. It never touches medals, streaks, attempts, solve times, personal totals, today's result, yesterday's comparison, or server analytics.
-- In-progress archive state (attempts, hints, guide path, solve timer) is session-scoped (see §8): leaving and returning days later starts a fresh game. Archive solves celebrate only on the first solve of a road+mode, award no medal (a counterfactual "would have been" line stands in), and offer no share (see §1.4).
+- In-progress archive state (attempts, hints, guide path, solve timer) is session-scoped (see §8): leaving and returning days later starts a fresh game. Archive solves celebrate only on the first solve of a road+mode, award no medal (a counterfactual "would have been" line stands in), and share through the canonical homepage (see §1.4).
 - The archive board endpoint serves archived roads only: requests for the current or a future road number 404, and every road it serves ships its `optimalPaths`.
 
 ### Random road behavior
@@ -199,15 +199,15 @@ A unified `edges[]` model can be revisited later only if it unlocks a real featu
 
 ### 4.4 Edge visual hierarchy
 
-Tolls and bonuses change the score — the win condition — so they must read as first-class game elements. As shipped (RP1-2), the primary signal is line pattern, with hue as the secondary signal:
+Tolls and bonuses change the score — the win condition — so they must read as first-class game elements. The July 21 staging pass superseded RP1-2's hue distinction: line pattern is now the road-type signal and every traversable road uses the neutral-gold family.
 
 - open roads are solid neutral gold, thick and opaque, spanning the complete tile gap
-- toll roads are two dashed rails in a cautionary rust tint
-- bonus roads are two solid rails in a honey-gold tint
+- toll roads are two dashed neutral-gold rails
+- bonus roads are two solid neutral-gold rails
 - missing edges are true empty space — no faint road remnant on the live board
 - toll/bonus values are board-global and stated once in the board legend (**Toll cost N**, **Road bonus N**); per-edge `+N`/`−N` chips were deliberately removed
 
-Guiding principle: plain roads whisper, scoring roads speak, missing roads disappear. Traversing a toll or bonus briefly pulses the score readout in the matching hue (disabled under reduced motion).
+Guiding principle: one coherent road palette, pattern-first scoring-road recognition, and true empty space for missing roads. Traversing a toll or bonus may still pulse the score readout to explain the signed score change (disabled under reduced motion).
 
 ## 5. Puzzle generation and optimal paths
 
@@ -384,9 +384,13 @@ The active implementation uses one anonymous analytics row per player, road day,
 
 ### 9.2.1 Write boundary and rate limiting
 
-`/api/session/end` and `/api/session/hint` only accept writes for the road day currently flagged `current=true`. A request for any other `gameNo`, including a past or archived road, is rejected outright, so archive/replay play (which never calls these endpoints from the client either) cannot reach analytics even if called directly.
+`/api/session/start`, `/api/session/end`, and `/api/session/hint` only accept the road day currently flagged `current=true`. A request for any other `gameNo`, including a past or archived road, is rejected outright, so archive/replay play cannot reach analytics even if called directly.
 
-Both endpoints rate-limit on two independent keys: the client-supplied `playerUUID` and the request's source IP, checked together so rotating the UUID alone cannot bypass the limit. Either key tripping is enough to reject the request with a `429`.
+All three endpoints rate-limit on two independent keys: the client-supplied `playerUUID` and the request's source IP. Either key tripping rejects the request with a `429`.
+
+The first valid tile move sends one best-effort `session/start` per live road and mode. `session/end` is solve-only and accepts only `score === maxScore`; dead ends, wrong exits, and manual retries never call it. The hint endpoint computes and returns a hint but does not create or mutate analytics. If a solve arrives without a starter row, the solve transaction creates the row and counts both the starter and solver exactly once.
+
+Local solve credit is committed before analytics delivery. The initial solve request uses `keepalive`; an explicitly failed retryable request is handed to an app-wide client owner, persisted under `goldroad-failed-solves-v1`, retried sequentially at approximately 2s/5s/15s/30s/60s/120s plus lifecycle triggers, and discarded at that road's `nextGameAt`. No start or hint request is persisted. The current manifest-only install experience remains deliberate: there is no service worker, offline shell, or background sync.
 
 ### 9.3 Recommended fields
 
@@ -397,13 +401,11 @@ Recommended analytics fields:
 - `attempts`
 - `solved`
 - `hintsUsed`
-- `attemptsBeforeFirstHint`
-- `firstHintMoveIndex` if useful, measured as the relative move index from the start tile where the start tile itself is `0`
 - `solveTimeMs` for solved runs
-- `deadEndCount`
-- `wrongExitCount`
 - `lastPlayedAt`
 - `solvedAt` if solved
+
+Legacy database columns for first-hint and failed-route behavior remain dormant until a later schema cleanup; they are not mutated or exposed by the active Stats contract.
 
 ### 9.4 Fields that should remain derived
 
@@ -448,7 +450,7 @@ The server should provide:
 
 The stats page uses one global Classic/Expedition segmented toggle at the top that scopes every mode-specific section below it. There are no per-card mode toggles and no side-by-side mode columns.
 
-Cross-mode facts (current streaks, all-time medal totals) live in a small always-visible header strip above the toggle so mode scoping never hides them.
+All-time medal totals remain cross-mode above the toggle. The streak card sits immediately below the toggle and shows only the selected mode's current and best streak.
 
 ### 10.4 Community comparison presentation
 
@@ -462,7 +464,7 @@ The v2 board grid is the strongest part of the current interface and should be p
 
 The board shell, header, footer, mode switcher, road grammar, and navigation passes from the P1/RP1 series have landed. So has the July 2026 UI direction that followed it:
 
-- board messaging is strictly contextual, following v1's footer contract: one message or affordance per state, attempt count shown only at rest after a retry and cleared on the first move (RP1-10)
+- board messaging is strictly contextual, following v1's footer contract: one message or affordance per state, the ordinal try (`2nd Try`, `3rd Try`) shown only at rest after a retry and cleared on the first move
 - the stats page follows v1's shape — medal displays with a "+1" moment, a today's-result card with share, a previous-road global-stats story, and a key-value personal record — adapted to two modes via the single global mode toggle; there are no dynamic community stats for the in-progress road (RP1-11)
 - Past Roads is a calendar-style picker rather than a card grid, and replay pages shed header/label chrome (RP1-12)
 

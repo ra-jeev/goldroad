@@ -9,6 +9,7 @@ import {
 import {
   hasCommunitySample,
   hasPercentileSample,
+  formatFieldBehaviorRows,
   topPercent,
 } from '../utils/statsPresentation';
 
@@ -129,38 +130,37 @@ const medalTiles = computed(() =>
   (['gold', 'silver', 'bronze'] as const).map((tier, index) => ({
     key: tier,
     label: UI_COPY.boardHeader.medals[tier],
-    sub: `${index + 1} attempt${index === 0 ? '' : 's'}`,
+    sub: `${index + 1} ${index === 0 ? 'TRY' : 'TRIES'}`,
     count: summary.value.medalCounts[tier],
     earnedToday: medalsEarnedToday.value[tier],
   })),
 );
 
 // ---------------------------------------------------------------------------
-// Streaks (always visible): Classic is the day's baseline challenge, so the
-// Classic streak IS the daily streak. Expedition's harder optional streak
-// rides along in the same card.
+// Streaks are mode-scoped and sit directly below the mode selector.
 // ---------------------------------------------------------------------------
 
 const streakCard = computed(() => {
-  const current = summary.value.currentClassicStreak;
-  const best = summary.value.bestClassicStreak;
-  const expeditionCurrent = summary.value.currentExpeditionStreak;
-  const expeditionBest = summary.value.bestExpeditionStreak;
+  const isClassic = selectedMode.value === 'classic';
+  const current = isClassic
+    ? summary.value.currentClassicStreak
+    : summary.value.currentExpeditionStreak;
+  const best = isClassic
+    ? summary.value.bestClassicStreak
+    : summary.value.bestExpeditionStreak;
   const isBest = current > 0 && current >= best;
 
   return {
-    current,
     lit: current > 0,
     headline: current > 0 ? `${current}-day streak` : 'No streak yet',
-    classicLine:
+    detail:
       current > 0
-        ? `Classic best ${best} day${best === 1 ? '' : 's'}${isBest ? ' · current best' : ''}`
+        ? `Best ${best} day${best === 1 ? '' : 's'}${isBest ? ' · current best' : ''}`
         : null,
-    prompt: current > 0 ? null : 'Solve today’s road to light the flame.',
-    expeditionLine:
-      expeditionCurrent > 0 || expeditionBest > 0
-        ? `Expedition streak ${expeditionCurrent} day${expeditionCurrent === 1 ? '' : 's'} · best ${expeditionBest}`
-        : null,
+    prompt:
+      current > 0
+        ? null
+        : `Solve today’s ${formatModeLabel(selectedMode.value)} road to light the flame.`,
   };
 });
 
@@ -285,21 +285,11 @@ const yesterdayPlayerLine = computed(() => {
 const yesterdayBehaviorRows = computed(() => {
   const field = yesterdayField.value;
   if (!field) return [];
-
-  const rows = [
-    `${field.behavior.hintUseRate}% reached for a hint · ${field.behavior.totalHints} hints in all`,
-  ];
-
-  if (field.behavior.averageSolveTimeMs !== null) {
-    rows.push(`Field solve time averaged ${formatDurationMs(field.behavior.averageSolveTimeMs)}`);
-  }
-  if (field.behavior.averageDeadEndCount !== null) {
-    rows.push(
-      `Around ${field.behavior.averageDeadEndCount} dead end${field.behavior.averageDeadEndCount === 1 ? '' : 's'} per attempt on average`,
-    );
-  }
-
-  return rows;
+  return formatFieldBehaviorRows(
+    field,
+    yesterdayResult.value?.solveTimeMs ?? null,
+    (value) => formatDurationMs(value),
+  );
 });
 
 // ---------------------------------------------------------------------------
@@ -317,7 +307,7 @@ const recordRows = computed(() => {
     { key: 'played', label: 'Total treads', value: roadWord(stats.sessionsPlayed) },
     { key: 'solves', label: 'Total finishes', value: roadWord(stats.exactSolves) },
     { key: 'rate', label: 'Completion', value: `${stats.solveRate}%` },
-    { key: 'avgAttempts', label: 'Average attempts', value: stats.averageSolvedAttempts },
+    { key: 'avgAttempts', label: 'Average tries', value: stats.averageSolvedAttempts },
     { key: 'avgTime', label: 'Average solve time', value: formatDurationMs(stats.averageSolveTimeMs) },
     { key: 'bestTime', label: 'Best solve time', value: formatDurationMs(stats.bestSolveTimeMs) },
     { key: 'hints', label: 'Hints used', value: String(stats.totalHints) },
@@ -405,14 +395,13 @@ onMounted(async () => {
           >
             +{{ tier.earnedToday }}
           </span>
-          <span
-            class="medal-stat"
-            :class="{ 'medal-stat--bumped': tier.earnedToday > 0 }"
-            aria-hidden="true"
-          >
+          <span class="medal-stat" aria-hidden="true">
             <MedalIcon :tier="tier.key" class="medal-art" />
             <span class="medal-multiply">x</span>
-            <span class="medal-count">{{ tier.count }}</span>
+            <span
+              class="medal-count"
+              :class="{ 'medal-count--bumped': tier.earnedToday > 0 }"
+            >{{ tier.count }}</span>
           </span>
           <span class="medal-sub">{{ tier.sub }}</span>
           <span class="sr-only">
@@ -421,44 +410,18 @@ onMounted(async () => {
         </div>
       </section>
 
-      <!-- Streaks: the daily (Classic) streak leads, Expedition rides along -->
-      <section class="panel streak-card" aria-label="Streaks">
-        <div class="streak-flame-col" :class="{ 'streak-flame-col--lit': streakCard.lit }">
-          <svg
-            class="streak-flame"
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-          >
-            <path
-              fill="#ff9d2e"
-              d="M12 2c.7 3.2-.6 5-2.2 6.7C8.1 10.5 6.5 12.3 6.5 15a5.5 5.5 0 0 0 11 0c0-1.5-.5-2.9-1.2-4.2-.3.9-.8 1.6-1.6 2.1.3-3-1-6.6-2.7-8.4A7.6 7.6 0 0 0 12 2Z"
-            />
-            <path
-              fill="#ffce31"
-              d="M12 21a3.4 3.4 0 0 1-3.4-3.4c0-1.6 1-2.5 1.9-3.5.7-.8 1.3-1.5 1.5-2.6 1.2 1.2 3.4 3.7 3.4 6.1A3.4 3.4 0 0 1 12 21Z"
-            />
-          </svg>
-        </div>
-        <div class="streak-text">
-          <strong class="streak-headline">{{ streakCard.headline }}</strong>
-          <p v-if="streakCard.prompt" class="streak-sub">
-            {{ streakCard.prompt }}
-          </p>
-          <div v-else class="streak-details">
-            <span v-if="streakCard.classicLine">{{ streakCard.classicLine }}</span>
-            <span v-if="streakCard.expeditionLine">{{ streakCard.expeditionLine }}</span>
-          </div>
-        </div>
-      </section>
-
       <!-- Global mode toggle: scopes every section below -->
-      <div class="mode-switch" role="tablist" aria-label="Choose a mode">
+      <div
+        class="mode-switch segmented-control segmented-control--stretched"
+        role="tablist"
+        aria-label="Choose a mode"
+      >
         <button
           v-for="mode in (['classic', 'expedition'] as const)"
           :key="mode"
           type="button"
           role="tab"
-          class="mode-switch-btn"
+          class="mode-switch-btn segmented-control__option"
           :class="{ 'is-active': selectedMode === mode }"
           :aria-selected="selectedMode === mode"
           @click="selectedMode = mode"
@@ -466,6 +429,29 @@ onMounted(async () => {
           {{ formatModeLabel(mode) }}
         </button>
       </div>
+
+      <section
+        class="panel streak-card"
+        :aria-label="`${formatModeLabel(selectedMode)} streak`"
+      >
+        <div class="streak-flame-col" :class="{ 'streak-flame-col--lit': streakCard.lit }">
+          <svg class="streak-flame" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              class="streak-flame-outer"
+              d="M12 2c.7 3.2-.6 5-2.2 6.7C8.1 10.5 6.5 12.3 6.5 15a5.5 5.5 0 0 0 11 0c0-1.5-.5-2.9-1.2-4.2-.3.9-.8 1.6-1.6 2.1.3-3-1-6.6-2.7-8.4A7.6 7.6 0 0 0 12 2Z"
+            />
+            <path
+              class="streak-flame-inner"
+              d="M12 21a3.4 3.4 0 0 1-3.4-3.4c0-1.6 1-2.5 1.9-3.5.7-.8 1.3-1.5 1.5-2.6 1.2 1.2 3.4 3.7 3.4 6.1A3.4 3.4 0 0 1 12 21Z"
+            />
+          </svg>
+        </div>
+        <div class="streak-text">
+          <strong class="streak-headline">{{ streakCard.headline }}</strong>
+          <p v-if="streakCard.prompt" class="streak-sub">{{ streakCard.prompt }}</p>
+          <p v-else class="streak-sub">{{ streakCard.detail }}</p>
+        </div>
+      </section>
 
       <section v-if="loading" class="panel panel--loading">
         <p>Gathering your roads…</p>
@@ -696,6 +682,7 @@ onMounted(async () => {
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: rgb(var(--color-gold-rgb) / 0.55);
+  white-space: nowrap;
 }
 
 /* v1's golden "+1": plain gold text, top-right of the medal card. */
@@ -703,14 +690,14 @@ onMounted(async () => {
   position: absolute;
   top: 0.4rem;
   right: 0.5rem;
-  color: gold;
+  color: var(--color-gold-bright);
   font-size: var(--font-size-caption);
   font-weight: 800;
   animation: rise-in var(--transition-slow) both;
   animation-delay: 260ms;
 }
 
-.medal-stat--bumped {
+.medal-count--bumped {
   animation: medal-bump 620ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
   animation-delay: 180ms;
 }
@@ -742,26 +729,36 @@ onMounted(async () => {
 .streak-flame-col {
   display: grid;
   place-items: center;
-  width: var(--control-size);
-  height: var(--control-size);
+  width: 3rem;
+  height: 3rem;
   border-radius: var(--radius-circle);
   background: rgb(0 0 0 / 0.25);
   border: 1px solid rgb(var(--color-gold-rgb) / 0.16);
 }
 
 .streak-flame {
-  width: var(--icon-size);
-  height: var(--icon-size);
+  width: 1.85rem;
+  height: 1.85rem;
+  color: var(--color-gold-dark);
   filter: grayscale(1) opacity(0.4);
 }
 
+.streak-flame-outer {
+  fill: currentColor;
+}
+
+.streak-flame-inner {
+  fill: var(--color-gold-bright);
+}
+
 .streak-flame-col--lit {
-  border-color: rgb(255 157 46 / 0.4);
-  box-shadow: 0 0 14px rgb(255 157 46 / 0.22);
+  border-color: rgb(var(--color-gold-rgb) / 0.4);
+  box-shadow: 0 0 14px rgb(var(--color-gold-rgb) / 0.22);
 }
 
 .streak-flame-col--lit .streak-flame {
-  filter: drop-shadow(0 0 8px rgb(255 157 46 / 0.45));
+  color: var(--color-gold);
+  filter: drop-shadow(0 0 8px rgb(var(--color-gold-rgb) / 0.45));
 }
 
 .streak-text {
@@ -794,11 +791,11 @@ onMounted(async () => {
 .mode-switch {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.35rem;
-  padding: 0.3rem;
+  gap: 0;
+  padding: 0.16rem;
   border-radius: var(--radius-full);
-  background: rgb(0 0 0 / 0.28);
-  border: 1px solid rgb(var(--color-gold-rgb) / 0.16);
+  background: rgb(var(--color-gold-rgb) / 0.08);
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.22);
 }
 
 .mode-switch-btn {
@@ -823,9 +820,9 @@ onMounted(async () => {
 }
 
 .mode-switch-btn.is-active {
-  color: var(--color-text-on-gold);
-  background: var(--gradient-button-primary);
-  box-shadow: 0 0 16px rgb(var(--color-gold-rgb) / 0.28);
+  color: var(--color-gold);
+  background: rgb(var(--color-gold-rgb) / 0.18);
+  box-shadow: inset 0 0 0 1px rgb(var(--color-gold-rgb) / 0.24);
 }
 
 /* ── Panels ───────────────────────────────────────────────── */
@@ -1086,6 +1083,15 @@ onMounted(async () => {
 @media (max-width: 560px) {
   .medal-grid {
     gap: 0.5rem;
+  }
+
+  .medal-card {
+    padding-inline: 0.35rem;
+  }
+
+  .medal-sub {
+    font-size: 0.68rem;
+    letter-spacing: 0.025em;
   }
 }
 </style>

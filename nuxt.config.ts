@@ -53,6 +53,18 @@ export default defineNuxtConfig({
 
   modules: ['nitro-cloudflare-dev', '@vueuse/nuxt'],
 
+  vite: {
+    optimizeDeps: {
+      include: ['howler'],
+    },
+  },
+
+  runtimeConfig: {
+    public: {
+      siteUrl: process.env.NUXT_PUBLIC_SITE_URL || 'https://playgoldroad.com',
+    },
+  },
+
   routeRules: {
     '/sign-in': { redirect: { to: '/about', statusCode: 301 } },
   },

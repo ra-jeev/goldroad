@@ -72,8 +72,8 @@ onMounted(() => {
           score exactly on the target: not more, not less.
         </p>
         <p>
-          Solve on your first attempt and you earn gold. Second attempt is
-          silver, third is bronze. Keep trying past that and it still counts
+          Solve on your first try and you earn gold. Second try is silver,
+          third is bronze. Keep trying past that and it still counts
           as solved, just without a medal. Hints are always available
           if you get stuck; they guide you back onto the road home without
           any penalty.
@@ -93,7 +93,8 @@ onMounted(() => {
             The server stores one gameplay row per road you play, per mode,
             keyed to a random id generated on your device, the day it
             generated that id, and nothing else that identifies you. Each
-            row holds your attempts, hints used, and solve time for that
+            row records whether you started or solved. A solved row also holds
+            your final try number, hints used, and solve time for that
             road. These are the raw rows the stats page's community numbers
             are built from, not a separate aggregated copy.
           </li>

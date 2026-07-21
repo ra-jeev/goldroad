@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   HintRequestPayloadSchema,
   SessionEndPayloadSchema,
+  SessionStartPayloadSchema,
 } from '../shared/validators/game';
 
 function baseEndPayload(overrides: Partial<Record<string, unknown>> = {}) {
@@ -13,8 +14,6 @@ function baseEndPayload(overrides: Partial<Record<string, unknown>> = {}) {
     score: 10,
     moves: 5,
     attemptNumber: 1,
-    solved: true,
-    endReason: 'solved',
     hintsUsed: 0,
     solveTimeMs: 1000,
     ...overrides,
@@ -80,17 +79,25 @@ describe('SessionEndPayloadSchema bounds', () => {
     expect(result.success).toBe(false);
   });
 
-  it('still rejects mismatched solved/endReason combinations', () => {
+  it('rejects obsolete non-solve outcome fields', () => {
     expect(
       SessionEndPayloadSchema.safeParse(
-        baseEndPayload({ solved: true, endReason: 'dead-end' }),
+        baseEndPayload({ solved: false, endReason: 'dead-end' }),
       ).success,
     ).toBe(false);
+  });
+});
+
+describe('SessionStartPayloadSchema', () => {
+  it('accepts the minimal unique-start identity', () => {
     expect(
-      SessionEndPayloadSchema.safeParse(
-        baseEndPayload({ solved: false, endReason: 'solved' }),
-      ).success,
-    ).toBe(false);
+      SessionStartPayloadSchema.safeParse({
+        playerUUID: '11111111-1111-4111-8111-111111111111',
+        gameNo: 1,
+        puzzleType: 'classic',
+        sessionId: '22222222-2222-4222-8222-222222222222',
+      }).success,
+    ).toBe(true);
   });
 });
 

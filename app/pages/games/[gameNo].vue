@@ -42,6 +42,7 @@ const {
   deniedMoveSignal,
   deadEndSignal,
   solveCelebrationSignal,
+  solveAcknowledgement,
   clearRoadDay,
   applyRoadDay,
   selectMode,
@@ -49,6 +50,8 @@ const {
   moveTo,
   requestHint,
   dismissCelebration,
+  shareCelebrationResult,
+  shareCurrentResult,
 } = useRoadDayGameplay({ entryType: 'archive' });
 
 const soundEffects = useSoundEffects();
@@ -185,6 +188,7 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
         <GameBoardFooter
           :status="status"
           :hint-message="hintMessage"
+          :solve-acknowledgement="solveAcknowledgement"
           :attempt-number="attemptNumber"
           :has-moved="moves > 1"
           :show-next-reset-countdown="false"
@@ -200,6 +204,8 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
           :loading="loading"
           :submitting="submitting"
           :tracking-disabled="trackingDisabled"
+          :show-share="lastSolved"
+          :share-handler="shareCurrentResult"
           @retry="retryCurrentGame"
           @hint="requestHint"
         />
@@ -208,6 +214,7 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
 
     <SolveCelebrationSheet
       :celebration="celebration"
+      :share-handler="shareCelebrationResult"
       @dismiss="dismissCelebration"
     />
   </div>

@@ -59,8 +59,8 @@ const bars = computed<Bar[]>(() => {
 
 const ariaLabel = computed(() =>
   props.playerAttempts === null
-    ? 'How many attempts the field needed, from 1 to 25 and beyond.'
-    : `How many attempts the field needed, from 1 to 25 and beyond. Your solve is marked at ${props.playerAttempts >= props.upperBound ? `${props.upperBound}+` : props.playerAttempts}.`,
+    ? 'How many tries the field needed, from 1 to 25 and beyond.'
+    : `How many tries the field needed, from 1 to 25 and beyond. Your solve is marked at ${props.playerAttempts >= props.upperBound ? `${props.upperBound}+` : props.playerAttempts}.`,
 );
 </script>
 
@@ -77,7 +77,7 @@ const ariaLabel = computed(() =>
         <span v-if="bar.marker" class="axis-marker">{{ bar.marker }}</span>
       </div>
     </div>
-    <div class="graph-label" aria-hidden="true">attempts →</div>
+    <div class="graph-label" aria-hidden="true">tries →</div>
   </div>
 </template>
 
@@ -111,18 +111,30 @@ const ariaLabel = computed(() =>
   box-shadow: 0 0 10px rgb(var(--color-gold-rgb) / 0.55);
 }
 
-/* A thin arrow, not the 👇 emoji — reads as a UI marker, not a sticker. */
+/* Downward marker with a visible shaft and a 6px gap above the bar. */
+.graph-entry--you::before,
 .graph-entry--you::after {
   content: '';
   position: absolute;
-  top: -11px;
   left: 50%;
+  background: var(--color-gold-bright);
+}
+
+.graph-entry--you::before {
+  bottom: calc(100% + 11px);
+  width: 1.5px;
+  height: 10px;
+  transform: translateX(-50%);
+}
+
+.graph-entry--you::after {
+  bottom: calc(100% + 6px);
   width: 8px;
   height: 8px;
-  margin-left: -4px;
+  background: transparent;
   border-right: 1.5px solid var(--color-gold-bright);
   border-bottom: 1.5px solid var(--color-gold-bright);
-  transform: rotate(45deg);
+  transform: translateX(-50%) rotate(45deg);
 }
 
 .axis-marker {

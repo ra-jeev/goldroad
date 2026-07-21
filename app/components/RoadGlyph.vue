@@ -123,22 +123,6 @@ withDefaults(
   filter: drop-shadow(0 0 4px rgb(var(--color-gold-rgb) / 0.55));
 }
 
-/* Scoring roads carry more visual mass than plain open roads. */
-.road-glyph--toll {
-  color: var(--color-toll);
-  opacity: 0.94;
-}
-
-.road-glyph--bonus {
-  color: var(--color-bonus);
-  opacity: 0.94;
-}
-
-.road-glyph--toll.road-glyph--closed,
-.road-glyph--bonus.road-glyph--closed {
-  opacity: 0.42;
-}
-
 .road-glyph--missing {
   opacity: 0;
 }
@@ -154,11 +138,6 @@ withDefaults(
   flex-shrink: 0;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
   overflow: visible;
-}
-
-.road-glyph--toll .road-icon,
-.road-glyph--bonus .road-icon {
-  filter: drop-shadow(0 1px 3px rgb(0 0 0 / 0.4));
 }
 
 .road-arrow {

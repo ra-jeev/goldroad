@@ -27,6 +27,8 @@ import {
   useRoadResultShare,
   type ShareRoadResultResponse,
 } from './useRoadResultShare';
+import type { SessionEndRequest } from './useSessionApi';
+import { isRetryableDeliveryError } from '../utils/failedSolveDelivery';
 
 export type EntryType = 'live' | 'archive';
 
@@ -87,6 +89,30 @@ export function shouldCallSessionApi(
   return entryType === 'live' && !isUntrackedReplay && !roadExpired;
 }
 
+export function shouldStartSessionApi(
+  entryType: EntryType,
+  isUntrackedReplay: boolean,
+  roadExpired: boolean,
+  alreadyStarted: boolean,
+): boolean {
+  return (
+    !alreadyStarted &&
+    shouldCallSessionApi(entryType, isUntrackedReplay, roadExpired)
+  );
+}
+
+export function shouldSubmitSessionEnd(
+  entryType: EntryType,
+  isUntrackedReplay: boolean,
+  roadExpired: boolean,
+  endReason: 'solved' | 'wrong-exit' | 'dead-end' | 'retry',
+): boolean {
+  return (
+    endReason === 'solved' &&
+    shouldCallSessionApi(entryType, isUntrackedReplay, roadExpired)
+  );
+}
+
 /**
  * The midnight contract (RP1-16): once the loaded road's own nextGameAt has
  * passed, the board stays exactly as it is, but retry, hints, mode switching,
@@ -100,6 +126,19 @@ export function isRoadExpired(
   if (!nextGameAt) return false;
   const parsed = Date.parse(nextGameAt);
   return !Number.isNaN(parsed) && nowMs >= parsed;
+}
+
+export function getClassicOverTargetWarning(input: {
+  puzzleType: PuzzleType;
+  score: number;
+  target: number;
+  terminal: boolean;
+}): string | null {
+  return input.puzzleType === 'classic' &&
+    !input.terminal &&
+    input.score >= input.target
+    ? UI_COPY.runtime.classicOverTarget
+    : null;
 }
 
 /**
@@ -146,6 +185,7 @@ function createSessionId(): string {
 
 export function useRoadDayGameplay(options: { entryType: EntryType }) {
   const sessionApi = useSessionApi();
+  const failedSolveDelivery = useFailedSolveDelivery();
   const localProgress = useLocalGameProgress();
   const resultShare = useRoadResultShare();
 
@@ -186,6 +226,8 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
   const deniedMoveSignal = ref(0);
   const deadEndSignal = ref(0);
   const solveCelebrationSignal = ref(0);
+  const solveAcknowledgement = ref<string | null>(null);
+  const startedRoadModes = new Set<string>();
 
   const documentVisibility = useDocumentVisibility();
   const { isBoardOverlayOpen } = useBoardOverlayGate();
@@ -309,6 +351,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     solveTimerStartedAtMs.value = null;
     solveTimerCanResume.value = false;
     celebration.value = null;
+    solveAcknowledgement.value = null;
   }
 
   function clearRoadDay() {
@@ -575,6 +618,39 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     );
   }
 
+  function startAnalyticsOnce() {
+    if (!game.value || !playerUUID.value || !sessionId.value) {
+      return;
+    }
+
+    const key = `${game.value.gameNo}:${game.value.puzzleType}`;
+    if (
+      !shouldStartSessionApi(
+        options.entryType,
+        trackingDisabled.value,
+        isLiveRoadExpired(),
+        startedRoadModes.has(key),
+      )
+    ) {
+      return;
+    }
+    startedRoadModes.add(key);
+    void sessionApi
+      .startSession({
+        playerUUID: playerUUID.value,
+        gameNo: game.value.gameNo,
+        puzzleType: game.value.puzzleType,
+        sessionId: sessionId.value,
+      })
+      .catch((error) => {
+        console.warn('[analytics] session start failed', {
+          gameNo: game.value?.gameNo,
+          puzzleType: game.value?.puzzleType,
+          error,
+        });
+      });
+  }
+
   function selectMode(mode: PuzzleType) {
     if (mode === 'expedition' && !isExpeditionUnlocked.value) return;
     // Rebuilding the other mode's board after expiry would act as a retry.
@@ -640,7 +716,6 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     // state.
     if (options.entryType !== 'live') {
       if (params.isUntrackedReplay) return;
-      solveCelebrationSignal.value += 1;
       celebration.value = {
         variant: 'replay-solve',
         tier,
@@ -666,8 +741,6 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
       return;
     }
     localProgress.markSolveCelebrated(current.gameNo, mode, params.dayKey);
-    solveCelebrationSignal.value += 1;
-
     if (mode === 'classic') {
       celebration.value = {
         variant: 'classic-solve',
@@ -812,10 +885,9 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     }
 
     const isUntrackedReplay = trackingDisabled.value;
-    const isLive = options.entryType === 'live';
-    // Only live, tracked runs ever talk to the server; archive play is
-    // fully local (RP0-5), so it never enters a submitting state either.
-    submitting.value = !isUntrackedReplay && isLive;
+    // Only an exact solve is submitted. Failed routes remain local gameplay
+    // states and never enter an analytics-submission state.
+    submitting.value = false;
     const expeditionWasUnlocked = isExpeditionUnlocked.value;
     const solved = endReason === 'solved';
     const dayKey = getProgressDayKey(game.value);
@@ -866,6 +938,10 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     if (solved) {
       guidePath.value = [];
       hintedTiles.value = new Set();
+      solveCelebrationSignal.value += 1;
+      solveAcknowledgement.value = isUntrackedReplay
+        ? UI_COPY.runtime.solvedAgain
+        : null;
       triggerCelebration({
         medal,
         wouldHaveMedal,
@@ -879,34 +955,40 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     // road's grandfathered finish keeps its full local result but skips the
     // server, which only accepts the current road (RP1-16).
     if (
-      !shouldCallSessionApi(
+      !shouldSubmitSessionEnd(
         options.entryType,
         isUntrackedReplay,
         isLiveRoadExpired(),
+        endReason,
       )
     ) {
-      submitting.value = false;
       return;
     }
 
+    submitting.value = true;
+    const payload: SessionEndRequest = {
+      playerUUID: playerUUID.value,
+      gameNo: game.value.gameNo,
+      puzzleType: game.value.puzzleType,
+      sessionId: sessionId.value,
+      score: score.value,
+      moves: moves.value,
+      attemptNumber: attemptNumber.value,
+      hintsUsed: hintsUsed.value,
+      solveTimeMs,
+    };
+
     try {
-      await sessionApi.endSession({
-        playerUUID: playerUUID.value,
-        gameNo: game.value.gameNo,
-        puzzleType: game.value.puzzleType,
-        sessionId: sessionId.value,
-        score: score.value,
-        moves: moves.value,
-        attemptNumber: attemptNumber.value,
-        solved,
-        endReason,
-        hintsUsed: hintsUsed.value,
-        solveTimeMs,
+      await sessionApi.endSession(payload, { keepalive: true });
+    } catch (error) {
+      if (game.value.nextGameAt && isRetryableDeliveryError(error)) {
+        failedSolveDelivery.queueFailedSolve(payload, game.value.nextGameAt);
+      }
+      console.warn('[analytics] solve submission failed', {
+        gameNo: payload.gameNo,
+        puzzleType: payload.puzzleType,
+        error,
       });
-    } catch {
-      // Analytics only: a request that started just before rotation can be
-      // rejected once the server no longer accepts this road. Local credit
-      // was already recorded above.
     } finally {
       submitting.value = false;
     }
@@ -946,9 +1028,11 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
       lastSolved.value = false;
       lastMedal.value = null;
       lastTier.value = null;
+      solveAcknowledgement.value = null;
     }
 
     if (moves.value === 1) {
+      startAnalyticsOnce();
       startSolveTimer();
     }
 
@@ -1007,6 +1091,14 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
       await finalizeRun('dead-end');
       return;
     }
+
+    const overTargetWarning = getClassicOverTargetWarning({
+      puzzleType: game.value.puzzleType,
+      score: nextScore,
+      target: game.value.maxScore,
+      terminal: false,
+    });
+    if (overTargetWarning) status.value = overTargetWarning;
 
     if (solveTimerStartedAtMs.value !== null) {
       persistSolveTimerState(true);
@@ -1198,6 +1290,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     deniedMoveSignal,
     deadEndSignal,
     solveCelebrationSignal,
+    solveAcknowledgement,
     clearRoadDay,
     applyRoadDay,
     selectMode,
