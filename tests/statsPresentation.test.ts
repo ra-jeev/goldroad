@@ -31,6 +31,7 @@ function makeAggregatedRow(
     averageAttemptsBeforeFirstHint: null,
     averageFirstHintMoveIndex: null,
     averageSolveTimeMs: null,
+    bestSolveTimeMs: null,
     ...overrides,
   };
 }
@@ -158,6 +159,19 @@ describe('field behavior copy', () => {
     ).toEqual([
       'Solvers used 3 hints in total.',
       'Field solve time averaged 1m 30s. You solved it in 10m 45s.',
+    ]);
+  });
+
+  it('includes the fastest field solve when the aggregate is available', () => {
+    const stats = buildEmptyCommunityRoadStats(1, 'classic');
+    stats.behavior.bestSolveTimeMs = 54_000;
+    expect(
+      formatFieldBehaviorRows(stats, null, (value) =>
+        value === 54_000 ? '54s' : 'unexpected',
+      ),
+    ).toEqual([
+      'No hints were used on this road.',
+      'Fastest field solve was 54s.',
     ]);
   });
 });

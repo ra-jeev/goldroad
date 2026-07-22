@@ -67,5 +67,11 @@ export function formatFieldBehaviorRows(
     );
   }
 
+  if (stat.behavior.bestSolveTimeMs !== null) {
+    rows.push(
+      `Fastest field solve was ${formatDuration(stat.behavior.bestSolveTimeMs)}.`,
+    );
+  }
+
   return rows;
 }

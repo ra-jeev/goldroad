@@ -23,6 +23,7 @@ function makeRow(overrides: Partial<AggregatedRoadStatsRow> = {}): AggregatedRoa
     averageAttemptsBeforeFirstHint: null,
     averageFirstHintMoveIndex: null,
     averageSolveTimeMs: null,
+    bestSolveTimeMs: null,
     ...overrides,
   };
 }
@@ -154,6 +155,7 @@ describe('buildEmptyCommunityRoadStats', () => {
         averageAttemptsBeforeFirstHint: null,
         averageFirstHintMoveIndex: null,
         averageSolveTimeMs: null,
+        bestSolveTimeMs: null,
       },
     });
   });
@@ -206,15 +208,17 @@ describe('toCommunityRoadStats', () => {
     expect(stats.behavior.hintUseRate).toBe(0);
   });
 
-  it('rounds average behavior metrics and keeps solve time unrounded to whole ms', () => {
+  it('rounds average and best solve-time behavior metrics to whole ms', () => {
     const row = makeRow({
       plays: 3,
       averageAttemptsBeforeFirstHint: 1.6666666,
       averageSolveTimeMs: 45123.789,
+      bestSolveTimeMs: 31234.567,
     });
     const stats = toCommunityRoadStats(row);
     expect(stats.behavior.averageAttemptsBeforeFirstHint).toBe(1.67);
     expect(stats.behavior.averageSolveTimeMs).toBe(45124);
+    expect(stats.behavior.bestSolveTimeMs).toBe(31235);
   });
 
   it('derives medal boundaries consistently with attempts-based gold/silver/bronze counts', () => {

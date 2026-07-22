@@ -44,6 +44,9 @@ async function getRoadDayStats(
         averageSolveTimeMs: sql<
           number | null
         >`AVG(${playerRoadAnalytics.solveTimeMs})`,
+        bestSolveTimeMs: sql<
+          number | null
+        >`MIN(CASE WHEN ${playerRoadAnalytics.solved} = 1 THEN ${playerRoadAnalytics.solveTimeMs} ELSE NULL END)`,
       })
       .from(playerRoadAnalytics)
       .where(eq(playerRoadAnalytics.gameNo, gameNo))

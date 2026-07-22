@@ -25,7 +25,6 @@ const communityOverview = ref<Awaited<
 const communityError = ref<string | null>(null);
 const loading = ref(true);
 
-const streakMode = ref<PuzzleType>('classic');
 const yesterdayMode = ref<PuzzleType>('classic');
 const recordMode = ref<PuzzleType>('classic');
 const showFieldDetail = ref(false);
@@ -52,6 +51,10 @@ function formatModeLabel(mode: PuzzleType): string {
   return mode === 'classic'
     ? UI_COPY.boardHeader.classic
     : UI_COPY.boardHeader.expedition;
+}
+
+function formatModeWithArticle(mode: PuzzleType): string {
+  return `${mode === 'expedition' ? 'an' : 'a'} ${formatModeLabel(mode)}`;
 }
 
 function formatRunCount(attempts: number): string {
@@ -136,11 +139,11 @@ const medalTiles = computed(() =>
 );
 
 // ---------------------------------------------------------------------------
-// Streaks are mode-scoped and sit directly below the mode selector.
+// Streaks are mode-scoped and share the all-time card's mode selector.
 // ---------------------------------------------------------------------------
 
 const streakCard = computed(() => {
-  const isClassic = streakMode.value === 'classic';
+  const isClassic = recordMode.value === 'classic';
   const current = isClassic
     ? summary.value.currentClassicStreak
     : summary.value.currentExpeditionStreak;
@@ -159,7 +162,7 @@ const streakCard = computed(() => {
     prompt:
       current > 0
         ? null
-        : `Solve today’s ${formatModeLabel(streakMode.value)} road to light the flame.`,
+        : `Solve today’s ${formatModeLabel(recordMode.value)} road to light the flame.`,
   };
 });
 
@@ -338,13 +341,12 @@ const recordRows = computed(() => {
   const roadWord = (count: number) => `${count} road${count === 1 ? '' : 's'}`;
 
   return [
-    { key: 'played', label: 'Total treads', value: roadWord(stats.sessionsPlayed) },
-    { key: 'solves', label: 'Total finishes', value: roadWord(stats.exactSolves) },
+    { key: 'played', label: 'Roads played', value: roadWord(stats.sessionsPlayed) },
     { key: 'rate', label: 'Completion', value: `${stats.solveRate}%` },
     { key: 'avgAttempts', label: 'Average tries', value: stats.averageSolvedAttempts },
     { key: 'avgTime', label: 'Average solve time', value: formatDurationMs(stats.averageSolveTimeMs) },
     { key: 'bestTime', label: 'Best solve time', value: formatDurationMs(stats.bestSolveTimeMs) },
-    { key: 'hints', label: 'Hints used', value: String(stats.totalHints) },
+    { key: 'hints', label: 'Total hints used', value: String(stats.totalHints) },
   ];
 });
 
@@ -409,7 +411,6 @@ onMounted(async () => {
 
   const preferred = localProgress.currentRoadContext.value.selectedMode;
   if (preferred === 'classic' || preferred === 'expedition') {
-    streakMode.value = preferred;
     yesterdayMode.value = preferred;
     recordMode.value = preferred;
   }
@@ -461,22 +462,36 @@ onMounted(async () => {
         </div>
       </section>
 
+      <!-- 2 · Mode-scoped streak and all-time record, one card and control -->
       <section
-        class="panel streak-card"
-        :aria-label="`${formatModeLabel(streakMode)} streak`"
+        class="panel panel--record stats-summary-card"
+        :aria-label="`${formatModeLabel(recordMode)} stats`"
       >
-        <StatsModeSwitch v-model="streakMode" label="Choose streak mode" />
+        <p class="eyebrow">
+          Your stats · {{ formatModeLabel(recordMode) }}
+        </p>
+
         <div class="streak-content">
           <div class="streak-flame-col" :class="{ 'streak-flame-col--lit': streakCard.lit }">
-            <svg class="streak-flame" viewBox="0 0 24 24" aria-hidden="true">
-              <path
-                class="streak-flame-outer"
-                d="M12 2c.7 3.2-.6 5-2.2 6.7C8.1 10.5 6.5 12.3 6.5 15a5.5 5.5 0 0 0 11 0c0-1.5-.5-2.9-1.2-4.2-.3.9-.8 1.6-1.6 2.1.3-3-1-6.6-2.7-8.4A7.6 7.6 0 0 0 12 2Z"
-              />
-              <path
-                class="streak-flame-inner"
-                d="M12 21a3.4 3.4 0 0 1-3.4-3.4c0-1.6 1-2.5 1.9-3.5.7-.8 1.3-1.5 1.5-2.6 1.2 1.2 3.4 3.7 3.4 6.1A3.4 3.4 0 0 1 12 21Z"
-              />
+            <svg class="streak-flame" viewBox="0 0 128 128" aria-hidden="true">
+              <radialGradient id="streak-flame-outer" cx="68.884" cy="124.296" r="70.587" gradientTransform="matrix(-1 -.00434 -.00713 1.6408 131.986 -79.345)" gradientUnits="userSpaceOnUse">
+                <stop offset=".314" stop-color="#FF9800" />
+                <stop offset=".662" stop-color="#FF6D00" />
+                <stop offset=".972" stop-color="#F44336" />
+              </radialGradient>
+              <path fill="url(#streak-flame-outer)" d="M35.56 40.73c-.57 6.08-.97 16.84 2.62 21.42c0 0-1.69-11.82 13.46-26.65c6.1-5.97 7.51-14.09 5.38-20.18c-1.21-3.45-3.42-6.3-5.34-8.29c-1.12-1.17-.26-3.1 1.37-3.03c9.86.44 25.84 3.18 32.63 20.22c2.98 7.48 3.2 15.21 1.78 23.07c-.9 5.02-4.1 16.18 3.2 17.55c5.21.98 7.73-3.16 8.86-6.14c.47-1.24 2.1-1.55 2.98-.56c8.8 10.01 9.55 21.8 7.73 31.95c-3.52 19.62-23.39 33.9-43.13 33.9c-24.66 0-44.29-14.11-49.38-39.65c-2.05-10.31-1.01-30.71 14.89-45.11c1.18-1.08 3.11-.12 2.95 1.5" />
+              <radialGradient id="streak-flame-inner" cx="64.921" cy="54.062" r="73.86" gradientTransform="matrix(-.0101 .9999 .7525 .0076 26.154 -11.267)" gradientUnits="userSpaceOnUse">
+                <stop offset=".214" stop-color="#FFF176" />
+                <stop offset=".328" stop-color="#FFF27D" />
+                <stop offset=".487" stop-color="#FFF48F" />
+                <stop offset=".672" stop-color="#FFF7AD" />
+                <stop offset=".793" stop-color="#FFF9C4" />
+                <stop offset=".822" stop-color="#FFF8BD" stop-opacity=".804" />
+                <stop offset=".863" stop-color="#FFF6AB" stop-opacity=".529" />
+                <stop offset=".91" stop-color="#FFF38D" stop-opacity=".209" />
+                <stop offset=".941" stop-color="#FFF176" stop-opacity="0" />
+              </radialGradient>
+              <path fill="url(#streak-flame-inner)" d="M76.11 77.42c-9.09-11.7-5.02-25.05-2.79-30.37c.3-.7-.5-1.36-1.13-.93c-3.91 2.66-11.92 8.92-15.65 17.73c-5.05 11.91-4.69 17.74-1.7 24.86c1.8 4.29-.29 5.2-1.34 5.36c-1.02.16-1.96-.52-2.71-1.23a16.1 16.1 0 0 1-4.44-7.6c-.16-.62-.97-.79-1.34-.28c-2.8 3.87-4.25 10.08-4.32 14.47C40.47 113 51.68 124 65.24 124c17.09 0 29.54-18.9 19.72-34.7c-2.85-4.6-5.53-7.61-8.85-11.88" />
             </svg>
           </div>
           <div class="streak-text">
@@ -485,6 +500,23 @@ onMounted(async () => {
             <p v-else class="streak-sub">{{ streakCard.detail }}</p>
           </div>
         </div>
+
+        <dl v-if="hasModeHistory" class="record-list">
+          <div v-for="row in recordRows" :key="row.key" class="record-row">
+            <dt>{{ row.label }}</dt>
+            <dd>{{ row.value }}</dd>
+          </div>
+        </dl>
+        <div v-else class="record-empty">
+          <h3>No {{ formatModeLabel(recordMode) }} history yet</h3>
+          <p>
+            Play {{ formatModeWithArticle(recordMode) }} road and your stats fill
+            in here.
+          </p>
+          <NuxtLink to="/" class="btn btn--primary">Play today’s road</NuxtLink>
+        </div>
+
+        <StatsModeToggle v-model="recordMode" />
       </section>
 
       <section v-if="loading" class="panel panel--loading">
@@ -492,7 +524,7 @@ onMounted(async () => {
       </section>
 
       <template v-else>
-        <!-- 2 · Today's road: the player's own result and share -->
+        <!-- 3 · Today's road: the player's own result and share -->
         <section class="panel panel--today">
           <p class="eyebrow">{{ todayCard.eyebrow }}</p>
           <h2 class="today-title">{{ todayCard.title }}</h2>
@@ -558,14 +590,15 @@ onMounted(async () => {
           </p>
         </section>
 
-        <!-- 3 · Yesterday's road: the completed field's global story -->
-        <section v-if="yesterdayGameNo !== null" class="panel panel--field">
-          <div class="section-head">
-            <p class="eyebrow">Yesterday’s road · global stats</p>
-            <h2>Road {{ yesterdayGameNo }}</h2>
-          </div>
-
-          <StatsModeSwitch v-model="yesterdayMode" label="Choose yesterday’s mode" />
+        <!-- 4 · Yesterday's road: the completed field's global story -->
+        <section
+          v-if="yesterdayGameNo !== null"
+          class="panel panel--field"
+          :aria-label="`Global stats for Road ${yesterdayGameNo}, ${formatModeLabel(yesterdayMode)}`"
+        >
+          <p class="eyebrow">
+            Global stats · Road {{ yesterdayGameNo }}
+          </p>
 
           <StatsTriesHistogram
             v-if="showYesterdayHistogram && yesterdayField"
@@ -603,36 +636,13 @@ onMounted(async () => {
           <p v-if="!yesterdayField" class="community-note">
             No {{ formatModeLabel(yesterdayMode) }} comparison is available for this road.
           </p>
+
+          <StatsModeToggle v-model="yesterdayMode" />
         </section>
 
         <p v-else-if="communityError" class="community-note">
           {{ communityError }}
         </p>
-
-        <!-- 4 · Your stats: the v1 key-value record -->
-        <section class="panel panel--record">
-          <div class="section-head">
-            <p class="eyebrow">All-time</p>
-            <h2>Your stats</h2>
-          </div>
-
-          <StatsModeSwitch v-model="recordMode" label="Choose all-time stats mode" />
-
-          <dl v-if="hasModeHistory" class="record-list">
-            <div v-for="row in recordRows" :key="row.key" class="record-row">
-              <dt>{{ row.label }}</dt>
-              <dd>{{ row.value }}</dd>
-            </div>
-          </dl>
-          <div v-else class="record-empty">
-            <h3>No {{ formatModeLabel(recordMode) }} history yet</h3>
-            <p>
-              Play a {{ formatModeLabel(recordMode) }} road and your stats fill
-              in here.
-            </p>
-            <NuxtLink to="/" class="btn btn--primary">Play today’s road</NuxtLink>
-          </div>
-        </section>
 
         <!-- 5 · Past roads entry -->
         <section class="panel panel--explore">
@@ -775,8 +785,8 @@ onMounted(async () => {
   }
 }
 
-/* ── Streaks — flame column beside the numbers ────────────── */
-.panel.streak-card {
+/* ── Combined streak and all-time record ──────────────────── */
+.stats-summary-card {
   gap: 0.9rem;
   padding: clamp(0.9rem, 2.5vw, 1.15rem) clamp(1.1rem, 3vw, 1.5rem);
 }
@@ -792,36 +802,18 @@ onMounted(async () => {
 .streak-flame-col {
   display: grid;
   place-items: center;
-  width: 3rem;
-  height: 3rem;
-  border-radius: var(--radius-circle);
-  background: rgb(0 0 0 / 0.25);
-  border: 1px solid rgb(var(--color-gold-rgb) / 0.16);
+  width: 3.2rem;
+  height: 3.2rem;
 }
 
 .streak-flame {
-  width: 1.85rem;
-  height: 1.85rem;
-  color: var(--color-gold-dark);
-  filter: grayscale(1) opacity(0.4);
-}
-
-.streak-flame-outer {
-  fill: currentColor;
-}
-
-.streak-flame-inner {
-  fill: var(--color-gold-bright);
-}
-
-.streak-flame-col--lit {
-  border-color: rgb(var(--color-gold-rgb) / 0.4);
-  box-shadow: 0 0 14px rgb(var(--color-gold-rgb) / 0.22);
+  width: 2.8rem;
+  height: 2.8rem;
+  filter: grayscale(1) opacity(0.3);
 }
 
 .streak-flame-col--lit .streak-flame {
-  color: var(--color-gold);
-  filter: drop-shadow(0 0 8px rgb(var(--color-gold-rgb) / 0.45));
+  filter: drop-shadow(0 0 8px rgb(255 109 0 / 0.38));
 }
 
 .streak-text {
@@ -972,6 +964,11 @@ onMounted(async () => {
   border-color: rgb(var(--color-gold-rgb) / 0.14);
 }
 
+.panel--field > .eyebrow,
+.stats-summary-card > .eyebrow {
+  letter-spacing: 0.1em;
+}
+
 /* v1 centered its global-stats copy under the graph; keep that read. */
 .field-story {
   display: grid;
@@ -1007,9 +1004,11 @@ onMounted(async () => {
 /* v1's two-column record: key right-aligned, value left-aligned. */
 .record-list {
   margin: 0;
+  padding-top: 0.65rem;
+  border-top: 1px solid rgb(var(--color-gold-rgb) / 0.12);
   display: grid;
   gap: 0;
-  width: 100%;
+  width: min(100%, 24rem);
 }
 
 .record-empty {
@@ -1029,26 +1028,25 @@ onMounted(async () => {
 }
 
 .record-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: baseline;
-  gap: 0.6rem;
+  gap: 0.8rem;
   padding: 0.34rem 0;
 }
 
 .record-row dt {
-  width: 50%;
-  text-align: right;
+  text-align: left;
   color: rgb(var(--color-gold-rgb) / 0.72);
   font-size: 0.94rem;
 }
 
 .record-row dd {
-  width: 50%;
   margin: 0;
   color: var(--color-gold-bright);
   font-weight: 800;
   font-variant-numeric: tabular-nums;
-  text-align: left;
+  text-align: right;
 }
 
 /* ── Explore ──────────────────────────────────────────────── */
@@ -1142,6 +1140,11 @@ onMounted(async () => {
 }
 
 @media (max-width: 560px) {
+  .panel--field > .eyebrow,
+  .stats-summary-card > .eyebrow {
+    letter-spacing: 0.06em;
+  }
+
   .medal-grid {
     gap: 0.5rem;
   }

@@ -226,6 +226,7 @@ export const CommunityBehaviorStatsSchema = z.object({
   averageAttemptsBeforeFirstHint: z.number().nullable(),
   averageFirstHintMoveIndex: z.number().nullable(),
   averageSolveTimeMs: z.number().nullable(),
+  bestSolveTimeMs: z.number().nullable(),
 });
 
 export const CommunityRoadStatsSchema = z.object({

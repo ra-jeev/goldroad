@@ -77,6 +77,7 @@ export type AggregatedRoadStatsRow = {
   averageAttemptsBeforeFirstHint: number | null;
   averageFirstHintMoveIndex: number | null;
   averageSolveTimeMs: number | null;
+  bestSolveTimeMs: number | null;
 };
 
 export function createEmptyStatsRoadDay(gameNo: number | null): StatsRoadDay {
@@ -114,6 +115,7 @@ export function buildEmptyCommunityRoadStats(
       averageAttemptsBeforeFirstHint: null,
       averageFirstHintMoveIndex: null,
       averageSolveTimeMs: null,
+      bestSolveTimeMs: null,
     },
   };
 }
@@ -148,6 +150,7 @@ export function toCommunityRoadStats(
       ),
       averageFirstHintMoveIndex: roundNullable(row.averageFirstHintMoveIndex),
       averageSolveTimeMs: roundNullable(row.averageSolveTimeMs, 0),
+      bestSolveTimeMs: roundNullable(row.bestSolveTimeMs, 0),
     },
   };
 }

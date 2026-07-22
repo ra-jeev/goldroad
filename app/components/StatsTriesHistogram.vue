@@ -94,6 +94,7 @@ const ariaLabel = computed(() =>
   gap: clamp(3px, 1.2vw, 6px);
   height: 8rem;
   margin-top: 0.5rem;
+  padding-top: 1.35rem;
   padding-bottom: 0;
   border-bottom: 1px solid rgb(var(--color-gold-rgb) / 0.4);
 }
