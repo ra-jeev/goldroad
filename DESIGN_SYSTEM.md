@@ -178,6 +178,7 @@ On mobile, the app header keeps Sound and Menu visible. Stats and How to Play mo
 - Focus states use `--color-focus` everywhere — component focus styles and the global `:focus-visible` ridge outline
 - Reduced motion support via `@media (prefers-reduced-motion: reduce)`
 - Color is never the only signal: start/finish are distinguished by icon alone (footprints/flag — they share the same gold badge coloring), toll/bonus use distinct neutral-gold rail patterns (double dashed/double solid), medals pair color with counts and labels
+- Board-header mode badges use one compact gold completion check regardless of medal tier; medal color belongs to result and celebration surfaces, while the badge's accessible label still announces the earned tier.
 - Proper contrast ratios maintained
 
 ## Usage in Components

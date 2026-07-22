@@ -10,15 +10,23 @@
       <stop offset="55%" stop-color="#d4af37"/>
       <stop offset="100%" stop-color="#b8860b"/>
     </linearGradient>
+    <linearGradient id="roadGrad" gradientUnits="userSpaceOnUse" x1="-120" y1="0" x2="120" y2="0">
+      <stop offset="0%" stop-color="#e8c84a"/>
+      <stop offset="55%" stop-color="#d4af37"/>
+      <stop offset="100%" stop-color="#b8860b"/>
+    </linearGradient>
   </defs>
 
   <rect width="1200" height="630" fill="url(#bgGrad)"/>
 
-  <!-- centered 2x2 mini-road mark with one deliberately unconnected tile -->
+  <!-- centered 2x2 mini-road mark with two choices from Start -->
   <g transform="translate(313 315)">
-    <path d="M-120 120 H120 V-120" fill="none" stroke="url(#goldGrad)"
+    <path d="M-120 -120 V120 H120 V-120" fill="none" stroke="url(#roadGrad)"
           stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
-    <circle cx="-120" cy="120" r="46" fill="url(#goldGrad)" stroke="#0d0702" stroke-width="7"/>
+    <circle cx="-120" cy="120" r="50" fill="#0d0702"/>
+    <path d="M-120 62 V86 M-84 120 H-62" fill="none" stroke="url(#roadGrad)"
+          stroke-width="22" stroke-linecap="butt"/>
+    <circle cx="-120" cy="120" r="42" fill="url(#goldGrad)"/>
     <circle cx="-120" cy="-120" r="46" fill="#110900" stroke="url(#goldGrad)" stroke-width="12"/>
     <circle cx="120" cy="120" r="46" fill="#110900" stroke="url(#goldGrad)" stroke-width="12"/>
     <circle cx="120" cy="-120" r="46" fill="#110900" stroke="url(#goldGrad)" stroke-width="12"/>

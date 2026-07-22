@@ -87,10 +87,7 @@ function statusLabel(solved: boolean, medal: Medal | null): string {
         <span>{{ UI_COPY.boardHeader.classic }}</span>
         <span
           class="mode-status"
-          :class="[
-            { 'mode-status--solved': classicSolved },
-            classicMedal ? `mode-status--${classicMedal}` : null,
-          ]"
+          :class="{ 'mode-status--solved': classicSolved }"
         >
           <svg v-if="classicSolved" viewBox="0 0 16 16" aria-hidden="true">
             <path d="m3.5 8.2 2.8 2.8 6.2-6.2" />
@@ -123,10 +120,7 @@ function statusLabel(solved: boolean, medal: Medal | null): string {
         <span>{{ UI_COPY.boardHeader.expedition }}</span>
         <span
           class="mode-status"
-          :class="[
-            { 'mode-status--solved': expeditionSolved },
-            expeditionMedal ? `mode-status--${expeditionMedal}` : null,
-          ]"
+          :class="{ 'mode-status--solved': expeditionSolved }"
         >
           <svg v-if="expeditionSolved" viewBox="0 0 16 16" aria-hidden="true">
             <path d="m3.5 8.2 2.8 2.8 6.2-6.2" />
@@ -213,9 +207,9 @@ function statusLabel(solved: boolean, medal: Medal | null): string {
 
 .mode-status {
   position: relative;
-  width: 1.5rem;
-  height: 1.5rem;
-  flex: 0 0 1.5rem;
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: 0 0 1.25rem;
   display: inline-grid;
   place-items: center;
   border-radius: var(--radius-circle);
@@ -224,8 +218,8 @@ function statusLabel(solved: boolean, medal: Medal | null): string {
 }
 
 .mode-status svg {
-  width: 1rem;
-  height: 1rem;
+  width: 0.78rem;
+  height: 0.78rem;
   fill: none;
   stroke: currentColor;
   stroke-width: 2.3;
@@ -234,8 +228,8 @@ function statusLabel(solved: boolean, medal: Medal | null): string {
 }
 
 .mode-status-dot {
-  width: 0.3rem;
-  height: 0.3rem;
+  width: 0.25rem;
+  height: 0.25rem;
   border-radius: var(--radius-circle);
   background: currentColor;
   opacity: 0.55;
@@ -245,17 +239,6 @@ function statusLabel(solved: boolean, medal: Medal | null): string {
   color: var(--color-text-on-gold);
   background: var(--color-gold);
   border-color: var(--color-gold-bright);
-}
-
-.mode-status--silver {
-  background: var(--color-medal-silver-muted);
-  border-color: var(--color-medal-silver-bright);
-}
-
-.mode-status--bronze {
-  background: var(--color-medal-bronze-bright);
-  border-color: var(--color-medal-bronze-bright);
-  color: var(--color-text-on-bronze);
 }
 
 .mode-status-label {

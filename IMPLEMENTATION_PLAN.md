@@ -492,7 +492,7 @@ Recommended treatment:
   - the manifest passes a Lighthouse PWA installability check
 - Dependencies: none
 - Completion notes:
-  - new v2 icon art designed as `public/icons/icon-master.svg` / social card as `public/icons/og-image.svg`, rasterized via `scripts/generate-icons.ts` (`sharp`, devDependency) into 192/512 "any" icons, a proper full-bleed maskable 512 variant, a 180px apple-touch-icon, a refreshed favicon, and a 1200x630 OG image; the mark is now a four-coin 2x2 puzzle with one deliberately unconnected option, and the full OG composition is centered on its canvas
+  - new v2 icon art designed as `public/icons/icon-master.svg` / social card as `public/icons/og-image.svg`, rasterized via `scripts/generate-icons.ts` (`sharp`, devDependency) into 192/512 "any" icons, a proper full-bleed maskable 512 variant, a 180px apple-touch-icon, a refreshed favicon, and a 1200x630 OG image; the mark is now a four-coin 2x2 puzzle with two connected choices from Start, and the full OG composition is centered on its canvas
   - `public/manifest.webmanifest` + `nuxt.config.ts` `app.head` wired: manifest link, apple-touch-icon, favicon, theme-color, and full OG/Twitter card meta
   - offline shell: explicitly decided **out of scope for v2 launch**, recorded in `ARCHITECTURE.md` §1.5 rather than left silently missing
   - verified live: manifest and OG image both serve 200, `<head>` carries all the expected tags; a real Lighthouse audit is still pending (no browser in the build sandbox), but the manifest satisfies every field Lighthouse's installability check requires
@@ -747,7 +747,7 @@ The v2 UI is visually good; these decisions are about behavior and information r
 - **No cyan element accents anywhere.** An audit confirmed the working palette: golds/bronze/silver for the game, toll rust + bonus honey for the road grammar, red for hint highlights, blue for focus, green for success feedback. Expedition identity comes from its background tint only. ~~Secondary emphasis (like the Expedition streak line) uses silver~~ **superseded below: silver read as too strong an accent against the gold palette; the Expedition streak line uses a muted gold tone instead.** The unused cyan accent tokens go in RP1-13.
 - **A solved puzzle always presents as solved at rest.** Retrying mid-replay (or right after solving) resets the board but returns to the solved footer (ticker + Share + next action) — never the pre-run instruction, which made solved puzzles feel unsolved. Moving off the start tile is what begins an untracked replay.
 - **The next-road ticker shows in both solved footer states** (solved Classic and day-complete) and on the stats page's solved today card.
-- **App icon is a mini road of coin tiles.** The launch icon's diamond tile matched nothing in the game; the new mark is a four-tile 2x2 puzzle — bright filled start, open corner, flagged finish, and one deliberately unconnected open tile — on the dark gold gradient, mirrored in the centered OG image.
+- **App icon is a mini road of coin tiles.** The launch icon's diamond tile matched nothing in the game; the new mark is a four-tile 2x2 puzzle — bright filled start with two connected choices, open corner, and flagged finish — on the dark gold gradient, mirrored in the centered OG image.
 - **The Classic streak is THE daily streak, presented with a flame.** Since Classic is the day's baseline challenge (Expedition only unlocks behind it), "consecutive days with Classic solved" is what a player means by "my streak." It lives in an always-visible flame card under the medals (Reddit-style: lit with a glow when alive, dimmed with "Solve today's road to light the flame" at zero), with the Expedition streak as a smaller accent line in the same card. Streak rows no longer appear in the mode-scoped Your stats record. Streak *calculation* stays per-mode and unchanged.
 
 ### Clarified product decisions — July 2026 feedback round 2 (annotation review)
@@ -759,7 +759,7 @@ The v2 UI is visually good; these decisions are about behavior and information r
 - **A solved puzzle always presents as solved at rest, confirmed again this round** (see above) — this round additionally confirmed the next-road ticker now appears in the solved-Classic footer, the day-complete footer, and the stats page's solved today card, so "when does the next road land" is answered everywhere a solved state is shown.
 - **The update notification dot appears at both levels.** The hamburger icon's dot told players *something* changed but not *where to look*; the About entry inside the open menu now carries its own dot too, so the destination is unambiguous.
 - **About leads with Updates, in its own visually distinct section** — a timeline treatment (dot + connecting line + a gold "Latest" badge on the newest entry) rather than another plain card, so what changed is the first thing a returning player sees, ahead of the evergreen About/Privacy content.
-- **The app icon's road reads as four coin tiles in a 2x2 puzzle**, matching the in-game tile geometry (filled start, open tiles, flagged finish) rather than an abstracted diamond mark. The unconnected fourth tile keeps the mark puzzle-like.
+- **The app icon's road reads as four coin tiles in a 2x2 puzzle**, matching the in-game tile geometry (filled start, connected choices, open tiles, flagged finish) rather than an abstracted diamond mark.
 
 ### Clarified product decisions — July 2026 archive and replay review
 
@@ -1395,7 +1395,7 @@ The v2 UI is visually good; these decisions are about behavior and information r
   - the day-complete sheet uses the medal/check as the result indicator, with mode and `tries · time` beside it; its copy is `Both roads conquered.` / `See you tomorrow.`, and both countdown surfaces omit `00:00 UTC`
   - regression verification: `pnpm typecheck`, 139 unit tests, production build, and all 12 desktop/mobile Playwright release-surface tests pass; the browser suite includes the exact expired-road button transition plus Classic-only, combined-day, and defensive Expedition-only Stats states
   - Stats follow-up: today's share card is cross-mode and grows from Classic-only sharing to combined-day sharing; Streak, Yesterday, and Your stats each own an in-card mode switch so comparisons do not require a scroll back to the top
-  - identity follow-up: all generated app icons now use a four-coin 2x2 puzzle mark with one disconnected tile, and the OG artwork group is centered across the 1200x630 canvas
+  - identity follow-up: all generated app icons now use a four-coin 2x2 puzzle mark with two connected choices from Start, and the OG artwork group is centered across the 1200x630 canvas
   - review hardening: authoritative road application compares the full `gameNo` + `puzzleType` identity before stopping an active timer; audio lifecycle recovery clears prior gesture eligibility so non-gesture playback can only queue until a fresh gesture; single-result Stats copy derives from its actual mode, and obsolete/empty Stats layout nodes were removed
 
 ### Recommended implementation order
