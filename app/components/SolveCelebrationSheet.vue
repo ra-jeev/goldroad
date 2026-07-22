@@ -134,19 +134,14 @@ const dayRows = computed<DayRow[]>(() => {
 
   const describe = (
     solved: boolean,
-    medal: string | null,
     attempts: number,
     solveTimeMs: number | null,
     hintsUsed: number,
   ): string[] => {
     if (!solved) return [COPY.dayComplete.notPlayed];
-    const label = medalLabel(medal);
-    const details = [
-      label ? COPY.medalLine(label) : COPY.solved,
-      COPY.attemptLabel(attempts),
-    ];
+    const details = [COPY.attemptLabel(attempts)];
     const time = formatTime(solveTimeMs);
-    if (time) details.push(COPY.solveTimeLine(time));
+    if (time) details.push(time);
     if (hintsUsed > 0) {
       details.push(`${hintsUsed} hint${hintsUsed === 1 ? '' : 's'}`);
     }
@@ -159,7 +154,6 @@ const dayRows = computed<DayRow[]>(() => {
     details: classic
       ? describe(
           classic.solved,
-          classic.medal,
           classic.attempts,
           classic.solveTimeMs,
           classic.hintsUsed,
@@ -172,7 +166,6 @@ const dayRows = computed<DayRow[]>(() => {
     details: expedition
       ? describe(
           expedition.solved,
-          expedition.medal,
           expedition.attempts,
           expedition.solveTimeMs,
           expedition.hintsUsed,
@@ -308,17 +301,19 @@ onBeforeUnmount(() => {
               :key="row.label"
               class="celebration-day-row"
             >
-              <span class="celebration-day-mode">
+              <span class="celebration-day-icon">
                 <MedalIcon
                   v-if="row.medal"
                   :tier="row.medal"
                   class="celebration-day-row-medal"
                 />
                 <span v-else aria-hidden="true">✓</span>
-                {{ row.label }}
               </span>
-              <span class="celebration-day-result">
-                {{ row.details.join(' · ') }}
+              <span class="celebration-day-copy">
+                <strong class="celebration-day-mode">{{ row.label }}</strong>
+                <span class="celebration-day-result">
+                  {{ row.details.join(' · ') }}
+                </span>
               </span>
             </div>
           </div>
@@ -592,40 +587,56 @@ onBeforeUnmount(() => {
 
 .celebration-day-grid {
   display: grid;
-  gap: 0.4rem;
   width: 100%;
   margin-top: 0.35rem;
+  padding: 0.2rem 0.85rem;
+  border-radius: var(--radius-sm);
+  background: rgb(0 0 0 / 0.18);
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.18);
 }
 
 .celebration-day-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 2.25rem minmax(0, 1fr);
   align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.55rem 0.8rem;
-  border-radius: var(--radius-sm);
-  background: rgb(0 0 0 / 0.22);
-  border: 1px solid rgb(var(--color-gold-rgb) / 0.2);
+  gap: 0.7rem;
+  padding: 0.65rem 0;
+  text-align: left;
+}
+
+.celebration-day-row + .celebration-day-row {
+  border-top: 1px solid rgb(var(--color-gold-rgb) / 0.14);
+}
+
+.celebration-day-icon {
+  display: inline-grid;
+  place-items: center;
+  color: var(--color-gold-bright);
+  font-size: 1.35rem;
+  font-weight: 800;
+}
+
+.celebration-day-copy {
+  display: grid;
+  gap: 0.12rem;
+  min-width: 0;
 }
 
 .celebration-day-mode {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  font-weight: 900;
+  font-size: var(--font-size-control);
+  line-height: 1.15;
   color: var(--color-gold-bright);
 }
 
 .celebration-day-row-medal {
-  font-size: 1.65rem;
-  flex: 0 0 auto;
+  font-size: 1.8rem;
 }
 
 .celebration-day-result {
-  color: rgb(var(--color-gold-rgb) / 0.82);
-  font-weight: 700;
+  color: rgb(var(--color-gold-rgb) / 0.72);
+  font-weight: 650;
   font-size: var(--font-size-caption);
-  text-align: right;
+  line-height: 1.35;
 }
 
 .celebration-countdown {

@@ -25,6 +25,7 @@ function createSoundEffects() {
   let initialized = false;
   let hasEligibleGesture = false;
   let unlockPromise: Promise<void> | null = null;
+  let recoveryGeneration = 0;
   let pendingSound: SoundEffectKey | null = null;
   const retryBudget = new Map<SoundEffectKey, number>();
 
@@ -91,7 +92,8 @@ function createSoundEffects() {
     if (!import.meta.client || !hasEligibleGesture) return;
     if (unlockPromise) return unlockPromise;
 
-    unlockPromise = (async () => {
+    const generation = recoveryGeneration;
+    const attempt = (async () => {
       try {
         recreateClosedAudioContext();
         reloadSoundBank();
@@ -99,16 +101,20 @@ function createSoundEffects() {
         if (Howler.ctx && state !== 'running' && state !== 'closed') {
           await Howler.ctx.resume();
         }
+        if (generation !== recoveryGeneration) return;
         markReady();
       } catch (error) {
+        if (generation !== recoveryGeneration) return;
         ready.value = false;
         console.warn('Could not ready the game audio context.', error);
-      } finally {
-        unlockPromise = null;
       }
     })();
+    unlockPromise = attempt;
+    void attempt.finally(() => {
+      if (unlockPromise === attempt) unlockPromise = null;
+    });
 
-    return unlockPromise;
+    return attempt;
   }
 
   function onEligibleGesture() {
@@ -117,11 +123,16 @@ function createSoundEffects() {
   }
 
   function recoverAudio() {
+    // iOS may leave resume() pending indefinitely when it is called from a
+    // foreground lifecycle event rather than a fresh user gesture. Invalidate
+    // any old attempt and let the next pointer/touch/key gesture perform the
+    // actual resume inside its event handler.
+    recoveryGeneration += 1;
+    unlockPromise = null;
+    hasEligibleGesture = false;
+    ready.value = false;
     recreateClosedAudioContext();
     reloadSoundBank();
-    if (!hasEligibleGesture) return;
-    ready.value = audioContextState() === 'running';
-    if (!ready.value) void unlockAudio();
   }
 
   function initialize() {
@@ -138,6 +149,13 @@ function createSoundEffects() {
     window.addEventListener('keydown', onEligibleGesture, { capture: true });
     window.addEventListener('pageshow', recoverAudio);
     document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        recoveryGeneration += 1;
+        unlockPromise = null;
+        hasEligibleGesture = false;
+        ready.value = false;
+        return;
+      }
       if (document.visibilityState === 'visible') recoverAudio();
     });
     reloadSoundBank();
@@ -146,8 +164,12 @@ function createSoundEffects() {
   function play(sound: SoundEffectKey) {
     if (muted.value) return;
     retryBudget.set(sound, 1);
-    if (!ready.value) {
+    if (!ready.value || audioContextState() !== 'running') {
+      ready.value = false;
       pendingSound ??= sound;
+      // After a lifecycle recovery, hasEligibleGesture is false. This call
+      // may queue audio from any source, but only a fresh capture-phase
+      // pointer/touch/key handler is allowed to start WebKit's resume().
       void unlockAudio();
       return;
     }

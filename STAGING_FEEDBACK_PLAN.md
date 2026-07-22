@@ -166,7 +166,7 @@ This is a focused stabilization and mobile-polish pass. It does not reopen the b
 ### SF0-3 — Make iPhone audio recover across launch and foreground transitions
 
 - Priority: `P0`
-- Status: `implemented; installed-iPhone verification pending deployment`
+- Status: `follow-up implemented after installed-iPhone lock/unlock test; device retest pending deployment`
 - Goal: make the first gameplay session in an iPhone Home Screen app as reliable as desktop playback.
 - Scope:
   - `app/composables/useSoundEffects.ts`
@@ -175,7 +175,7 @@ This is a focused stabilization and mobile-polish pass. It does not reopen the b
 - Required behavior:
   - explicitly unlock or resume the shared audio context from the first eligible pointer/touch gesture
   - retry the first requested effect once audio becomes ready instead of silently dropping it
-  - resume or recreate the sound bank on `pageshow` and when document visibility returns to `visible`
+  - on `pageshow` or return to visible, invalidate any stale unlock attempt and mark the sound bank unready; resume or recreate it from the next eligible gesture
   - observe and log sound loading/playback failures during staging testing
   - preserve the existing mute preference and never violate user-gesture autoplay requirements
 - Deliberate non-goals:
@@ -187,6 +187,12 @@ This is a focused stabilization and mobile-polish pass. It does not reopen the b
   - sounds still play after backgrounding and reopening the Home Screen app
   - mute still suppresses all game sounds and haptics
   - desktop behavior remains unchanged
+
+#### July 22 installed-app follow-up
+
+- A fresh Home Screen launch played correctly, but locking and unlocking the phone after a few moves left the prior unlock promise/context unusable until relaunch.
+- Foreground lifecycle events now invalidate the prior recovery generation, clear its promise, and reset gesture eligibility. They do not call `resume()` outside a fresh gesture; non-gesture playback can only queue until the next board tap performs recovery and replays its effect.
+- The lock/unlock acceptance case must be repeated on the deployed Home Screen app because desktop automation cannot reproduce iOS WebKit's interrupted audio-context state.
 
 ### SF0-4 — Share every result through the homepage
 

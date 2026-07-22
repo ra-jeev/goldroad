@@ -2,10 +2,7 @@
 import { calcMedalForAttempt } from '../../lib/gameTiers';
 import type { CommunityRoadStats, Medal, PuzzleType } from '../../shared/types/game';
 import { UI_COPY } from '../content/uiCopy';
-import {
-  buildRoadResultShareText,
-  useRoadResultShare,
-} from '../composables/useRoadResultShare';
+import { useRoadResultShare } from '../composables/useRoadResultShare';
 import {
   hasCommunitySample,
   hasPercentileSample,
@@ -28,7 +25,9 @@ const communityOverview = ref<Awaited<
 const communityError = ref<string | null>(null);
 const loading = ref(true);
 
-const selectedMode = ref<PuzzleType>('classic');
+const streakMode = ref<PuzzleType>('classic');
+const yesterdayMode = ref<PuzzleType>('classic');
+const recordMode = ref<PuzzleType>('classic');
 const showFieldDetail = ref(false);
 
 const todayShare = ref<{ busy: boolean; feedback: FeedbackMessage | null }>({
@@ -141,7 +140,7 @@ const medalTiles = computed(() =>
 // ---------------------------------------------------------------------------
 
 const streakCard = computed(() => {
-  const isClassic = selectedMode.value === 'classic';
+  const isClassic = streakMode.value === 'classic';
   const current = isClassic
     ? summary.value.currentClassicStreak
     : summary.value.currentExpeditionStreak;
@@ -160,7 +159,7 @@ const streakCard = computed(() => {
     prompt:
       current > 0
         ? null
-        : `Solve today’s ${formatModeLabel(selectedMode.value)} road to light the flame.`,
+        : `Solve today’s ${formatModeLabel(streakMode.value)} road to light the flame.`,
   };
 });
 
@@ -169,54 +168,89 @@ const streakCard = computed(() => {
 // still in progress)
 // ---------------------------------------------------------------------------
 
-const todayResult = computed(() =>
-  playerResult(todayGameNo.value, selectedMode.value),
+const todayClassicResult = computed(() =>
+  playerResult(todayGameNo.value, 'classic'),
+);
+const todayExpeditionResult = computed(() =>
+  playerResult(todayGameNo.value, 'expedition'),
+);
+
+const todaySolvedRows = computed(() =>
+  (['classic', 'expedition'] as const).flatMap((mode) => {
+    const result =
+      mode === 'classic'
+        ? todayClassicResult.value
+        : todayExpeditionResult.value;
+    if (!result?.solved) return [];
+
+    const details = [formatRunCount(result.attempts)];
+    const time = formatDurationMs(result.solveTimeMs);
+    if (result.solveTimeMs !== null) details.push(time);
+    if (result.hintsUsed > 0) {
+      details.push(
+        `${result.hintsUsed} hint${result.hintsUsed === 1 ? '' : 's'}`,
+      );
+    }
+
+    return [{
+      mode,
+      label: formatModeLabel(mode),
+      medal: medalOf(result),
+      details,
+    }];
+  }),
 );
 
 const todayCard = computed(() => {
-  const result = todayResult.value;
   const gameNo = todayGameNo.value;
+  const classic = todayClassicResult.value;
+  const solvedRows = todaySolvedRows.value;
+  const solvedCount = solvedRows.length;
 
-  if (!result || (result.attempts === 0 && !result.solved)) {
+  if (solvedCount === 0) {
     return {
       state: 'unplayed' as const,
       eyebrow: 'Today’s road',
       title: gameNo ? `Road ${gameNo} is waiting` : 'Today’s road is waiting',
       detail:
-        selectedMode.value === 'classic'
-          ? 'Chart today’s Classic road to start your streak.'
-          : 'Solve Classic, then take on today’s Expedition.',
+        classic && classic.attempts > 0
+          ? `The solve is still out there after ${formatRunCount(classic.attempts)}.`
+          : 'Chart today’s Classic road to start your streak.',
     };
   }
 
-  if (result.solved) {
-    // The gold block previews the exact text Share now sends — v1's trick.
-    const shareLines =
-      gameNo === null
-        ? []
-        : buildRoadResultShareText({
-            gameNo,
-            puzzleType: selectedMode.value,
-            attempts: result.attempts,
-            solved: true,
-            solveTimeMs: result.solveTimeMs,
-            hintsUsed: result.hintsUsed,
-          }).text.split('\n');
-
+  if (solvedCount === 2) {
     return {
-      state: 'solved' as const,
+      state: 'both-solved' as const,
       eyebrow: 'Today’s road',
-      title: 'Yay! You got to the finish 🎉',
-      shareLines,
+      title: 'Both roads conquered.',
+      detail: 'Share the full day, or come back for tomorrow’s road.',
     };
   }
 
+  const solvedMode = solvedRows[0]!.mode;
+  const solvedLabel = formatModeLabel(solvedMode);
+  const remainingLabel = formatModeLabel(
+    solvedMode === 'classic' ? 'expedition' : 'classic',
+  );
   return {
-    state: 'inprogress' as const,
+    state: 'one-solved' as const,
     eyebrow: 'Today’s road',
-    title: gameNo ? `Road ${gameNo}` : 'Today’s road',
-    detail: `Umm… you haven’t solved it yet. The solve is still out there after ${formatRunCount(result.attempts)}.`,
+    title: `${solvedLabel} conquered.`,
+    detail: `${remainingLabel} is waiting when you’re ready.`,
   };
+});
+
+const todayShareButtonLabel = computed(() => {
+  if (todayShare.value.busy) return 'Preparing…';
+  if (todaySolvedRows.value.length === 2) return 'Share the day';
+  return `Share ${todaySolvedRows.value[0]?.label ?? 'result'}`;
+});
+
+const todayPlayButtonLabel = computed(() => {
+  const solvedMode = todaySolvedRows.value[0]?.mode;
+  if (!solvedMode) return 'Play Classic';
+  return solvedMode === 'classic' ? 'Play Expedition' : 'Play Classic';
 });
 
 // ---------------------------------------------------------------------------
@@ -228,11 +262,11 @@ const yesterdayGameNo = computed(
 );
 
 const yesterdayField = computed<CommunityRoadStats | null>(
-  () => communityOverview.value?.yesterday[selectedMode.value] ?? null,
+  () => communityOverview.value?.yesterday[yesterdayMode.value] ?? null,
 );
 
 const yesterdayResult = computed(() =>
-  playerResult(yesterdayGameNo.value, selectedMode.value),
+  playerResult(yesterdayGameNo.value, yesterdayMode.value),
 );
 
 const showYesterdayHistogram = computed(
@@ -296,7 +330,7 @@ const yesterdayBehaviorRows = computed(() => {
 // Your stats — the v1 key-value record, mode-scoped
 // ---------------------------------------------------------------------------
 
-const modeSummary = computed(() => summary.value.modeBreakdown[selectedMode.value]);
+const modeSummary = computed(() => summary.value.modeBreakdown[recordMode.value]);
 const hasModeHistory = computed(() => modeSummary.value.sessionsPlayed > 0);
 
 const recordRows = computed(() => {
@@ -325,20 +359,35 @@ function scheduleFeedbackClear(target: { feedback: FeedbackMessage | null }) {
 }
 
 async function shareTodayResult() {
-  const result = todayResult.value;
   const gameNo = todayGameNo.value;
-  if (!result || gameNo === null || todayShare.value.busy) return;
+  const rows = todaySolvedRows.value;
+  if (rows.length === 0 || gameNo === null || todayShare.value.busy) return;
 
   todayShare.value.busy = true;
   try {
-    const outcome = await roadResultShare.shareRoadResult({
-      gameNo,
-      puzzleType: selectedMode.value,
-      attempts: result.attempts,
-      solved: result.solved,
-      solveTimeMs: result.solveTimeMs,
-      hintsUsed: result.hintsUsed,
-    });
+    const outcome = rows.length === 2
+      ? await roadResultShare.shareDayResult({
+          gameNo,
+          classic: todayClassicResult.value,
+          expedition: todayExpeditionResult.value,
+        })
+      : await roadResultShare.shareRoadResult({
+          gameNo,
+          puzzleType: rows[0]!.mode,
+          attempts:
+            rows[0]!.mode === 'classic'
+              ? todayClassicResult.value!.attempts
+              : todayExpeditionResult.value!.attempts,
+          solved: true,
+          solveTimeMs:
+            rows[0]!.mode === 'classic'
+              ? todayClassicResult.value!.solveTimeMs
+              : todayExpeditionResult.value!.solveTimeMs,
+          hintsUsed:
+            rows[0]!.mode === 'classic'
+              ? todayClassicResult.value!.hintsUsed
+              : todayExpeditionResult.value!.hintsUsed,
+        });
     if (outcome.outcome === 'cancelled' || !outcome.message) return;
     todayShare.value.feedback = {
       kind: outcome.outcome === 'unavailable' ? 'error' : 'success',
@@ -360,7 +409,9 @@ onMounted(async () => {
 
   const preferred = localProgress.currentRoadContext.value.selectedMode;
   if (preferred === 'classic' || preferred === 'expedition') {
-    selectedMode.value = preferred;
+    streakMode.value = preferred;
+    yesterdayMode.value = preferred;
+    recordMode.value = preferred;
   }
 
   try {
@@ -410,46 +461,29 @@ onMounted(async () => {
         </div>
       </section>
 
-      <!-- Global mode toggle: scopes every section below -->
-      <div
-        class="mode-switch segmented-control segmented-control--stretched"
-        role="tablist"
-        aria-label="Choose a mode"
-      >
-        <button
-          v-for="mode in (['classic', 'expedition'] as const)"
-          :key="mode"
-          type="button"
-          role="tab"
-          class="mode-switch-btn segmented-control__option"
-          :class="{ 'is-active': selectedMode === mode }"
-          :aria-selected="selectedMode === mode"
-          @click="selectedMode = mode"
-        >
-          {{ formatModeLabel(mode) }}
-        </button>
-      </div>
-
       <section
         class="panel streak-card"
-        :aria-label="`${formatModeLabel(selectedMode)} streak`"
+        :aria-label="`${formatModeLabel(streakMode)} streak`"
       >
-        <div class="streak-flame-col" :class="{ 'streak-flame-col--lit': streakCard.lit }">
-          <svg class="streak-flame" viewBox="0 0 24 24" aria-hidden="true">
-            <path
-              class="streak-flame-outer"
-              d="M12 2c.7 3.2-.6 5-2.2 6.7C8.1 10.5 6.5 12.3 6.5 15a5.5 5.5 0 0 0 11 0c0-1.5-.5-2.9-1.2-4.2-.3.9-.8 1.6-1.6 2.1.3-3-1-6.6-2.7-8.4A7.6 7.6 0 0 0 12 2Z"
-            />
-            <path
-              class="streak-flame-inner"
-              d="M12 21a3.4 3.4 0 0 1-3.4-3.4c0-1.6 1-2.5 1.9-3.5.7-.8 1.3-1.5 1.5-2.6 1.2 1.2 3.4 3.7 3.4 6.1A3.4 3.4 0 0 1 12 21Z"
-            />
-          </svg>
-        </div>
-        <div class="streak-text">
-          <strong class="streak-headline">{{ streakCard.headline }}</strong>
-          <p v-if="streakCard.prompt" class="streak-sub">{{ streakCard.prompt }}</p>
-          <p v-else class="streak-sub">{{ streakCard.detail }}</p>
+        <StatsModeSwitch v-model="streakMode" label="Choose streak mode" />
+        <div class="streak-content">
+          <div class="streak-flame-col" :class="{ 'streak-flame-col--lit': streakCard.lit }">
+            <svg class="streak-flame" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                class="streak-flame-outer"
+                d="M12 2c.7 3.2-.6 5-2.2 6.7C8.1 10.5 6.5 12.3 6.5 15a5.5 5.5 0 0 0 11 0c0-1.5-.5-2.9-1.2-4.2-.3.9-.8 1.6-1.6 2.1.3-3-1-6.6-2.7-8.4A7.6 7.6 0 0 0 12 2Z"
+              />
+              <path
+                class="streak-flame-inner"
+                d="M12 21a3.4 3.4 0 0 1-3.4-3.4c0-1.6 1-2.5 1.9-3.5.7-.8 1.3-1.5 1.5-2.6 1.2 1.2 3.4 3.7 3.4 6.1A3.4 3.4 0 0 1 12 21Z"
+              />
+            </svg>
+          </div>
+          <div class="streak-text">
+            <strong class="streak-headline">{{ streakCard.headline }}</strong>
+            <p v-if="streakCard.prompt" class="streak-sub">{{ streakCard.prompt }}</p>
+            <p v-else class="streak-sub">{{ streakCard.detail }}</p>
+          </div>
         </div>
       </section>
 
@@ -463,29 +497,44 @@ onMounted(async () => {
           <p class="eyebrow">{{ todayCard.eyebrow }}</p>
           <h2 class="today-title">{{ todayCard.title }}</h2>
 
-          <div v-if="todayCard.state === 'solved'" class="today-result">
-            <span
-              v-for="(line, index) in todayCard.shareLines"
-              :key="line"
-              class="today-result-line"
-              :class="{ 'today-result-line--lead': index === 0 }"
+          <div v-if="todaySolvedRows.length" class="today-result">
+            <div
+              v-for="row in todaySolvedRows"
+              :key="row.mode"
+              class="today-result-row"
             >
-              {{ line }}
-            </span>
+              <span class="today-result-icon">
+                <MedalIcon
+                  v-if="row.medal"
+                  :tier="row.medal"
+                  class="today-result-medal"
+                />
+                <span v-else aria-hidden="true">✓</span>
+              </span>
+              <span class="today-result-copy">
+                <strong>{{ row.label }}</strong>
+                <span>{{ row.details.join(' · ') }}</span>
+              </span>
+            </div>
           </div>
-          <p v-else class="today-detail">{{ todayCard.detail }}</p>
+          <p class="today-detail">{{ todayCard.detail }}</p>
 
           <button
-            v-if="todayCard.state === 'solved'"
+            v-if="todaySolvedRows.length"
             type="button"
             class="btn btn--primary"
             :disabled="todayShare.busy"
             @click="shareTodayResult"
           >
-            {{ todayShare.busy ? 'Preparing…' : 'Share now' }}
+            {{ todayShareButtonLabel }}
           </button>
-          <NuxtLink v-else to="/" class="btn btn--primary">
-            Play now
+          <NuxtLink
+            v-if="todayCard.state !== 'both-solved'"
+            to="/"
+            class="btn"
+            :class="todaySolvedRows.length ? 'btn--ghost' : 'btn--primary'"
+          >
+            {{ todayPlayButtonLabel }}
           </NuxtLink>
           <p
             v-if="todayShare.feedback"
@@ -510,14 +559,13 @@ onMounted(async () => {
         </section>
 
         <!-- 3 · Yesterday's road: the completed field's global story -->
-        <section
-          v-if="yesterdayGameNo !== null && yesterdayField"
-          class="panel panel--field"
-        >
+        <section v-if="yesterdayGameNo !== null" class="panel panel--field">
           <div class="section-head">
             <p class="eyebrow">Yesterday’s road · global stats</p>
-            <h2>Road {{ yesterdayGameNo }} · {{ formatModeLabel(selectedMode) }}</h2>
+            <h2>Road {{ yesterdayGameNo }}</h2>
           </div>
+
+          <StatsModeSwitch v-model="yesterdayMode" label="Choose yesterday’s mode" />
 
           <StatsTriesHistogram
             v-if="showYesterdayHistogram && yesterdayField"
@@ -525,7 +573,10 @@ onMounted(async () => {
             :player-attempts="yesterdayPlayerAttempts"
           />
 
-          <div class="field-story">
+          <div
+            v-if="yesterdayHeadline || yesterdayPlayerLine"
+            class="field-story"
+          >
             <p v-if="yesterdayHeadline" class="field-headline">
               {{ yesterdayHeadline }}
             </p>
@@ -542,9 +593,16 @@ onMounted(async () => {
           >
             {{ showFieldDetail ? 'Hide field detail' : 'How the field played it' }}
           </button>
-          <ul v-if="showFieldDetail" class="field-detail">
+          <ul
+            v-if="showFieldDetail && yesterdayBehaviorRows.length"
+            class="field-detail"
+          >
             <li v-for="row in yesterdayBehaviorRows" :key="row">{{ row }}</li>
           </ul>
+
+          <p v-if="!yesterdayField" class="community-note">
+            No {{ formatModeLabel(yesterdayMode) }} comparison is available for this road.
+          </p>
         </section>
 
         <p v-else-if="communityError" class="community-note">
@@ -552,27 +610,28 @@ onMounted(async () => {
         </p>
 
         <!-- 4 · Your stats: the v1 key-value record -->
-        <section v-if="hasModeHistory" class="panel panel--record">
+        <section class="panel panel--record">
           <div class="section-head">
-            <p class="eyebrow">All-time · {{ formatModeLabel(selectedMode) }}</p>
+            <p class="eyebrow">All-time</p>
             <h2>Your stats</h2>
           </div>
 
-          <dl class="record-list">
+          <StatsModeSwitch v-model="recordMode" label="Choose all-time stats mode" />
+
+          <dl v-if="hasModeHistory" class="record-list">
             <div v-for="row in recordRows" :key="row.key" class="record-row">
               <dt>{{ row.label }}</dt>
               <dd>{{ row.value }}</dd>
             </div>
           </dl>
-        </section>
-
-        <section v-else class="panel panel--empty">
-          <h2>No {{ formatModeLabel(selectedMode) }} history yet</h2>
-          <p>
-            Play a {{ formatModeLabel(selectedMode) }} road and your medals and
-            stats fill in here.
-          </p>
-          <NuxtLink to="/" class="btn btn--primary">Play today’s road</NuxtLink>
+          <div v-else class="record-empty">
+            <h3>No {{ formatModeLabel(recordMode) }} history yet</h3>
+            <p>
+              Play a {{ formatModeLabel(recordMode) }} road and your stats fill
+              in here.
+            </p>
+            <NuxtLink to="/" class="btn btn--primary">Play today’s road</NuxtLink>
+          </div>
         </section>
 
         <!-- 5 · Past roads entry -->
@@ -718,12 +777,16 @@ onMounted(async () => {
 
 /* ── Streaks — flame column beside the numbers ────────────── */
 .panel.streak-card {
+  gap: 0.9rem;
+  padding: clamp(0.9rem, 2.5vw, 1.15rem) clamp(1.1rem, 3vw, 1.5rem);
+}
+
+.streak-content {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.85rem;
   text-align: left;
-  padding: clamp(0.9rem, 2.5vw, 1.15rem) clamp(1.1rem, 3vw, 1.5rem);
 }
 
 .streak-flame-col {
@@ -787,44 +850,6 @@ onMounted(async () => {
   color: var(--color-gold-muted);
 }
 
-/* ── Mode switch ──────────────────────────────────────────── */
-.mode-switch {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0;
-  padding: 0.16rem;
-  border-radius: var(--radius-full);
-  background: rgb(var(--color-gold-rgb) / 0.08);
-  border: 1px solid rgb(var(--color-gold-rgb) / 0.22);
-}
-
-.mode-switch-btn {
-  padding: 0.6rem 1rem;
-  border: 1px solid transparent;
-  border-radius: var(--radius-full);
-  background: transparent;
-  color: rgb(var(--color-gold-rgb) / 0.72);
-  font: inherit;
-  font-size: 0.96rem;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  cursor: pointer;
-  transition:
-    color var(--transition-fast),
-    background var(--transition-fast),
-    box-shadow var(--transition-fast);
-}
-
-.mode-switch-btn:hover {
-  color: var(--color-gold-bright);
-}
-
-.mode-switch-btn.is-active {
-  color: var(--color-gold);
-  background: rgb(var(--color-gold-rgb) / 0.18);
-  box-shadow: inset 0 0 0 1px rgb(var(--color-gold-rgb) / 0.24);
-}
-
 /* ── Panels ───────────────────────────────────────────────── */
 .panel {
   display: grid;
@@ -837,22 +862,10 @@ onMounted(async () => {
   text-align: center;
 }
 
-.panel--loading,
-.panel--empty {
+.panel--loading {
   justify-items: center;
   text-align: center;
   color: rgb(var(--color-gold-rgb) / 0.8);
-}
-
-.panel--empty h2 {
-  margin: 0;
-  color: var(--color-gold-bright);
-}
-
-.panel--empty p {
-  margin: 0;
-  max-width: 40ch;
-  color: rgb(var(--color-gold-rgb) / 0.76);
 }
 
 .panel h2 {
@@ -879,24 +892,56 @@ onMounted(async () => {
 
 .today-result {
   display: grid;
-  gap: 0.35rem;
-  padding: 1rem 2.2rem;
+  width: min(100%, 26rem);
+  padding: 0.2rem 0.85rem;
   border-radius: var(--radius-md);
   background: rgb(var(--color-gold-rgb) / 0.12);
   border: 1px solid rgb(var(--color-gold-rgb) / 0.32);
   color: var(--color-gold-bright);
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05);
-  line-height: 1.4;
 }
 
-.today-result-line {
-  font-size: 0.96rem;
-  font-weight: 700;
+.today-result-row {
+  display: grid;
+  grid-template-columns: 2.25rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.65rem 0;
+  text-align: left;
 }
 
-.today-result-line--lead {
-  font-size: 1.05rem;
-  font-weight: 900;
+.today-result-row + .today-result-row {
+  border-top: 1px solid rgb(var(--color-gold-rgb) / 0.16);
+}
+
+.today-result-icon {
+  display: inline-grid;
+  place-items: center;
+  color: var(--color-gold-bright);
+  font-size: 1.35rem;
+  font-weight: 800;
+}
+
+.today-result-medal {
+  font-size: 1.8rem;
+}
+
+.today-result-copy {
+  display: grid;
+  gap: 0.12rem;
+  min-width: 0;
+}
+
+.today-result-copy strong {
+  color: var(--color-gold-bright);
+  line-height: 1.15;
+}
+
+.today-result-copy span {
+  color: rgb(var(--color-gold-rgb) / 0.72);
+  font-size: var(--font-size-caption);
+  font-weight: 650;
+  line-height: 1.35;
 }
 
 .today-detail {
@@ -965,6 +1010,22 @@ onMounted(async () => {
   display: grid;
   gap: 0;
   width: 100%;
+}
+
+.record-empty {
+  display: grid;
+  justify-items: center;
+  gap: 0.8rem;
+  color: rgb(var(--color-gold-rgb) / 0.76);
+}
+
+.record-empty h3,
+.record-empty p {
+  margin: 0;
+}
+
+.record-empty h3 {
+  color: var(--color-gold-bright);
 }
 
 .record-row {

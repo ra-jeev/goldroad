@@ -63,6 +63,15 @@ export type CelebrationState = {
   expeditionResult: CelebrationModeResult | null;
 };
 
+export function isDifferentGameIdentity(
+  current: Pick<PublicGame, 'gameNo' | 'puzzleType'>,
+  next: Pick<PublicGame, 'gameNo' | 'puzzleType'>,
+): boolean {
+  return (
+    current.gameNo !== next.gameNo || current.puzzleType !== next.puzzleType
+  );
+}
+
 /**
  * An archive solve writes exactly one durable fact locally (RP0-5): this
  * road+mode is complete. Starting, failing, or abandoning a run must never
@@ -606,7 +615,19 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
       return;
     }
 
-    selectMode(nextMode);
+    // This is an authoritative road-day replacement, not an in-day mode
+    // switch. Calling selectMode() here would inspect the still-mounted old
+    // board and reject the replacement once that old road had expired.
+    const next =
+      nextMode === 'classic' ? roadDay.classic : roadDay.expedition;
+    if (next) {
+      const replacesMountedGame =
+        game.value && isDifferentGameIdentity(game.value, next);
+      if (replacesMountedGame && !lastSolved.value) {
+        stopSolveTimer();
+      }
+      setupGame(next);
+    }
   }
 
   // True only for the live road once its own schedule has moved on. Archive

@@ -14,7 +14,7 @@
 
   <rect width="512" height="512" rx="112" fill="url(#bgGrad)"/>
 
-  <!-- mini road: circular coin tiles joined by gold roads, like the board -->
+  <!-- mini road: a 2x2 puzzle with one deliberately unconnected tile -->
   <g id="icon-art">
     <!-- roads -->
     <path d="M150 362 H362 V150" fill="none" stroke="url(#goldGrad)"
@@ -22,6 +22,9 @@
 
     <!-- start tile: the bright, current coin -->
     <circle cx="150" cy="362" r="56" fill="url(#goldGrad)" stroke="#0d0702" stroke-width="8"/>
+
+    <!-- unconnected option: the board is a puzzle, not a fixed route -->
+    <circle cx="150" cy="150" r="56" fill="#110900" stroke="url(#goldGrad)" stroke-width="14"/>
 
     <!-- corner tile: open coin -->
     <circle cx="362" cy="362" r="56" fill="#110900" stroke="url(#goldGrad)" stroke-width="14"/>

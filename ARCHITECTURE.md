@@ -48,7 +48,7 @@ All result sharing, including archive and random-road replay, points to the cano
 
 Two v1 qualities are shipped as launch requirements for v2:
 
-- game sounds (move/coin, denied move, dead-end, solve) with a persisted mute toggle (`useSoundEffects`); the mastered public assets stay below a −3 dB true-peak ceiling, while a shared `@vueuse/sound`/Howler bank begins preloading from the persistent layout, explicitly resumes on the first eligible gesture, replays the first queued effect when ready, and reloads/resumes on `pageshow` and foreground visibility transitions
+- game sounds (move/coin, denied move, dead-end, solve) with a persisted mute toggle (`useSoundEffects`); the mastered public assets stay below a −3 dB true-peak ceiling, while a shared `@vueuse/sound`/Howler bank begins preloading from the persistent layout, explicitly resumes on the first eligible gesture, and replays the first queued effect when ready. Background/foreground transitions invalidate any stale unlock attempt and mark the bank for recovery; the next eligible gesture performs the WebKit-safe resume or recreation instead of trying to resume outside a user gesture
 - PWA installability: manifest and icon set in the v2 visual style, apple-touch-icon, and Open Graph / social metadata for link unfurls
 
 No service worker or offline app shell is included for the v2 launch. That is a deliberate launch-scope decision; offline shell work is deferred until after launch.
@@ -130,7 +130,8 @@ celebration for a post-expiry Classic solve suppresses the Expedition CTA
 There is no polling: the new-road fetch happens on user action. It fetches
 first, compares `gameNo`, and applies only a genuinely new road — a same-road
 or mid-flip-404 response changes nothing and the action stays for the next
-tap. Reloading during the few-second cron window could technically grant one
+tap. A genuinely new response replaces the mounted game directly rather than
+passing through the expired old road's mode-switch guard. Reloading during the few-second cron window could technically grant one
 more final attempt; that race is accepted rather than policed with persistent
 state. The stats page follows the same passive model: at midnight its
 countdown becomes "A new road is available · Play now", and the live page
@@ -448,9 +449,9 @@ The server should provide:
 
 ### 10.3 Two-mode presentation pattern
 
-The stats page uses one global Classic/Expedition segmented toggle at the top that scopes every mode-specific section below it. There are no per-card mode toggles and no side-by-side mode columns.
+All-time medal totals and today's share card are cross-mode. The share card derives its rows from today's solved modes: no solve invites Classic, a Classic-only solve remains shareable while inviting Expedition, and two solves share the combined day.
 
-All-time medal totals remain cross-mode above the toggle. The streak card sits immediately below the toggle and shows only the selected mode's current and best streak.
+Each remaining mode-specific card owns a compact Classic/Expedition segmented control. Streak, yesterday's field, and all-time records can therefore be compared in place without scrolling back to a global page control or doubling the cards' height with side-by-side data.
 
 ### 10.4 Community comparison presentation
 

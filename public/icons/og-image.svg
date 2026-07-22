@@ -14,11 +14,12 @@
 
   <rect width="1200" height="630" fill="url(#bgGrad)"/>
 
-  <!-- mini-road mark: circular coin tiles joined by gold roads -->
-  <g transform="translate(190 315)">
+  <!-- centered 2x2 mini-road mark with one deliberately unconnected tile -->
+  <g transform="translate(313 315)">
     <path d="M-120 120 H120 V-120" fill="none" stroke="url(#goldGrad)"
           stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
     <circle cx="-120" cy="120" r="46" fill="url(#goldGrad)" stroke="#0d0702" stroke-width="7"/>
+    <circle cx="-120" cy="-120" r="46" fill="#110900" stroke="url(#goldGrad)" stroke-width="12"/>
     <circle cx="120" cy="120" r="46" fill="#110900" stroke="url(#goldGrad)" stroke-width="12"/>
     <circle cx="120" cy="-120" r="46" fill="#110900" stroke="url(#goldGrad)" stroke-width="12"/>
     <g fill="#e8c84a">
@@ -27,8 +28,8 @@
     </g>
   </g>
 
-  <text x="430" y="300" font-family="-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+  <text x="553" y="300" font-family="-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
         font-size="88" font-weight="700" fill="#d4af37">GoldRoad</text>
-  <text x="432" y="360" font-family="-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+  <text x="555" y="360" font-family="-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
         font-size="34" fill="#e8c84a" opacity="0.85">One road. One score. Every day.</text>
 </svg>

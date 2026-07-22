@@ -8,6 +8,7 @@ import {
 } from '../app/composables/useGoldroadLocalState';
 import {
   isRoadExpired,
+  isDifferentGameIdentity,
   getClassicOverTargetWarning,
   shouldCallSessionApi,
   shouldStartSessionApi,
@@ -16,6 +17,32 @@ import {
   resolveRunMedals,
 } from '../app/composables/useRoadDayGameplay';
 import { calcMedalForAttempt } from '../lib/gameTiers';
+
+describe('isDifferentGameIdentity', () => {
+  it('treats the two modes of one road as different games', () => {
+    expect(
+      isDifferentGameIdentity(
+        { gameNo: 8, puzzleType: 'classic' },
+        { gameNo: 8, puzzleType: 'expedition' },
+      ),
+    ).toBe(true);
+  });
+
+  it('distinguishes a new road but not the same road and mode', () => {
+    expect(
+      isDifferentGameIdentity(
+        { gameNo: 8, puzzleType: 'classic' },
+        { gameNo: 9, puzzleType: 'classic' },
+      ),
+    ).toBe(true);
+    expect(
+      isDifferentGameIdentity(
+        { gameNo: 8, puzzleType: 'classic' },
+        { gameNo: 8, puzzleType: 'classic' },
+      ),
+    ).toBe(false);
+  });
+});
 
 describe('normalizeStoredArchiveCompletionMap', () => {
   it('returns an empty map for non-object input', () => {

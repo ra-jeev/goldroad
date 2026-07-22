@@ -53,8 +53,7 @@ export const UI_COPY = {
     },
     expeditionUnlocked: 'Expedition unlocked',
     medalAwarded: (medal: string) => `${medal} medal`,
-    nextRoadCountdown: (countdown: string) =>
-      `Next road in ${countdown} · 00:00 UTC`,
+    nextRoadCountdown: (countdown: string) => `Next road in ${countdown}`,
     nextRoadShort: (countdown: string) => `Next road in ${countdown}`,
     newRoadReady: 'A new road just opened.',
     playNewRoad: 'Play the new road',
@@ -126,13 +125,13 @@ export const UI_COPY = {
     noExpeditionBody: 'That wraps the Classic road for today.',
     dayComplete: {
       eyebrow: 'Day complete',
-      title: "That's the day.",
-      body: 'Classic and Expedition are both done. See you tomorrow.',
+      title: 'Both roads conquered.',
+      body: 'See you tomorrow.',
       bothSolved: 'Both roads solved',
       classicLabel: 'Classic',
       expeditionLabel: 'Expedition',
       notPlayed: 'Not played',
-      nextRoad: (countdown: string) => `Next road in ${countdown} · 00:00 UTC`,
+      nextRoad: (countdown: string) => `Next road in ${countdown}`,
     },
     replay: {
       eyebrow: 'Archive replay',

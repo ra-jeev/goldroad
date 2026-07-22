@@ -79,7 +79,7 @@ There is not currently a shared spacing scale. Components use local `rem` values
 
 - `--control-size` is the shared 44px interactive target.
 - `--icon-size` is the shared 24px UI icon size. Decorative road arrows and notification dots are geometry, not standalone UI icons, and remain board-scaled.
-- `.segmented-control` and `.segmented-control__option` define the shared quiet bordered shell and soft-gold active tint used by Tutorial, the live board, and Stats. Use `--stretched` for full-width two-tab layouts; the board keeps a compact intrinsic-width layout. Preserve ARIA tab semantics and the 44px target.
+- `.segmented-control` and `.segmented-control__option` define the shared quiet bordered shell and soft-gold active tint used by Tutorial, the live board, and Stats. Use `--stretched` for two-tab layouts; the board keeps a compact intrinsic-width layout. Stats places a compact stretched switch inside each mode-dependent card so the relevant comparison stays beside its content. Preserve ARIA tab semantics and the 44px target.
 
 ### Shadows
 
