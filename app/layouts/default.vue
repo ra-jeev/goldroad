@@ -9,9 +9,9 @@ const currentRoadLabel = useState<string | null>(
   () => null,
 );
 const { muted, toggleMuted } = useGoldroadLocalState();
-// The persistent shell owns sound loading plus gesture/foreground recovery so
-// page navigation cannot dispose of the iPhone audio lifecycle listeners.
-useSoundEffects().initialize();
+// The persistent shell owns sound loading so page navigation cannot dispose of
+// the preloaded sound bank.
+useSoundEffects();
 const { openHowToPlay, closeHowToPlay } = useHowToPlaySheet();
 const { closeTutorial } = useTutorialFlow();
 // Acknowledgment of the latest update is owned by the About page itself,
