@@ -8,6 +8,13 @@
       "when": 1784011085936,
       "tag": "0000_goofy_jocasta",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1784994262063,
+      "tag": "0001_thankful_apocalypse",
+      "breakpoints": true
     }
   ]
 }

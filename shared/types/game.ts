@@ -10,7 +10,6 @@ export type {
   EdgeType,
   Medal,
   OutcomeTier,
-  DifficultyBand,
   PuzzleType,
   RunEndReason,
   EdgePair,

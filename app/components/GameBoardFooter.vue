@@ -147,11 +147,12 @@ const showHintAction = computed(
     hintsLeft.value > 0,
 );
 
-const hintTitle = computed(() =>
-  props.hintPending
-    ? UI_COPY.boardFooter.hintLoading
-    : UI_COPY.boardFooter.hintUsedLabel(props.hintsUsed),
-);
+const hintTitle = computed(() => {
+  if (props.hintPending) return UI_COPY.boardFooter.hintLoading;
+  return Number.isFinite(hintsLeft.value)
+    ? UI_COPY.boardFooter.hintUsedLabel(hintsLeft.value)
+    : UI_COPY.boardFooter.openHint;
+});
 // Mid-run keeps Hint reachable but drops its label so nothing competes
 // with the board.
 const hintIsQuiet = computed(() => footerState.value === 'mid-run');

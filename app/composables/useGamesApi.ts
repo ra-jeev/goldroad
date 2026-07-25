@@ -1,12 +1,10 @@
 import type {
   CurrentGamesResponse,
-  DifficultyBand,
 } from '../../shared/types/game';
 
 interface PastRoadModeSummary {
   maxScore: number;
   totalCoins: number;
-  difficultyBand: DifficultyBand;
 }
 
 interface PastGamesResponse {

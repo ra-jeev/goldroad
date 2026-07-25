@@ -37,7 +37,6 @@ export default defineEventHandler(async (event) => {
       maxScore: games.maxScore,
       totalCoins: games.totalCoins,
       playableAt: games.playableAt,
-      difficultyBand: games.difficultyBand,
     })
     .from(games)
     .where(
@@ -60,12 +59,10 @@ export default defineEventHandler(async (event) => {
       classic: {
         maxScore: number;
         totalCoins: number;
-        difficultyBand: (typeof rows)[number]['difficultyBand'];
       } | null;
       expedition: {
         maxScore: number;
         totalCoins: number;
-        difficultyBand: (typeof rows)[number]['difficultyBand'];
       } | null;
     }
   >();
@@ -81,7 +78,6 @@ export default defineEventHandler(async (event) => {
     const modeSummary = {
       maxScore: row.maxScore,
       totalCoins: row.totalCoins,
-      difficultyBand: row.difficultyBand,
     };
 
     if (row.puzzleType === 'classic') {

@@ -59,8 +59,9 @@ export const UI_COPY = {
     playNewRoad: 'Play the new road',
     hintTitle: 'Hint',
     helpTitle: 'How to play',
-    hintUsedLabel: (count: number) =>
-      count === 0 ? 'Hint' : `Hint used ${count} time${count === 1 ? '' : 's'}`,
+    /** Tooltip on the hint button: what is left, not what is spent. */
+    hintUsedLabel: (remaining: number) =>
+      remaining === 1 ? '1 hint left' : `${remaining} hints left`,
     hintLoading: 'Reading the map…',
     hintsExhausted: 'No hints left on this road',
     /**
@@ -91,8 +92,9 @@ export const UI_COPY = {
       tools: {
         title: 'Tools',
         items: [
-          'Try again restarts the same road and increases your try count.',
-          'Hints highlight a guide route and do not reduce your score or medal.',
+          'Try again restarts the same road. There is no limit on tries, but each one adds to your try count.',
+          'Each mode gives you 5 hints a day. A hint lights up the next stretch of a guide route to follow.',
+          'Hints never reduce your score or medal.',
           'Solving Classic unlocks Expedition for the day when one is available.',
         ],
       },

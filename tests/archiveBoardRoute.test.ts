@@ -60,7 +60,6 @@ function archivedClassicRow(gameNo: number) {
     }),
     maxScore: 9,
     totalCoins: 9,
-    difficultyBand: 'easy',
     playableAt: '2026-07-01T00:00:00.000Z',
     nextGameAt: null,
     optimalPathsJson: JSON.stringify([[0, 1, 2, 5, 8]]),

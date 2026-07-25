@@ -45,10 +45,6 @@ export const games = sqliteTable(
     maxScore: integer('max_score').notNull(),
     /** Sum of all tile values on the board (upper bound if player collected everything). */
     totalCoins: integer('total_coins').notNull(),
-    difficultyBand: text('difficulty_band', {
-      enum: ['easy', 'medium', 'hard'],
-    }).notNull(),
-
     /** Coin gap between gold and silver route. */
     goldSilverGap: integer('gold_silver_gap').notNull().default(0),
 

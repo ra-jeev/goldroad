@@ -16,7 +16,6 @@
 import { findAllRoutes } from './pathfinder';
 import type {
   Board,
-  DifficultyBand,
   EdgePair,
   PathResult,
   Direction,
@@ -115,7 +114,6 @@ export interface GeneratedPuzzle {
   totalCoins: number;
   /** All gold (optimal) paths — stored server-side only, never sent to client. */
   optimalPaths: number[][];
-  difficultyBand: DifficultyBand;
   /** Coin gap between gold and silver route (0 if only one route). */
   goldSilverGap: number;
 }
@@ -301,12 +299,6 @@ export function generatePuzzle(
       (r) => r.total < maxScore,
     );
     const goldSilverGap = silverRoute ? maxScore - silverRoute.total : 0;
-    const difficultyBand = calcDifficultyBand(
-      allRoutes[0]!,
-      board,
-      allRoutes.length,
-      goldSilverGap,
-    );
 
     // Calculate total coins available on the board
     const totalCoins = board.tiles.reduce(
@@ -320,54 +312,9 @@ export function generatePuzzle(
       maxScore,
       totalCoins,
       optimalPaths,
-      difficultyBand,
       goldSilverGap,
     };
   }
 
   return null; // Failed to produce a valid board after maxAttempts
-}
-
-// ---------------------------------------------------------------------------
-// Difficulty banding
-// ---------------------------------------------------------------------------
-
-/**
- * Tag the puzzle with a rough difficulty band based on:
- *   • Path coverage: what fraction of tiles the gold route visits.
- *   • Missing-edge density: fraction of possible edges that are absent.
- *   • Gold–silver gap: a large gap means the gold route is uniquely hard to find.
- *   • Route count: fewer routes = less room for error.
- */
-function calcDifficultyBand(
-  best: PathResult,
-  board: Board,
-  routeCount: number,
-  goldSilverGap: number,
-): DifficultyBand {
-  const totalTiles = board.rows * board.cols;
-  const totalEdges =
-    board.rows * (board.cols - 1) + (board.rows - 1) * board.cols;
-  const missingEdgeCount = board.missingEdges.length;
-
-  const coverage = best.moves / totalTiles; // 0..1, higher = easier (more of board visited)
-  const density = missingEdgeCount / totalEdges; // 0..1, higher = more barriers
-  const gapRatio = best.total > 0 ? goldSilverGap / best.total : 0; // higher = gold harder to identify
-
-  // Score: higher = harder
-  let hardnessScore = 0;
-  if (coverage < 0.4) hardnessScore += 2;
-  else if (coverage < 0.6) hardnessScore += 1;
-
-  if (density > 0.22) hardnessScore += 2;
-  else if (density > 0.14) hardnessScore += 1;
-
-  if (routeCount <= 2) hardnessScore += 2;
-  else if (routeCount <= 5) hardnessScore += 1;
-
-  if (gapRatio > 0.15) hardnessScore += 1;
-
-  if (hardnessScore >= 5) return 'hard';
-  if (hardnessScore >= 2) return 'medium';
-  return 'easy';
 }

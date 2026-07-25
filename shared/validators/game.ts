@@ -27,7 +27,6 @@ export const OutcomeTierSchema = z.enum([
   'unfinished',
 ]);
 
-export const DifficultyBandSchema = z.enum(['easy', 'medium', 'hard']);
 
 export const PuzzleTypeSchema = z.enum(['classic', 'expedition']);
 
@@ -205,7 +204,6 @@ export const PublicGameSchema = z.object({
   board: BoardSchema,
   maxScore: z.number().int().min(1),
   totalCoins: z.number().int().min(1),
-  difficultyBand: DifficultyBandSchema,
   playableAt: z.string().datetime({ offset: true }),
   nextGameAt: z.string().datetime({ offset: true }).nullable(),
   // Present ONLY on archived (non-current) roads, where they power local
@@ -332,7 +330,6 @@ export type Direction = z.infer<typeof DirectionSchema>;
 export type EdgeType = z.infer<typeof EdgeTypeSchema>;
 export type Medal = z.infer<typeof MedalSchema>;
 export type OutcomeTier = z.infer<typeof OutcomeTierSchema>;
-export type DifficultyBand = z.infer<typeof DifficultyBandSchema>;
 export type PuzzleType = z.infer<typeof PuzzleTypeSchema>;
 export type RunEndReason = z.infer<typeof RunEndReasonSchema>;
 

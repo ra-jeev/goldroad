@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { BoardSchema, DifficultyBandSchema } from '../../shared/validators/game'
+import { BoardSchema } from '../../shared/validators/game'
 
 /** Schema for game board endpoints (public game data) */
 const PublicGameRowSchema = z.object({
@@ -8,7 +8,6 @@ const PublicGameRowSchema = z.object({
   boardJson: z.string(),
   maxScore: z.number().int().positive(),
   totalCoins: z.number().int().positive(),
-  difficultyBand: DifficultyBandSchema,
   playableAt: z.string().datetime({ offset: true }),
   nextGameAt: z.string().datetime({ offset: true }).nullable(),
 })
@@ -33,7 +32,6 @@ export function parsePublicGameRow(row: PublicGameRow) {
     board,
     maxScore: parsed.maxScore,
     totalCoins: parsed.totalCoins,
-    difficultyBand: parsed.difficultyBand,
     playableAt: parsed.playableAt,
     nextGameAt: parsed.nextGameAt,
   }

@@ -14,7 +14,6 @@ export default defineEventHandler(async (event) => {
       boardJson: games.boardJson,
       maxScore: games.maxScore,
       totalCoins: games.totalCoins,
-      difficultyBand: games.difficultyBand,
       playableAt: games.playableAt,
       nextGameAt: games.nextGameAt,
     })
@@ -40,7 +39,6 @@ export default defineEventHandler(async (event) => {
       board: classic.board,
       maxScore: classic.maxScore,
       totalCoins: classic.totalCoins,
-      difficultyBand: classic.difficultyBand,
       playableAt: classic.playableAt,
       nextGameAt: classic.nextGameAt,
     } : null,
@@ -50,7 +48,6 @@ export default defineEventHandler(async (event) => {
       board: expedition.board,
       maxScore: expedition.maxScore,
       totalCoins: expedition.totalCoins,
-      difficultyBand: expedition.difficultyBand,
       playableAt: expedition.playableAt,
       nextGameAt: expedition.nextGameAt,
     } : null,

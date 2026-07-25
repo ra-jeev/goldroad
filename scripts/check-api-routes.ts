@@ -200,14 +200,12 @@ async function checkPastGames() {
           .object({
             maxScore: z.number().int().min(1),
             totalCoins: z.number().int().min(1),
-            difficultyBand: z.enum(['easy', 'medium', 'hard']),
           })
           .nullable(),
         expedition: z
           .object({
             maxScore: z.number().int().min(1),
             totalCoins: z.number().int().min(1),
-            difficultyBand: z.enum(['easy', 'medium', 'hard']),
           })
           .nullable(),
       }),

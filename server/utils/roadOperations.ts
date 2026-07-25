@@ -224,7 +224,6 @@ function buildGameRow(
     optimalPathsJson: JSON.stringify(puzzle.optimalPaths),
     maxScore: puzzle.maxScore,
     totalCoins: puzzle.totalCoins,
-    difficultyBand: puzzle.difficultyBand,
     goldSilverGap: puzzle.goldSilverGap,
     active: true,
     current,
