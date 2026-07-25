@@ -142,7 +142,11 @@ export function generatePuzzle(
   baseBlocked = DEFAULT_BLOCKED_EDGES,
   maxAttempts = 20,
 ): GeneratedPuzzle | null {
-  const numBlocked = type === 'expedition' ? baseBlocked - 2 : baseBlocked;
+  // Expedition once blocked two fewer edges, on the reasoning that toll and
+  // bonus edges are themselves constraints. In practice the opener graph made
+  // expedition the slow case for route enumeration — it is the mode with the
+  // most simple paths to walk — so both modes now block the same count.
+  const numBlocked = baseBlocked;
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     // 1. Build tile grid with random coin values
