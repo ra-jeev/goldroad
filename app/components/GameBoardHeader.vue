@@ -165,7 +165,7 @@ function statusLabel(solved: boolean, medal: Medal | null): string {
 .mode-switch {
   display: inline-grid;
   grid-auto-flow: column;
-  grid-auto-columns: minmax(5.4rem, max-content);
+  grid-auto-columns: minmax(5rem, max-content);
   width: fit-content;
   padding: 0.16rem;
   border: 1px solid rgb(var(--color-gold-rgb) / 0.22);
@@ -174,10 +174,13 @@ function statusLabel(solved: boolean, medal: Medal | null): string {
 }
 
 .mode-option {
-  min-height: 2.75rem;
+  /* Height is set here, not by the padding: at 2.75rem the min-height
+     swallowed it entirely. 2.5rem keeps a comfortable target on a pill
+     that is ~110px wide. */
+  min-height: 2.5rem;
   border: 0;
   border-radius: var(--radius-full);
-  padding: 0.32rem 0.72rem;
+  padding: 0.25rem 1rem;
   background: transparent;
   color: rgb(var(--color-gold-rgb) / 0.62);
   font: inherit;
@@ -186,7 +189,7 @@ function statusLabel(solved: boolean, medal: Medal | null): string {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.42rem;
+  gap: 0.4rem;
   cursor: pointer;
   transition:
     background var(--transition-fast),
@@ -205,11 +208,12 @@ function statusLabel(solved: boolean, medal: Medal | null): string {
   cursor: not-allowed;
 }
 
+/* 16px badge: the 20px one read as a heavy blob next to 16px label text. */
 .mode-status {
   position: relative;
-  width: 1.25rem;
-  height: 1.25rem;
-  flex: 0 0 1.25rem;
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 1rem;
   display: inline-grid;
   place-items: center;
   border-radius: var(--radius-circle);
@@ -218,18 +222,19 @@ function statusLabel(solved: boolean, medal: Medal | null): string {
 }
 
 .mode-status svg {
-  width: 0.78rem;
-  height: 0.78rem;
+  width: 0.625rem;
+  height: 0.625rem;
   fill: none;
   stroke: currentColor;
-  stroke-width: 2.3;
+  /* Heavier stroke holds the tick's weight at the smaller badge size. */
+  stroke-width: 2.6;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
 .mode-status-dot {
-  width: 0.25rem;
-  height: 0.25rem;
+  width: 0.22rem;
+  height: 0.22rem;
   border-radius: var(--radius-circle);
   background: currentColor;
   opacity: 0.55;

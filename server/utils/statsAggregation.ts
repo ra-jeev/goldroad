@@ -13,6 +13,7 @@ import type {
   PuzzleType,
   StatsRoadDay,
 } from '../../shared/types/game';
+import { SOLVED_ATTEMPTS_UPPER_BOUND } from '../../shared/types/histogram';
 
 export type SolvedAttemptsRow = {
   gameNo: number;
@@ -29,7 +30,7 @@ export type SolvedAttemptsRow = {
  */
 export function buildSolvedAttemptsDistribution(
   rows: SolvedAttemptsRow[],
-  upperBound = 25,
+  upperBound = SOLVED_ATTEMPTS_UPPER_BOUND,
 ): Record<string, number> {
   const distribution: Record<string, number> = {};
 

@@ -157,7 +157,9 @@ const streakCard = computed(() => {
     headline: current > 0 ? `${current}-day streak` : 'No streak yet',
     detail:
       current > 0
-        ? `Best ${best} day${best === 1 ? '' : 's'}${isBest ? ' · current best' : ''}`
+        ? isBest
+          ? 'Your best run yet'
+          : `Personal best · ${best} day${best === 1 ? '' : 's'}`
         : null,
     prompt:
       current > 0
@@ -204,8 +206,15 @@ const todaySolvedRows = computed(() =>
   }),
 );
 
+// Both road cards label themselves the same way: which road in the eyebrow,
+// what the card has to say about it in the heading.
+const todayEyebrow = computed(() =>
+  todayGameNo.value
+    ? `Today’s road · Road ${todayGameNo.value}`
+    : 'Today’s road',
+);
+
 const todayCard = computed(() => {
-  const gameNo = todayGameNo.value;
   const classic = todayClassicResult.value;
   const solvedRows = todaySolvedRows.value;
   const solvedCount = solvedRows.length;
@@ -213,8 +222,7 @@ const todayCard = computed(() => {
   if (solvedCount === 0) {
     return {
       state: 'unplayed' as const,
-      eyebrow: 'Today’s road',
-      title: gameNo ? `Road ${gameNo} is waiting` : 'Today’s road is waiting',
+      title: 'Waiting to be walked.',
       detail:
         classic && classic.attempts > 0
           ? `The solve is still out there after ${formatRunCount(classic.attempts)}.`
@@ -225,9 +233,11 @@ const todayCard = computed(() => {
   if (solvedCount === 2) {
     return {
       state: 'both-solved' as const,
-      eyebrow: 'Today’s road',
       title: 'Both roads conquered.',
-      detail: 'Share the full day, or come back for tomorrow’s road.',
+      // The countdown line at the foot of this card already says when the
+      // next road lands, so this line only has to make the share feel worth
+      // taking.
+      detail: 'A clean sweep. Worth telling someone.',
     };
   }
 
@@ -238,7 +248,6 @@ const todayCard = computed(() => {
   );
   return {
     state: 'one-solved' as const,
-    eyebrow: 'Today’s road',
     title: `${solvedLabel} conquered.`,
     detail: `${remainingLabel} is waiting when you’re ready.`,
   };
@@ -469,8 +478,10 @@ onMounted(async () => {
       <template v-else>
         <!-- 2 · Today's road: the player's own result and share -->
         <section class="panel panel--today">
-          <p class="eyebrow">{{ todayCard.eyebrow }}</p>
-          <h2 class="today-title">{{ todayCard.title }}</h2>
+          <div class="section-head">
+            <p class="eyebrow">{{ todayEyebrow }}</p>
+            <h2 class="panel-title">{{ todayCard.title }}</h2>
+          </div>
 
           <div v-if="todaySolvedRows.length" class="today-result">
             <div
@@ -484,7 +495,14 @@ onMounted(async () => {
                   :tier="row.medal"
                   class="today-result-medal"
                 />
-                <span v-else aria-hidden="true">✓</span>
+                <svg
+                  v-else
+                  class="today-result-check"
+                  viewBox="0 0 16 16"
+                  aria-hidden="true"
+                >
+                  <path d="m3.5 8.2 2.8 2.8 6.2-6.2" />
+                </svg>
               </span>
               <span class="today-result-copy">
                 <strong>{{ row.label }}</strong>
@@ -537,11 +555,14 @@ onMounted(async () => {
         <section
           v-if="yesterdayGameNo !== null"
           class="panel panel--field"
-          :aria-label="`Global stats for Road ${yesterdayGameNo}, ${formatModeLabel(yesterdayMode)}`"
+          :aria-label="`Yesterday’s road, Road ${yesterdayGameNo}, global stats for ${formatModeLabel(yesterdayMode)}`"
         >
-          <p class="eyebrow">
-            Global stats · Road {{ yesterdayGameNo }}
-          </p>
+          <div class="section-head">
+            <p class="eyebrow">
+              Yesterday’s road · Road {{ yesterdayGameNo }}
+            </p>
+            <h2 class="panel-title">Global stats</h2>
+          </div>
 
           <StatsTriesHistogram
             v-if="showYesterdayHistogram && yesterdayField"
@@ -866,9 +887,17 @@ onMounted(async () => {
   font-size: 1.3rem;
 }
 
+/* Today's and yesterday's cards lead with the same eyebrow + heading block,
+   grouped so the panel's 1rem gap separates sections rather than the lines
+   of a single heading. */
 .section-head {
   display: grid;
   gap: 0.2rem;
+  justify-items: center;
+}
+
+.panel h2.panel-title {
+  font-size: 1.15rem;
 }
 
 /* ── Today panel — centered, with v1's gold result block ──── */
@@ -876,10 +905,6 @@ onMounted(async () => {
   justify-items: center;
   text-align: center;
   gap: 0.8rem;
-}
-
-.panel--today h2.today-title {
-  font-size: 1.15rem;
 }
 
 .today-result {
@@ -918,6 +943,18 @@ onMounted(async () => {
   font-size: 1.8rem;
 }
 
+/* Same glyph as the board header's solved badge — a text "✓" rendered at a
+   different weight per platform and ignored stroke styling. */
+.today-result-check {
+  width: 1.35rem;
+  height: 1.35rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .today-result-copy {
   display: grid;
   gap: 0.12rem;
@@ -944,9 +981,11 @@ onMounted(async () => {
   max-width: 38ch;
 }
 
+/* The one live-updating line on the page, so it outranks the static
+   captions it used to share a size with. */
 .next-road-line {
   margin: 0;
-  font-size: var(--font-size-caption);
+  font-size: var(--font-size-base);
   font-weight: 700;
   color: rgb(var(--color-gold-rgb) / 0.66);
   font-variant-numeric: tabular-nums;
@@ -964,7 +1003,8 @@ onMounted(async () => {
   border-color: rgb(var(--color-gold-rgb) / 0.14);
 }
 
-.panel--field > .eyebrow,
+/* Only this card's eyebrow still needs tightening to fit; yesterday's is now
+   the short "Yesterday's road" and matches today's tracking. */
 .stats-summary-card > .eyebrow {
   letter-spacing: 0.1em;
 }
@@ -1140,7 +1180,6 @@ onMounted(async () => {
 }
 
 @media (max-width: 560px) {
-  .panel--field > .eyebrow,
   .stats-summary-card > .eyebrow {
     letter-spacing: 0.06em;
   }

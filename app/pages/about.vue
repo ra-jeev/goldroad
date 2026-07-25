@@ -109,28 +109,6 @@ onMounted(() => {
         </ul>
       </section>
 
-      <footer class="contact-footer">
-        <p>
-          Follow GoldRoad on Twitter
-          <a
-            href="https://twitter.com/thegoldroad"
-            target="_blank"
-            rel="noreferrer"
-          >@thegoldroad</a>
-        </p>
-        <p>
-          Made with ❤️ &amp; coffee, by
-          <a
-            href="https://twitter.com/ra_jeeves"
-            target="_blank"
-            rel="noreferrer"
-          >@ra_jeeves</a>
-        </p>
-        <p>
-          For feedback, or anything else,
-          <a href="mailto:i.rarsh@gmail.com?subject=[GoldRoad]">get in touch</a>.
-        </p>
-      </footer>
     </div>
   </div>
 </template>
@@ -293,28 +271,6 @@ onMounted(() => {
 
 .privacy-list li::marker {
   color: rgb(var(--color-gold-rgb) / 0.6);
-}
-
-.contact-footer {
-  display: grid;
-  gap: 0.5rem;
-  padding: 1.2rem 0.2rem 0.4rem;
-  text-align: center;
-  color: rgb(var(--color-gold-rgb) / 0.76);
-}
-
-.contact-footer p {
-  margin: 0;
-}
-
-.contact-footer a {
-  color: var(--color-gold);
-  font-weight: 700;
-  text-decoration: none;
-}
-
-.contact-footer a:hover {
-  text-decoration: underline;
 }
 
 @media (max-width: 768px) {

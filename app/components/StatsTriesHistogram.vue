@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { SOLVED_ATTEMPTS_UPPER_BOUND } from '../../shared/types/histogram';
 
 const props = withDefaults(
   defineProps<{
@@ -11,7 +12,7 @@ const props = withDefaults(
   }>(),
   {
     playerAttempts: null,
-    upperBound: 25,
+    upperBound: SOLVED_ATTEMPTS_UPPER_BOUND,
   },
 );
 
@@ -19,7 +20,10 @@ type Bar = {
   key: string;
   value: number;
   highlight: boolean;
-  marker: string | null;
+  /** Scale anchor sat on the axis: only the first and the pooled bar. */
+  axisMarker: string | null;
+  /** The player's own count, floated above their bar's arrow. */
+  youMarker: string | null;
 };
 
 /**
@@ -27,6 +31,12 @@ type Bar = {
  * `${upperBound}+` bucket, heights relative to the busiest bucket, empty
  * buckets kept as hairlines so the field reads as a field. Absolute counts
  * are deliberately never rendered.
+ *
+ * The player's count rides above their bar rather than sitting on the axis.
+ * Bars are only ~7-12px apart, so an axis label anywhere past ~22 collided
+ * with the pooled `${upperBound}+` anchor (v1 had this bug too). Floating it
+ * with the arrow makes a collision impossible at any attempt count, and reads
+ * as part of the "you are here" marker rather than as another axis tick.
  */
 const bars = computed<Bar[]>(() => {
   const overflowKey = `${props.upperBound}+`;
@@ -47,21 +57,29 @@ const bars = computed<Bar[]>(() => {
   return keys.map((key, index) => {
     const count = props.distribution[key] ?? 0;
     const highlight = key === playerKey;
+    const isAnchor = index === 0 || key === overflowKey;
     return {
       key,
       value: count > 0 ? Math.max(6, Math.round((count / maxCount) * 100)) : 1,
       highlight,
-      marker:
-        highlight || index === 0 || key === overflowKey ? key : null,
+      axisMarker: isAnchor ? key : null,
+      // On an anchor bar the axis already shows the count; a second copy
+      // overhead would just repeat it.
+      youMarker: highlight && !isAnchor ? key : null,
     };
   });
 });
 
-const ariaLabel = computed(() =>
-  props.playerAttempts === null
-    ? 'How many tries the field needed, from 1 to 25 and beyond.'
-    : `How many tries the field needed, from 1 to 25 and beyond. Your solve is marked at ${props.playerAttempts >= props.upperBound ? `${props.upperBound}+` : props.playerAttempts}.`,
-);
+const ariaLabel = computed(() => {
+  const scale = `How many tries the field needed, from 1 to ${props.upperBound} and beyond.`;
+  if (props.playerAttempts === null) return scale;
+
+  const marked =
+    props.playerAttempts >= props.upperBound
+      ? `${props.upperBound}+`
+      : props.playerAttempts;
+  return `${scale} Your solve is marked at ${marked}.`;
+});
 </script>
 
 <template>
@@ -74,7 +92,10 @@ const ariaLabel = computed(() =>
         :class="{ 'graph-entry--you': bar.highlight }"
         :style="{ height: `${bar.value}%` }"
       >
-        <span v-if="bar.marker" class="axis-marker">{{ bar.marker }}</span>
+        <span v-if="bar.youMarker" class="you-marker">{{ bar.youMarker }}</span>
+        <span v-if="bar.axisMarker" class="axis-marker">
+          {{ bar.axisMarker }}
+        </span>
       </div>
     </div>
     <div class="graph-label" aria-hidden="true">tries →</div>
@@ -92,9 +113,12 @@ const ariaLabel = computed(() =>
   display: flex;
   align-items: flex-end;
   gap: clamp(3px, 1.2vw, 6px);
-  height: 8rem;
+  /* Padding clears the "you" marker stack above a full-height bar: count,
+     then arrow. Height carries that padding so the bars keep their old
+     6.65rem of travel. */
+  height: 9.15rem;
   margin-top: 0.5rem;
-  padding-top: 1.35rem;
+  padding-top: 2.5rem;
   padding-bottom: 0;
   border-bottom: 1px solid rgb(var(--color-gold-rgb) / 0.4);
 }
@@ -151,6 +175,19 @@ const ariaLabel = computed(() =>
 
 .graph-entry--you .axis-marker {
   color: var(--color-gold-bright);
+}
+
+/* Sits above the arrow, so it can never meet an axis label. */
+.you-marker {
+  position: absolute;
+  bottom: calc(100% + 23px);
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: var(--font-size-caption);
+  font-weight: 800;
+  line-height: 1;
+  color: var(--color-gold-bright);
+  white-space: nowrap;
 }
 
 .graph-label {

@@ -242,6 +242,8 @@ onClickOutside(menuShell, closeMobileMenu);
 
     <slot />
 
+    <AppFooter />
+
     <GameHelpSheet />
     <TutorialDialog />
   </div>
