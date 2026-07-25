@@ -45,11 +45,11 @@ withDefaults(
       aria-hidden="true"
     >
       <path
+        class="toll-rail"
         fill="none"
         stroke="currentColor"
-        stroke-linecap="round"
+        stroke-linecap="butt"
         stroke-width="3.2"
-        stroke-dasharray="3 6"
         vector-effect="non-scaling-stroke"
         :d="orientation === 'h' ? 'M0 4H24M0 20H24' : 'M4 0V24M20 0V24'"
       />
@@ -145,6 +145,18 @@ withDefaults(
   flex-shrink: 0;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
   overflow: visible;
+}
+
+/*
+ * Under non-scaling-stroke the dash pattern is measured in device pixels, not
+ * viewBox units, so it does not scale with the road. Deriving it from
+ * --tile-gap (the road's length) keeps the rail reading as dash / space / dash
+ * in equal thirds however long the road is. Butt caps keep nominal and drawn
+ * lengths identical; round ones added half a stroke width to each end, which
+ * is what made the two dashes come out unequal with a pinched gap.
+ */
+.toll-rail {
+  stroke-dasharray: calc(var(--tile-gap) / 3) calc(var(--tile-gap) / 3);
 }
 
 .road-arrow {
