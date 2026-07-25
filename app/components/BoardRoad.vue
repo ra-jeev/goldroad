@@ -6,7 +6,7 @@ type RoadVisualType = 'open' | Exclude<EdgeType, 'missing'>;
 
 const props = defineProps<{
   type: RoadVisualType;
-  state: 'default' | 'closed' | 'active' | 'traversed';
+  state: 'default' | 'closed' | 'active' | 'traversed' | 'guide';
   traversed: boolean;
   arrowDir: string | null;
   orientation: 'h' | 'v';

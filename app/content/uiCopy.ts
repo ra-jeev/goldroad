@@ -61,6 +61,14 @@ export const UI_COPY = {
     helpTitle: 'How to play',
     hintUsedLabel: (count: number) =>
       count === 0 ? 'Hint' : `Hint used ${count} time${count === 1 ? '' : 's'}`,
+    hintLoading: 'Reading the map…',
+    hintsExhausted: 'No hints left on this road',
+    /**
+     * Shown while a hint route is lit but unwalked. The guide survives a
+     * retry, and without this the board just shows a lit road with nothing
+     * saying it is there to be followed.
+     */
+    followGuide: 'Follow the highlighted road.',
   },
   helpSheet: {
     ariaLabel: 'How to play',

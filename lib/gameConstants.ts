@@ -32,11 +32,17 @@ export const MEDAL_ATTEMPTS = {
 // Hints
 // ---------------------------------------------------------------------------
 
-/** Default hint tokens granted per day. */
-export const HINTS_PER_DAY_DEFAULT = 2
-
-/** Maximum hint tokens per day (after earning extras via Gold solves). */
-export const HINTS_PER_DAY_MAX = 3
+/**
+ * Hint tokens per road, per mode, per day. Classic and Expedition each get
+ * their own allowance on the day's road.
+ *
+ * Hints exist to get a stuck player to the finish, not to gate them out of
+ * it, so the budget is deliberately generous: on a route that typically runs
+ * ~30 tiles, five revealed steps help without handing over the answer. Before
+ * this was enforced the button was uncapped, which made repeated taps a
+ * full solution reveal.
+ */
+export const HINTS_PER_ROAD_MODE = 5
 
 /**
  * Score multiplier penalty when a hint is used.

@@ -16,6 +16,10 @@ const props = withDefaults(
     newRoadReady?: boolean;
     expeditionJustUnlocked: boolean;
     hintsUsed: number;
+    hintsRemaining?: number;
+    hintPending?: boolean;
+    /** A hint route is on the board waiting to be followed. */
+    hasGuidePath?: boolean;
     ended: boolean;
     solved: boolean;
     canRetry: boolean;
@@ -40,6 +44,9 @@ const props = withDefaults(
     showShare: false,
     solveAcknowledgement: null,
     shareHandler: null,
+    hintsRemaining: undefined,
+    hintPending: false,
+    hasGuidePath: false,
   },
 );
 
@@ -103,9 +110,15 @@ const footerMessage = computed<string | null>(() => {
 
   switch (footerState.value) {
     case 'resting-first':
-      return props.status;
-    case 'resting-retry':
-      return UI_COPY.boardFooter.attemptResting(props.attemptNumber);
+      return props.hasGuidePath
+        ? UI_COPY.boardFooter.followGuide
+        : props.status;
+    case 'resting-retry': {
+      const attempt = UI_COPY.boardFooter.attemptResting(props.attemptNumber);
+      return props.hasGuidePath
+        ? `${attempt} · ${UI_COPY.boardFooter.followGuide}`
+        : attempt;
+    }
     case 'failed':
       return props.status;
     // Both solved states carry the next-road ticker — the day's next beat.
@@ -120,13 +133,24 @@ const footerMessage = computed<string | null>(() => {
   }
 });
 
+// Undefined means the caller does not budget hints; treat that as unlimited
+// rather than silently hiding the control.
+const hintsLeft = computed(() => props.hintsRemaining ?? Number.POSITIVE_INFINITY);
+
 const showHintAction = computed(
   () =>
     (footerState.value === 'resting-first' ||
       footerState.value === 'resting-retry' ||
       footerState.value === 'mid-run') &&
     !props.trackingDisabled &&
-    !props.newRoadReady,
+    !props.newRoadReady &&
+    hintsLeft.value > 0,
+);
+
+const hintTitle = computed(() =>
+  props.hintPending
+    ? UI_COPY.boardFooter.hintLoading
+    : UI_COPY.boardFooter.hintUsedLabel(props.hintsUsed),
 );
 // Mid-run keeps Hint reachable but drops its label so nothing competes
 // with the board.
@@ -208,13 +232,32 @@ const displayMessage = computed(
           'ghost',
           'ghost--hint',
           { 'action-button--text': !hintIsQuiet },
+          { 'is-pending': hintPending },
         ]"
-        :disabled="busy"
+        :disabled="busy || hintPending"
         :aria-label="UI_COPY.boardFooter.openHint"
-        :title="UI_COPY.boardFooter.hintUsedLabel(hintsUsed)"
+        :aria-busy="hintPending"
+        :title="hintTitle"
         @click="emit('hint')"
       >
-        <svg viewBox="0 0 24 24" aria-hidden="true">
+        <svg
+          v-if="hintPending"
+          class="hint-spinner"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <circle
+            cx="12"
+            cy="12"
+            r="9"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="3"
+            stroke-linecap="round"
+            stroke-dasharray="14 42"
+          />
+        </svg>
+        <svg v-else viewBox="0 0 24 24" aria-hidden="true">
           <path
             d="M9 18h6m-5-3.5h4m-7.5-4.7a5.5 5.5 0 1 1 9.2 4.05c-.77.68-1.2 1.28-1.34 2.15H9.64c-.14-.87-.57-1.47-1.34-2.15A5.48 5.48 0 0 1 6.5 9.8Z"
             fill="none"
@@ -287,6 +330,29 @@ const displayMessage = computed(
 </template>
 
 <style scoped>
+/* The hint round trip is the one action here that waits on the network, so
+   it gets a spinner rather than a silently dead button. */
+.hint-spinner {
+  animation: hint-spin 900ms linear infinite;
+  transform-origin: center;
+}
+
+.action-button.is-pending {
+  cursor: progress;
+}
+
+@keyframes hint-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hint-spinner {
+    animation-duration: 2400ms;
+  }
+}
+
 .board-footer-card {
   display: grid;
   justify-items: center;

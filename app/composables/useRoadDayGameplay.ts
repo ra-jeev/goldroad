@@ -9,6 +9,7 @@ import {
   parseTileIndex,
 } from '../../shared/utils/puzzleEngine';
 import { calcMedalForAttempt } from '../../lib/gameTiers';
+import { HINTS_PER_ROAD_MODE } from '../../lib/gameConstants';
 import { computeHint } from '../../shared/utils/hints';
 import type {
   CurrentGamesResponse,
@@ -215,6 +216,9 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
   const hintMessage = ref<string | null>(null);
   const hintedTiles = ref<Set<number>>(new Set());
   const guidePath = ref<number[]>([]);
+  // Guards the live hint round trip. Without it a second tap while the first
+  // request is in flight spends a second hint token on the same intent.
+  const hintPending = ref(false);
   const ended = ref(false);
   const loading = ref(false);
   const submitting = ref(false);
@@ -1138,6 +1142,10 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     ) {
       return;
     }
+    // One request at a time, and never more than the day's allowance for
+    // this mode.
+    if (hintPending.value) return;
+    if (hintsUsed.value >= HINTS_PER_ROAD_MODE) return;
     // The live hint endpoint no longer accepts this road once it rotates
     // out; already-visible guide tiles stay, new hints quietly retire.
     if (isLiveRoadExpired()) return;
@@ -1154,6 +1162,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
       if (!optimalPaths?.length) return;
       hint = computeHint(optimalPaths, [...pathHistory.value]);
     } else {
+      hintPending.value = true;
       try {
         const res = await sessionApi.requestHint({
           playerUUID: playerUUID.value,
@@ -1168,6 +1177,8 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
         // A hint fired right at rotation can be rejected server-side once
         // the road is no longer current; retire quietly like the expiry gate.
         return;
+      } finally {
+        hintPending.value = false;
       }
     }
 
@@ -1286,6 +1297,10 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     hintMessage,
     hintedTiles,
     guidePath,
+    hintPending,
+    hintsRemaining: computed(() =>
+      Math.max(0, HINTS_PER_ROAD_MODE - hintsUsed.value),
+    ),
     ended,
     loading,
     submitting,

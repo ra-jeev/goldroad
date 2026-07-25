@@ -19,6 +19,8 @@ const props = defineProps<{
   visitedSet: Set<number>;
   hintedTiles: Set<number>;
   pathHistory: number[];
+  /** Ordered hint route. Ordering is what lets the guide draw as a road. */
+  guidePath?: number[];
   disabled?: boolean;
 }>();
 
@@ -54,12 +56,12 @@ function buildRoadStyle(
 
 const edgeMap = computed(() => buildEdgeMap(props.board));
 
-const traversedEdges = computed(() => {
+/** Walk an ordered tile route into edge key -> arrow direction. */
+function edgeDirections(route: number[], cols: number): Map<string, string> {
   const map = new Map<string, string>();
-  const { cols } = props.board;
-  for (let i = 0; i < props.pathHistory.length - 1; i++) {
-    const a = props.pathHistory[i];
-    const b = props.pathHistory[i + 1];
+  for (let i = 0; i < route.length - 1; i++) {
+    const a = route[i];
+    const b = route[i + 1];
     if (typeof a !== 'number' || typeof b !== 'number') {
       continue;
     }
@@ -71,13 +73,26 @@ const traversedEdges = computed(() => {
     else map.set(key, 'up');
   }
   return map;
-});
+}
+
+const traversedEdges = computed(() =>
+  edgeDirections(props.pathHistory, props.board.cols),
+);
+
+/**
+ * The hint route drawn as a road rather than a scatter of lit tiles. Ten
+ * highlighted tiles say where to end up but not how to get there; the edges
+ * and their arrows are what make the guide followable on a retry.
+ */
+const guideEdges = computed(() =>
+  edgeDirections(props.guidePath ?? [], props.board.cols),
+);
 
 interface RoadData {
   key: string;
   orientation: 'h' | 'v';
   type: RoadVisualType;
-  state: 'default' | 'closed' | 'active' | 'traversed';
+  state: 'default' | 'closed' | 'active' | 'traversed' | 'guide';
   traversed: boolean;
   arrowDir: string | null;
   style: Record<string, string>;
@@ -88,6 +103,7 @@ const allRoads = computed<RoadData[]>(() => {
   const { rows, cols } = props.board;
   const em = edgeMap.value;
   const trav = traversedEdges.value;
+  const guide = guideEdges.value;
 
   for (let row = 0; row < rows; row++) {
     for (let col = 0; col < cols; col++) {
@@ -99,6 +115,9 @@ const allRoads = computed<RoadData[]>(() => {
         if (type !== 'missing') {
           const edgeKey = `${idx}-${rightIdx}`;
           const hit = trav.has(edgeKey);
+          // Already-walked edges keep their traversed look; the guide only
+          // claims the stretch still ahead of the player.
+          const guided = !hit && guide.has(edgeKey);
           const hasVisitedEndpoint =
             props.visitedSet.has(idx) || props.visitedSet.has(rightIdx);
           const isCurrentActiveRoad =
@@ -106,11 +125,13 @@ const allRoads = computed<RoadData[]>(() => {
             (props.currentTileIndex === rightIdx && props.activeSet.has(idx));
           const state = hit
             ? 'traversed'
-            : isCurrentActiveRoad
-              ? 'active'
-              : hasVisitedEndpoint
-                ? 'closed'
-                : 'default';
+            : guided
+              ? 'guide'
+              : isCurrentActiveRoad
+                ? 'active'
+                : hasVisitedEndpoint
+                  ? 'closed'
+                  : 'default';
 
           roads.push({
             key: `h-${idx}`,
@@ -118,7 +139,11 @@ const allRoads = computed<RoadData[]>(() => {
             type,
             state,
             traversed: hit,
-            arrowDir: hit ? trav.get(edgeKey)! : null,
+            arrowDir: hit
+              ? trav.get(edgeKey)!
+              : guided
+                ? guide.get(edgeKey)!
+                : null,
             style: buildRoadStyle(row, col, 'h'),
           });
         }
@@ -132,6 +157,7 @@ const allRoads = computed<RoadData[]>(() => {
         }
         const edgeKey = `${idx}-${downIdx}`;
         const hit = trav.has(edgeKey);
+        const guided = !hit && guide.has(edgeKey);
         const hasVisitedEndpoint =
           props.visitedSet.has(idx) || props.visitedSet.has(downIdx);
         const isCurrentActiveRoad =
@@ -139,11 +165,13 @@ const allRoads = computed<RoadData[]>(() => {
           (props.currentTileIndex === downIdx && props.activeSet.has(idx));
         const state = hit
           ? 'traversed'
-          : isCurrentActiveRoad
-            ? 'active'
-            : hasVisitedEndpoint
-              ? 'closed'
-              : 'default';
+          : guided
+            ? 'guide'
+            : isCurrentActiveRoad
+              ? 'active'
+              : hasVisitedEndpoint
+                ? 'closed'
+                : 'default';
 
         roads.push({
           key: `v-${idx}`,
@@ -151,7 +179,11 @@ const allRoads = computed<RoadData[]>(() => {
           type,
           state,
           traversed: hit,
-          arrowDir: hit ? trav.get(edgeKey)! : null,
+          arrowDir: hit
+            ? trav.get(edgeKey)!
+            : guided
+              ? guide.get(edgeKey)!
+              : null,
           style: buildRoadStyle(row, col, 'v'),
         });
       }

@@ -13,7 +13,7 @@ type RoadVisualType = 'open' | EdgeType;
 withDefaults(
   defineProps<{
     type: RoadVisualType;
-    state?: 'default' | 'closed' | 'active' | 'traversed';
+    state?: 'default' | 'closed' | 'active' | 'traversed' | 'guide';
     traversed?: boolean;
     arrowDir?: string | null;
     orientation?: 'h' | 'v';
@@ -92,7 +92,7 @@ withDefaults(
     </svg>
 
     <svg
-      v-if="traversed && arrowDir"
+      v-if="arrowDir"
       :class="['road-arrow', `road-arrow--${arrowDir}`]"
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 32 32"
@@ -137,6 +137,16 @@ withDefaults(
 .road-glyph--traversed {
   opacity: 1;
   color: var(--color-gold-dark);
+}
+
+/* The stretch of the hint route the player has yet to walk. */
+.road-glyph--guide {
+  opacity: 1;
+  color: var(--color-hint);
+}
+
+.road-glyph--guide .road-arrow {
+  color: var(--color-hint);
 }
 
 .road-icon {

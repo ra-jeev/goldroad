@@ -23,6 +23,9 @@ const {
   moves,
   hintMessage,
   hintedTiles,
+  guidePath,
+  hintPending,
+  hintsRemaining,
   ended,
   loading,
   submitting,
@@ -179,6 +182,7 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
           :active-set="activeSet"
           :visited-set="visited"
           :hinted-tiles="hintedTiles"
+          :guide-path="guidePath"
           :path-history="pathHistory"
           :disabled="ended || busy"
           @select="moveTo"
@@ -197,6 +201,9 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
           secondary-link-label="Back to Past Roads"
           :expedition-just-unlocked="false"
           :hints-used="hintsUsed"
+          :hints-remaining="hintsRemaining"
+          :hint-pending="hintPending"
+          :has-guide-path="guidePath.length > 0"
           :ended="ended"
           :solved="lastSolved"
           :can-retry="ended || moves > 1"
