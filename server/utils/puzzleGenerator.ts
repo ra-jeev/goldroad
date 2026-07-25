@@ -234,6 +234,9 @@ export function generatePuzzle(
       // is scenery rather than a decision.
       const liveEdges = new Uint8Array(tileCount * tileCount);
 
+      // This scan must visit EVERY route, not stop at the first non-tie:
+      // liveEdges needs the full set. Do not "optimise" it with an early
+      // break on route.total !== bestTotal.
       for (const route of allRoutes) {
         const isGold = route.total === bestTotal;
         const path = route.path;
@@ -283,16 +286,23 @@ export function generatePuzzle(
       if (allRoutes.length === 0) continue;
     }
 
-    // Reject boards whose best route barely touches the grid. A six-tile
-    // answer on a 36-tile board reads as a mistake rather than a puzzle.
-    const bestMoves = allRoutes[0]!.moves;
-    if (bestMoves / (rows * cols) < MIN_ROUTE_COVERAGE) continue;
-
     // 7. Extract all optimal (gold) paths
     const maxScore = allRoutes[0]!.total;
     const optimalPaths = allRoutes
       .filter((r) => r.total === maxScore)
       .map((r) => r.path);
+
+    // Reject boards whose winning route barely touches the grid. A six-tile
+    // answer on a 36-tile board reads as a mistake rather than a puzzle.
+    //
+    // Every tied-optimal path is a winning solution the player can be shown,
+    // so the floor has to hold for the SHORTEST of them, not just for
+    // allRoutes[0]. Ties can differ in tile count even at equal score.
+    let shortestWinner = Infinity;
+    for (const path of optimalPaths) {
+      if (path.length < shortestWinner) shortestWinner = path.length;
+    }
+    if (shortestWinner / (rows * cols) < MIN_ROUTE_COVERAGE) continue;
 
     // 8. Compute analytics / difficulty metadata
     const silverRoute: PathResult | undefined = allRoutes.find(

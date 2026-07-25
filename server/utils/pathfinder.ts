@@ -7,8 +7,15 @@
  *   • The hint endpoint (to compute the stored optimalPaths for a given game).
  *
  * Complexity note:
- *   For a 6×6 board the search space is bounded and completes in <50 ms.
- *   Each BFS job carries only a Set<string> of visited tile ids and a path
+ *   This enumerates EVERY simple route, so cost tracks the number of simple
+ *   paths in the graph, not the board size. Measured on 6×6 boards: 9,000 to
+ *   15,000+ routes and 55 ms to 13.5 s for a single call, with expedition the
+ *   slow case because it blocks fewer edges and so leaves a more open graph.
+ *   An earlier note here claimed "<50 ms", which is not true of the tail.
+ *   There is no job cap or time budget; callers that run this in a request
+ *   path need to add one.
+ *
+ *   Each BFS job carries only a Set<number> of visited tile ids and a path
  *   array, not a clone of the full board — significantly lighter than v1.
  */
 
