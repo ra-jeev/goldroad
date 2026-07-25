@@ -286,8 +286,10 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
 }
 
 @media (max-width: 980px) {
+  /* Shares the token --tile-size derives from, so the board's computed width
+     always matches the space this padding actually leaves. */
   .shell {
-    padding: 0.75rem;
+    padding: var(--board-margin);
   }
 }
 </style>

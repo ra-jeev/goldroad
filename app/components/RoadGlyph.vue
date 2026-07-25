@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import type { EdgeType } from '../../shared/types/game';
 
+/*
+ * Toll and bonus roads are drawn as two parallel rails inside the road's
+ * `--road-thickness` band. The rails sit at 4/24 and 20/24 of the band rather
+ * than 6/18: with a non-scaling 3.2px stroke, the old positions left barely
+ * 2px of dark space between the rails on a phone, so the pair merged into one
+ * thick line and the toll/bonus distinction disappeared.
+ */
 type RoadVisualType = 'open' | EdgeType;
 
 withDefaults(
@@ -44,7 +51,7 @@ withDefaults(
         stroke-width="3.2"
         stroke-dasharray="3 6"
         vector-effect="non-scaling-stroke"
-        :d="orientation === 'h' ? 'M0 6H24M0 18H24' : 'M6 0V24M18 0V24'"
+        :d="orientation === 'h' ? 'M0 4H24M0 20H24' : 'M4 0V24M20 0V24'"
       />
     </svg>
 
@@ -62,7 +69,7 @@ withDefaults(
         stroke-linecap="round"
         stroke-width="3.2"
         vector-effect="non-scaling-stroke"
-        :d="orientation === 'h' ? 'M0 6H24M0 18H24' : 'M6 0V24M18 0V24'"
+        :d="orientation === 'h' ? 'M0 4H24M0 20H24' : 'M4 0V24M20 0V24'"
       />
     </svg>
 

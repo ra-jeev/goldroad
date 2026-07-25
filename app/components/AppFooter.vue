@@ -32,7 +32,7 @@
     </p>
     <p>
       For feedback, or anything else,
-      <a href="mailto:i.rarsh@gmail.com?subject=[GoldRoad]">get in touch</a>.
+      <a href="mailto:hello@playgoldroad.com?subject=[GoldRoad]">get in touch</a>.
     </p>
   </footer>
 </template>

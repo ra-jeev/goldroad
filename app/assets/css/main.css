@@ -56,9 +56,15 @@
 
   /* ── Board dimensions ─────────────────────────────────────── */
   --tile-size: 50px;
+  /* Road length. Fixed across every viewport: it decides how much of the
+     toll road's dash pattern is visible, and a short road renders too few
+     dash cycles to read as dashed at all. Tiles absorb the width instead. */
   --tile-gap: 14px;
   --tile-border: 3px;
   --road-thickness: 12px;
+  /* Breathing room the board leaves at the viewport edge. The board pages'
+     .shell padding reads this too, so the tile math can rely on it. */
+  --board-margin: 12px;
 
   /* Interactive controls and icons keep the same physical presence across
      shared surfaces. Mobile navigation may expose fewer controls, but never
@@ -273,11 +279,22 @@ body.mode-expedition .hero-card {
 
 @media (max-width: 760px) {
   :root {
-    /* A six-column road now uses the available phone width. The lower clamp
-       still fits a 320px viewport; ordinary iPhones reach 48–50px tiles. */
-    --tile-size: clamp(40px, calc((100vw - 84px) / 6), 50px);
-    --tile-gap: clamp(9px, 2.8vw, 12px);
-    --road-thickness: clamp(10px, 2.8vw, 12px);
+    /* Roads and margins are fixed, so the tiles take whatever is left of the
+       six-column run. The lower clamp still fits a 320px viewport; ordinary
+       iPhones reach 47-50px tiles. */
+    --tile-size: clamp(
+      38px,
+      calc((100vw - 2 * var(--board-margin) - 5 * var(--tile-gap)) / 6),
+      50px
+    );
+  }
+}
+
+/* Below the iPhone SE width, buy back board width from the page edge rather
+   than from the tiles. */
+@media (max-width: 374px) {
+  :root {
+    --board-margin: 8px;
   }
 }
 
