@@ -21,6 +21,14 @@ function onKeydown(event: KeyboardEvent) {
   if (event.key === 'Escape') {
     event.preventDefault();
     closeTutorial();
+    return;
+  }
+
+  // Arrow/WASD walks the practice road. Bound at window level, like the live
+  // board, so it works without the player first having to tab onto a tile —
+  // the dialog opens with focus on its heading.
+  if (step.value === 'practice') {
+    practice.handleDirectionKey(event);
   }
 }
 
@@ -47,11 +55,12 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div
-    v-if="isTutorialOpen"
-    class="tutorial-backdrop"
-    @click.self="closeTutorial"
-  >
+  <!--
+    Deliberately no backdrop-click close. The practice step holds a part-walked
+    road, and reopening restarts it from scratch, so a stray tap outside would
+    silently throw away the player's run. Escape and the Close button remain.
+  -->
+  <div v-if="isTutorialOpen" class="tutorial-backdrop">
     <section
       ref="dialog"
       class="tutorial-panel"
@@ -192,6 +201,7 @@ onBeforeUnmount(() => {
           :active-set="practice.activeSet.value"
           :visited-set="practice.visited.value"
           :hinted-tiles="practice.hintedTiles.value"
+          :guide-path="practice.guidePath.value"
           :path-history="practice.pathHistory.value"
           :disabled="practice.ended.value"
           @select="practice.moveTo"

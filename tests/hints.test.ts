@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computeHint } from '../shared/utils/hints';
+import { computeHint, guideHighlightTiles } from '../shared/utils/hints';
 
 describe('computeHint', () => {
   it('returns the next tile when the player path is a valid prefix of the optimal path', () => {
@@ -168,5 +168,35 @@ describe('computeHint', () => {
         guidePath: [0, 4, 8, 12],
       });
     });
+  });
+});
+
+describe('guideHighlightTiles', () => {
+  const START = 0;
+
+  it('marks only the next tile while the player is on the guide', () => {
+    // Walked 0 -> 1 correctly; guide runs 0 -> 1 -> 2.
+    expect(guideHighlightTiles([0, 1, 2], [0, 1], START)).toEqual([2]);
+  });
+
+  it('never marks the start tile', () => {
+    expect(guideHighlightTiles([0, 1], [0], START)).toEqual([1]);
+    expect(guideHighlightTiles([0], [0], START)).toEqual([]);
+  });
+
+  it('still marks the correct tile after the player reached it out of order', () => {
+    // The guide wanted 0 -> 5 first. The player went 0 -> 1 -> 2 -> 5, so tile
+    // 5 is in their history but was reached the wrong way round. The hint says
+    // "paths diverged", so tile 5 has to stay lit or nothing on the board
+    // shows where the route actually broke.
+    expect(guideHighlightTiles([0, 5], [0, 1, 2, 5], START)).toEqual([5]);
+  });
+
+  it('marks nothing once the walked route matches the guide exactly', () => {
+    expect(guideHighlightTiles([0, 1, 2], [0, 1, 2], START)).toEqual([]);
+  });
+
+  it('drops the shared prefix but keeps everything after the divergence', () => {
+    expect(guideHighlightTiles([0, 1, 7, 8], [0, 1, 4], START)).toEqual([7, 8]);
   });
 });

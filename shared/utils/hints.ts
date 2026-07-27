@@ -17,6 +17,24 @@
 
 import type { HintResult } from '../../shared/types/game';
 
+/**
+ * Which guide tiles still need a marker on the board.
+ *
+ * Only the stretch the player has walked *in the guide's own order* is
+ * redundant. Anything past that point must stay lit even if the player
+ * happens to have stepped on it already out of order — that tile is exactly
+ * what a "paths diverged" hint is pointing at, and suppressing it left the
+ * player reading "you went wrong here" with nothing marked on the board.
+ */
+export function guideHighlightTiles(
+  guidePath: number[],
+  pathHistory: number[],
+  startTile: number,
+): number[] {
+  const shared = getCommonPrefixLength(guidePath, pathHistory);
+  return guidePath.slice(shared).filter((tileIndex) => tileIndex !== startTile);
+}
+
 export function computeHint(
   optimalPaths: number[][],
   pathHistory: number[],

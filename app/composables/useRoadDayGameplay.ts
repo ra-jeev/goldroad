@@ -10,7 +10,7 @@ import {
 } from '../../shared/utils/puzzleEngine';
 import { calcMedalForAttempt } from '../../lib/gameTiers';
 import { HINTS_PER_ROAD_MODE } from '../../lib/gameConstants';
-import { computeHint } from '../../shared/utils/hints';
+import { computeHint, guideHighlightTiles } from '../../shared/utils/hints';
 import type {
   CurrentGamesResponse,
   Direction,
@@ -396,11 +396,11 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
       return;
     }
 
-    const traversed = new Set(pathHistory.value);
     hintedTiles.value = new Set(
-      guidePath.value.filter(
-        (tileIndex) =>
-          tileIndex !== game.value?.board.start && !traversed.has(tileIndex),
+      guideHighlightTiles(
+        guidePath.value,
+        pathHistory.value,
+        game.value.board.start,
       ),
     );
   }

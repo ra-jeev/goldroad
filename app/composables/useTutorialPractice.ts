@@ -4,7 +4,9 @@ import {
   getActiveNeighbors,
   getEdgeType,
 } from '../../shared/utils/puzzleEngine';
-import type { HintResult } from '../../shared/types/game';
+import type { Direction, HintResult } from '../../shared/types/game';
+import { guideHighlightTiles } from '../../shared/utils/hints';
+import { getNeighborId, parseTileIndex } from '../../shared/utils/puzzleEngine';
 import { UI_COPY } from '../content/uiCopy';
 import { TUTORIAL_PRACTICE_GAME } from '../content/tutorialContent';
 import { buildInitialTileStates } from '../utils/boardUtils';
@@ -58,6 +60,9 @@ function computeTutorialHint(
 }
 
 export function useTutorialPractice() {
+  // The practice road is the first board most players ever touch, so it
+  // should sound like the real thing rather than being silently different.
+  const soundEffects = useSoundEffects();
   const board = TUTORIAL_PRACTICE_GAME.board;
   const initialStatus = UI_COPY.runtime.preRun;
   const tiles = ref(buildInitialTileStates(board));
@@ -65,6 +70,9 @@ export function useTutorialPractice() {
   const visited = ref<Set<number>>(new Set());
   const activeSet = ref<Set<number>>(new Set());
   const hintedTiles = ref<Set<number>>(new Set());
+  // Ordered, so the board can draw the guide as a road with arrows rather
+  // than a scatter of lit tiles — same contract as the live board.
+  const guidePath = ref<number[]>([]);
   const pathHistory = ref<number[]>([]);
   const score = ref(0);
   const moves = ref(1);
@@ -92,12 +100,10 @@ export function useTutorialPractice() {
     }
   }
 
-  function syncGuideHighlight(guidePath: number[] = []) {
-    const traversed = new Set(pathHistory.value);
+  function syncGuideHighlight(nextGuidePath?: number[]) {
+    if (nextGuidePath) guidePath.value = [...nextGuidePath];
     hintedTiles.value = new Set(
-      guidePath.filter(
-        (tileIndex) => tileIndex !== board.start && !traversed.has(tileIndex),
-      ),
+      guideHighlightTiles(guidePath.value, pathHistory.value, board.start),
     );
   }
 
@@ -115,6 +121,7 @@ export function useTutorialPractice() {
         ? 'Fresh road, same rules. Hint is there if you want a nudge.'
         : initialStatus;
     hintMessage.value = null;
+    guidePath.value = [];
     syncGuideHighlight();
 
     const edgeMap = buildEdgeMap(board);
@@ -153,7 +160,10 @@ export function useTutorialPractice() {
 
   function moveTo(tileIndex: number) {
     if (ended.value || currentTileIndex.value === null) return;
-    if (!activeSet.value.has(tileIndex)) return;
+    if (!activeSet.value.has(tileIndex)) {
+      soundEffects.playDeniedMove();
+      return;
+    }
 
     const edgeMap = buildEdgeMap(board);
     const edgeType = getEdgeType(currentTileIndex.value, tileIndex, edgeMap);
@@ -167,7 +177,10 @@ export function useTutorialPractice() {
     score.value += (board.tiles[tileIndex] ?? 0) + modifier;
     moves.value += 1;
     hintMessage.value = null;
+    // The guide survives the move and simply shrinks as the player walks it,
+    // matching the live board.
     syncGuideHighlight();
+    soundEffects.playMove();
 
     if (tileIndex === board.end) {
       ended.value = true;
@@ -176,6 +189,8 @@ export function useTutorialPractice() {
       status.value = solved.value
         ? 'Solved. You are ready for today\'s road.'
         : `You reached the finish with ${score.value}, but the target is ${maxScore.value}. Try another route.`;
+      if (solved.value) soundEffects.playSolve();
+      else soundEffects.playDeadEnd();
       syncTileStates();
       return;
     }
@@ -194,12 +209,44 @@ export function useTutorialPractice() {
       ended.value = true;
       status.value =
         'Dead end. Walk it again to find the way through.';
+      soundEffects.playDeadEnd();
       syncTileStates();
       return;
     }
 
     updateInRunStatus();
     syncTileStates();
+  }
+
+  /**
+   * Arrow/WASD movement. The live board owns an equivalent handler, but it is
+   * gated off while an overlay is open, so the practice board needs its own
+   * or the tutorial teaches a control that appears not to work.
+   */
+  function handleDirectionKey(event: KeyboardEvent): boolean {
+    if (ended.value || currentTileIndex.value === null) return false;
+
+    const directionMap: Record<string, Direction> = {
+      ArrowUp: 'top',
+      ArrowRight: 'right',
+      ArrowDown: 'bottom',
+      ArrowLeft: 'left',
+      w: 'top',
+      d: 'right',
+      s: 'bottom',
+      a: 'left',
+    };
+
+    const direction = directionMap[event.key];
+    if (!direction) return false;
+
+    const [row, col] = parseTileIndex(currentTileIndex.value, board.cols);
+    const neighbor = getNeighborId(row, col, direction, board.rows, board.cols);
+    if (neighbor === null) return false;
+
+    event.preventDefault();
+    moveTo(neighbor);
+    return true;
   }
 
   function requestHint() {
@@ -230,6 +277,7 @@ export function useTutorialPractice() {
     visited,
     activeSet,
     hintedTiles,
+    guidePath,
     pathHistory,
     score,
     moves,
@@ -244,6 +292,7 @@ export function useTutorialPractice() {
     restartPractice,
     retryPractice,
     moveTo,
+    handleDirectionKey,
     requestHint,
   };
 }

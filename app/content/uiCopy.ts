@@ -194,11 +194,10 @@ export const UI_COPY = {
       `You reached the finish ${delta} over the target.`,
     deadEnd: 'Dead end. Walk it again to find the way through.',
     classicOverTarget: 'This route may not lead to an exact finish.',
-    hintNextStep:
-      'Hint applied. The highlighted guide shows the next correct move.',
-    hintDiverged:
-      'Hint applied. The target route broke at the highlighted turn. Try again and follow the highlighted branch.',
-    hintAlreadySolved:
-      'Hint applied. You already found the best route; follow the highlighted road.',
+    // The board lights up the moment a hint lands, so the copy does not need
+    // to announce that a hint was applied — only what to do with it.
+    hintNextStep: 'The highlighted tile is your next move.',
+    hintDiverged: 'Paths diverged. Try again and follow the highlighted path.',
+    hintAlreadySolved: 'You already found the best route.',
   },
 } as const;
