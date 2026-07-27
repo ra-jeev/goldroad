@@ -102,7 +102,7 @@ function onV1DismissWelcome() {
 
 watchEffect(() => {
   currentRoadLabel.value = game.value
-    ? `Daily Road #${game.value.gameNo}`
+    ? `GoldRoad #${game.value.gameNo}`
     : null;
 });
 

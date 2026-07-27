@@ -144,7 +144,7 @@ const calendarMonths = computed<CalendarMonth[]>(() => {
         gameNo: game?.gameNo ?? null,
         marks,
         label: game
-          ? `Road ${game.gameNo}, ${formatDate(game.playableAt)}. ${describeModeMark('Classic', marks.classic)}. ${describeModeMark('Expedition', marks.expedition)}.`
+          ? `GoldRoad #${game.gameNo}, ${formatDate(game.playableAt)}. ${describeModeMark('Classic', marks.classic)}. ${describeModeMark('Expedition', marks.expedition)}.`
           : null,
       });
     }

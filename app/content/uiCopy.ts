@@ -8,10 +8,10 @@ export const UI_COPY = {
       exit: 'Finish: flag',
     },
     info: {
-      openRoad: 'Open road',
-      missingRoad: 'Missing road',
-      tollCost: 'Toll cost',
-      roadBonus: 'Road bonus',
+      // The glyph beside each label already shows which lane it is and the
+      // value follows it, so the label only has to name the modifier.
+      tollCost: 'Toll',
+      roadBonus: 'Bonus',
     },
   },
   boardHeader: {
@@ -63,13 +63,12 @@ export const UI_COPY = {
     hintUsedLabel: (remaining: number) =>
       remaining === 1 ? '1 hint left' : `${remaining} hints left`,
     hintLoading: 'Reading the map…',
-    hintsExhausted: 'No hints left on this road',
     /**
      * Shown while a hint route is lit but unwalked. The guide survives a
      * retry, and without this the board just shows a lit road with nothing
      * saying it is there to be followed.
      */
-    followGuide: 'Follow the highlighted road.',
+    followGuide: 'Follow the highlighted path.',
   },
   helpSheet: {
     ariaLabel: 'How to play',
@@ -85,7 +84,7 @@ export const UI_COPY = {
           'Your score changes as you move from tile to tile.',
           'You cannot revisit a tile during the same try.',
           'Only up, down, left, and right moves are legal.',
-          "Some roads simply aren't there. Where there's no road, there's no way through.",
+          "Some lanes simply aren't there. Where there's no lane, there's no way through.",
           'You may need to leave some tiles out. Board total shows the value of every tile, not the route you must take.',
         ],
       },
@@ -175,7 +174,7 @@ export const UI_COPY = {
     title: 'Welcome back.',
     body: [
       "GoldRoad got a full rewrite. Road numbering restarted, and old accounts and history didn't carry over. That's a clean break, not a bug.",
-      "There's also something new: a whole second mode called Expedition, with toll and bonus roads that change how you score.",
+      "There's also something new: a whole second mode called Expedition, with toll and bonus lanes that change how you score.",
     ],
     primaryCta: "Show me what's new",
     secondaryCta: "Skip to today's road",

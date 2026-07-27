@@ -210,8 +210,8 @@ const todaySolvedRows = computed(() =>
 // what the card has to say about it in the heading.
 const todayEyebrow = computed(() =>
   todayGameNo.value
-    ? `Today’s road · Road ${todayGameNo.value}`
-    : 'Today’s road',
+    ? `Today · GoldRoad #${todayGameNo.value}`
+    : 'Today',
 );
 
 const todayCard = computed(() => {
@@ -298,10 +298,10 @@ const yesterdayHeadline = computed(() => {
   if (!field) return null;
 
   if (field.plays <= 0) {
-    return `No community results were recorded for Road ${gameNo}.`;
+    return `No community results were recorded for GoldRoad #${gameNo}.`;
   }
 
-  return `${field.solveRate}% of the roadgoers who walked down Road ${gameNo} reached the finish.`;
+  return `${field.solveRate}% of the roadgoers who walked down GoldRoad #${gameNo} reached the finish.`;
 });
 
 const yesterdayPlayerLine = computed(() => {
@@ -555,11 +555,11 @@ onMounted(async () => {
         <section
           v-if="yesterdayGameNo !== null"
           class="panel panel--field"
-          :aria-label="`Yesterday’s road, Road ${yesterdayGameNo}, global stats for ${formatModeLabel(yesterdayMode)}`"
+          :aria-label="`Yesterday, GoldRoad #${yesterdayGameNo}, global stats for ${formatModeLabel(yesterdayMode)}`"
         >
           <div class="section-head">
             <p class="eyebrow">
-              Yesterday’s road · Road {{ yesterdayGameNo }}
+              Yesterday · GoldRoad #{{ yesterdayGameNo }}
             </p>
             <h2 class="panel-title">Global stats</h2>
           </div>

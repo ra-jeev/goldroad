@@ -120,7 +120,7 @@ export function buildRoadResultShareText(
   text: string;
   url: string;
 } {
-  const title = `GoldRoad Road ${input.gameNo} · ${formatModeLabel(input.puzzleType)}`;
+  const title = `GoldRoad #${input.gameNo} · ${formatModeLabel(input.puzzleType)}`;
   const resultLine = formatResultLine(input);
   const timeLine =
     input.solved && input.solveTimeMs !== null
@@ -132,8 +132,7 @@ export function buildRoadResultShareText(
   return {
     title,
     text: [
-      'GoldRoad',
-      `Road ${input.gameNo} · ${formatModeLabel(input.puzzleType)}`,
+      `GoldRoad #${input.gameNo} · ${formatModeLabel(input.puzzleType)}`,
       resultLine,
       timeLine,
       hintLine,
@@ -172,13 +171,12 @@ export function buildDayResultShareText(
   text: string;
   url: string;
 } {
-  const title = `GoldRoad Road ${input.gameNo} · Full day`;
+  const title = `GoldRoad #${input.gameNo} · Full day`;
 
   return {
     title,
     text: [
-      'GoldRoad',
-      `Road ${input.gameNo} · Full day`,
+      `GoldRoad #${input.gameNo} · Full day`,
       formatDayModeLine('classic', input.classic),
       formatDayModeLine('expedition', input.expedition),
       "Walk today's road:",

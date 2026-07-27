@@ -46,8 +46,8 @@ export const TUTORIAL_LESSONS: TutorialLesson[] = [
   },
   {
     id: 'open-road',
-    title: 'Open roads',
-    body: 'You can move up, down, left, or right when there is a road between neighboring tiles.',
+    title: 'Open lanes',
+    body: 'You can move up, down, left, or right when there is a lane between neighboring tiles.',
     visual: {
       fromValue: 3,
       toValue: 4,
@@ -56,8 +56,8 @@ export const TUTORIAL_LESSONS: TutorialLesson[] = [
   },
   {
     id: 'missing-road',
-    title: 'Missing roads',
-    body: 'An empty gap means there is no road. You cannot move between those tiles.',
+    title: 'Missing lanes',
+    body: 'An empty gap means there is no lane. You cannot move between those tiles.',
     visual: {
       fromValue: 2,
       toValue: 5,
@@ -66,8 +66,8 @@ export const TUTORIAL_LESSONS: TutorialLesson[] = [
   },
   {
     id: 'toll-road',
-    title: 'Toll roads',
-    body: 'Two dashed rails mark a toll road. If you cross it, you pay the toll shown above the board.',
+    title: 'Toll lanes',
+    body: 'Two dashed rails mark a toll lane. If you cross it, you pay the toll shown above the board.',
     visual: {
       fromValue: 6,
       toValue: 4,
@@ -76,8 +76,8 @@ export const TUTORIAL_LESSONS: TutorialLesson[] = [
   },
   {
     id: 'bonus-road',
-    title: 'Bonus roads',
-    body: 'Two solid rails mark a bonus road. If you cross it, you get the bonus shown above the board.',
+    title: 'Bonus lanes',
+    body: 'Two solid rails mark a bonus lane. If you cross it, you get the bonus shown above the board.',
     visual: {
       fromValue: 1,
       toValue: 3,
