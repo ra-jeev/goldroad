@@ -85,6 +85,20 @@ export const TUTORIAL_LESSONS: TutorialLesson[] = [
     },
   },
   {
+    // Placed before the hint lesson on purpose: knowing a wrong turn costs
+    // nothing is what makes a first-timer willing to experiment, and a hint
+    // is the fallback for when experimenting has not worked.
+    id: 'retry',
+    title: 'Walk it again',
+    body: 'A road never locks you out. Dead end, or finished off target? Start over from the footprints as often as you like — every try is counted.',
+    visual: {
+      fromValue: 5,
+      toValue: 3,
+      edgeType: 'open',
+      isStart: true,
+    },
+  },
+  {
     id: 'hint',
     title: 'Use a hint',
     body: 'If you get stuck, Hint highlights your next useful move.',

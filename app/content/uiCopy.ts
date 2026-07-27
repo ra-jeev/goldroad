@@ -93,7 +93,7 @@ export const UI_COPY = {
         title: 'Tools',
         items: [
           'Try again restarts the same road. There is no limit on tries, but each one adds to your try count.',
-          'Each mode gives you 5 hints a day. A hint lights up the next stretch of a guide route to follow.',
+          'Classic and Expedition get 5 hints each, every day. A hint lights up the next stretch of a guide route to follow.',
           'Hints never reduce your score or medal.',
           'Solving Classic unlocks Expedition for the day when one is available.',
         ],
