@@ -250,7 +250,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
   const maxScore = computed(() => game.value?.maxScore ?? 0);
   const totalCoins = computed(() => game.value?.totalCoins ?? 0);
   const roadHeading = computed(() =>
-    game.value ? `GoldRoad #${game.value.gameNo}` : 'GoldRoad …',
+    game.value ? `Day #${game.value.gameNo}` : 'Day …',
   );
   /**
    * Has the loaded road day's given mode ever been solved?

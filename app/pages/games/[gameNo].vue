@@ -73,7 +73,7 @@ const formattedDate = computed(() => {
 
 watchEffect(() => {
   currentRoadLabel.value = game.value
-    ? `GoldRoad #${game.value.gameNo} · ${formattedDate.value}`
+    ? `Day #${game.value.gameNo} · ${formattedDate.value}`
     : null;
 });
 
