@@ -829,7 +829,7 @@ The v2 UI is visually good; these decisions are about behavior and information r
   - kept production unseeded and undeployed so its eventual Road 1 is anchored to the TLD launch date; staging was safely bootstrapped with Road 1 current plus Roads 2–6
   - deployed Worker `goldroad-v2-staging` at `https://v2.playgoldroad.com` with the UTC-midnight cron, independent rate-limit namespace, observability, and custom domain registered
   - added explicit environment-aware migrate/deploy commands and a bootstrap command that rejects a non-empty or mismatched database target
-  - legacy `/sign-in` now permanently redirects to `/about`; `www.playgoldroad.com` has a canonical-host redirect ready for cutover
+  - legacy `/sign-in` now permanently redirects to `/about`; `www.playgoldroad.com` → apex is a Cloudflare redirect rule, so www never reaches the Worker (an earlier in-app middleware doing this was removed unused)
   - staging is protected by page-level `noindex, nofollow` and a blocking dynamic `robots.txt`; canonical and social image URLs use the request origin
   - `pnpm typecheck`, `pnpm test` (113/113), `pnpm build`, Wrangler staging dry-run, and `pnpm test:deployed:staging` pass; the live board/tutorial, Stats, and Past Roads were browser-smoked without console warnings/errors
   - staging D1 verification: 12 game rows across six road days, exactly two current rows; production D1 verification: zero game rows

@@ -7,9 +7,8 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "goldroad-local",
-	"account_id": "e94e51718248bf1c5c9fd3eb4db6a7a7",
 	"main": "./.output/server/index.mjs",
-	"compatibility_date": "2026-07-14",
+	"compatibility_date": "2026-07-29",
 	"assets": {
 		"binding": "ASSETS",
 		"directory": "./.output/public/"
@@ -81,6 +80,14 @@
 		"production": {
 			"name": "goldroad-v2-production",
 			"workers_dev": false,
+			// Apex only. www is a proxied DNS record plus a Cloudflare redirect
+			// rule, so www traffic never reaches the Worker.
+			"routes": [
+				{
+					"pattern": "playgoldroad.com",
+					"custom_domain": true
+				}
+			],
 			"triggers": {
 				"crons": [
 					"0 0 * * *"
