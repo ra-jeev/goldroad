@@ -24,10 +24,10 @@ onMounted(() => {
         </p>
       </header>
 
-      <section class="updates-panel" aria-label="What's new">
+      <section class="updates-panel" aria-label="What’s new">
         <div class="updates-head">
           <p class="eyebrow">Updates</p>
-          <h2>What's new</h2>
+          <h2>What’s new</h2>
         </div>
 
         <div class="updates-timeline">
@@ -86,7 +86,7 @@ onMounted(() => {
         <ul class="privacy-list">
           <li>
             Your personal history (streaks, medals, and past roads) lives
-            only on your device, in your browser's local storage. Nothing
+            only on your device, in your browser’s local storage. Nothing
             that identifies you ever leaves it.
           </li>
           <li>
@@ -95,7 +95,7 @@ onMounted(() => {
             generated that id, and nothing else that identifies you. Each
             row records whether you started or solved. A solved row also holds
             your final try number, hints used, and solve time for that
-            road. These are the raw rows the stats page's community numbers
+            road. These are the raw rows the stats page’s community numbers
             are built from, not a separate aggregated copy.
           </li>
           <li>

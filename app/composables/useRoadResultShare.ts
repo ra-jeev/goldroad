@@ -136,7 +136,7 @@ export function buildRoadResultShareText(
       resultLine,
       timeLine,
       hintLine,
-      "Walk today's road:",
+      'Walk today’s road:',
       canonicalHomepage(canonicalOrigin),
     ]
       .filter((line): line is string => Boolean(line))
@@ -179,7 +179,7 @@ export function buildDayResultShareText(
       `GoldRoad Day #${input.gameNo} · Full day`,
       formatDayModeLine('classic', input.classic),
       formatDayModeLine('expedition', input.expedition),
-      "Walk today's road:",
+      'Walk today’s road:',
       canonicalHomepage(canonicalOrigin),
     ].join('\n'),
     url: canonicalHomepage(canonicalOrigin),

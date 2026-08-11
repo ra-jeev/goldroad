@@ -35,7 +35,7 @@ describe('road result sharing', () => {
     );
     expect(result.url).toBe('https://v2.example.test/');
     expect(result.text).toContain(
-      "Walk today's road:\nhttps://v2.example.test/",
+      "Walk today’s road:\nhttps://v2.example.test/",
     );
     expect(result.text).not.toContain('/games/12');
   });
@@ -47,7 +47,7 @@ describe('road result sharing', () => {
       expedition: { attempts: 2, solved: true, solveTimeMs: 20_000 },
     });
     expect(result.url).toBe('https://playgoldroad.com/');
-    expect(result.text).toContain("Walk today's road:");
+    expect(result.text).toContain("Walk today’s road:");
     expect(result.text).not.toContain('/games/12');
   });
 });
