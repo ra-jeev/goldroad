@@ -325,6 +325,11 @@ const displayMessage = computed(
       >
         {{ UI_COPY.boardFooter.switchToExpedition }}
       </button>
+
+      <!-- Callers with their own forward action (the tutorial's "walk today's
+           road") put it here, so it shares the row with retry rather than
+           opening a second row of buttons below the footer. -->
+      <slot name="actions" />
     </div>
 
   </section>

@@ -12,6 +12,9 @@ export type TutorialLesson = {
     isStart?: boolean;
     isEnd?: boolean;
     isHinted?: boolean;
+    /** Render the footer's Try again control instead of a mini board. */
+    showRetryButton?: boolean;
+    /** Render the footer's Hint control instead of a mini board. */
     showHintButton?: boolean;
     /**
      * Render the real pre-run state: the start tile already occupied
@@ -33,7 +36,7 @@ export const TUTORIAL_LESSONS: TutorialLesson[] = [
   {
     id: 'icons',
     title: 'From the footprints to the flag',
-    body: 'Every road begins with you already standing on the footprints. Glowing tiles are the moves you can take. Reach the finish flag with a score matching the target.',
+    body: 'You start on the footprints. Glowing tiles are legal moves. Reach the finish flag with your score on target.',
     visual: {
       fromValue: 5,
       toValue: 6,
@@ -85,27 +88,17 @@ export const TUTORIAL_LESSONS: TutorialLesson[] = [
     },
   },
   {
-    // Placed before the hint lesson on purpose: knowing a wrong turn costs
-    // nothing is what makes a first-timer willing to experiment, and a hint
-    // is the fallback for when experimenting has not worked.
-    id: 'retry',
-    title: 'Walk it again',
-    body: 'A road never locks you out. Dead end, or finished off target? Start over from the footprints as often as you like — every try is counted.',
+    // Retry and Hint are one lesson because they answer the same question:
+    // what to do when a road has not worked out. Splitting them made the
+    // guide longer without teaching anything extra.
+    id: 'retry-hint',
+    title: 'Walk it again, or take a hint',
+    body: 'A road never locks you out. Try again walks it from the start, as often as you like. Hint shows your next useful move.',
     visual: {
       fromValue: 5,
       toValue: 3,
       edgeType: 'open',
-      isStart: true,
-    },
-  },
-  {
-    id: 'hint',
-    title: 'Use a hint',
-    body: 'If you get stuck, Hint highlights your next useful move.',
-    visual: {
-      fromValue: 2,
-      toValue: 5,
-      edgeType: 'open',
+      showRetryButton: true,
       showHintButton: true,
     },
   },

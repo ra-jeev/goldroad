@@ -165,7 +165,7 @@ export const UI_COPY = {
     continueToPractice: 'Try a practice road',
     practiceAriaLabel: 'Practice road puzzle',
     roadLegendAriaLabel: 'Road legend',
-    playToday: 'Play today',
+    playToday: 'Walk today’s road',
   },
 
   v1Welcome: {

@@ -154,11 +154,12 @@ onBeforeUnmount(() => {
               :is-start="lesson.visual.isStart"
               :is-end="lesson.visual.isEnd"
               :is-hinted="lesson.visual.isHinted"
+              :show-retry-button="lesson.visual.showRetryButton"
               :show-hint-button="lesson.visual.showHintButton"
               :show-start-state="lesson.visual.showStartState"
             />
 
-            <div>
+            <div class="lesson-copy">
               <h3>{{ lesson.title }}</h3>
               <p>{{ lesson.body }}</p>
             </div>
@@ -210,6 +211,7 @@ onBeforeUnmount(() => {
         <GameBoardFooter
           :status="practice.status.value"
           :hint-message="practice.hintMessage.value"
+          :solve-acknowledgement="practice.status.value"
           :attempt-number="1"
           :has-moved="practice.moves.value > 1"
           :show-next-reset-countdown="false"
@@ -224,16 +226,18 @@ onBeforeUnmount(() => {
           :submitting="false"
           @retry="practice.retryPractice"
           @hint="practice.requestHint"
-        />
-
-        <button
-          v-if="practice.solved.value"
-          type="button"
-          class="tutorial-button tutorial-button--primary"
-          @click="finishTutorial"
         >
-          {{ COPY.playToday }}
-        </button>
+          <template #actions>
+            <button
+              v-if="practice.solved.value"
+              type="button"
+              class="practice-finish"
+              @click="finishTutorial"
+            >
+              {{ COPY.playToday }}
+            </button>
+          </template>
+        </GameBoardFooter>
       </section>
     </section>
   </div>
@@ -346,6 +350,35 @@ onBeforeUnmount(() => {
   box-shadow: var(--shadow-sm);
 }
 
+/* Slot content is compiled in this component's scope, so the footer's own
+   button styles do not reach it: match its primary text button here. */
+.practice-finish {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--control-size);
+  height: var(--control-size);
+  border: 0;
+  border-radius: var(--radius-full);
+  padding: 0 0.85rem;
+  font: inherit;
+  font-size: var(--font-size-control);
+  font-weight: 800;
+  line-height: 1;
+  color: var(--color-text-on-gold);
+  background: var(--gradient-button-primary);
+  box-shadow: 0 0 18px rgb(var(--color-gold-rgb) / 0.28);
+  cursor: pointer;
+  transition:
+    transform var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.practice-finish:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
 .lesson-grid {
   display: grid;
   gap: 0.75rem;
@@ -398,6 +431,13 @@ onBeforeUnmount(() => {
 
 .lesson-card > :first-child {
   justify-self: end;
+}
+
+/* The title sat flush against the body copy, tighter than the gap between
+   the body's own lines, which read as one run-on block. */
+.lesson-copy {
+  display: grid;
+  gap: 0.4rem;
 }
 
 .lesson-card h3 {

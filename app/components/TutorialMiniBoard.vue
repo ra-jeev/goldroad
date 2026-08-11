@@ -15,6 +15,7 @@ const props = defineProps<{
   isStart?: boolean;
   isEnd?: boolean;
   isHinted?: boolean;
+  showRetryButton?: boolean;
   showHintButton?: boolean;
   /** Show the real pre-run state: start occupied, its neighbor glowing. */
   showStartState?: boolean;
@@ -44,8 +45,31 @@ function roadStyle(index: number): Record<string, string> {
 </script>
 
 <template>
-  <div v-if="showHintButton" class="mini-hint" aria-hidden="true">
-    <span class="mini-hint__button">
+  <!-- Lessons about the footer controls show the controls themselves, drawn
+       exactly as the board footer renders them at rest: retry as an icon,
+       Hint labelled. -->
+  <div
+    v-if="showRetryButton || showHintButton"
+    class="mini-actions"
+    aria-hidden="true"
+  >
+    <span
+      v-if="showRetryButton"
+      class="mini-actions__button mini-actions__button--icon"
+    >
+      <svg viewBox="0 0 24 24">
+        <path
+          d="M4.5 11.2a7.5 7.5 0 1 1 2.2 5.3M4.5 11.2V6.5m0 4.7h4.7"
+          fill="none"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="3"
+        />
+      </svg>
+    </span>
+
+    <span v-if="showHintButton" class="mini-actions__button">
       <svg viewBox="0 0 24 24">
         <path
           d="M9 18h6m-5-3.5h4m-7.5-4.7a5.5 5.5 0 1 1 9.2 4.05c-.77.68-1.2 1.28-1.34 2.15H9.64c-.14-.87-.57-1.47-1.34-2.15A5.48 5.48 0 0 1 6.5 9.8Z"
@@ -106,13 +130,15 @@ function roadStyle(index: number): Record<string, string> {
   gap: var(--tile-gap);
 }
 
-.mini-hint {
-  display: grid;
-  place-items: end;
+.mini-actions {
+  display: flex;
+  align-items: center;
+  justify-content: end;
+  gap: 0.6rem;
   min-width: 11.5rem;
 }
 
-.mini-hint__button {
+.mini-actions__button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -130,15 +156,22 @@ function roadStyle(index: number): Record<string, string> {
   line-height: 1;
 }
 
-.mini-hint svg {
+.mini-actions__button--icon {
+  width: var(--control-size);
+  padding: 0;
+  border-radius: var(--radius-circle);
+}
+
+.mini-actions svg {
   width: var(--icon-size);
   height: var(--icon-size);
+  flex: 0 0 auto;
 }
 
 @media (max-width: 760px) {
-  .mini-hint {
+  .mini-actions {
     min-width: 0;
-    place-items: start;
+    justify-content: start;
   }
 }
 </style>

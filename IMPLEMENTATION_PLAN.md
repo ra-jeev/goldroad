@@ -368,9 +368,9 @@ Recommended treatment:
   - P0-6
 - Completion notes:
   - first-run players see a two-step tutorial dialog instead of a static help sheet
-  - visual guide steps explain start/exit icons, open roads, missing roads, toll roads, and bonus roads
+  - visual guide steps explain start/finish icons, open lanes, missing lanes, toll lanes, bonus lanes, and the retry/hint controls
   - the practice step uses one fixed Expedition puzzle with normal retry and hint behavior
-  - tutorial completion is persisted only when the player solves the practice road and clicks Play today
+  - tutorial completion is persisted only when the player solves the practice road and clicks Walk today's road
   - How to Play remains available as a compact reference and entry point back into the tutorial
 
 ### Issue P1-8 — Add About / Privacy / Contact surfaces

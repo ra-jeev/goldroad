@@ -186,8 +186,11 @@ export function useTutorialPractice() {
       ended.value = true;
       solved.value = score.value === maxScore.value;
       activeSet.value = new Set();
+      // The solved line doubles as the footer's solve acknowledgement, which
+      // is the only thing that fills the reserved message slot once a
+      // practice run ends well.
       status.value = solved.value
-        ? 'Solved. You are ready for today\'s road.'
+        ? 'Practice road complete.'
         : `You reached the finish with ${score.value}, but the target is ${maxScore.value}. Try another route.`;
       if (solved.value) soundEffects.playSolve();
       else soundEffects.playDeadEnd();
