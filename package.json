@@ -2,7 +2,7 @@
 	"name": "goldroad",
 	"type": "module",
 	"private": true,
-	"packageManager": "pnpm@11.13.0",
+	"packageManager": "pnpm@11.21.0",
 	"engines": {
 		"node": "^22.12.0 || ^24.11.0 || >=26.0.0"
 	},
