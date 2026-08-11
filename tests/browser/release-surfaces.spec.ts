@@ -78,10 +78,10 @@ test('Play the new road replaces the expired board without navigation', async ({
   ).toBeVisible();
   await page.getByRole('button', { name: 'Close' }).click();
 
-  await expect(page.getByText('Daily Road #3')).toBeVisible();
+  await expect(page.getByText('Day #3')).toBeVisible();
   await page.getByRole('button', { name: 'Play the new road' }).click();
 
-  await expect(page.getByText('Daily Road #4')).toBeVisible();
+  await expect(page.getByText('Day #4')).toBeVisible();
   await expect(
     page.getByRole('button', { name: 'Play the new road' }),
   ).toBeHidden();
@@ -100,23 +100,23 @@ test('stats surface loads its core sections', async ({ page }) => {
   ).toBeVisible();
   await expect(page.getByRole('region', { name: 'Medals earned' })).toBeVisible();
   await expect(
-    page.getByRole('region', { name: 'Classic streak' }),
+    page.getByRole('region', {
+      name: /Yesterday’s roads, Day #\d+, global stats for Classic/,
+    }),
   ).toBeVisible();
+  // Today's card, before the day has been walked.
   await expect(
-    page.getByRole('tablist', { name: 'Choose streak mode' }),
+    page.getByRole('heading', { name: 'Waiting to be walked.' }),
   ).toBeVisible();
+
+  // Each mode-scoped panel carries its own switch, and the panel relabels
+  // itself when the mode changes.
+  const record = page.getByRole('region', { name: 'Classic stats' });
+  await expect(record).toBeVisible();
+  await record.getByRole('button', { name: 'View Expedition stats' }).click();
   await expect(
-    page.getByRole('tablist', { name: 'Choose yesterday’s mode' }),
+    page.getByRole('region', { name: 'Expedition stats' }),
   ).toBeVisible();
-  const recordMode = page.getByRole('tablist', {
-    name: 'Choose all-time stats mode',
-  });
-  await expect(recordMode).toBeVisible();
-  await recordMode.getByRole('tab', { name: 'Expedition' }).click();
-  await expect(
-    recordMode.getByRole('tab', { name: 'Expedition' }),
-  ).toHaveAttribute('aria-selected', 'true');
-  await expect(page.getByRole('heading', { name: 'Road 3 is waiting' })).toBeVisible();
 
   await expectNoHorizontalOverflow(page);
   expect(runtimeErrors).toEqual([]);
@@ -217,8 +217,8 @@ test('Past roads calendar exposes playable road days', async ({ page }) => {
   await page.goto('/games');
 
   await expect(page.getByRole('heading', { name: 'Past roads' })).toBeVisible();
-  await expect(page.getByRole('link', { name: /Road 1,/ })).toBeVisible();
-  await expect(page.getByRole('link', { name: /Road 2,/ })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Day #1,/ })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Day #2,/ })).toBeVisible();
 
   await expectNoHorizontalOverflow(page);
   expect(runtimeErrors).toEqual([]);
