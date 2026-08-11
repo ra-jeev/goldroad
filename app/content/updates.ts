@@ -13,7 +13,7 @@ export type UpdateEntry = {
  */
 export const UPDATES: UpdateEntry[] = [
   {
-    date: 'Jul 2026',
+    date: '12 Aug 2026',
     title: 'GoldRoad v2: a fresh start',
     body: [
       'GoldRoad is starting over. Road numbering has restarted from the beginning, so today’s road is a new #1, not a continuation of the old count.',
