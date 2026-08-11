@@ -4,3 +4,6 @@ allowBuilds:
   sharp: true
   '@parcel/watcher': true
   vue-demi: true
+minimumReleaseAgeExclude:
+  - miniflare@5.20260804.0-alpha
+  - wrangler@4.120.1
