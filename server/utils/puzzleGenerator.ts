@@ -21,9 +21,10 @@ import type {
   Direction,
 } from '../../shared/types/game';
 import {
-  DEFAULT_BLOCKED_EDGES,
   DEFAULT_COLS,
   DEFAULT_ROWS,
+  MAX_BLOCKED_EDGES,
+  MIN_BLOCKED_EDGES,
   TILE_VALUE_MAX,
   TILE_VALUE_MIN,
 } from '../../lib/gameConstants';
@@ -132,23 +133,26 @@ export interface GeneratedPuzzle {
  * @param type         The type of puzzle to generate (default 'classic').
  * @param rows         Board row count (default 6).
  * @param cols         Board column count (default 6).
- * @param numBlocked   Number of edges to block (default 10).
+ * @param blockedEdges Edges to block; omit to draw from the standard band.
  * @param maxAttempts  Maximum generation retries before giving up.
  */
 export function generatePuzzle(
   type: 'classic' | 'expedition' = 'classic',
   rows = DEFAULT_ROWS,
   cols = DEFAULT_COLS,
-  baseBlocked = DEFAULT_BLOCKED_EDGES,
+  blockedEdges?: number,
   maxAttempts = 20,
 ): GeneratedPuzzle | null {
-  // Expedition once blocked two fewer edges, on the reasoning that toll and
-  // bonus edges are themselves constraints. In practice the opener graph made
-  // expedition the slow case for route enumeration — it is the mode with the
-  // most simple paths to walk — so both modes now block the same count.
-  const numBlocked = baseBlocked;
-
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    // Rolled per attempt, not per call, so a rejected board also re-rolls how
+    // open it is. Expedition once blocked two fewer edges, on the reasoning
+    // that toll and bonus edges are themselves constraints. In practice the
+    // opener graph made expedition the slow case for route enumeration — it
+    // is the mode with the most simple paths to walk — so both modes now draw
+    // from the same band.
+    const numBlocked =
+      blockedEdges ?? randomInt(MIN_BLOCKED_EDGES, MAX_BLOCKED_EDGES);
+
     // 1. Build tile grid with random coin values
     const tiles: number[] = Array.from({ length: rows * cols }, () =>
       randomInt(TILE_VALUE_MIN, TILE_VALUE_MAX),

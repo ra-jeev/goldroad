@@ -2,18 +2,21 @@
  * Exhaustive BFS path finder — server-side only.
  *
  * Finds the highest-value route from Board.start to Board.end respecting
- * all edge constraints. Used by:
- *   • The puzzle generator (to compute maxScore and optimalPaths at creation time).
- *   • The hint endpoint (to compute the stored optimalPaths for a given game).
+ * all edge constraints. Used only by the puzzle generator, to compute
+ * maxScore and optimalPaths at creation time. The hint endpoint reads the
+ * optimalPaths this produced back out of the games row; it never re-runs
+ * enumeration on a request.
  *
  * Complexity note:
  *   This enumerates EVERY simple route, so cost tracks the number of simple
- *   paths in the graph, not the board size. Measured on 6×6 boards: 9,000 to
- *   15,000+ routes and 55 ms to 13.5 s for a single call, with expedition the
- *   slow case because it blocks fewer edges and so leaves a more open graph.
- *   An earlier note here claimed "<50 ms", which is not true of the tail.
- *   There is no job cap or time budget; callers that run this in a request
- *   path need to add one.
+ *   paths in the graph, not the board size. Measured on 6×6 boards: 7,000 to
+ *   24,000 routes and 20 ms to 18 s for a single call, with expedition the
+ *   slow case because it has the most simple paths to walk, and the low end
+ *   of the blocked-edge band the slow case within that. Peak BFS queue is
+ *   ~35k jobs (~25 MB), well inside a Worker isolate.
+ *   There is no job cap or time budget; this is affordable only because it
+ *   runs in the daily rotation cron, which gets 15 minutes of CPU. A caller
+ *   on a request path would need to add one.
  *
  *   Each BFS job carries only a Set<number> of visited tile ids and a path
  *   array, not a clone of the full board — significantly lighter than v1.
