@@ -37,8 +37,10 @@ test('live board and tutorial are usable', async ({ page }) => {
 
   await page.getByRole('button', { name: 'Close' }).click();
   await expect(page.getByRole('region', { name: 'Road controls' })).toBeVisible();
+  // The seed board is freshly generated, so the start tile's coin value
+  // varies from run to run. Match the marker, not the number.
   await expect(
-    page.getByRole('button', { name: '5 Start: footprints' }),
+    page.getByRole('button', { name: /Start: footprints$/ }),
   ).toBeVisible();
   await expect(page.getByRole('button', { name: 'Play the new road' })).toBeVisible();
 
