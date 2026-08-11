@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Medal } from '../../shared/types/game';
+import type { Medal } from '#shared/types/game';
 
 defineProps<{
   tier: Medal;

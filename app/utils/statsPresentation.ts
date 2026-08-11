@@ -3,7 +3,7 @@
  * so the percentile math and empty-data states are unit-testable without
  * mounting the page (RP1-9).
  */
-import type { CommunityRoadStats } from '../../shared/types/game';
+import type { CommunityRoadStats } from '#shared/types/game';
 
 export function toPercent(value: number, total: number): number {
   if (total <= 0) return 0;

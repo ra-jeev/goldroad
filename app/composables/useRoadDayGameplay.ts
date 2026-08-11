@@ -7,10 +7,10 @@ import {
   getEdgeType,
   getNeighborId,
   parseTileIndex,
-} from '../../shared/utils/puzzleEngine';
+} from '#shared/utils/puzzleEngine';
 import { calcMedalForAttempt } from '../../lib/gameTiers';
 import { HINTS_PER_ROAD_MODE } from '../../lib/gameConstants';
-import { computeHint, guideHighlightTiles } from '../../shared/utils/hints';
+import { computeHint, guideHighlightTiles } from '#shared/utils/hints';
 import type {
   CurrentGamesResponse,
   Direction,
@@ -18,7 +18,7 @@ import type {
   OutcomeTier,
   PublicGame,
   PuzzleType,
-} from '../../shared/types/game';
+} from '#shared/types/game';
 import { UI_COPY } from '../content/uiCopy';
 import {
   getRoadDayKeyFromPlayableAt,

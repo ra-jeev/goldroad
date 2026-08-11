@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue';
-import { buildEdgeMap, getEdgeType } from '../../shared/utils/puzzleEngine';
-import type { Board, EdgeType, PuzzleType } from '../../shared/types/game';
+import { buildEdgeMap, getEdgeType } from '#shared/utils/puzzleEngine';
+import type { Board, EdgeType, PuzzleType } from '#shared/types/game';
 import type { TileState } from '../types/game';
 import GameTile from './GameTile.vue';
 import BoardRoad from './BoardRoad.vue';

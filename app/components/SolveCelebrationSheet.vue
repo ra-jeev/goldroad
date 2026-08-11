@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
-import type { Medal } from '../../shared/types/game';
+import type { Medal } from '#shared/types/game';
 import type { CelebrationState } from '../composables/useRoadDayGameplay';
 import type { ShareRoadResultResponse } from '../composables/useRoadResultShare';
 import { UI_COPY } from '../content/uiCopy';

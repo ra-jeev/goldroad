@@ -1,6 +1,6 @@
 import type {
   CurrentGamesResponse,
-} from '../../shared/types/game';
+} from '#shared/types/game';
 
 interface PastRoadModeSummary {
   maxScore: number;

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { EdgeType } from '../../shared/types/game';
+import type { EdgeType } from '#shared/types/game';
 import RoadGlyph from './RoadGlyph.vue';
 
 type RoadVisualType = 'open' | Exclude<EdgeType, 'missing'>;

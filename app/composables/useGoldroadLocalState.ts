@@ -1,6 +1,6 @@
 import { computed } from 'vue';
 import { StorageSerializers, useStorage } from '@vueuse/core';
-import type { PuzzleType } from '../../shared/types/game';
+import type { PuzzleType } from '#shared/types/game';
 
 const STORAGE_KEY = 'goldroad-state-v2';
 const REPLAY_PROGRESS_STORAGE_KEY = 'goldroad-replay-progress-v2';

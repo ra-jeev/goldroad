@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { RECENT_ARCHIVE_DAY_LIMIT } from '../../../shared/utils/archive';
+import { RECENT_ARCHIVE_DAY_LIMIT } from '#shared/utils/archive';
 import { calcMedalForAttempt } from '../../../lib/gameTiers';
-import type { Medal } from '../../../shared/types/game';
+import type { Medal } from '#shared/types/game';
 
 const gamesApi = useGamesApi();
 const localStats = useLocalPlayerStats();

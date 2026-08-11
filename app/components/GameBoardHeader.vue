@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { Medal, PuzzleType } from '../../shared/types/game';
+import type { Medal, PuzzleType } from '#shared/types/game';
 import { UI_COPY } from '../content/uiCopy';
 
 const props = defineProps<{

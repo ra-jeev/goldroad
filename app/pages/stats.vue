@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { calcMedalForAttempt } from '../../lib/gameTiers';
-import type { CommunityRoadStats, Medal, PuzzleType } from '../../shared/types/game';
+import type { CommunityRoadStats, Medal, PuzzleType } from '#shared/types/game';
 import { UI_COPY } from '../content/uiCopy';
 import { useRoadResultShare } from '../composables/useRoadResultShare';
 import {

@@ -1,5 +1,5 @@
 import { computed } from 'vue';
-import type { PuzzleType } from '../../shared/types/game';
+import type { PuzzleType } from '#shared/types/game';
 import {
   useGoldroadLocalState,
   type LocalProgressScope,

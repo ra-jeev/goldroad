@@ -1,4 +1,4 @@
-import type { Board, EdgeType } from '../../shared/types/game';
+import type { Board, EdgeType } from '#shared/types/game';
 
 export type TutorialLesson = {
   id: string;

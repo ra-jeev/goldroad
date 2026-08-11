@@ -1,4 +1,4 @@
-import type { Medal } from '../../shared/types/game';
+import type { Medal } from '#shared/types/game';
 
 export const UI_COPY = {
   board: {

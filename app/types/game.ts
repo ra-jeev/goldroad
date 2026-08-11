@@ -1,4 +1,4 @@
-import type { Direction } from '../../shared/types/game'
+import type { Direction } from '#shared/types/game'
 
 export interface TileState {
   id: number

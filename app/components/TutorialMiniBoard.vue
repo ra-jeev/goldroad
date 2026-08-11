@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { EdgeType } from '../../shared/types/game';
+import type { EdgeType } from '#shared/types/game';
 import { UI_COPY } from '../content/uiCopy';
 import BoardRoad from './BoardRoad.vue';
 import GameTile from './GameTile.vue';

@@ -1,5 +1,5 @@
 import { calcMedalForAttempt } from '../../lib/gameTiers';
-import type { PuzzleType } from '../../shared/types/game';
+import type { PuzzleType } from '#shared/types/game';
 
 export type ShareRoadResultInput = {
   gameNo: number;

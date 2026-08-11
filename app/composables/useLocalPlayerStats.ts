@@ -1,6 +1,6 @@
 import { computed } from 'vue';
 import { calcMedalForAttempt } from '../../lib/gameTiers';
-import type { PuzzleType } from '../../shared/types/game';
+import type { PuzzleType } from '#shared/types/game';
 import { useGoldroadLocalState } from './useGoldroadLocalState';
 
 type StatsModeRecord = {

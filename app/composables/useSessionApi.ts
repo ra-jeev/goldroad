@@ -1,4 +1,4 @@
-import type { HintResult, Medal, PuzzleType } from '../../shared/types/game';
+import type { HintResult, Medal, PuzzleType } from '#shared/types/game';
 
 export interface SessionStartRequest {
   playerUUID: string;

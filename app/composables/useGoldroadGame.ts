@@ -1,5 +1,5 @@
 import { computed, onMounted } from 'vue';
-import type { CurrentGamesResponse, PuzzleType } from '../../shared/types/game';
+import type { CurrentGamesResponse, PuzzleType } from '#shared/types/game';
 import { UI_COPY } from '../content/uiCopy';
 import { getRoadDayKeyFromPlayableAt } from './useGoldroadLocalState';
 import { useNextRoadCountdown } from './useNextRoadCountdown';

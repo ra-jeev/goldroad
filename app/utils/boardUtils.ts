@@ -6,7 +6,7 @@
  * shared/utils.
  */
 
-import type { Board } from '../../shared/types/game'
+import type { Board } from '#shared/types/game'
 import type { TileState } from '../types/game'
 
 // ---------------------------------------------------------------------------

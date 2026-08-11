@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { SOLVED_ATTEMPTS_UPPER_BOUND } from '../../shared/types/histogram';
+// Nuxt's own alias for the shared/ directory, not a deep relative path: from
+// 4.5 the Nitro bundle cannot resolve a value imported out of shared/ by
+// relative path from a page chunk, and the production build fails.
+import { SOLVED_ATTEMPTS_UPPER_BOUND } from '#shared/types/histogram';
 
 const props = withDefaults(
   defineProps<{

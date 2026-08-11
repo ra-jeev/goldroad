@@ -3,10 +3,10 @@ import {
   buildEdgeMap,
   getActiveNeighbors,
   getEdgeType,
-} from '../../shared/utils/puzzleEngine';
-import type { Direction, HintResult } from '../../shared/types/game';
-import { guideHighlightTiles } from '../../shared/utils/hints';
-import { getNeighborId, parseTileIndex } from '../../shared/utils/puzzleEngine';
+} from '#shared/utils/puzzleEngine';
+import type { Direction, HintResult } from '#shared/types/game';
+import { guideHighlightTiles } from '#shared/utils/hints';
+import { getNeighborId, parseTileIndex } from '#shared/utils/puzzleEngine';
 import { UI_COPY } from '../content/uiCopy';
 import { TUTORIAL_PRACTICE_GAME } from '../content/tutorialContent';
 import { buildInitialTileStates } from '../utils/boardUtils';

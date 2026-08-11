@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { EdgeType } from '../../shared/types/game';
+import type { EdgeType } from '#shared/types/game';
 
 /*
  * Toll and bonus roads are drawn as two parallel rails inside the road's

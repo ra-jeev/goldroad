@@ -1,4 +1,4 @@
-import type { StatsOverview } from '../../shared/types/game'
+import type { StatsOverview } from '#shared/types/game'
 
 export function useStatsApi() {
   const api = useApi()
