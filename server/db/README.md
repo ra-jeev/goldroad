@@ -32,15 +32,16 @@ pnpm deploy:staging
 
 # Production cutover
 pnpm db:migrate:production
-pnpm db:bootstrap:production  # one time, immediately before first deploy
+pnpm db:bootstrap:production  # one time; Road 1 runs for two days at launch
 pnpm deploy:production
 ```
 
 `scripts/bootstrap-road-pool.ts` accepts only the checked-in staging and
 production name/environment pairs and refuses to run if `games` has any rows.
 It creates Road 1 as current plus the five future road days expected by the cron
-rotation contract. Production bootstrap is deliberately deferred so Road 1's
-`playableAt` and `nextGameAt` are anchored to the actual launch day.
+rotation contract. Production gives the launch road two days, then returns to
+the normal daily UTC cadence; every future `playableAt` is shifted with it so
+no road is exposed early. Staging keeps the ordinary one-day schedule.
 
 ## Schema changes
 

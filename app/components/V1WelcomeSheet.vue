@@ -213,7 +213,9 @@ onBeforeUnmount(() => {
 
 .v1welcome-lede {
   margin: 0;
+  width: 100%;
   max-width: 40ch;
+  text-align: left;
   color: rgb(var(--color-gold-rgb) / 0.82);
   line-height: var(--line-height-base);
 }

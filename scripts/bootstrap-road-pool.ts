@@ -86,11 +86,35 @@ function addDaysIso(value: string, days: number) {
   return new Date(new Date(value).getTime() + days * DAY_MS).toISOString();
 }
 
+export function buildRoadSchedule(
+  startAt: string,
+  firstRoadDays: number,
+  poolBufferDays = POOL_BUFFER_DAYS,
+) {
+  if (!Number.isInteger(firstRoadDays) || firstRoadDays < 1) {
+    throw new Error('firstRoadDays must be a positive integer.');
+  }
+
+  return Array.from({ length: poolBufferDays + 1 }, (_, offset) => {
+    const gameNo = offset + 1;
+    const playableOffset = offset === 0 ? 0 : firstRoadDays + offset - 1;
+    const playableAt = addDaysIso(startAt, playableOffset);
+
+    return {
+      gameNo,
+      playableAt,
+      nextGameAt:
+        offset === 0 ? addDaysIso(startAt, firstRoadDays) : null,
+    };
+  });
+}
+
 function buildInsertRow(
   gameNo: number,
   puzzleType: 'classic' | 'expedition',
   isCurrent: boolean,
   playableAt: string,
+  nextGameAt: string | null,
 ) {
   const puzzle = generatePuzzle(puzzleType);
   if (!puzzle) {
@@ -110,22 +134,39 @@ function buildInsertRow(
   1,
   ${isCurrent ? 1 : 0},
   ${toSqlString(playableAt)},
-  ${toSqlString(isCurrent ? addDaysIso(playableAt, 1) : null)}
+  ${toSqlString(nextGameAt)}
 )`;
 }
 
-function buildBootstrapSql(database: string, startAt: string) {
+function buildBootstrapSql(
+  database: string,
+  startAt: string,
+  firstRoadDays: number,
+) {
   const originalRandom = Math.random;
   Math.random = mulberry32(hashSeed(`${database}:${startAt}`));
 
   try {
     const rows: string[] = [];
-    for (let offset = 0; offset <= POOL_BUFFER_DAYS; offset++) {
-      const gameNo = offset + 1;
-      const playableAt = addDaysIso(startAt, offset);
-      rows.push(buildInsertRow(gameNo, 'classic', offset === 0, playableAt));
+    for (const road of buildRoadSchedule(startAt, firstRoadDays)) {
+      const isCurrent = road.gameNo === 1;
       rows.push(
-        buildInsertRow(gameNo, 'expedition', offset === 0, playableAt),
+        buildInsertRow(
+          road.gameNo,
+          'classic',
+          isCurrent,
+          road.playableAt,
+          road.nextGameAt,
+        ),
+      );
+      rows.push(
+        buildInsertRow(
+          road.gameNo,
+          'expedition',
+          isCurrent,
+          road.playableAt,
+          road.nextGameAt,
+        ),
       );
     }
 
@@ -153,6 +194,10 @@ ${rows.join(',\n')};
 function main() {
   const environment = readArgument('env');
   const database = readArgument('database');
+  const firstRoadDays = Number.parseInt(
+    readArgument('first-road-days') ?? '1',
+    10,
+  );
   const expectedDatabase = environment
     ? ALLOWED_TARGETS.get(environment)
     : undefined;
@@ -161,6 +206,9 @@ function main() {
     throw new Error(
       'Pass a supported matching target, for example: --env staging --database goldroad-v2-staging',
     );
+  }
+  if (!Number.isInteger(firstRoadDays) || firstRoadDays < 1) {
+    throw new Error('--first-road-days must be a positive integer.');
   }
 
   const queryOutput = runWrangler([
@@ -195,7 +243,11 @@ function main() {
   const sqlPath = join(temporaryDirectory, `${environment}.sql`);
 
   try {
-    writeFileSync(sqlPath, buildBootstrapSql(database, startAt), 'utf8');
+    writeFileSync(
+      sqlPath,
+      buildBootstrapSql(database, startAt, firstRoadDays),
+      'utf8',
+    );
     runWrangler(
       [
         'd1',
@@ -217,8 +269,10 @@ function main() {
   }
 
   console.log(
-    `Bootstrapped ${database} with Road 1 current and ${POOL_BUFFER_DAYS} future road days from ${startAt}.`,
+    `Bootstrapped ${database} with Road 1 current for ${firstRoadDays} day(s) and ${POOL_BUFFER_DAYS} future road days from ${startAt}.`,
   );
 }
 
-main();
+if (import.meta.url === new URL(process.argv[1]!, 'file:').href) {
+  main();
+}

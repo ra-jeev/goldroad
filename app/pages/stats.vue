@@ -10,6 +10,17 @@ import {
   topPercent,
 } from '../utils/statsPresentation';
 
+const description =
+  'See your GoldRoad streak, medals, solve times, hints, and anonymous community comparisons.';
+
+useSeoMeta({
+  title: 'Your Stats – GoldRoad',
+  description,
+  ogTitle: 'Your Stats – GoldRoad',
+  ogDescription: description,
+  robots: 'noindex, follow',
+});
+
 const localStats = useLocalPlayerStats();
 const localProgress = useLocalGameProgress();
 const statsApi = useStatsApi();

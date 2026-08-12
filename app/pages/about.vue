@@ -1,6 +1,16 @@
 <script setup lang="ts">
 import { UPDATES as updates } from '../content/updates';
 
+const description =
+  'Learn how GoldRoad works, what changed in the new version, and how your puzzle history and privacy are handled.';
+
+useSeoMeta({
+  title: 'About GoldRoad – Daily Number Path Puzzle',
+  description,
+  ogTitle: 'About GoldRoad',
+  ogDescription: description,
+});
+
 const localState = useGoldroadLocalState();
 const { hasUnseenUpdate, acknowledgeLatestUpdate } = useUpdatesNotice();
 

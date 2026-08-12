@@ -9,19 +9,22 @@ export default defineNuxtConfig({
 
   app: {
     head: {
-      title: 'GoldRoad',
+      title: 'GoldRoad – Daily Number Path Puzzle',
       meta: [
         {
           name: 'description',
           content:
-            'A daily route puzzle. Build a path from the start tile to the exit tile and land exactly on the target score.',
+            'Play GoldRoad, a free daily number path puzzle. Build a route from Start to Finish and land exactly on the target score.',
         },
         { name: 'theme-color', content: '#0d0702' },
-        { property: 'og:title', content: 'GoldRoad' },
+        {
+          property: 'og:title',
+          content: 'GoldRoad – Daily Number Path Puzzle',
+        },
         {
           property: 'og:description',
           content:
-            'A daily route puzzle. Build a path from the start tile to the exit tile and land exactly on the target score.',
+            'Play GoldRoad, a free daily number path puzzle. Build a route from Start to Finish and land exactly on the target score.',
         },
         { property: 'og:type', content: 'website' },
         { property: 'og:image:width', content: '1200' },

@@ -3,6 +3,20 @@ import { watch } from 'vue';
 import { UI_COPY } from '../../content/uiCopy';
 
 const route = useRoute();
+const roadNumber = computed(() => String(route.params.gameNo ?? ''));
+const description = computed(
+  () =>
+    `Replay GoldRoad #${roadNumber.value}, including the familiar daily road and Expedition.`,
+);
+
+useSeoMeta({
+  title: computed(() => `Road #${roadNumber.value} – GoldRoad`),
+  description,
+  ogTitle: computed(() => `Road #${roadNumber.value} – GoldRoad`),
+  ogDescription: description,
+  robots: 'noindex, follow',
+});
+
 const gamesApi = useGamesApi();
 const currentRoadLabel = useState<string | null>(
   'current-road-label',

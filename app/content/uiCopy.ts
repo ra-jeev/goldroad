@@ -170,11 +170,14 @@ export const UI_COPY = {
 
   v1Welcome: {
     close: 'Close',
-    eyebrow: 'GoldRoad is back',
-    title: 'Welcome back.',
+    eyebrow: 'A new road begins',
+    title: 'Welcome to the new GoldRoad.',
     body: [
-      'GoldRoad got a full rewrite. Road numbering restarted, and old accounts and history didn’t carry over. That’s a clean break, not a bug.',
-      'There’s also something new: a whole second mode called Expedition, with toll and bonus lanes that change how you score.',
+      'GoldRoad has been rebuilt from the ground up. The biggest addition is hints: when you need a nudge, you can now reveal the next step without giving away the whole route.',
+      'The familiar daily road is still here, now called Classic, and it is joined by Expedition, a second road with toll and bonus lanes that change how you score. That means two roads to solve each day instead of one.',
+      'With the rebuild, road numbering had to restart, and old accounts and history could not carry over. This is a fresh start for everyone.',
+      'Thank you for walking the old roads. I hope you enjoy where the new ones lead.',
+      'P.S. The board has a new grid and road design too. It is worth taking a quick look at what’s new before you start.',
     ],
     primaryCta: 'Show me what’s new',
     secondaryCta: 'Skip to today’s road',

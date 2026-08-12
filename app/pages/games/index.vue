@@ -3,6 +3,16 @@ import { RECENT_ARCHIVE_DAY_LIMIT } from '#shared/utils/archive';
 import { calcMedalForAttempt } from '../../../lib/gameTiers';
 import type { Medal } from '#shared/types/game';
 
+const description =
+  'Replay recent GoldRoad daily number path puzzles and revisit both the familiar road and Expedition.';
+
+useSeoMeta({
+  title: 'Past Roads – GoldRoad',
+  description,
+  ogTitle: 'Past Roads – GoldRoad',
+  ogDescription: description,
+});
+
 const gamesApi = useGamesApi();
 const localStats = useLocalPlayerStats();
 const localProgress = useLocalGameProgress();

@@ -22,7 +22,7 @@
 		"db:migrate:staging": "wrangler d1 migrations apply goldroad-v2-staging --remote --config wrangler.jsonc --env staging",
 		"db:migrate:production": "wrangler d1 migrations apply goldroad-v2-production --remote --config wrangler.jsonc --env production",
 		"db:bootstrap:staging": "tsx scripts/bootstrap-road-pool.ts --database goldroad-v2-staging --env staging",
-		"db:bootstrap:production": "tsx scripts/bootstrap-road-pool.ts --database goldroad-v2-production --env production",
+		"db:bootstrap:production": "tsx scripts/bootstrap-road-pool.ts --database goldroad-v2-production --env production --first-road-days 2",
 		"db:studio": "drizzle-kit studio",
 		"db:seed:local": "pnpm exec tsx scripts/generate-dev-seed.ts && XDG_CONFIG_HOME=.wrangler/xdg-config XDG_CACHE_HOME=.wrangler/xdg-cache wrangler d1 execute DB --local --config wrangler.jsonc --file server/db/seeds/dev_seed.sql",
 		"test": "vitest run",

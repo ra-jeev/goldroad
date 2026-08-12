@@ -15,7 +15,7 @@ permanent documentation once the checklist items are done.
 
 - [x] Subdomain: `v2.playgoldroad.com`
 - [x] Observation window: through at least two successful automatic rotations (Roads 2 and 3; earliest cutover review on 22 July 2026 IST)
-- [ ] Go-live date for the real cutover (needed to replace `app/content/updates.ts`'s `'Jul 2026'` placeholder date on its fresh-start entry)
+- [x] Go-live date for the real cutover: 12 August 2026
 - [x] Whether to add proactive v1-returning-player messaging before the *production* cutover — **done**, see below
 
 ## v1-returning-player notice — implemented
@@ -149,8 +149,9 @@ Only after phase 2 looks clean.
 1. The proactive v1-returning-player messaging referenced above is already
    shipped (`useV1ReturningPlayerNotice.ts` / `V1WelcomeSheet.vue`) — nothing
    to close out here.
-2. Replace the `'Jul 2026'` placeholder date in `app/content/updates.ts`'s
-   fresh-start entry with the real go-live date.
+2. The fresh-start entry is dated 12 August 2026. Production bootstrap keeps
+   Road 1 live through 14 August 00:00 UTC; the cron remains enabled and its
+   first midnight run is intentionally a no-op.
 3. Immediately before cutover, run `pnpm db:bootstrap:production`, add the apex
    custom-domain route to the `production` Wrangler environment, remove/replace
    the old Firebase DNS target, and run `pnpm deploy:production`. Production is
