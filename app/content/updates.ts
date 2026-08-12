@@ -19,6 +19,7 @@ export const UPDATES: UpdateEntry[] = [
       'GoldRoad is starting over. Road numbering has restarted from the beginning, so today’s road is a new #1, not a continuation of the old count.',
       'There are no more accounts, sign-in, or notifications. Your personal history and streaks now live only in your browser, on this device.',
       'This is a clean break from the old server-side history. Old streaks and saved progress could not be carried over into the new model, so they could not be preserved.',
+      'If you added GoldRoad to your iPhone or iPad Home Screen before this update, the old icon may remain. To refresh it, remove GoldRoad from the Home Screen and add it again; the app itself will keep working either way.',
       "If you played the original GoldRoad, thank you for walking the old roads with me. I hope you enjoy starting fresh on this one just as much.",
     ],
   },
