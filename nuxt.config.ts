@@ -61,16 +61,14 @@ export default defineNuxtConfig({
   modules: ['nitro-cloudflare-dev', '@vueuse/nuxt', '@nuxt/fonts'],
 
   /**
-   * Three faces, three jobs. Cinzel is inscriptional caps and carries the
-   * wordmark only — the sign at the roadside. Marcellus is the same Roman
-   * skeleton with real lowercase, for page and panel titles. Chivo carries
+   * Two faces, two jobs. Marcellus — Roman inscriptional forms with real
+   * lowercase — carries the wordmark and every title. Chivo carries
    * everything else, chosen for its figures: `1` and `8` are the same width,
    * so the board's 36 digits keep an even rhythm and the score never jitters
    * as it climbs. Only weights the app actually sets are downloaded.
    */
   fonts: {
     families: [
-      { name: 'Cinzel', provider: 'google', weights: [700] },
       { name: 'Marcellus', provider: 'google', weights: [400] },
       { name: 'Chivo', provider: 'google', weights: [400, 600, 700, 800, 900] },
     ],

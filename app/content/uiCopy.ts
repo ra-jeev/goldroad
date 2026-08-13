@@ -23,7 +23,7 @@ export const UI_COPY = {
     metrics: {
       score: 'Score',
       target: 'Target',
-      boardTotal: 'Board total',
+      boardTotal: 'Board',
       boardTotalDescription:
         'The sum of every tile on the board. Your route may leave some tiles out.',
       medal: 'Medal',
@@ -85,7 +85,7 @@ export const UI_COPY = {
           'You cannot revisit a tile during the same try.',
           'Only up, down, left, and right moves are legal.',
           'Some lanes simply aren’t there. Where there’s no lane, there’s no way through.',
-          'You may need to leave some tiles out. Board total shows the value of every tile, not the route you must take.',
+          'You may need to leave some tiles out. Board shows the value of every tile, not the route you must take.',
         ],
       },
       tools: {

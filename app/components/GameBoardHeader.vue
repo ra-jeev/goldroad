@@ -283,7 +283,10 @@ function statusLabel(solved: boolean, medal: Medal | null): string {
 }
 
 .metric-separator {
-  margin: 0 0.5rem;
+  /* The line runs close to the viewport edge on a narrow phone once the score
+     reaches three digits, so the separators carry as little width as they can
+     while still reading as separators. */
+  margin: 0 0.3rem;
   color: rgb(var(--color-gold-rgb) / 0.64);
 }
 

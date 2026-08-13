@@ -474,7 +474,7 @@ onBeforeUnmount(() => {
 }
 
 .score-line span {
-  margin: 0 0.4rem;
+  margin: 0 0.3rem;
   color: rgb(var(--color-gold-rgb) / 0.4);
 }
 

@@ -103,7 +103,6 @@
     'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
   --font-ui: 'Chivo', var(--font-system);
   --font-display: 'Marcellus', Georgia, serif;
-  --font-wordmark: 'Cinzel', Georgia, serif;
 
   --line-height-snug: 1.42;
   --line-height-base: 1.45;
@@ -242,10 +241,10 @@ h3 {
   font-weight: 600;
 }
 
-/* The wordmark is the one place inscriptional caps belong: it is a sign, not
-   a sentence. Cinzel ships a real 700, which the layout sets. */
+/* The wordmark shares the display face with the titles. Its size and weight
+   live in the layout, whose scoped rule outranks this one. */
 .logo-text {
-  font-family: var(--font-wordmark);
+  font-family: var(--font-display);
 }
 
 /* Shared segmented-control language: quiet gold shell, soft active tint. */

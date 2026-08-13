@@ -290,10 +290,13 @@ onClickOutside(menuShell, closeMobileMenu);
 }
 
 .logo-text {
-  font-size: 1.42rem;
-  font-weight: 700;
+  /* Marcellus ships only 400, so the wordmark takes its presence from size
+     and letter-spacing rather than a weight the face does not have — asking
+     for 700 here would synthesise a smeared bold. */
+  font-size: 1.55rem;
+  font-weight: 400;
   color: var(--color-gold);
-  letter-spacing: 0;
+  letter-spacing: 0.01em;
 }
 
 .road-label {
@@ -446,7 +449,9 @@ onClickOutside(menuShell, closeMobileMenu);
   }
 
   .logo-text {
-    font-size: 1.3rem;
+    /* Same reasoning as the desktop size: at 400 the wordmark needs the extra
+       size to hold rank over the bolder day label beside it. */
+    font-size: 1.42rem;
   }
 
   .road-label {
