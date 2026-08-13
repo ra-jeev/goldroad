@@ -69,8 +69,15 @@ export default defineNuxtConfig({
    */
   fonts: {
     families: [
-      { name: 'Marcellus', provider: 'google', weights: [400] },
-      { name: 'Chivo', provider: 'google', weights: [400, 600, 700, 800, 900] },
+      { name: 'Marcellus', provider: 'google', weights: [400], styles: ['normal'] },
+      {
+        name: 'Chivo',
+        provider: 'google',
+        weights: [400, 600, 700, 800, 900],
+        // Nothing in the app is italic, and Chivo's italics are a separate
+        // variable file per subset — 73 KB of the deployed font payload.
+        styles: ['normal'],
+      },
     ],
   },
 
