@@ -101,6 +101,10 @@ watch(
   border: var(--tile-border) solid rgb(var(--color-gold-rgb) / 0.72);
   background: linear-gradient(135deg, rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.35));
   color: rgb(var(--color-gold-rgb) / 0.72);
+  /* Buttons do not inherit the page face, so without this the tile digits —
+     the most-looked-at element in the game — render in the browser's default
+     button font while everything around them uses the app's. */
+  font-family: inherit;
   font-size: var(--font-size-2xl);
   font-weight: 700;
   display: inline-flex;
