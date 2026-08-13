@@ -72,6 +72,13 @@ export const UI_COPY = {
   },
   helpSheet: {
     ariaLabel: 'How to play',
+    /**
+     * Names the kind of surface, the way the tutorial's eyebrow says
+     * "Tutorial" above "Learn the road". The title keeps the name the button
+     * that opens it uses, so the eyebrow has to carry something else: this is
+     * the sheet you look things up in, not the one that teaches you.
+     */
+    eyebrow: 'Reference',
     close: 'Close',
     startTutorial: 'Play Tutorial',
     intro:

@@ -55,7 +55,7 @@ onBeforeUnmount(() => {
     >
       <div class="sheet-header">
         <div>
-          <p class="eyebrow">{{ UI_COPY.boardFooter.openHelp }}</p>
+          <p class="eyebrow">{{ COPY.eyebrow }}</p>
           <h2
             id="game-help-title"
             data-dialog-initial-focus
