@@ -263,6 +263,9 @@ function statusLabel(solved: boolean, medal: Medal | null): string {
   color: rgb(var(--color-gold-rgb) / 0.76);
   font-size: var(--font-size-board-meta);
   font-weight: 700;
+  /* Score climbs from one digit to three as the road is walked; without this
+     the whole line re-flows on every move. */
+  font-variant-numeric: tabular-nums;
 }
 
 .metric-label {

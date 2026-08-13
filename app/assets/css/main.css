@@ -97,6 +97,14 @@
 
   --letter-spacing-wide: 0.16em;
 
+  /* ── Type faces ───────────────────────────────────────────── */
+  --font-system:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu',
+    'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  --font-ui: 'Chivo', var(--font-system);
+  --font-display: 'Marcellus', Georgia, serif;
+  --font-wordmark: 'Cinzel', Georgia, serif;
+
   --line-height-snug: 1.42;
   --line-height-base: 1.45;
 
@@ -205,12 +213,39 @@ body {
   margin: 0;
   min-height: 100%;
   background: var(--color-bg-deepest);
-  font-family:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu',
-    'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  font-family: var(--font-ui);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-size: var(--font-size-base);
+}
+
+/* Page titles, panel titles and celebration lines carry the display face.
+   h3 deliberately does not: every h3 in the app is a small label — tutorial
+   lesson titles, help sections, update entries, empty states — at around
+   1rem, where a display face smudges on dark. Everything else, including
+   every digit on the board, stays on the UI face.
+
+   The weight is pinned to 400 because Marcellus ships only that: left at the
+   UA's bold, every title would be a synthesised bold, which smears on dark. */
+h1,
+h2 {
+  font-family: var(--font-display);
+  font-weight: 400;
+}
+
+/* h3 labels sit directly under display titles — tutorial lessons under
+   "Learn the road", help sections under "How to play". At the UA's 700 they
+   carried more colour than the lighter serif above them and took the eye
+   first, so they step back to 600: still unmistakably a label, no longer
+   competing with the title it belongs to. */
+h3 {
+  font-weight: 600;
+}
+
+/* The wordmark is the one place inscriptional caps belong: it is a sign, not
+   a sentence. Cinzel ships a real 700, which the layout sets. */
+.logo-text {
+  font-family: var(--font-wordmark);
 }
 
 /* Shared segmented-control language: quiet gold shell, soft active tint. */

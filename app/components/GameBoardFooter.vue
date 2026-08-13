@@ -382,6 +382,8 @@ const displayMessage = computed(
   font-size: var(--font-size-board-meta);
   font-weight: 650;
   line-height: var(--line-height-snug);
+  /* Carries the next-road countdown, which ticks every second. */
+  font-variant-numeric: tabular-nums;
 }
 
 .action-row {

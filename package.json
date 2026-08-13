@@ -44,6 +44,7 @@
 		"zod": "^4.4.3"
 	},
 	"devDependencies": {
+		"@nuxt/fonts": "^0.14.0",
 		"@playwright/test": "^1.62.1",
 		"@types/howler": "^2.2.13",
 		"@types/node": "^26.2.0",
