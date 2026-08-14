@@ -474,19 +474,42 @@ button,
   animation: hint-nudge 1000ms ease-in-out;
 }
 
+/* Two blinks, in the hint's own colour. It used to light in
+   --color-bonus-bright, which is the honey a bonus lane uses: the bulb read
+   as yellow and said nothing about what pressing it would do. Lighting in the
+   pink the guide route is drawn in ties the control to its result.
+
+   The dark beat is held between the blinks for the same reason as the tile
+   reveal — a trough passed through at a single stop reads as one pulse. */
 @keyframes hint-nudge {
-  0%,
-  100% {
+  0% {
     color: var(--color-gold);
     box-shadow: none;
   }
 
-  35%,
-  65% {
-    color: var(--color-bonus-bright);
+  16% {
+    color: var(--color-hint);
     box-shadow:
-      0 0 14px rgb(var(--color-bonus-rgb) / 0.5),
-      inset 0 0 10px rgb(var(--color-bonus-rgb) / 0.25);
+      0 0 16px rgb(var(--color-hint-rgb) / 0.55),
+      inset 0 0 10px rgb(var(--color-hint-rgb) / 0.25);
+  }
+
+  34%,
+  44% {
+    color: var(--color-gold);
+    box-shadow: none;
+  }
+
+  62% {
+    color: var(--color-hint);
+    box-shadow:
+      0 0 16px rgb(var(--color-hint-rgb) / 0.55),
+      inset 0 0 10px rgb(var(--color-hint-rgb) / 0.25);
+  }
+
+  100% {
+    color: var(--color-gold);
+    box-shadow: none;
   }
 }
 
