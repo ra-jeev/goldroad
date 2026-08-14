@@ -1053,8 +1053,14 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
    * road — they know it is there.
    *
    * First nudge: starting a third run, so two have already ended badly.
-   * Second: starting a sixth, or five minutes of active play, whichever
-   * comes first. Two in a road is the whole budget.
+   * Second: starting a sixth, or starting any run once five minutes of
+   * active play have accumulated. Two in a road is the whole budget.
+   *
+   * Both conditions are read here, at the start of a run, and nowhere else.
+   * The five-minute rule therefore means "the next run you begin after five
+   * minutes", not "five minutes after you sit down" — deliberately. A nudge
+   * that interrupted a player mid-route would be doing the one thing the
+   * quiet mid-run footer exists to prevent.
    */
   function nudgeHintIfStuck(attempt: number) {
     if (trackingDisabled.value) return;

@@ -199,6 +199,7 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
           :guide-path="guidePath"
           :path-history="pathHistory"
           :disabled="ended || busy"
+          :fail-signal="deadEndSignal"
           @select="moveTo"
           @scoring-move="onScoringMove"
         />

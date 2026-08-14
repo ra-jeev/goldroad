@@ -75,7 +75,7 @@ watch(
     hintNudgeTimer = setTimeout(() => {
       hintNudging.value = false;
       hintNudgeTimer = null;
-    }, 1000);
+    }, 1900);
   },
 );
 
@@ -474,37 +474,43 @@ button,
   animation: hint-nudge 1000ms ease-in-out;
 }
 
-/* Two blinks, in the hint's own colour. It used to light in
-   --color-bonus-bright, which is the honey a bonus lane uses: the bulb read
-   as yellow and said nothing about what pressing it would do. Lighting in the
-   pink the guide route is drawn in ties the control to its result.
+/* Two slow blinks in the button's own gold: muted to bright and back, with
+   a held gap between them. An earlier version lit in the hint's pink, which
+   tied the control to its result but put a second hue into a footer that has
+   only ever spoken in gold — and at 1s it read as a flicker rather than as
+   something offering itself. Slower and quieter says "I am here" without
+   pulling the eye off the board. */
+.action-button.ghost--hint.is-nudging {
+  animation: hint-nudge 1800ms ease-in-out;
+}
 
-   The dark beat is held between the blinks for the same reason as the tile
-   reveal — a trough passed through at a single stop reads as one pulse. */
 @keyframes hint-nudge {
   0% {
-    color: var(--color-gold);
+    color: rgb(var(--color-gold-rgb) / 0.55);
     box-shadow: none;
   }
 
-  16% {
-    color: var(--color-hint);
-    box-shadow:
-      0 0 16px rgb(var(--color-hint-rgb) / 0.55),
-      inset 0 0 10px rgb(var(--color-hint-rgb) / 0.25);
+  14% {
+    color: var(--color-gold-bright);
+    box-shadow: 0 0 16px rgb(var(--color-gold-rgb) / 0.45);
   }
 
-  34%,
-  44% {
-    color: var(--color-gold);
+  /* The gap is held, not passed through, and it is the long beat: two blinks
+     close together read as a flicker. */
+  30%,
+  48% {
+    color: rgb(var(--color-gold-rgb) / 0.55);
     box-shadow: none;
   }
 
-  62% {
-    color: var(--color-hint);
-    box-shadow:
-      0 0 16px rgb(var(--color-hint-rgb) / 0.55),
-      inset 0 0 10px rgb(var(--color-hint-rgb) / 0.25);
+  64% {
+    color: var(--color-gold-bright);
+    box-shadow: 0 0 16px rgb(var(--color-gold-rgb) / 0.45);
+  }
+
+  82% {
+    color: rgb(var(--color-gold-rgb) / 0.55);
+    box-shadow: none;
   }
 
   100% {

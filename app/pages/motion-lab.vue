@@ -207,9 +207,11 @@ useHead({ title: 'Motion lab' });
         </button>
       </div>
       <p class="card-note">
-        The bulb comes on and settles back, 1s. In the game this fires at the
-        top of a third run, and again on a sixth or after five minutes of
-        active play — never if a hint has already been used on that road.
+        Two slow blinks in the button's own gold, 1.8s. In the game this fires
+        when a third run starts, and again when a sixth starts or when any run
+        starts after five minutes of active play — always at the top of a run,
+        never mid-route, and never if a hint has already been used on that
+        road.
       </p>
       <div class="stage">
         <GameBoardFooter
