@@ -170,11 +170,19 @@ withDefaults(
   from {
     clip-path: inset(0 100% 0 0);
   }
+
+  to {
+    clip-path: inset(0 0 0 0);
+  }
 }
 
 @keyframes road-draw-left {
   from {
     clip-path: inset(0 0 0 100%);
+  }
+
+  to {
+    clip-path: inset(0 0 0 0);
   }
 }
 
@@ -182,11 +190,19 @@ withDefaults(
   from {
     clip-path: inset(0 0 100% 0);
   }
+
+  to {
+    clip-path: inset(0 0 0 0);
+  }
 }
 
 @keyframes road-draw-up {
   from {
     clip-path: inset(100% 0 0 0);
+  }
+
+  to {
+    clip-path: inset(0 0 0 0);
   }
 }
 

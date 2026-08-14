@@ -186,9 +186,9 @@ watch(
 .tile.hinted {
   border-color: var(--color-hint);
   box-shadow: var(--shadow-glow-hint);
-  /* `backwards` holds the unlit state through the delay, so a revealed route
+  /* `backwards` holds the first frame through the delay, so a revealed route
      lights up tile by tile in the direction it should be walked. */
-  animation: hint-light 260ms ease-out var(--hint-delay, 0ms) backwards;
+  animation: hint-light 700ms ease-in-out var(--hint-delay, 0ms) backwards;
 }
 
 /* ── Motion ─────────────────────────────────────────────────── */
@@ -235,10 +235,29 @@ watch(
   }
 }
 
+/* Two blinks, and the hint colour is there from the first frame. Starting
+   from the tile's gold border meant most of the animation was spent
+   somewhere between gold and hint, which read as a yellow flash rather than
+   as the hint lighting up. */
 @keyframes hint-light {
-  from {
-    border-color: rgb(var(--color-gold-rgb) / 0.72);
+  0% {
     box-shadow: none;
+  }
+
+  22% {
+    box-shadow: 0 0 18px rgb(var(--color-hint-rgb) / 0.75);
+  }
+
+  46% {
+    box-shadow: 0 0 3px rgb(var(--color-hint-rgb) / 0.15);
+  }
+
+  70% {
+    box-shadow: 0 0 18px rgb(var(--color-hint-rgb) / 0.75);
+  }
+
+  100% {
+    box-shadow: var(--shadow-glow-hint);
   }
 }
 
