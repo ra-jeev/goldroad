@@ -241,22 +241,33 @@ watch(
    as the hint lighting up. */
 @keyframes hint-light {
   0% {
+    border-color: rgb(var(--color-hint-rgb) / 0.4);
     box-shadow: none;
   }
 
-  22% {
-    box-shadow: 0 0 18px rgb(var(--color-hint-rgb) / 0.75);
+  18% {
+    border-color: var(--color-hint);
+    box-shadow: 0 0 18px rgb(var(--color-hint-rgb) / 0.8);
   }
 
+  /* The dip is held across two stops rather than passed through at a single
+     inflection: an instantaneous trough between two eased curves reads as one
+     pulse wobbling, not as two blinks. The border dims with the glow so the
+     whole tile goes off, and it dims within the hint hue so no frame drifts
+     back toward gold. */
+  36%,
   46% {
-    box-shadow: 0 0 3px rgb(var(--color-hint-rgb) / 0.15);
+    border-color: rgb(var(--color-hint-rgb) / 0.4);
+    box-shadow: none;
   }
 
-  70% {
-    box-shadow: 0 0 18px rgb(var(--color-hint-rgb) / 0.75);
+  64% {
+    border-color: var(--color-hint);
+    box-shadow: 0 0 18px rgb(var(--color-hint-rgb) / 0.8);
   }
 
   100% {
+    border-color: var(--color-hint);
     box-shadow: var(--shadow-glow-hint);
   }
 }
