@@ -75,7 +75,7 @@ watch(
     hintNudgeTimer = setTimeout(() => {
       hintNudging.value = false;
       hintNudgeTimer = null;
-    }, 1900);
+    }, 3700);
   },
 );
 
@@ -287,7 +287,7 @@ const displayMessage = computed(
             stroke-dasharray="14 42"
           />
         </svg>
-        <svg v-else viewBox="0 0 24 24" aria-hidden="true">
+        <svg v-else class="hint-icon" viewBox="0 0 24 24" aria-hidden="true">
           <path
             d="M9 18h6m-5-3.5h4m-7.5-4.7a5.5 5.5 0 1 1 9.2 4.05c-.77.68-1.2 1.28-1.34 2.15H9.64c-.14-.87-.57-1.47-1.34-2.15A5.48 5.48 0 0 1 6.5 9.8Z"
             fill="none"
@@ -467,55 +467,64 @@ button,
   }
 }
 
-/* The bulb comes on rather than waving. Lateral motion in the corner of a
-   board someone is counting on reads as nagging; a light coming on reads as
-   availability, which is also what the icon literally is. */
-.action-button.ghost--hint.is-nudging {
-  animation: hint-nudge 1000ms ease-in-out;
+/* Keep the labelled button and its neighbours still. Only the bulb reacts: a
+   small damped shake as it switches on, followed by a short lit hold. */
+.action-button.ghost--hint.is-nudging .hint-icon {
+  animation: hint-nudge-shake 760ms ease-out;
 }
 
-/* Two slow blinks in the button's own gold: muted to bright and back, with
-   a held gap between them. An earlier version lit in the hint's pink, which
-   tied the control to its result but put a second hue into a footer that has
-   only ever spoken in gold — and at 1s it read as a flicker rather than as
-   something offering itself. Slower and quieter says "I am here" without
-   pulling the eye off the board. */
-.action-button.ghost--hint.is-nudging {
-  animation: hint-nudge 1800ms ease-in-out;
+.action-button.ghost--hint.is-nudging .hint-icon path {
+  animation: hint-nudge-light 3500ms ease-in-out;
 }
 
-@keyframes hint-nudge {
+@keyframes hint-nudge-shake {
   0% {
-    color: rgb(var(--color-gold-rgb) / 0.55);
-    box-shadow: none;
+    transform: translateX(0);
   }
 
   14% {
-    color: var(--color-gold-bright);
-    box-shadow: 0 0 16px rgb(var(--color-gold-rgb) / 0.45);
+    transform: translateX(-3px);
   }
 
-  /* The gap is held, not passed through, and it is the long beat: two blinks
-     close together read as a flicker. */
-  30%,
-  48% {
-    color: rgb(var(--color-gold-rgb) / 0.55);
-    box-shadow: none;
+  28% {
+    transform: translateX(3px);
   }
 
-  64% {
-    color: var(--color-gold-bright);
-    box-shadow: 0 0 16px rgb(var(--color-gold-rgb) / 0.45);
+  42% {
+    transform: translateX(-2px);
   }
 
-  82% {
-    color: rgb(var(--color-gold-rgb) / 0.55);
-    box-shadow: none;
+  56% {
+    transform: translateX(1px);
   }
 
+  72%,
   100% {
-    color: var(--color-gold);
-    box-shadow: none;
+    transform: translateX(0);
+  }
+}
+
+@keyframes hint-nudge-light {
+  0% {
+    fill: transparent;
+  }
+
+  20% {
+    fill: var(--color-gold-bright);
+  }
+
+  40%,
+  50% {
+    fill: transparent;
+  }
+
+  70% {
+    fill: var(--color-gold-bright);
+  }
+
+  90%,
+  100% {
+    fill: transparent;
   }
 }
 
@@ -531,6 +540,11 @@ button,
   width: var(--icon-size);
   height: var(--icon-size);
   flex: 0 0 auto;
+}
+
+.hint-icon {
+  transform-box: fill-box;
+  transform-origin: center;
 }
 
 .primary {
