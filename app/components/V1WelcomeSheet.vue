@@ -134,6 +134,7 @@ onBeforeUnmount(() => {
 }
 
 .v1welcome-sheet {
+  animation: sheet-in var(--transition-slow) both;
   position: relative;
   width: min(100%, 480px);
   max-height: min(92dvh, 760px);

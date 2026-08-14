@@ -238,6 +238,9 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
   const successfulMoveSignal = ref(0);
   const deniedMoveSignal = ref(0);
   const deadEndSignal = ref(0);
+  const hintNudgeSignal = ref(0);
+  // 0 = not nudged, 1 = first nudge spent, 2 = both spent. Per road+mode.
+  const hintNudgeLevel = ref(0);
   const solveCelebrationSignal = ref(0);
   const solveAcknowledgement = ref<string | null>(null);
   const startedRoadModes = new Set<string>();
@@ -362,6 +365,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     trackingDisabled.value = false;
     activeSolveTimeMs.value = 0;
     solveTimerStartedAtMs.value = null;
+    hintNudgeLevel.value = 0;
     solveTimerCanResume.value = false;
     celebration.value = null;
     solveAcknowledgement.value = null;
@@ -1039,6 +1043,35 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     setupGame(game.value, {
       attemptNumber: nextAttemptNumber,
     });
+    nudgeHintIfStuck(nextAttemptNumber);
+  }
+
+  /**
+   * Light the hint control for a player who looks stuck. Only ever at the
+   * top of a fresh run, where the board is quiet and nothing else is asking
+   * for attention, and never for someone who has already used a hint on this
+   * road — they know it is there.
+   *
+   * First nudge: starting a third run, so two have already ended badly.
+   * Second: starting a sixth, or five minutes of active play, whichever
+   * comes first. Two in a road is the whole budget.
+   */
+  function nudgeHintIfStuck(attempt: number) {
+    if (trackingDisabled.value) return;
+    if (hintsUsed.value > 0) return;
+    if (HINTS_PER_ROAD_MODE - hintsUsed.value <= 0) return;
+
+    if (hintNudgeLevel.value === 0 && attempt >= 3) {
+      hintNudgeLevel.value = 1;
+      hintNudgeSignal.value += 1;
+      return;
+    }
+
+    const stuckLong = readCurrentSolveTimeMs() >= 5 * 60 * 1000;
+    if (hintNudgeLevel.value === 1 && (attempt >= 6 || stuckLong)) {
+      hintNudgeLevel.value = 2;
+      hintNudgeSignal.value += 1;
+    }
   }
 
   async function moveTo(tileIndex: number) {
@@ -1325,6 +1358,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     successfulMoveSignal,
     deniedMoveSignal,
     deadEndSignal,
+    hintNudgeSignal,
     solveCelebrationSignal,
     solveAcknowledgement,
     clearRoadDay,

@@ -41,6 +41,7 @@ const {
   successfulMoveSignal,
   deniedMoveSignal,
   deadEndSignal,
+  hintNudgeSignal,
   solveCelebrationSignal,
   solveAcknowledgement,
   selectMode,
@@ -185,6 +186,7 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
           :guide-path="guidePath"
           :path-history="pathHistory"
           :disabled="ended || loading"
+          :fail-signal="deadEndSignal"
           @select="moveTo"
           @scoring-move="onScoringMove"
         />
@@ -196,6 +198,7 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
           :attempt-number="attemptNumber"
           :has-moved="moves > 1"
           :next-reset-countdown="nextResetCountdown"
+          :hint-nudge-signal="hintNudgeSignal"
           :new-road-ready="newRoadReady"
           :expedition-just-unlocked="expeditionJustUnlocked"
           :hints-used="hintsUsed"

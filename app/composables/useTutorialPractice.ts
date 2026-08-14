@@ -81,6 +81,9 @@ export function useTutorialPractice() {
   const hintsUsed = ref(0);
   const retryCount = ref(0);
   const status = ref<string>(initialStatus);
+  // Same contract as the live board: increments whenever a run ends badly,
+  // so the board can call out the tile the player stopped on.
+  const failSignal = ref(0);
   const hintMessage = ref<string | null>(null);
 
   const maxScore = computed(() => TUTORIAL_PRACTICE_GAME.maxScore);
@@ -192,8 +195,12 @@ export function useTutorialPractice() {
       status.value = solved.value
         ? 'Practice road complete.'
         : `You reached the finish with ${score.value}, but the target is ${maxScore.value}. Try another route.`;
-      if (solved.value) soundEffects.playSolve();
-      else soundEffects.playDeadEnd();
+      if (solved.value) {
+        soundEffects.playSolve();
+      } else {
+        failSignal.value += 1;
+        soundEffects.playDeadEnd();
+      }
       syncTileStates();
       return;
     }
@@ -212,6 +219,7 @@ export function useTutorialPractice() {
       ended.value = true;
       status.value =
         'Dead end. Walk it again to find the way through.';
+      failSignal.value += 1;
       soundEffects.playDeadEnd();
       syncTileStates();
       return;
@@ -292,6 +300,7 @@ export function useTutorialPractice() {
     maxScore,
     totalCoins,
     canRetry,
+    failSignal,
     restartPractice,
     retryPractice,
     moveTo,

@@ -205,6 +205,7 @@ onBeforeUnmount(() => {
           :guide-path="practice.guidePath.value"
           :path-history="practice.pathHistory.value"
           :disabled="practice.ended.value"
+          :fail-signal="practice.failSignal.value"
           @select="practice.moveTo"
         />
 
@@ -256,6 +257,7 @@ onBeforeUnmount(() => {
 }
 
 .tutorial-panel {
+  animation: sheet-in var(--transition-slow) both;
   position: relative;
   width: min(100%, 760px);
   max-height: min(92dvh, 900px);

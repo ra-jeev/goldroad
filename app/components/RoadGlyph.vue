@@ -34,6 +34,7 @@ withDefaults(
       `road-glyph--${type}`,
       `road-glyph--${state}`,
       { 'road-glyph--traversed': traversed },
+      arrowDir ? `road-glyph--to-${arrowDir}` : null,
     ]"
   >
     <svg
@@ -137,6 +138,56 @@ withDefaults(
 .road-glyph--traversed {
   opacity: 1;
   color: var(--color-gold-dark);
+  /* The road the game is named after used to materialise. It now draws itself
+     in the direction of travel, and because the clip covers the whole glyph
+     the arrow arrives with the stroke that carries it. */
+  animation: road-draw 170ms ease-out;
+}
+
+.road-glyph--traversed.road-glyph--to-right {
+  animation-name: road-draw-right;
+}
+
+.road-glyph--traversed.road-glyph--to-left {
+  animation-name: road-draw-left;
+}
+
+.road-glyph--traversed.road-glyph--to-down {
+  animation-name: road-draw-down;
+}
+
+.road-glyph--traversed.road-glyph--to-up {
+  animation-name: road-draw-up;
+}
+
+@keyframes road-draw {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes road-draw-right {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+}
+
+@keyframes road-draw-left {
+  from {
+    clip-path: inset(0 0 0 100%);
+  }
+}
+
+@keyframes road-draw-down {
+  from {
+    clip-path: inset(0 0 100% 0);
+  }
+}
+
+@keyframes road-draw-up {
+  from {
+    clip-path: inset(100% 0 0 0);
+  }
 }
 
 /* The stretch of the hint route the player has yet to walk. */

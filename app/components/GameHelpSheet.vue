@@ -127,6 +127,7 @@ onBeforeUnmount(() => {
 }
 
 .sheet-card {
+  animation: sheet-in var(--transition-slow) both;
   position: relative;
   width: min(100%, 560px);
   max-height: min(84dvh, 720px);

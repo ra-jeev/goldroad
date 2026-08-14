@@ -12,6 +12,13 @@ const props = defineProps<{
   isHinted: boolean;
   tabIndex: number;
   disabled?: boolean;
+  /** Set while the run that ended here is being called out. */
+  isShaking?: boolean;
+  /**
+   * Position of this tile along the freshly revealed hint route, so the guide
+   * lights up as a direction to follow rather than a scatter of lit tiles.
+   */
+  hintDelayMs?: number;
 }>();
 
 const emit = defineEmits<{
@@ -45,7 +52,9 @@ watch(
       start: isStart,
       end: isEnd,
       hinted: isHinted,
+      shake: isShaking,
     }"
+    :style="hintDelayMs ? { '--hint-delay': `${hintDelayMs}ms` } : undefined"
     :disabled="disabled"
     :tabindex="tabIndex"
     @click="emit('select')"
@@ -107,12 +116,22 @@ watch(
   font-family: inherit;
   font-size: var(--font-size-2xl);
   font-weight: 700;
+  --step-scale: 1.07;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   padding: 0 !important;
   line-height: 1;
-  transition: all var(--transition-base);
+  /* Named properties rather than `all`: a single move used to spawn six
+     transitions per tile (four border sides, box-shadow, colour) on both the
+     tile being left and the one being entered, and `all` would silently
+     animate any property added here later. */
+  transition:
+    background var(--transition-base),
+    border-color var(--transition-base),
+    box-shadow var(--transition-base),
+    color var(--transition-base),
+    transform var(--transition-fast);
   box-shadow:
     inset 3px 3px 6px rgba(255, 255, 255, 0.1),
     inset -3px -3px 6px rgba(0, 0, 0, 0.5),
@@ -167,6 +186,60 @@ watch(
 .tile.hinted {
   border-color: var(--color-hint);
   box-shadow: var(--shadow-glow-hint);
+  /* `backwards` holds the unlit state through the delay, so a revealed route
+     lights up tile by tile in the direction it should be walked. */
+  animation: hint-light 260ms ease-out var(--hint-delay, 0ms) backwards;
+}
+
+/* ── Motion ─────────────────────────────────────────────────── */
+
+/* The step. Walking onto a tile is the verb of the game; without this it is a
+   200ms colour cross-fade and nothing else. Runs on class add, so each newly
+   current tile punches once. */
+.tile.current {
+  animation: tile-step 190ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* A failed run is called out where the player is looking, not only in the
+   footer text. */
+.tile.shake {
+  animation: tile-shake 220ms ease-in-out;
+}
+
+@keyframes tile-step {
+  0% {
+    transform: scale(1);
+  }
+
+  45% {
+    transform: scale(var(--step-scale));
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes tile-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  25% {
+    transform: translateX(-2.5px);
+  }
+
+  75% {
+    transform: translateX(2.5px);
+  }
+}
+
+@keyframes hint-light {
+  from {
+    border-color: rgb(var(--color-gold-rgb) / 0.72);
+    box-shadow: none;
+  }
 }
 
 .tile:focus-visible {

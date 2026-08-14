@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import type { ShareRoadResultResponse } from '../composables/useRoadResultShare';
 import { UI_COPY } from '../content/uiCopy';
 import { computeFooterState, type FooterState } from '../utils/footerState';
@@ -27,6 +27,8 @@ const props = withDefaults(
     loading: boolean;
     submitting: boolean;
     trackingDisabled?: boolean;
+    /** Increments when the board decides the player could use a hint. */
+    hintNudgeSignal?: number;
     showStatsLink?: boolean;
     secondaryLinkTo?: string | null;
     secondaryLinkLabel?: string | null;
@@ -57,9 +59,34 @@ const emit = defineEmits<{
   loadNewRoad: [];
 }>();
 
+// The bulb lights once per nudge and settles back. Held in state so it can
+// be cleared when the animation ends and re-run on the second nudge.
+const hintNudging = ref(false);
+let hintNudgeTimer: ReturnType<typeof setTimeout> | null = null;
+
+watch(
+  () => props.hintNudgeSignal,
+  (signal, previous) => {
+    if (signal === undefined || previous === undefined || signal <= previous) {
+      return;
+    }
+    if (hintNudgeTimer) clearTimeout(hintNudgeTimer);
+    hintNudging.value = true;
+    hintNudgeTimer = setTimeout(() => {
+      hintNudging.value = false;
+      hintNudgeTimer = null;
+    }, 1000);
+  },
+);
+
 const shareBusy = ref(false);
 const shareMessage = ref<string | null>(null);
 let shareMessageTimer: ReturnType<typeof setTimeout> | null = null;
+
+onBeforeUnmount(() => {
+  if (hintNudgeTimer) clearTimeout(hintNudgeTimer);
+  if (shareMessageTimer) clearTimeout(shareMessageTimer);
+});
 
 async function onShare() {
   if (!props.shareHandler || shareBusy.value) return;
@@ -206,6 +233,7 @@ const displayMessage = computed(
           'action-button',
           retryIsPrimary ? 'primary' : 'ghost',
           { 'action-button--text': retryIsPrimary },
+          { 'action-button--promoted': retryIsPrimary },
         ]"
         :disabled="retryBusy"
         :aria-label="UI_COPY.boardFooter.retryRoad"
@@ -234,6 +262,7 @@ const displayMessage = computed(
           'ghost--hint',
           { 'action-button--text': !hintIsQuiet },
           { 'is-pending': hintPending },
+          { 'is-nudging': hintNudging && !hintPending },
         ]"
         :disabled="busy || hintPending"
         :aria-label="UI_COPY.boardFooter.openHint"
@@ -416,6 +445,49 @@ button,
   font-size: var(--font-size-control);
   font-weight: 800;
   line-height: 1;
+}
+
+/* A failed run promotes retry from a quiet icon to a filled, labelled button.
+   The state change already carried the message; it just happened in a single
+   frame. The delay lets the tile shake land first, so the eye is walked from
+   the board to the action rather than being pulled two ways at once.
+
+   Scoped to the retry button by its own class: matching on
+   .primary.action-button--text also caught "Play the new road", which then
+   bloomed on every render of an expired road. */
+.action-button--promoted {
+  animation: action-promote 240ms cubic-bezier(0.2, 0.8, 0.2, 1) 140ms
+    backwards;
+}
+
+@keyframes action-promote {
+  from {
+    transform: scale(0.9);
+    box-shadow: none;
+  }
+}
+
+/* The bulb comes on rather than waving. Lateral motion in the corner of a
+   board someone is counting on reads as nagging; a light coming on reads as
+   availability, which is also what the icon literally is. */
+.action-button.ghost--hint.is-nudging {
+  animation: hint-nudge 1000ms ease-in-out;
+}
+
+@keyframes hint-nudge {
+  0%,
+  100% {
+    color: var(--color-gold);
+    box-shadow: none;
+  }
+
+  35%,
+  65% {
+    color: var(--color-bonus-bright);
+    box-shadow:
+      0 0 14px rgb(var(--color-bonus-rgb) / 0.5),
+      inset 0 0 10px rgb(var(--color-bonus-rgb) / 0.25);
+  }
 }
 
 .action-button--text,

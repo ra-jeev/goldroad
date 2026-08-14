@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, watch } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { buildEdgeMap, getEdgeType } from '#shared/utils/puzzleEngine';
 import type { Board, EdgeType, PuzzleType } from '#shared/types/game';
 import type { TileState } from '../types/game';
@@ -22,6 +22,11 @@ const props = defineProps<{
   /** Ordered hint route. Ordering is what lets the guide draw as a road. */
   guidePath?: number[];
   disabled?: boolean;
+  /**
+   * Increments whenever a run ends without a solve, dead end or wrong exit
+   * alike. The board answers by shaking the tile the player stopped on.
+   */
+  failSignal?: number;
 }>();
 
 const emit = defineEmits<{
@@ -193,6 +198,49 @@ const allRoads = computed<RoadData[]>(() => {
   return roads;
 });
 
+// The tile the player stopped on, shaken once per failed run. Held in state
+// rather than derived so the class can be removed when the animation ends and
+// re-added on the next failure.
+const shakingTileId = ref<number | null>(null);
+let shakeTimer: ReturnType<typeof setTimeout> | null = null;
+
+watch(
+  () => props.failSignal,
+  (signal, previous) => {
+    if (signal === undefined || previous === undefined || signal <= previous) {
+      return;
+    }
+    if (shakeTimer) clearTimeout(shakeTimer);
+    shakingTileId.value = props.currentTileIndex;
+    shakeTimer = setTimeout(() => {
+      shakingTileId.value = null;
+      shakeTimer = null;
+    }, 240);
+  },
+);
+
+onBeforeUnmount(() => {
+  if (shakeTimer) clearTimeout(shakeTimer);
+});
+
+/**
+ * Delay for each tile of a freshly lit hint route, measured from the first
+ * tile the player has yet to walk, so the reveal reads as a direction.
+ */
+const hintDelays = computed(() => {
+  const delays = new Map<number, number>();
+  const path = props.guidePath ?? [];
+  let step = 0;
+
+  for (const tileId of path) {
+    if (!props.hintedTiles.has(tileId)) continue;
+    delays.set(tileId, step * 45);
+    step += 1;
+  }
+
+  return delays;
+});
+
 // Signal the score readout when a move newly crosses a toll or bonus edge.
 watch(
   () => props.pathHistory.length,
@@ -264,6 +312,8 @@ watch(
             :is-active="activeSet.has(tile.id)"
             :is-done="visitedSet.has(tile.id)"
             :is-hinted="hintedTiles.has(tile.id)"
+            :is-shaking="shakingTileId === tile.id"
+            :hint-delay-ms="hintDelays.get(tile.id)"
             :tab-index="tile.tabIndex"
             :disabled="disabled"
             @select="emit('select', tile.id)"
