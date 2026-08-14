@@ -68,16 +68,22 @@ export default defineNuxtConfig({
    * as it climbs. Only weights the app actually sets are downloaded.
    */
   fonts: {
+    /**
+     * The app ships English copy only, and every non-ASCII character it
+     * renders — ’ · – … • × — falls inside the latin subset. The few symbols
+     * outside it (← → ✓) are absent from latin-ext and vietnamese too, so
+     * they fall back to a system face either way. Nothing is italic.
+     */
+    defaults: {
+      subsets: ['latin'],
+      styles: ['normal'],
+    },
     families: [
-      { name: 'Marcellus', provider: 'google', weights: [400], styles: ['normal'] },
-      {
-        name: 'Chivo',
-        provider: 'google',
-        weights: [400, 600, 700, 800, 900],
-        // Nothing in the app is italic, and Chivo's italics are a separate
-        // variable file per subset — 73 KB of the deployed font payload.
-        styles: ['normal'],
-      },
+      { name: 'Marcellus', provider: 'google', weights: [400] },
+      // Chivo is variable, so listing five weights costs five @font-face
+      // declarations against one file, not five downloads. 600 is load-bearing:
+      // it is the h3 weight that keeps labels below a display title.
+      { name: 'Chivo', provider: 'google', weights: [400, 600, 700, 800, 900] },
     ],
   },
 

@@ -980,7 +980,7 @@ onMounted(async () => {
 .today-result-copy span {
   color: rgb(var(--color-gold-rgb) / 0.72);
   font-size: var(--font-size-caption);
-  font-weight: 650;
+  font-weight: 700;
   line-height: 1.35;
 }
 

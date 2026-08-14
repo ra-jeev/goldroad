@@ -338,7 +338,7 @@ onClickOutside(menuShell, closeMobileMenu);
     box-shadow: var(--shadow-sm);
     color: var(--color-gold-bright);
     font-size: var(--font-size-caption);
-    font-weight: 750;
+    font-weight: 800;
     line-height: 1;
     white-space: nowrap;
     opacity: 0;

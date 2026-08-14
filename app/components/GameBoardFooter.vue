@@ -380,7 +380,7 @@ const displayMessage = computed(
   margin: 0;
   color: var(--color-gold-bright);
   font-size: var(--font-size-board-meta);
-  font-weight: 650;
+  font-weight: 700;
   line-height: var(--line-height-snug);
   /* Carries the next-road countdown, which ticks every second. */
   font-variant-numeric: tabular-nums;

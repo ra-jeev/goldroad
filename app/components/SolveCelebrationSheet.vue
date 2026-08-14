@@ -634,7 +634,7 @@ onBeforeUnmount(() => {
 
 .celebration-day-result {
   color: rgb(var(--color-gold-rgb) / 0.72);
-  font-weight: 650;
+  font-weight: 700;
   font-size: var(--font-size-caption);
   line-height: 1.35;
 }
