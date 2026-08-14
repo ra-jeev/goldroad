@@ -25,8 +25,6 @@ type Bar = {
   highlight: boolean;
   /** Scale anchor sat on the axis: only the first and the pooled bar. */
   axisMarker: string | null;
-  /** The player's own count, floated above their bar's arrow. */
-  youMarker: string | null;
 };
 
 /**
@@ -35,11 +33,9 @@ type Bar = {
  * buckets kept as hairlines so the field reads as a field. Absolute counts
  * are deliberately never rendered.
  *
- * The player's count rides above their bar rather than sitting on the axis.
- * Bars are only ~7-12px apart, so an axis label anywhere past ~22 collided
- * with the pooled `${upperBound}+` anchor (v1 had this bug too). Floating it
- * with the arrow makes a collision impossible at any attempt count, and reads
- * as part of the "you are here" marker rather than as another axis tick.
+ * The player's own bar carries an arrow and nothing else. It used to float
+ * the count above the arrow too, which repeated the line directly beneath the
+ * chart telling the player how many tries they took.
  */
 const bars = computed<Bar[]>(() => {
   const overflowKey = `${props.upperBound}+`;
@@ -66,9 +62,6 @@ const bars = computed<Bar[]>(() => {
       value: count > 0 ? Math.max(6, Math.round((count / maxCount) * 100)) : 1,
       highlight,
       axisMarker: isAnchor ? key : null,
-      // On an anchor bar the axis already shows the count; a second copy
-      // overhead would just repeat it.
-      youMarker: highlight && !isAnchor ? key : null,
     };
   });
 });
@@ -95,7 +88,6 @@ const ariaLabel = computed(() => {
         :class="{ 'graph-entry--you': bar.highlight }"
         :style="{ height: `${bar.value}%` }"
       >
-        <span v-if="bar.youMarker" class="you-marker">{{ bar.youMarker }}</span>
         <span v-if="bar.axisMarker" class="axis-marker">
           {{ bar.axisMarker }}
         </span>
@@ -116,12 +108,12 @@ const ariaLabel = computed(() => {
   display: flex;
   align-items: flex-end;
   gap: clamp(3px, 1.2vw, 6px);
-  /* Padding clears the "you" marker stack above a full-height bar: count,
-     then arrow. Height carries that padding so the bars keep their old
-     6.65rem of travel. */
+  /* Padding clears the arrow above a full-height bar. It used to clear a
+     count sitting above the arrow as well; with that gone the bars take the
+     freed room rather than the chart shrinking. */
   height: 9.15rem;
   margin-top: 0.5rem;
-  padding-top: 2.5rem;
+  padding-top: 1.6rem;
   padding-bottom: 0;
   border-bottom: 1px solid rgb(var(--color-gold-rgb) / 0.4);
 }
@@ -130,7 +122,9 @@ const ariaLabel = computed(() => {
   position: relative;
   width: clamp(4px, 1.4vw, 6px);
   border-radius: 2px 2px 0 0;
-  background: rgb(var(--color-gold-rgb) / 0.35);
+  /* The field's own bars: bright enough to read as data rather than as a
+     backdrop, still clearly below the player's solid, glowing bar. */
+  background: rgb(var(--color-gold-rgb) / 0.55);
   transition: height var(--transition-slow);
 }
 
@@ -178,19 +172,6 @@ const ariaLabel = computed(() => {
 
 .graph-entry--you .axis-marker {
   color: var(--color-gold-bright);
-}
-
-/* Sits above the arrow, so it can never meet an axis label. */
-.you-marker {
-  position: absolute;
-  bottom: calc(100% + 23px);
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: var(--font-size-caption);
-  font-weight: 800;
-  line-height: 1;
-  color: var(--color-gold-bright);
-  white-space: nowrap;
 }
 
 .graph-label {
