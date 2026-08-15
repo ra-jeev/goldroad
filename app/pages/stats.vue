@@ -21,18 +21,24 @@ useSeoMeta({
   robots: 'noindex, follow',
 });
 
-const localStats = useLocalPlayerStats();
 const localProgress = useLocalGameProgress();
 const statsApi = useStatsApi();
 const roadResultShare = useRoadResultShare();
 const { countdown: nextRoadCountdown, newRoadReady } = useNextRoadCountdown();
 
-const summary = localStats.summary;
-const recentDays = localStats.recentDays;
-
 const communityOverview = ref<Awaited<
   ReturnType<typeof statsApi.getOverview>
 > | null>(null);
+const todayGameNo = computed(
+  () =>
+    communityOverview.value?.currentGameNo ??
+    localProgress.currentRoadContext.value.currentGameNo ??
+    null,
+);
+const localStats = useLocalPlayerStats(todayGameNo);
+const summary = localStats.summary;
+const recentDays = localStats.recentDays;
+
 const communityError = ref<string | null>(null);
 const loading = ref(true);
 
@@ -117,13 +123,6 @@ function medalOf(result: PlayerRoadResult | null): Medal | null {
 // ---------------------------------------------------------------------------
 // Medals (cross-mode, always visible) with the +1 moment
 // ---------------------------------------------------------------------------
-
-const todayGameNo = computed(
-  () =>
-    communityOverview.value?.currentGameNo ??
-    localProgress.currentRoadContext.value.currentGameNo ??
-    null,
-);
 
 /** Medals earned on today's road, per tier, across both modes. */
 const medalsEarnedToday = computed<Record<Medal, number>>(() => {

@@ -1,4 +1,4 @@
-import { computed } from 'vue';
+import { computed, type Ref } from 'vue';
 import { calcMedalForAttempt } from '../../lib/gameTiers';
 import type { PuzzleType } from '#shared/types/game';
 import { useGoldroadLocalState } from './useGoldroadLocalState';
@@ -97,40 +97,58 @@ function buildMedalCounts(
 }
 
 export function buildStreakSummary(
-  days: string[],
+  entries: Array<{ day: string; gameNo: number }>,
   todayKey = getTodayKey(),
+  currentGameNo: number | null = null,
 ): {
   currentStreak: number;
   bestStreak: number;
 } {
-  const solvedDaySet = new Set(days);
-  const dayKeysAsc = [...solvedDaySet].sort();
+  // A streak follows consecutive roads, not consecutive calendar dates. That
+  // distinction matters whenever a road remains live for longer than one UTC
+  // day, as Road 1 did at launch.
+  const solvedEntries = [
+    ...new Map(entries.map((entry) => [entry.gameNo, entry])).values(),
+  ].sort((left, right) => left.gameNo - right.gameNo);
 
   let bestStreak = 0;
   let runningStreak = 0;
-  let previousSolvedDay: string | null = null;
+  let previousGameNo: number | null = null;
 
-  for (const day of dayKeysAsc) {
-    if (!previousSolvedDay) {
+  for (const entry of solvedEntries) {
+    if (previousGameNo === null) {
       runningStreak = 1;
     } else {
-      const previousStamp = getUtcDayStamp(previousSolvedDay);
-      const currentStamp = getUtcDayStamp(day);
       runningStreak =
-        currentStamp - previousStamp === 86400000 ? runningStreak + 1 : 1;
+        entry.gameNo - previousGameNo === 1 ? runningStreak + 1 : 1;
     }
 
     bestStreak = Math.max(bestStreak, runningStreak);
-    previousSolvedDay = day;
+    previousGameNo = entry.gameNo;
   }
 
-  let currentStreak = 0;
-  const todayStamp = getUtcDayStamp(todayKey);
-  let cursor = solvedDaySet.has(todayKey) ? todayStamp : todayStamp - 86400000;
+  const latest = solvedEntries.at(-1);
+  if (!latest) return { currentStreak: 0, bestStreak };
 
-  while (solvedDaySet.has(new Date(cursor).toISOString().split('T')[0]!)) {
+  // Before today's road is solved, yesterday's road still keeps the streak
+  // alive. Prefer the current road number because it also handles extended
+  // roads. The date fallback is only a floor for callers without road context;
+  // it cannot distinguish an intentionally extended road from a missed day.
+  const todayStamp = getUtcDayStamp(todayKey);
+  const latestStamp = getUtcDayStamp(latest.day);
+  const latestIsCurrent =
+    currentGameNo === null
+      ? latestStamp === todayStamp || latestStamp === todayStamp - 86400000
+      : latest.gameNo === currentGameNo || latest.gameNo === currentGameNo - 1;
+
+  if (!latestIsCurrent) return { currentStreak: 0, bestStreak };
+
+  let currentStreak = 1;
+  let expectedGameNo = latest.gameNo - 1;
+  for (let index = solvedEntries.length - 2; index >= 0; index -= 1) {
+    if (solvedEntries[index]!.gameNo !== expectedGameNo) break;
     currentStreak += 1;
-    cursor -= 86400000;
+    expectedGameNo -= 1;
   }
 
   return {
@@ -142,13 +160,14 @@ export function buildStreakSummary(
 function buildModeSummary(
   modeEntries: StatsModeEntry[],
   puzzleType: PuzzleType,
+  currentGameNo: number | null,
 ): StatsModeSummary {
   const activeEntries = modeEntries.filter(
     (entry) => entry.puzzleType === puzzleType && hasActivity(entry),
   );
   const solvedEntries = activeEntries.filter((entry) => entry.solved);
   const solvedDurations = getSolvedDurations(solvedEntries);
-  const streaks = buildStreakSummary(solvedEntries.map((entry) => entry.day));
+  const streaks = buildStreakSummary(solvedEntries, getTodayKey(), currentGameNo);
 
   return {
     puzzleType,
@@ -174,7 +193,9 @@ function buildModeSummary(
   };
 }
 
-export function useLocalPlayerStats() {
+export function useLocalPlayerStats(
+  currentGameNo?: Readonly<Ref<number | null>>,
+) {
   const localState = useGoldroadLocalState();
 
   function load() {
@@ -218,8 +239,18 @@ export function useLocalPlayerStats() {
     const activeModes = modeEntries.filter((entry) => hasActivity(entry));
     const solvedModes = activeModes.filter((entry) => entry.solved);
     const solvedDurations = getSolvedDurations(solvedModes);
-    const classicSummary = buildModeSummary(modeEntries, 'classic');
-    const expeditionSummary = buildModeSummary(modeEntries, 'expedition');
+    const resolvedCurrentGameNo =
+      currentGameNo?.value ?? localState.currentRoadContext.value.currentGameNo;
+    const classicSummary = buildModeSummary(
+      modeEntries,
+      'classic',
+      resolvedCurrentGameNo,
+    );
+    const expeditionSummary = buildModeSummary(
+      modeEntries,
+      'expedition',
+      resolvedCurrentGameNo,
+    );
 
     return {
       roadDaysPlayed: days.filter((entry) =>
