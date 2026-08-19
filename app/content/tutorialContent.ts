@@ -12,6 +12,10 @@ export type TutorialLesson = {
     isStart?: boolean;
     isEnd?: boolean;
     isHinted?: boolean;
+    /** Render the footer's Undo control instead of a mini board. */
+    showUndoButton?: boolean;
+    /** Render the keyboard controls instead of a mini board. */
+    showKeyboardKeys?: boolean;
     /** Render the footer's Try again control instead of a mini board. */
     showRetryButton?: boolean;
     /** Render the footer's Hint control instead of a mini board. */
@@ -88,18 +92,47 @@ export const TUTORIAL_LESSONS: TutorialLesson[] = [
     },
   },
   {
+    // Undo stands alone rather than joining Retry and Hint. Those two answer
+    // "this road has not worked out"; Undo answers "I just tapped the wrong
+    // tile" — a different moment, and the only control here with a gesture
+    // nobody would guess, so it needs the room.
+    id: 'undo',
+    title: 'Take back a wrong step',
+    body: 'Tapped the wrong tile? Use the button, or the tile you came from, to undo your last step. You can undo only one step at a time.',
+    visual: {
+      fromValue: 4,
+      toValue: 2,
+      edgeType: 'open',
+      showUndoButton: true,
+    },
+  },
+  {
     // Retry and Hint are one lesson because they answer the same question:
     // what to do when a road has not worked out. Splitting them made the
     // guide longer without teaching anything extra.
     id: 'retry-hint',
     title: 'Walk it again, or take a hint',
-    body: 'Undo takes back your last step — the button, or a tap on the tile you came from. You get one take-back; move again to earn another. Try again walks the road from the start. Hint shows your next useful move.',
+    body: 'A road never locks you out. Try again walks it from the start, as often as you like. Hint shows your next useful move.',
     visual: {
       fromValue: 5,
       toValue: 3,
       edgeType: 'open',
       showRetryButton: true,
       showHintButton: true,
+    },
+  },
+  {
+    // Last, because it is a second way to do what the board already does
+    // rather than a rule of the road. Nothing on screen hints that the keys
+    // work, so the guide is the only place a player can find out.
+    id: 'keyboard',
+    title: 'Play with the keyboard',
+    body: 'Arrow keys or W, A, S, D move you one tile. Backspace takes back your last step.',
+    visual: {
+      fromValue: 4,
+      toValue: 2,
+      edgeType: 'open',
+      showKeyboardKeys: true,
     },
   },
 ];

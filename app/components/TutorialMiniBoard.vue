@@ -15,6 +15,8 @@ const props = defineProps<{
   isStart?: boolean;
   isEnd?: boolean;
   isHinted?: boolean;
+  showUndoButton?: boolean;
+  showKeyboardKeys?: boolean;
   showRetryButton?: boolean;
   showHintButton?: boolean;
   /** Show the real pre-run state: start occupied, its neighbor glowing. */
@@ -48,11 +50,57 @@ function roadStyle(index: number): Record<string, string> {
   <!-- Lessons about the footer controls show the controls themselves, drawn
        exactly as the board footer renders them at rest: retry as an icon,
        Hint labelled. -->
+  <!-- Key caps are drawn, never typed: the shipped font subsets are latin
+       only, so an arrow or backspace character would render as tofu. -->
+  <div v-if="showKeyboardKeys" class="mini-actions" aria-hidden="true">
+    <span class="mini-actions__button mini-actions__button--icon">
+      <svg viewBox="0 0 24 24">
+        <path
+          d="M12 4v16M4 12h16M12 4 9.5 6.5M12 4l2.5 2.5M12 20l-2.5-2.5M12 20l2.5-2.5M4 12l2.5-2.5M4 12l2.5 2.5M20 12l-2.5-2.5M20 12l-2.5 2.5"
+          fill="none"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2.2"
+        />
+      </svg>
+    </span>
+
+    <span class="mini-actions__button mini-actions__button--icon">
+      <svg viewBox="0 0 24 24">
+        <path
+          d="M4.5 5.5v13M20 12H9m0 0 4.5-4.5M9 12l4.5 4.5"
+          fill="none"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="3"
+        />
+      </svg>
+    </span>
+  </div>
+
   <div
-    v-if="showRetryButton || showHintButton"
+    v-else-if="showUndoButton || showRetryButton || showHintButton"
     class="mini-actions"
     aria-hidden="true"
   >
+    <span
+      v-if="showUndoButton"
+      class="mini-actions__button mini-actions__button--icon"
+    >
+      <svg viewBox="0 0 24 24">
+        <path
+          d="M4.5 5.5v13M20 12H9m0 0 4.5-4.5M9 12l4.5 4.5"
+          fill="none"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="3"
+        />
+      </svg>
+    </span>
+
     <span
       v-if="showRetryButton"
       class="mini-actions__button mini-actions__button--icon"

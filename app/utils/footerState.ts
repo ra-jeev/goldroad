@@ -24,13 +24,14 @@ export type FooterStateInput = {
   canSwitchToExpedition: boolean;
 };
 
-/** Undo stays on the row at rest so a take-back to the start does not jump it. */
+/**
+ * Undo appears once the player has moved, the same rule Try again follows.
+ * At rest there is nothing to take back and never will be from that state, so
+ * a greyed button there is furniture. Undoing all the way to the start drops
+ * both controls together, which reads as one change rather than a flicker.
+ */
 export function shouldShowUndoAction(state: FooterState): boolean {
-  return (
-    state === 'resting-first' ||
-    state === 'resting-retry' ||
-    state === 'mid-run'
-  );
+  return state === 'mid-run';
 }
 
 export function computeFooterState(input: FooterStateInput): FooterState {

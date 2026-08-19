@@ -43,7 +43,7 @@ export const UI_COPY = {
   boardFooter: {
     retryRoad: 'Try again',
     undoLastStep: 'Undo last step',
-    undoSpent: 'Take a step to undo',
+    undoSpent: 'Move again to undo',
     openHint: 'Hint',
     openHelp: 'How to Play',
     switchToExpedition: 'Play Expedition',
@@ -106,6 +106,13 @@ export const UI_COPY = {
           'Classic and Expedition get 5 hints each, every day. A hint lights up the next stretch of a guide route to follow.',
           'Hints never reduce your score or medal.',
           'Solving Classic unlocks Expedition for the day when one is available.',
+        ],
+      },
+      keyboard: {
+        title: 'Keyboard',
+        items: [
+          'Arrow keys or W, A, S, D move you one tile.',
+          'Backspace takes back your last step.',
         ],
       },
     },

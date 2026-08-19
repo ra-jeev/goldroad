@@ -110,6 +110,15 @@ onBeforeUnmount(() => {
           </li>
         </ul>
       </article>
+
+      <article class="help-section">
+        <h3>{{ COPY.sections.keyboard.title }}</h3>
+        <ul>
+          <li v-for="item in COPY.sections.keyboard.items" :key="item">
+            {{ item }}
+          </li>
+        </ul>
+      </article>
     </section>
   </div>
 </template>

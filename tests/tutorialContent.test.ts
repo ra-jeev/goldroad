@@ -28,11 +28,55 @@ describe('tutorial lesson 1 start-state content (RP1-9)', () => {
   });
 });
 
-describe('tutorial retry-hint lesson', () => {
-  it('teaches one-step undo on the retry-and-hint lesson', () => {
-    const lesson = TUTORIAL_LESSONS.find((item) => item.id === 'retry-hint');
-    expect(lesson?.body).toMatch(/Undo takes back your last step/i);
-    expect(lesson?.body).toMatch(/one take-back/i);
-    expect(lesson?.body).toMatch(/tap on the tile you came from/i);
+describe('tutorial undo lesson', () => {
+  const lesson = TUTORIAL_LESSONS.find((item) => item.id === 'undo');
+
+  it('teaches the one-step rule and the take-back gesture', () => {
+    expect(lesson?.body).toMatch(/undo your last step/i);
+    expect(lesson?.body).toMatch(/only one step at a time/i);
+    expect(lesson?.body).toMatch(/the tile you came from/i);
+  });
+
+  it('shows the Undo control, since the button is what needs naming', () => {
+    expect(lesson?.visual.showUndoButton).toBe(true);
+    expect(lesson?.visual.showRetryButton).toBeUndefined();
+    expect(lesson?.visual.showHintButton).toBeUndefined();
+  });
+
+  it('comes before retry and hint, the order a player meets them', () => {
+    const ids = TUTORIAL_LESSONS.map((item) => item.id);
+    expect(ids.indexOf('undo')).toBeLessThan(ids.indexOf('retry-hint'));
+  });
+
+  it('leaves the retry-and-hint lesson to its own two tools', () => {
+    const other = TUTORIAL_LESSONS.find((item) => item.id === 'retry-hint');
+    expect(other?.body).not.toMatch(/undo/i);
+  });
+});
+
+describe('tutorial lesson copy', () => {
+  it('uses no em dashes', () => {
+    for (const lesson of TUTORIAL_LESSONS) {
+      expect(lesson.body).not.toContain('—');
+      expect(lesson.title).not.toContain('—');
+    }
+  });
+});
+
+describe('tutorial keyboard lesson', () => {
+  const lesson = TUTORIAL_LESSONS.find((item) => item.id === 'keyboard');
+
+  it('names both movement bindings and the undo key', () => {
+    expect(lesson?.body).toMatch(/arrow keys/i);
+    expect(lesson?.body).toMatch(/W, A, S, D/);
+    expect(lesson?.body).toMatch(/backspace/i);
+  });
+
+  it('draws its key caps rather than a mini board', () => {
+    expect(lesson?.visual.showKeyboardKeys).toBe(true);
+  });
+
+  it('comes last, being a second way in rather than a rule of the road', () => {
+    expect(TUTORIAL_LESSONS[TUTORIAL_LESSONS.length - 1]?.id).toBe('keyboard');
   });
 });

@@ -19,7 +19,7 @@ describe('player-facing try terminology', () => {
 describe('last-step undo copy', () => {
   it('names the take-back and the spent state', () => {
     expect(UI_COPY.boardFooter.undoLastStep).toBe('Undo last step');
-    expect(UI_COPY.boardFooter.undoSpent).toBe('Take a step to undo');
+    expect(UI_COPY.boardFooter.undoSpent).toBe('Move again to undo');
   });
 
   it('teaches undo as a one-step take-back in the help tools', () => {
@@ -27,6 +27,13 @@ describe('last-step undo copy', () => {
     expect(tools).toMatch(/Undo takes back only your last step/i);
     expect(tools).toMatch(/Take another step to undo again/i);
     expect(tools).toMatch(/tap the tile you came from/i);
+  });
+
+  it('gives the keyboard its own section, since nothing on screen shows it', () => {
+    const keys = UI_COPY.helpSheet.sections.keyboard.items.join(' ');
+    expect(keys).toMatch(/arrow keys/i);
+    expect(keys).toMatch(/W, A, S, D/);
+    expect(keys).toMatch(/backspace/i);
   });
 });
 
