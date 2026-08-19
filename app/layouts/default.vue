@@ -1,8 +1,4 @@
 <script setup lang="ts">
-import { onClickOutside } from '@vueuse/core';
-
-const showMobileMenu = ref(false);
-const menuShell = ref<HTMLElement | null>(null);
 const route = useRoute();
 const currentRoadLabel = useState<string | null>(
   'current-road-label',
@@ -14,6 +10,7 @@ const { muted, toggleMuted } = useGoldroadLocalState();
 useSoundEffects();
 const { openHowToPlay, closeHowToPlay } = useHowToPlaySheet();
 const { closeTutorial } = useTutorialFlow();
+const { isNavDrawerOpen, closeNavDrawer, toggleNavDrawer } = useNavDrawer();
 // Acknowledgment of the latest update is owned by the About page itself,
 // which needs to capture the pre-acknowledgment state to show its own
 // unread marker exactly once.
@@ -24,16 +21,10 @@ watch(
   () => {
     closeHowToPlay();
     closeTutorial();
-    closeMobileMenu();
+    closeNavDrawer();
   },
   { immediate: true },
 );
-
-function closeMobileMenu() {
-  showMobileMenu.value = false;
-}
-
-onClickOutside(menuShell, closeMobileMenu);
 </script>
 
 <template>
@@ -41,7 +32,7 @@ onClickOutside(menuShell, closeMobileMenu);
     <header class="app-header">
       <div class="header-content">
         <div class="header-brand">
-          <NuxtLink to="/" class="logo" @click="closeMobileMenu">
+          <NuxtLink to="/" class="logo" @click="closeNavDrawer">
             <span class="logo-text">GoldRoad</span>
           </NuxtLink>
 
@@ -101,7 +92,7 @@ onClickOutside(menuShell, closeMobileMenu);
             aria-label="View stats"
             title="Stats"
             data-tooltip="Stats"
-            @click="closeMobileMenu"
+            @click="closeNavDrawer"
           >
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path
@@ -122,7 +113,7 @@ onClickOutside(menuShell, closeMobileMenu);
             data-tooltip="How to play"
             @click="
               openHowToPlay();
-              closeMobileMenu();
+              closeNavDrawer();
             "
           >
             <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -137,105 +128,33 @@ onClickOutside(menuShell, closeMobileMenu);
             </svg>
           </button>
 
-          <div ref="menuShell" class="menu-shell">
-            <button
-              class="icon-button"
-              :aria-expanded="showMobileMenu"
-              :aria-label="
-                hasUnseenUpdate
-                  ? 'Open navigation menu (update available)'
-                  : 'Open navigation menu'
-              "
-              title="Menu"
-              data-tooltip="Menu"
-              @click="showMobileMenu = !showMobileMenu"
-            >
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path
-                  d="M4 7h16M4 12h16M4 17h16"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-linecap="round"
-                  stroke-width="3"
-                />
-              </svg>
-              <span
-                v-if="hasUnseenUpdate"
-                class="notification-dot"
-                aria-hidden="true"
+          <button
+            class="icon-button"
+            :aria-expanded="isNavDrawerOpen"
+            :aria-label="
+              hasUnseenUpdate
+                ? 'Open navigation menu (update available)'
+                : 'Open navigation menu'
+            "
+            title="Menu"
+            data-tooltip="Menu"
+            @click="toggleNavDrawer"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M4 7h16M4 12h16M4 17h16"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-width="3"
               />
-            </button>
-
-            <div v-if="showMobileMenu" class="menu-panel">
-              <NuxtLink
-                to="/stats"
-                class="menu-link menu-link--mobile"
-                @click="closeMobileMenu"
-              >
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path
-                    d="M5 19V9m7 10V5m7 14v-7M3 19.5h18"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2.5"
-                  />
-                </svg>
-                Stats
-              </NuxtLink>
-              <button
-                type="button"
-                class="menu-link menu-link--mobile"
-                @click="
-                  openHowToPlay();
-                  closeMobileMenu();
-                "
-              >
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path
-                    d="M9.2 9a2.8 2.8 0 1 1 5.23 1.4c-.33.5-.86.92-1.4 1.3c-.78.56-1.53 1.1-1.53 2.3m.01 3h.01M22 12a10 10 0 1 1-20 0a10 10 0 0 1 20 0Z"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2.5"
-                  />
-                </svg>
-                How to Play
-              </button>
-              <NuxtLink to="/games" class="menu-link" @click="closeMobileMenu">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path
-                    d="M4 7h16M4 12h16M4 17h10"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-linecap="round"
-                    stroke-width="2.5"
-                  />
-                </svg>
-                Past Roads
-              </NuxtLink>
-              <NuxtLink to="/about" class="menu-link menu-link--update" @click="closeMobileMenu">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path
-                    d="M12 16v-5m0-3h.01M22 12a10 10 0 1 1-20 0a10 10 0 0 1 20 0Z"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2.5"
-                  />
-                </svg>
-                About
-                <span
-                  v-if="hasUnseenUpdate"
-                  class="notification-dot notification-dot--inline"
-                  aria-hidden="true"
-                />
-              </NuxtLink>
-            </div>
-          </div>
+            </svg>
+            <span
+              v-if="hasUnseenUpdate"
+              class="notification-dot"
+              aria-hidden="true"
+            />
+          </button>
         </div>
       </div>
     </header>
@@ -244,6 +163,7 @@ onClickOutside(menuShell, closeMobileMenu);
 
     <AppFooter />
 
+    <AppNavDrawer />
     <GameHelpSheet />
     <TutorialDialog />
   </div>
@@ -385,59 +305,6 @@ onClickOutside(menuShell, closeMobileMenu);
   border-color: rgb(var(--color-gold-rgb) / 0.3);
 }
 
-.menu-shell {
-  position: relative;
-}
-
-.menu-panel {
-  position: absolute;
-  top: calc(100% + 0.55rem);
-  right: 0;
-  width: 180px;
-  padding: 0.45rem;
-  border-radius: 8px;
-  background: var(--gradient-card-overlay);
-  border: 1px solid rgb(var(--color-gold-rgb) / 0.24);
-  box-shadow: var(--shadow-xl);
-}
-
-.menu-link {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  padding: 0.75rem 0.9rem;
-  border-radius: 6px;
-  text-decoration: none;
-  color: rgb(var(--color-gold-rgb) / 0.86);
-  background: transparent;
-  border: 0;
-  width: 100%;
-  font: inherit;
-  font-size: var(--font-size-control);
-  font-weight: 600;
-  text-align: left;
-  cursor: pointer;
-}
-
-.menu-link svg {
-  width: var(--icon-size);
-  height: var(--icon-size);
-  flex: 0 0 var(--icon-size);
-}
-
-.menu-link--mobile {
-  display: none;
-}
-
-.notification-dot--inline {
-  position: static;
-  box-shadow: none;
-}
-
-.menu-link:hover {
-  background: rgb(var(--color-gold-rgb) / 0.1);
-}
-
 @media (max-width: 768px) {
   .header-content,
   .header-actions {
@@ -465,16 +332,8 @@ onClickOutside(menuShell, closeMobileMenu);
     display: none;
   }
 
-  .menu-link--mobile {
-    display: flex;
-  }
-
   .header-content {
     padding: 0.8rem 0.9rem;
-  }
-
-  .menu-panel {
-    width: min(220px, calc(100vw - 1.8rem));
   }
 }
 </style>

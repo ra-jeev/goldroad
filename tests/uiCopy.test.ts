@@ -37,6 +37,32 @@ describe('last-step undo copy', () => {
   });
 });
 
+describe('contact and navigation copy', () => {
+  it('keeps one address for both the footer and the drawer', () => {
+    for (const link of [
+      UI_COPY.contact.generalMailto,
+      UI_COPY.contact.feedbackMailto,
+    ]) {
+      expect(link.startsWith(`mailto:${UI_COPY.contact.email}?`)).toBe(true);
+      // Spaces and brackets have to be encoded or the client truncates the
+      // subject at the first space.
+      expect(link).not.toMatch(/[ [\]]/);
+    }
+  });
+
+  it('pre-fills a feedback subject so mail arrives sorted', () => {
+    expect(UI_COPY.contact.feedbackMailto).toContain('Feedback');
+    expect(UI_COPY.contact.generalMailto).not.toContain('Feedback');
+  });
+
+  it('names every drawer destination', () => {
+    const { stats, howToPlay, pastRoads, about, feedback } = UI_COPY.navDrawer;
+    for (const label of [stats, howToPlay, pastRoads, about, feedback]) {
+      expect(label.length).toBeGreaterThan(0);
+    }
+  });
+});
+
 describe('road countdown and day-complete copy', () => {
   it('shows only the countdown without repeating the UTC rotation time', () => {
     expect(UI_COPY.boardFooter.nextRoadCountdown('04:03:02')).toBe(

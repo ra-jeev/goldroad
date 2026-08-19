@@ -40,6 +40,25 @@ export const UI_COPY = {
       roadScoreOverTarget: 'Road score, now past the target',
     },
   },
+  contact: {
+    // One address, one place. The footer and the drawer both point here so a
+    // change of inbox is a single edit. Subjects are pre-filled so mail lands
+    // pre-sorted rather than as an untitled thread.
+    email: 'hello@playgoldroad.com',
+    generalMailto: 'mailto:hello@playgoldroad.com?subject=%5BGoldRoad%5D',
+    feedbackMailto:
+      'mailto:hello@playgoldroad.com?subject=%5BGoldRoad%5D%20Feedback',
+  },
+  navDrawer: {
+    title: 'GoldRoad',
+    ariaLabel: 'Site navigation',
+    close: 'Close menu',
+    stats: 'Stats',
+    howToPlay: 'How to Play',
+    pastRoads: 'Past Roads',
+    about: 'About',
+    feedback: 'Send feedback',
+  },
   boardFooter: {
     retryRoad: 'Try again',
     undoLastStep: 'Undo last step',

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { UI_COPY } from '../content/uiCopy';
+
 // Rendered by the default layout, so it sits on every page. On the board
 // pages the game shell already fills the viewport, which leaves this below
 // the fold where it costs the game nothing.
@@ -32,7 +34,7 @@
     </p>
     <p>
       For feedback, or anything else,
-      <a href="mailto:hello@playgoldroad.com?subject=[GoldRoad]">get in touch</a>.
+      <a :href="UI_COPY.contact.generalMailto">get in touch</a>.
     </p>
   </footer>
 </template>
