@@ -49,6 +49,7 @@ const {
   retryCurrentGame,
   undoLastStep,
   canUndo,
+  overTarget,
   switchToExpedition,
   moveTo,
   requestHint,
@@ -178,6 +179,7 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
           :max-score="maxScore"
           :total-coins="totalCoins"
           :pulse="scorePulse"
+          :over-target="overTarget"
           :mode-switch-locked="newRoadReady"
           @select-mode="selectMode"
         />

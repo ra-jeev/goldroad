@@ -15,6 +15,8 @@ const props = defineProps<{
   maxScore: number;
   totalCoins: number;
   pulse?: { type: 'toll' | 'bonus'; key: number } | null;
+  // Classic only: the run can no longer land on the target.
+  overTarget?: boolean;
   // Expired roads lock mode switching (RP1-16): rebuilding the other mode's
   // board would act as a retry. The inactive tab disables to say so.
   modeSwitchLocked?: boolean;
@@ -26,9 +28,18 @@ const emit = defineEmits<{
 
 const metrics = computed(() => {
   return [
-    { label: UI_COPY.boardHeader.metrics.score, value: `${props.score}` },
-    { label: UI_COPY.boardHeader.metrics.target, value: `${props.maxScore}` },
     {
+      key: 'score',
+      label: UI_COPY.boardHeader.metrics.score,
+      value: `${props.score}`,
+    },
+    {
+      key: 'target',
+      label: UI_COPY.boardHeader.metrics.target,
+      value: `${props.maxScore}`,
+    },
+    {
+      key: 'boardTotal',
       label: UI_COPY.boardHeader.metrics.boardTotal,
       value: `${props.totalCoins}`,
       description: UI_COPY.boardHeader.metrics.boardTotalDescription,
@@ -140,13 +151,21 @@ function statusLabel(solved: boolean, medal: Medal | null): string {
       class="metric-line"
       :class="{ 'metric-line--pulse': pulse }"
       :style="pulseStyle"
-      :aria-label="UI_COPY.boardHeader.ariaLabels.roadScore"
+      :aria-label="
+        overTarget
+          ? UI_COPY.boardHeader.ariaLabels.roadScoreOverTarget
+          : UI_COPY.boardHeader.ariaLabels.roadScore
+      "
     >
       <span v-for="(metric, index) in metrics" :key="metric.label">
         <span class="metric-label" :title="metric.description">
           {{ metric.label }}
         </span>
-        <strong>{{ metric.value }}</strong>
+        <strong
+          :class="{
+            'metric-value--over': metric.key === 'score' && overTarget,
+          }"
+        >{{ metric.value }}</strong>
         <span v-if="index < metrics.length - 1" class="metric-separator">
           •
         </span>
@@ -278,6 +297,15 @@ function statusLabel(solved: boolean, medal: Medal | null): string {
 .metric-line strong {
   color: var(--color-gold);
   display: inline-block;
+  transition: color 220ms ease;
+}
+
+/* A Classic run at or past the target can never land on it, so the number
+   itself says so. Words would have to live in the footer, which stays
+   deliberately quiet mid-run — which is exactly why the old warning string
+   was never rendered. */
+.metric-line strong.metric-value--over {
+  color: var(--color-toll-bright);
 }
 
 .metric-line--pulse strong {

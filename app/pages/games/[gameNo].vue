@@ -67,6 +67,7 @@ const {
   retryCurrentGame,
   undoLastStep,
   canUndo,
+  overTarget,
   moveTo,
   requestHint,
   dismissCelebration,
@@ -192,6 +193,7 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
           :max-score="maxScore"
           :total-coins="totalCoins"
           :pulse="scorePulse"
+          :over-target="overTarget"
           @select-mode="selectMode"
         />
 

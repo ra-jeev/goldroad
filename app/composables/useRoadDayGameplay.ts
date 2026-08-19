@@ -147,17 +147,26 @@ export function isRoadExpired(
   return !Number.isNaN(parsed) && nowMs >= parsed;
 }
 
-export function getClassicOverTargetWarning(input: {
+/**
+ * Whether a live Classic run can no longer reach its target.
+ *
+ * Classic tiles only ever add, so once the score touches the target without
+ * being at the exit, no remaining route lands on it — the road is already
+ * lost, often twenty tiles before the player finds out. Expedition is
+ * excluded on purpose: its tolls subtract, so being over target there is
+ * recoverable rather than fatal.
+ */
+export function isClassicOverTarget(input: {
   puzzleType: PuzzleType;
   score: number;
   target: number;
   terminal: boolean;
-}): string | null {
-  return input.puzzleType === 'classic' &&
+}): boolean {
+  return (
+    input.puzzleType === 'classic' &&
     !input.terminal &&
     input.score >= input.target
-    ? UI_COPY.runtime.classicOverTarget
-    : null;
+  );
 }
 
 /**
@@ -263,6 +272,18 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
       ended: ended.value,
       undoAvailable: undoAvailable.value,
     }),
+  );
+  // Read off live state rather than written at each move: an undo that brings
+  // the score back under the target has to clear it too.
+  const overTarget = computed(() =>
+    game.value
+      ? isClassicOverTarget({
+          puzzleType: game.value.puzzleType,
+          score: score.value,
+          target: game.value.maxScore,
+          terminal: ended.value,
+        })
+      : false,
   );
 
   const documentVisibility = useDocumentVisibility();
@@ -1079,16 +1100,10 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
       solveAcknowledgement.value = null;
     }
 
+    // Only a take-back that reaches the start changes the message. Mid-road
+    // the footer is quiet by design, and a move does not touch status either.
     if (result.pathHistory.length <= 1) {
       status.value = UI_COPY.runtime.preRun;
-    } else {
-      const overTargetWarning = getClassicOverTargetWarning({
-        puzzleType: game.value.puzzleType,
-        score: result.score,
-        target: game.value.maxScore,
-        terminal: false,
-      });
-      status.value = overTargetWarning ?? UI_COPY.runtime.preRun;
     }
 
     undoSignal.value += 1;
@@ -1238,14 +1253,6 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     }
 
     undoAvailable.value = nextUndoAvailable('move', false);
-
-    const overTargetWarning = getClassicOverTargetWarning({
-      puzzleType: game.value.puzzleType,
-      score: nextScore,
-      target: game.value.maxScore,
-      terminal: false,
-    });
-    if (overTargetWarning) status.value = overTargetWarning;
 
     if (solveTimerStartedAtMs.value !== null) {
       persistSolveTimerState(true);
@@ -1470,6 +1477,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     selectMode,
     switchToExpedition,
     canUndo,
+    overTarget,
     retryCurrentGame,
     undoLastStep,
     moveTo,

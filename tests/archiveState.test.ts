@@ -9,7 +9,7 @@ import {
 import {
   isRoadExpired,
   isDifferentGameIdentity,
-  getClassicOverTargetWarning,
+  isClassicOverTarget,
   shouldCallSessionApi,
   shouldStartSessionApi,
   shouldSubmitSessionEnd,
@@ -274,35 +274,47 @@ describe('isRoadExpired (midnight contract, RP1-16)', () => {
   });
 });
 
-describe('Classic over-target warning', () => {
-  it('warns on a non-terminal Classic route at or above target', () => {
+describe('Classic over-target', () => {
+  it('flags a live Classic route at or above target', () => {
     expect(
-      getClassicOverTargetWarning({
+      isClassicOverTarget({
         puzzleType: 'classic',
         score: 109,
         target: 109,
         terminal: false,
       }),
-    ).toBe('This route may not lead to an exact finish.');
+    ).toBe(true);
+  });
+
+  it('stays clear while the run is still short of target', () => {
+    expect(
+      isClassicOverTarget({
+        puzzleType: 'classic',
+        score: 108,
+        target: 109,
+        terminal: false,
+      }),
+    ).toBe(false);
   });
 
   it('lets terminal outcomes and Expedition behavior take precedence', () => {
     expect(
-      getClassicOverTargetWarning({
+      isClassicOverTarget({
         puzzleType: 'classic',
         score: 110,
         target: 109,
         terminal: true,
       }),
-    ).toBeNull();
+    ).toBe(false);
+    // Expedition tolls subtract, so over target there is recoverable.
     expect(
-      getClassicOverTargetWarning({
+      isClassicOverTarget({
         puzzleType: 'expedition',
         score: 110,
         target: 109,
         terminal: false,
       }),
-    ).toBeNull();
+    ).toBe(false);
   });
 });
 

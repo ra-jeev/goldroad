@@ -37,6 +37,7 @@ export const UI_COPY = {
       controls: 'Road controls',
       puzzleMode: 'Puzzle mode',
       roadScore: 'Road score',
+      roadScoreOverTarget: 'Road score, now past the target',
     },
   },
   boardFooter: {
@@ -205,7 +206,6 @@ export const UI_COPY = {
     destinationOver: (delta: number) =>
       `You reached the finish ${delta} over the target.`,
     deadEnd: 'Dead end. Walk it again to find the way through.',
-    classicOverTarget: 'This route may not lead to an exact finish.',
     // The board lights up the moment a hint lands, so the copy does not need
     // to announce that a hint was applied — only what to do with it.
     hintNextStep: 'The highlighted tile is your next move.',
