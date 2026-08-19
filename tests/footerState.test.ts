@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   computeFooterState,
+  shouldShowUndoAction,
   type FooterStateInput,
 } from '../app/utils/footerState';
 
@@ -61,6 +62,15 @@ describe('computeFooterState (RP1-10 six-state contract)', () => {
         baseInput({ attemptNumber: 2, trackingDisabled: true }),
       ),
     ).toBe('resting-first');
+  });
+
+  it('keeps undo on the action row at rest and mid-run, not after the run ends', () => {
+    expect(shouldShowUndoAction('resting-first')).toBe(true);
+    expect(shouldShowUndoAction('resting-retry')).toBe(true);
+    expect(shouldShowUndoAction('mid-run')).toBe(true);
+    expect(shouldShowUndoAction('failed')).toBe(false);
+    expect(shouldShowUndoAction('solved-next')).toBe(false);
+    expect(shouldShowUndoAction('solved-final')).toBe(false);
   });
 
   it('solved always wins over ended/hasMoved/attemptNumber', () => {

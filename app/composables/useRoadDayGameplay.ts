@@ -11,6 +11,15 @@ import {
 import { calcMedalForAttempt } from '../../lib/gameTiers';
 import { HINTS_PER_ROAD_MODE } from '../../lib/gameConstants';
 import { computeHint, guideHighlightTiles } from '#shared/utils/hints';
+import {
+  applyUndoLastStep,
+  canUndoLastStep,
+  isTextEntryEventTarget,
+  isUndoTapTarget,
+  nextUndoAvailable,
+  shouldHandleUndoKey,
+  shouldRestoreSolvedRest,
+} from '../utils/undoLastStep';
 import type {
   CurrentGamesResponse,
   Direction,
@@ -238,12 +247,23 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
   const successfulMoveSignal = ref(0);
   const deniedMoveSignal = ref(0);
   const deadEndSignal = ref(0);
+  const undoSignal = ref(0);
   const hintNudgeSignal = ref(0);
   // 0 = not nudged, 1 = first nudge spent, 2 = both spent. Per road+mode.
   const hintNudgeLevel = ref(0);
   const solveCelebrationSignal = ref(0);
   const solveAcknowledgement = ref<string | null>(null);
   const startedRoadModes = new Set<string>();
+  // One take-back per step. A successful non-ending move earns it; undo
+  // spends it until the player moves again.
+  const undoAvailable = ref(false);
+  const solvedRestMedal = ref<Medal | null>(null);
+  const canUndo = computed(() =>
+    canUndoLastStep({
+      ended: ended.value,
+      undoAvailable: undoAvailable.value,
+    }),
+  );
 
   const documentVisibility = useDocumentVisibility();
   const { isBoardOverlayOpen } = useBoardOverlayGate();
@@ -369,6 +389,8 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     solveTimerCanResume.value = false;
     celebration.value = null;
     solveAcknowledgement.value = null;
+    undoAvailable.value = false;
+    solvedRestMedal.value = null;
   }
 
   function clearRoadDay() {
@@ -560,6 +582,8 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     // untracked replay run.
     lastMedal.value = hasSolvedHistory ? solvedMedal : null;
     lastSolved.value = hasSolvedHistory;
+    solvedRestMedal.value = hasSolvedHistory ? solvedMedal : null;
+    undoAvailable.value = nextUndoAvailable('reset', false);
     attemptNumber.value = hasSolvedHistory
       ? 1
       : (options.attemptNumber ?? progressAttemptNumber);
@@ -1023,6 +1047,54 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     }
   }
 
+  function undoLastStep() {
+    if (!game.value || !canUndo.value) return;
+
+    const result = applyUndoLastStep(game.value.board, {
+      pathHistory: pathHistory.value,
+      score: score.value,
+      moves: moves.value,
+    });
+    if (!result) return;
+
+    pathHistory.value = result.pathHistory;
+    visited.value = result.visited;
+    currentTileIndex.value = result.currentTileIndex;
+    score.value = result.score;
+    moves.value = result.moves;
+    activeSet.value = new Set(result.activeNeighbors);
+    undoAvailable.value = nextUndoAvailable('undo', false);
+    hintMessage.value = null;
+    syncGuideHighlight();
+
+    if (
+      shouldRestoreSolvedRest({
+        trackingDisabled: trackingDisabled.value,
+        pathLengthAfterUndo: result.pathHistory.length,
+      })
+    ) {
+      lastSolved.value = true;
+      lastMedal.value = solvedRestMedal.value;
+      lastTier.value = null;
+      solveAcknowledgement.value = null;
+    }
+
+    if (result.pathHistory.length <= 1) {
+      status.value = UI_COPY.runtime.preRun;
+    } else {
+      const overTargetWarning = getClassicOverTargetWarning({
+        puzzleType: game.value.puzzleType,
+        score: result.score,
+        target: game.value.maxScore,
+        terminal: false,
+      });
+      status.value = overTargetWarning ?? UI_COPY.runtime.preRun;
+    }
+
+    undoSignal.value += 1;
+    updateTileStates();
+  }
+
   async function retryCurrentGame() {
     if (!game.value || loading.value) return;
     if (submitting.value && !ended.value) return;
@@ -1084,6 +1156,13 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     if (!game.value || ended.value || currentTileIndex.value === null) return;
     if (tileIndex === currentTileIndex.value) return;
     if (!activeSet.value.has(tileIndex)) {
+      // The tile you came from is the Undo button by another route. Once the
+      // take-back is spent the tap still buzzes rather than going quiet, so
+      // the one-step rule stays legible from the board itself.
+      if (isUndoTapTarget(pathHistory.value, tileIndex) && canUndo.value) {
+        undoLastStep();
+        return;
+      }
       deniedMoveSignal.value += 1;
       return;
     }
@@ -1122,6 +1201,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
 
     if (tileIndex === board.end) {
       ended.value = true;
+      undoAvailable.value = nextUndoAvailable('move', true);
       const delta = game.value.maxScore - nextScore;
       status.value =
         delta === 0
@@ -1149,12 +1229,15 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
 
     if (!next.length) {
       ended.value = true;
+      undoAvailable.value = nextUndoAvailable('move', true);
       status.value = UI_COPY.runtime.deadEnd;
       updateTileStates();
       deadEndSignal.value += 1;
       await finalizeRun('dead-end');
       return;
     }
+
+    undoAvailable.value = nextUndoAvailable('move', false);
 
     const overTargetWarning = getClassicOverTargetWarning({
       puzzleType: game.value.puzzleType,
@@ -1266,13 +1349,27 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
   function handleKeydown(event: KeyboardEvent) {
     if (
       !game.value ||
-      ended.value ||
       loading.value ||
       isBoardOverlayOpen.value ||
       currentTileIndex.value === null
     ) {
       return;
     }
+
+    if (
+      shouldHandleUndoKey({
+        key: event.key,
+        canUndo: canUndo.value,
+        hasModifier: event.metaKey || event.ctrlKey || event.altKey,
+        isTextEntry: isTextEntryEventTarget(event.target),
+      })
+    ) {
+      event.preventDefault();
+      undoLastStep();
+      return;
+    }
+
+    if (ended.value) return;
 
     const directionMap: Record<string, Direction> = {
       ArrowUp: 'top',
@@ -1364,6 +1461,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     successfulMoveSignal,
     deniedMoveSignal,
     deadEndSignal,
+    undoSignal,
     hintNudgeSignal,
     solveCelebrationSignal,
     solveAcknowledgement,
@@ -1371,7 +1469,9 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     applyRoadDay,
     selectMode,
     switchToExpedition,
+    canUndo,
     retryCurrentGame,
+    undoLastStep,
     moveTo,
     requestHint,
     dismissCelebration,

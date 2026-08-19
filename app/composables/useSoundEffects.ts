@@ -2,13 +2,16 @@ import { createSharedComposable } from '@vueuse/core';
 import { useSound, type ReturnedValue } from '@vueuse/sound';
 import { Howler } from 'howler';
 
-type SoundEffectKey = 'move' | 'deny' | 'dead-end' | 'solve';
+type SoundEffectKey = 'move' | 'deny' | 'dead-end' | 'solve' | 'undo';
 
 const SOUND_PATHS: Record<SoundEffectKey, string> = {
   move: '/sounds/move.mp3',
   deny: '/sounds/deny.mp3',
   'dead-end': '/sounds/dead-end.mp3',
   solve: '/sounds/solve.mp3',
+  // The step's own clip, pitched down and softened. Volume alone reads as a
+  // step that half-registered; dropping the rate is what says "backwards".
+  undo: '/sounds/move.mp3',
 };
 
 // Howler suspends the AudioContext after 30 seconds without playback. A puzzle
@@ -29,11 +32,15 @@ function vibrate(pattern: VibratePattern) {
 function createSoundEffects() {
   const { muted } = useGoldroadLocalState();
 
-  function soundOptions(sound: SoundEffectKey) {
+  function soundOptions(
+    sound: SoundEffectKey,
+    extras: { volume?: number; playbackRate?: number } = {},
+  ) {
     return {
       html5: false,
       interrupt: true,
       preload: true,
+      ...extras,
       onloaderror: (_soundId: number, error: unknown) => {
         console.warn(`Could not preload the ${sound} sound.`, error);
       },
@@ -48,6 +55,10 @@ function createSoundEffects() {
     deny: useSound(SOUND_PATHS.deny, soundOptions('deny')),
     'dead-end': useSound(SOUND_PATHS['dead-end'], soundOptions('dead-end')),
     solve: useSound(SOUND_PATHS.solve, soundOptions('solve')),
+    undo: useSound(
+      SOUND_PATHS.undo,
+      soundOptions('undo', { volume: 0.55, playbackRate: 0.8 }),
+    ),
   };
 
   /**
@@ -86,15 +97,23 @@ function createSoundEffects() {
     }
   }
 
+  function playUndo() {
+    play('undo');
+    if (!muted.value) {
+      vibrate(8);
+    }
+  }
+
   return {
     playMove,
     playDeniedMove,
     playDeadEnd,
     playSolve,
+    playUndo,
   };
 }
 
-// The persistent layout instantiates this shared instance so all four sounds
+// The persistent layout instantiates this shared instance so board sounds
 // begin loading before the first board tap. Howler uses Web Audio when it is
 // available and falls back to HTML5 Audio where necessary.
 export const useSoundEffects = createSharedComposable(createSoundEffects);

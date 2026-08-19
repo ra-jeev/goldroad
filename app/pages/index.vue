@@ -41,11 +41,14 @@ const {
   successfulMoveSignal,
   deniedMoveSignal,
   deadEndSignal,
+  undoSignal,
   hintNudgeSignal,
   solveCelebrationSignal,
   solveAcknowledgement,
   selectMode,
   retryCurrentGame,
+  undoLastStep,
+  canUndo,
   switchToExpedition,
   moveTo,
   requestHint,
@@ -137,6 +140,10 @@ watch(deadEndSignal, () => {
   soundEffects.playDeadEnd();
 }, { flush: 'sync' });
 
+watch(undoSignal, () => {
+  soundEffects.playUndo();
+}, { flush: 'sync' });
+
 watch(solveCelebrationSignal, () => {
   soundEffects.playSolve();
 }, { flush: 'sync' });
@@ -208,6 +215,7 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
           :ended="ended"
           :solved="lastSolved"
           :can-retry="ended || moves > 1"
+          :can-undo="canUndo"
           :can-switch-to-expedition="
             canSwitchToExpedition &&
             (ended || moves <= 1 || lastSolved) &&
@@ -219,6 +227,7 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
           :show-share="lastSolved"
           :share-handler="shareCurrentResult"
           @retry="retryCurrentGame"
+          @undo="undoLastStep"
           @hint="requestHint"
           @switch-expedition="switchToExpedition"
           @load-new-road="loadNewRoad"

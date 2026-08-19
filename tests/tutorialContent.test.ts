@@ -27,3 +27,12 @@ describe('tutorial lesson 1 start-state content (RP1-9)', () => {
     expect(body.toLowerCase()).not.toContain('exact target score');
   });
 });
+
+describe('tutorial retry-hint lesson', () => {
+  it('teaches one-step undo on the retry-and-hint lesson', () => {
+    const lesson = TUTORIAL_LESSONS.find((item) => item.id === 'retry-hint');
+    expect(lesson?.body).toMatch(/Undo takes back your last step/i);
+    expect(lesson?.body).toMatch(/one take-back/i);
+    expect(lesson?.body).toMatch(/tap on the tile you came from/i);
+  });
+});

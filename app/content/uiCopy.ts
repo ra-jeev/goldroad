@@ -41,6 +41,8 @@ export const UI_COPY = {
   },
   boardFooter: {
     retryRoad: 'Try again',
+    undoLastStep: 'Undo last step',
+    undoSpent: 'Take a step to undo',
     openHint: 'Hint',
     openHelp: 'How to Play',
     switchToExpedition: 'Play Expedition',
@@ -99,6 +101,7 @@ export const UI_COPY = {
         title: 'Tools',
         items: [
           'Try again restarts the same road. There is no limit on tries, but each one adds to your try count.',
+          'Undo takes back only your last step. Tap Undo, or tap the tile you came from. Take another step to undo again.',
           'Classic and Expedition get 5 hints each, every day. A hint lights up the next stretch of a guide route to follow.',
           'Hints never reduce your score or medal.',
           'Solving Classic unlocks Expedition for the day when one is available.',

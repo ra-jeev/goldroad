@@ -10,6 +10,14 @@ import { getNeighborId, parseTileIndex } from '#shared/utils/puzzleEngine';
 import { UI_COPY } from '../content/uiCopy';
 import { TUTORIAL_PRACTICE_GAME } from '../content/tutorialContent';
 import { buildInitialTileStates } from '../utils/boardUtils';
+import {
+  applyUndoLastStep,
+  canUndoLastStep,
+  isTextEntryEventTarget,
+  isUndoTapTarget,
+  nextUndoAvailable,
+  shouldHandleUndoKey,
+} from '../utils/undoLastStep';
 
 function computeTutorialHint(
   optimalPaths: number[][],
@@ -85,10 +93,17 @@ export function useTutorialPractice() {
   // so the board can call out the tile the player stopped on.
   const failSignal = ref(0);
   const hintMessage = ref<string | null>(null);
+  const undoAvailable = ref(false);
 
   const maxScore = computed(() => TUTORIAL_PRACTICE_GAME.maxScore);
   const totalCoins = computed(() => TUTORIAL_PRACTICE_GAME.totalCoins);
   const canRetry = computed(() => ended.value || moves.value > 1);
+  const canUndo = computed(() =>
+    canUndoLastStep({
+      ended: ended.value,
+      undoAvailable: undoAvailable.value,
+    }),
+  );
 
   function syncTileStates() {
     if (currentTileIndex.value === null) return;
@@ -125,6 +140,7 @@ export function useTutorialPractice() {
         : initialStatus;
     hintMessage.value = null;
     guidePath.value = [];
+    undoAvailable.value = nextUndoAvailable('reset', false);
     syncGuideHighlight();
 
     const edgeMap = buildEdgeMap(board);
@@ -164,6 +180,12 @@ export function useTutorialPractice() {
   function moveTo(tileIndex: number) {
     if (ended.value || currentTileIndex.value === null) return;
     if (!activeSet.value.has(tileIndex)) {
+      // Same take-back as the live board: tap the tile you came from. A spent
+      // take-back still buzzes, so the practice board teaches the real rule.
+      if (isUndoTapTarget(pathHistory.value, tileIndex) && canUndo.value) {
+        undoLastStep();
+        return;
+      }
       soundEffects.playDeniedMove();
       return;
     }
@@ -187,6 +209,7 @@ export function useTutorialPractice() {
 
     if (tileIndex === board.end) {
       ended.value = true;
+      undoAvailable.value = nextUndoAvailable('move', true);
       solved.value = score.value === maxScore.value;
       activeSet.value = new Set();
       // The solved line doubles as the footer's solve acknowledgement, which
@@ -217,6 +240,7 @@ export function useTutorialPractice() {
 
     if (activeSet.value.size === 0) {
       ended.value = true;
+      undoAvailable.value = nextUndoAvailable('move', true);
       status.value =
         'Dead end. Walk it again to find the way through.';
       failSignal.value += 1;
@@ -225,7 +249,40 @@ export function useTutorialPractice() {
       return;
     }
 
+    undoAvailable.value = nextUndoAvailable('move', false);
     updateInRunStatus();
+    syncTileStates();
+  }
+
+  function undoLastStep() {
+    if (!canUndo.value) return;
+
+    const result = applyUndoLastStep(board, {
+      pathHistory: pathHistory.value,
+      score: score.value,
+      moves: moves.value,
+    });
+    if (!result) return;
+
+    pathHistory.value = result.pathHistory;
+    visited.value = result.visited;
+    currentTileIndex.value = result.currentTileIndex;
+    score.value = result.score;
+    moves.value = result.moves;
+    activeSet.value = new Set(result.activeNeighbors);
+    undoAvailable.value = nextUndoAvailable('undo', false);
+    hintMessage.value = null;
+    syncGuideHighlight();
+    status.value =
+      result.pathHistory.length <= 1
+        ? retryCount.value > 0
+          ? 'Fresh road, same rules. Hint is there if you want a nudge.'
+          : initialStatus
+        : initialStatus;
+    if (result.pathHistory.length > 1) {
+      updateInRunStatus();
+    }
+    soundEffects.playUndo();
     syncTileStates();
   }
 
@@ -235,7 +292,22 @@ export function useTutorialPractice() {
    * or the tutorial teaches a control that appears not to work.
    */
   function handleDirectionKey(event: KeyboardEvent): boolean {
-    if (ended.value || currentTileIndex.value === null) return false;
+    if (currentTileIndex.value === null) return false;
+
+    if (
+      shouldHandleUndoKey({
+        key: event.key,
+        canUndo: canUndo.value,
+        hasModifier: event.metaKey || event.ctrlKey || event.altKey,
+        isTextEntry: isTextEntryEventTarget(event.target),
+      })
+    ) {
+      event.preventDefault();
+      undoLastStep();
+      return true;
+    }
+
+    if (ended.value) return false;
 
     const directionMap: Record<string, Direction> = {
       ArrowUp: 'top',
@@ -300,9 +372,11 @@ export function useTutorialPractice() {
     maxScore,
     totalCoins,
     canRetry,
+    canUndo,
     failSignal,
     restartPractice,
     retryPractice,
+    undoLastStep,
     moveTo,
     handleDirectionKey,
     requestHint,

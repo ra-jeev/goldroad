@@ -37,7 +37,9 @@ const metrics = computed(() => {
 });
 
 // A fresh :key each pulse replays the score-pulse animation. Color follows
-// the traversed edge's hue. Disabled under reduced motion via global CSS.
+// the traversed edge's hue. The pulse marks a score change the player did not
+// ask for directly — an edge cost collected by crossing it. A take-back is
+// deliberate, so it stays quiet. Disabled under reduced motion via global CSS.
 const pulseKey = computed(() => props.pulse?.key ?? 0);
 const pulseStyle = computed(() => {
   if (!props.pulse) return undefined;

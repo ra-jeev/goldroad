@@ -222,10 +222,12 @@ onBeforeUnmount(() => {
           :ended="practice.ended.value"
           :solved="practice.solved.value"
           :can-retry="practice.canRetry.value"
+          :can-undo="practice.canUndo.value"
           :can-switch-to-expedition="false"
           :loading="false"
           :submitting="false"
           @retry="practice.retryPractice"
+          @undo="practice.undoLastStep"
           @hint="practice.requestHint"
         >
           <template #actions>

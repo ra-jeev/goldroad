@@ -93,7 +93,7 @@ export const TUTORIAL_LESSONS: TutorialLesson[] = [
     // guide longer without teaching anything extra.
     id: 'retry-hint',
     title: 'Walk it again, or take a hint',
-    body: 'A road never locks you out. Try again walks it from the start, as often as you like. Hint shows your next useful move.',
+    body: 'Undo takes back your last step — the button, or a tap on the tile you came from. You get one take-back; move again to earn another. Try again walks the road from the start. Hint shows your next useful move.',
     visual: {
       fromValue: 5,
       toValue: 3,

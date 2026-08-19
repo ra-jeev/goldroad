@@ -16,6 +16,20 @@ describe('player-facing try terminology', () => {
   });
 });
 
+describe('last-step undo copy', () => {
+  it('names the take-back and the spent state', () => {
+    expect(UI_COPY.boardFooter.undoLastStep).toBe('Undo last step');
+    expect(UI_COPY.boardFooter.undoSpent).toBe('Take a step to undo');
+  });
+
+  it('teaches undo as a one-step take-back in the help tools', () => {
+    const tools = UI_COPY.helpSheet.sections.tools.items.join(' ');
+    expect(tools).toMatch(/Undo takes back only your last step/i);
+    expect(tools).toMatch(/Take another step to undo again/i);
+    expect(tools).toMatch(/tap the tile you came from/i);
+  });
+});
+
 describe('road countdown and day-complete copy', () => {
   it('shows only the countdown without repeating the UTC rotation time', () => {
     expect(UI_COPY.boardFooter.nextRoadCountdown('04:03:02')).toBe(

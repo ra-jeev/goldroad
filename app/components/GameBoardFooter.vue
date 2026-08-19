@@ -2,7 +2,11 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import type { ShareRoadResultResponse } from '../composables/useRoadResultShare';
 import { UI_COPY } from '../content/uiCopy';
-import { computeFooterState, type FooterState } from '../utils/footerState';
+import {
+  computeFooterState,
+  shouldShowUndoAction,
+  type FooterState,
+} from '../utils/footerState';
 
 const props = withDefaults(
   defineProps<{
@@ -23,6 +27,7 @@ const props = withDefaults(
     ended: boolean;
     solved: boolean;
     canRetry: boolean;
+    canUndo?: boolean;
     canSwitchToExpedition: boolean;
     loading: boolean;
     submitting: boolean;
@@ -49,12 +54,14 @@ const props = withDefaults(
     hintsRemaining: undefined,
     hintPending: false,
     hasGuidePath: false,
+    canUndo: false,
   },
 );
 
 const emit = defineEmits<{
   hint: [];
   retry: [];
+  undo: [];
   switchExpedition: [];
   loadNewRoad: [];
 }>();
@@ -187,6 +194,14 @@ const hintIsQuiet = computed(() => footerState.value === 'mid-run');
 // attempt may finish; afterwards the only forward action is the new road.
 const showRetryAction = computed(() => props.canRetry && !props.newRoadReady);
 const retryIsPrimary = computed(() => footerState.value === 'failed');
+// Stays on the row at rest and mid-run so undoing back to the start
+// only disables it. Expiry keeps it — the in-flight attempt may finish.
+const showUndoAction = computed(() => shouldShowUndoAction(footerState.value));
+const undoTitle = computed(() =>
+  props.canUndo
+    ? UI_COPY.boardFooter.undoLastStep
+    : UI_COPY.boardFooter.undoSpent,
+);
 const showShareAction = computed(
   () => props.showShare && props.solved && Boolean(props.shareHandler),
 );
@@ -226,6 +241,27 @@ const displayMessage = computed(
     </div>
 
     <div class="action-row">
+      <button
+        v-if="showUndoAction"
+        type="button"
+        class="action-button ghost"
+        :disabled="busy || !canUndo"
+        :aria-label="UI_COPY.boardFooter.undoLastStep"
+        :title="undoTitle"
+        @click="emit('undo')"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M4.5 5.5v13M20 12H9m0 0 4.5-4.5M9 12l4.5 4.5"
+            fill="none"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="3"
+          />
+        </svg>
+      </button>
+
       <button
         v-if="showRetryAction"
         type="button"

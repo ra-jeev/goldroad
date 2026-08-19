@@ -24,6 +24,15 @@ export type FooterStateInput = {
   canSwitchToExpedition: boolean;
 };
 
+/** Undo stays on the row at rest so a take-back to the start does not jump it. */
+export function shouldShowUndoAction(state: FooterState): boolean {
+  return (
+    state === 'resting-first' ||
+    state === 'resting-retry' ||
+    state === 'mid-run'
+  );
+}
+
 export function computeFooterState(input: FooterStateInput): FooterState {
   if (input.solved) {
     return input.canSwitchToExpedition ? 'solved-next' : 'solved-final';
