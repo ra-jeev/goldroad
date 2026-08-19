@@ -41,13 +41,17 @@ onMounted(() => {
         </div>
 
         <div class="updates-timeline">
-          <article
+          <!-- <details> rather than a toggle of our own: it opens on click,
+               on Enter and on Space, it is announced as expandable, and the
+               browser's own find-in-page can open it. -->
+          <details
             v-for="(entry, index) in updates"
             :key="entry.date"
             class="update-entry"
             :class="{ 'update-entry--latest': index === 0 }"
+            :open="index === 0 && showUnreadDot"
           >
-            <div class="update-body">
+            <summary class="update-summary">
               <div class="update-meta">
                 <span v-if="index === 0" class="update-badge">Latest</span>
                 <span class="update-date">{{ entry.date }}</span>
@@ -58,11 +62,23 @@ onMounted(() => {
                 />
               </div>
               <h3>{{ entry.title }}</h3>
+              <svg class="update-chevron" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="m7 10 5 5 5-5"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="3"
+                />
+              </svg>
+            </summary>
+            <div class="update-body">
               <p v-for="(paragraph, pIndex) in entry.body" :key="pIndex">
                 {{ paragraph }}
               </p>
             </div>
-          </article>
+          </details>
         </div>
       </section>
 
@@ -218,9 +234,47 @@ onMounted(() => {
   border-top: 1px solid rgb(var(--color-gold-rgb) / 0.14);
 }
 
+.update-summary {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 0.35rem 0.9rem;
+  padding: 0.15rem 0;
+  cursor: pointer;
+  list-style: none;
+}
+
+/* Safari still paints its own marker without this. */
+.update-summary::-webkit-details-marker {
+  display: none;
+}
+
+.update-summary .update-meta,
+.update-summary h3 {
+  grid-column: 1;
+}
+
+.update-chevron {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  width: var(--icon-size);
+  height: var(--icon-size);
+  color: rgb(var(--color-gold-rgb) / 0.6);
+  transition: transform var(--transition-fast);
+}
+
+.update-entry[open] .update-chevron {
+  transform: rotate(180deg);
+}
+
+.update-summary:hover .update-chevron {
+  color: var(--color-gold);
+}
+
 .update-body {
   display: grid;
   gap: 0.4rem;
+  padding-top: 0.55rem;
 }
 
 /* Unread marker: glows on the visit that reads the update, gone after. */
@@ -258,7 +312,9 @@ onMounted(() => {
   letter-spacing: 0.05em;
 }
 
-.update-body h3 {
+/* The title moved into the summary when entries became collapsible, so it
+   is what the reader scans with everything shut. */
+.update-summary h3 {
   margin: 0;
   color: var(--color-gold-bright);
   font-size: 1.12rem;
