@@ -158,6 +158,13 @@ const streakCard = computed(() => {
   const best = summary.value.bestStreak;
   const isBest = current > 0 && current >= best;
 
+  // Both halves of the sub line name the personal best, because a number the
+  // player has already reached is the thing that pulls them back. A live run
+  // gets the distance left to cover; a lapsed one gets the run it is measured
+  // against. A best of one road is nobody's high-water mark, so that case
+  // keeps the plain invitation.
+  const gap = best - current;
+
   return {
     lit: current > 0,
     headline: current > 0 ? `${current}-day streak` : 'No streak yet',
@@ -165,12 +172,14 @@ const streakCard = computed(() => {
       current > 0
         ? isBest
           ? 'Your best run yet'
-          : `Personal best · ${best} day${best === 1 ? '' : 's'}`
+          : `${gap} more day${gap === 1 ? '' : 's'} to match your best of ${best}.`
         : null,
     prompt:
       current > 0
         ? null
-        : 'Solve today’s Classic road to light the flame.',
+        : best > 1
+          ? `You once did ${best} days. Solve today’s Classic road to light it again.`
+          : 'Solve today’s Classic road to light the flame.',
   };
 });
 

@@ -206,6 +206,62 @@ test('stats surface loads its core sections', async ({ page }) => {
   expect(runtimeErrors).toEqual([]);
 });
 
+test('a lapsed streak is nudged by the best run behind it', async ({ page }) => {
+  const runtimeErrors = captureRuntimeErrors(page);
+  // Roads 5 to 7 are a solved run of three. None of them is the current road
+  // or the one before it, so the streak has lapsed while the best survives.
+  await page.addInitScript(() => {
+    const historyByDay: Record<string, unknown> = {};
+    for (const gameNo of [5, 6, 7]) {
+      const day = `2026-01-0${gameNo}`;
+      historyByDay[day] = {
+        day,
+        gameNo,
+        modes: {
+          classic: {
+            attempts: 1,
+            solved: true,
+            hintsUsed: 0,
+            solveTimeMs: 60_000,
+            updatedAt: new Date().toISOString(),
+          },
+        },
+      };
+    }
+
+    localStorage.setItem(
+      'goldroad-state-v2',
+      JSON.stringify({
+        version: 2,
+        playerUUID: '00000000-0000-4000-8000-000000000007',
+        settings: { muted: false },
+        currentRoadContext: {
+          currentGameNo: null,
+          currentDay: null,
+          selectedMode: null,
+        },
+        puzzleProgressByKey: {},
+        replayProgressByKey: {},
+        historyByDay,
+        archiveCompletionByGame: {},
+        tutorialState: { completed: true, lastSeenAt: new Date().toISOString() },
+        celebratedSolveKeys: [],
+        v1NoticeDismissed: true,
+        lastAcknowledgedUpdateId: null,
+      }),
+    );
+  });
+
+  await page.goto('/stats');
+
+  const streak = page.getByRole('region', { name: 'Streak' });
+  await expect(streak).toContainText('No streak yet');
+  await expect(streak).toContainText(
+    'You once did 3 days. Solve today’s Classic road to light it again.',
+  );
+  expect(runtimeErrors).toEqual([]);
+});
+
 test('today stats share grows from Classic to the full day', async ({ page }) => {
   const runtimeErrors = captureRuntimeErrors(page);
   await page.addInitScript(() => {
