@@ -19,7 +19,10 @@ async function expectNoHorizontalOverflow(page: Page) {
 
 test('live board and tutorial are usable', async ({ page }) => {
   const runtimeErrors = captureRuntimeErrors(page);
-  await page.goto('/');
+  const response = await page.goto('/');
+  const serverHtml = await response?.text();
+  expect(serverHtml).toContain('class="board-column"');
+  expect(serverHtml).not.toContain('class="loading-card"');
 
   await expect(
     page.getByRole('heading', { name: 'Learn the road' }),
@@ -37,39 +40,115 @@ test('live board and tutorial are usable', async ({ page }) => {
 
   await page.getByRole('button', { name: 'Close' }).click();
   await expect(page.getByRole('region', { name: 'Road controls' })).toBeVisible();
+  await expect(page.locator('.metric-line')).toContainText(
+    /Score\s*\d+\s*\/\s*Target\s*\d+\s*•\s*Board\s*\d+/,
+  );
+  await expect(page.locator('.target-value')).toHaveCSS(
+    'color',
+    'rgba(218, 165, 32, 0.72)',
+  );
   // The seed board is freshly generated, so the start tile's coin value
   // varies from run to run. Match the marker, not the number.
   await expect(
     page.getByRole('button', { name: /Start: footprints$/ }),
   ).toBeVisible();
+  const ordinaryTile = page.locator('.tile:not(.active):not(.current)').first();
+  await ordinaryTile.evaluate((tile) => {
+    (window as typeof window & { deniedAnimationStarts?: number })
+      .deniedAnimationStarts = 0;
+    tile.addEventListener('animationstart', (event) => {
+      if ((event as AnimationEvent).animationName.includes('tile-denied')) {
+        (window as typeof window & { deniedAnimationStarts: number })
+          .deniedAnimationStarts += 1;
+      }
+    });
+  });
+  await ordinaryTile.click();
+  await expect.poll(() => page.evaluate(() =>
+    (window as typeof window & { deniedAnimationStarts?: number })
+      .deniedAnimationStarts ?? 0,
+  )).toBe(1);
+  await ordinaryTile.click();
+  await expect.poll(() => page.evaluate(() =>
+    (window as typeof window & { deniedAnimationStarts?: number })
+      .deniedAnimationStarts ?? 0,
+  )).toBe(2);
+  await expect(ordinaryTile).toHaveCSS('touch-action', 'manipulation');
+  await expect(ordinaryTile).toHaveCSS('user-select', 'none');
   await expect(page.getByRole('button', { name: 'Play the new road' })).toBeVisible();
 
   await expectNoHorizontalOverflow(page);
   expect(runtimeErrors).toEqual([]);
 });
 
+test('returning player hydration restores an unlocked Expedition', async ({ page }) => {
+  const runtimeErrors = captureRuntimeErrors(page);
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      'goldroad-state-v2',
+      JSON.stringify({
+        version: 2,
+        playerUUID: '00000000-0000-4000-8000-000000000003',
+        settings: { muted: false },
+        currentRoadContext: {
+          currentGameNo: 3,
+          currentDay: '2026-01-03',
+          selectedMode: 'expedition',
+        },
+        puzzleProgressByKey: {
+          'classic:3': {
+            day: '2026-01-03',
+            gameNo: 3,
+            puzzleType: 'classic',
+            attempts: 1,
+            solved: true,
+            hintsUsed: 0,
+            solveTimeMs: 60_000,
+            activeTimeMs: 60_000,
+            timerStartedAt: null,
+            guidePath: [],
+            updatedAt: new Date().toISOString(),
+          },
+        },
+        replayProgressByKey: {},
+        historyByDay: {},
+        archiveCompletionByGame: {},
+        tutorialState: { completed: true, lastSeenAt: new Date().toISOString() },
+        celebratedSolveKeys: [],
+        v1NoticeDismissed: true,
+        lastAcknowledgedUpdateId: null,
+      }),
+    );
+  });
+
+  await page.goto('/');
+  await expect(
+    page.getByRole('tab', { name: 'Expedition Not solved' }),
+  ).toHaveAttribute('aria-selected', 'true');
+  await expect(
+    page.getByRole('tab', { name: 'Classic Gold medal' }),
+  ).toBeVisible();
+  expect(runtimeErrors).toEqual([]);
+});
+
 test('Play the new road replaces the expired board without navigation', async ({ page }) => {
   const runtimeErrors = captureRuntimeErrors(page);
-  let currentRoadRequests = 0;
-
   await page.route('**/api/games/current', async (route) => {
+    // The initial request runs inside SSR and is deliberately invisible to
+    // page.route. This handler sees only the client-side new-road request.
     const response = await route.fetch();
     const roadDay = (await response.json()) as CurrentGamesResponse;
-    currentRoadRequests += 1;
-
-    if (currentRoadRequests > 1) {
-      const nextGameAt = new Date(Date.now() + 86_400_000).toISOString();
-      const promote = (game: NonNullable<CurrentGamesResponse['classic']>) => ({
-        ...game,
-        gameNo: game.gameNo + 1,
-        playableAt: new Date().toISOString(),
-        nextGameAt,
-      });
-      roadDay.classic = roadDay.classic ? promote(roadDay.classic) : null;
-      roadDay.expedition = roadDay.expedition
-        ? promote(roadDay.expedition)
-        : null;
-    }
+    const nextGameAt = new Date(Date.now() + 86_400_000).toISOString();
+    const promote = (game: NonNullable<CurrentGamesResponse['classic']>) => ({
+      ...game,
+      gameNo: game.gameNo + 1,
+      playableAt: new Date().toISOString(),
+      nextGameAt,
+    });
+    roadDay.classic = roadDay.classic ? promote(roadDay.classic) : null;
+    roadDay.expedition = roadDay.expedition
+      ? promote(roadDay.expedition)
+      : null;
 
     await route.fulfill({ response, json: roadDay });
   });
@@ -101,6 +180,9 @@ test('stats surface loads its core sections', async ({ page }) => {
     page.getByRole('heading', { name: 'Stats', exact: true }),
   ).toBeVisible();
   await expect(page.getByRole('region', { name: 'Medals earned' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Streak' })).toContainText(
+    'Solve today’s Classic road to light the flame.',
+  );
   await expect(
     page.getByRole('region', {
       name: /Yesterday’s roads, Day #\d+, global stats for Classic/,
@@ -168,6 +250,9 @@ test('today stats share grows from Classic to the full day', async ({ page }) =>
 
   await page.goto('/stats');
   await expect(page.getByRole('heading', { name: 'Classic conquered.' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Streak' })).toContainText(
+    '1-day streak',
+  );
   await expect(page.getByText('1 try · 1m 04s')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Share Classic' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Play Expedition' })).toBeVisible();
@@ -187,6 +272,9 @@ test('today stats share grows from Classic to the full day', async ({ page }) =>
   await page.reload();
 
   await expect(page.getByRole('heading', { name: 'Both roads conquered.' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Streak' })).toContainText(
+    '1-day streak',
+  );
   await expect(page.getByText('2 tries · 2m 05s · 1 hint')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Share the day' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Play Expedition' })).toBeHidden();
@@ -205,6 +293,9 @@ test('today stats share grows from Classic to the full day', async ({ page }) =>
   await expect(
     page.getByRole('heading', { name: 'Expedition conquered.' }),
   ).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Streak' })).toContainText(
+    'No streak yet',
+  );
   await expect(
     page.getByRole('button', { name: 'Share Expedition' }),
   ).toBeVisible();

@@ -14,6 +14,8 @@ const props = defineProps<{
   disabled?: boolean;
   /** Set while the run that ended here is being called out. */
   isShaking?: boolean;
+  /** Set briefly when this tile cannot be reached from the current tile. */
+  isDenied?: boolean;
   /**
    * Position of this tile along the freshly revealed hint route, so the guide
    * lights up as a direction to follow rather than a scatter of lit tiles.
@@ -53,6 +55,7 @@ watch(
       end: isEnd,
       hinted: isHinted,
       shake: isShaking,
+      denied: isDenied,
     }"
     :style="hintDelayMs ? { '--hint-delay': `${hintDelayMs}ms` } : undefined"
     :disabled="disabled"
@@ -136,6 +139,10 @@ watch(
     inset 3px 3px 6px rgba(255, 255, 255, 0.1),
     inset -3px -3px 6px rgba(0, 0, 0, 0.5),
     0 2px 4px rgba(0, 0, 0, 0.3);
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 /* ── States ─────────────────────────────────────────────────── */
@@ -204,6 +211,19 @@ watch(
    footer text. */
 .tile.shake {
   animation: tile-shake 220ms ease-in-out;
+}
+
+.tile.denied {
+  animation: tile-denied 240ms ease-out;
+}
+
+@keyframes tile-denied {
+  0%, 100% { transform: scale(1); }
+  45% {
+    transform: scale(0.9);
+    border-color: var(--color-toll-bright);
+    box-shadow: 0 0 13px rgb(var(--color-toll-rgb) / 0.72);
+  }
 }
 
 @keyframes tile-step {

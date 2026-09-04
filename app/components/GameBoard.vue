@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { buildEdgeMap, getEdgeType } from '#shared/utils/puzzleEngine';
 import type { Board, EdgeType, PuzzleType } from '#shared/types/game';
 import type { TileState } from '../types/game';
@@ -27,6 +27,8 @@ const props = defineProps<{
    * alike. The board answers by shaking the tile the player stopped on.
    */
   failSignal?: number;
+  deniedMoveSignal?: number;
+  deniedTileIndex?: number | null;
 }>();
 
 const emit = defineEmits<{
@@ -202,7 +204,9 @@ const allRoads = computed<RoadData[]>(() => {
 // rather than derived so the class can be removed when the animation ends and
 // re-added on the next failure.
 const shakingTileId = ref<number | null>(null);
+const deniedTileId = ref<number | null>(null);
 let shakeTimer: ReturnType<typeof setTimeout> | null = null;
+let deniedTimer: ReturnType<typeof setTimeout> | null = null;
 
 watch(
   () => props.failSignal,
@@ -219,8 +223,26 @@ watch(
   },
 );
 
+watch(
+  () => props.deniedMoveSignal,
+  async (signal, previous) => {
+    if (signal === undefined || previous === undefined || signal <= previous) return;
+    if (deniedTimer) clearTimeout(deniedTimer);
+    // Remove the class for one render before re-adding it. A repeated tap on
+    // the same blocked tile must restart the CSS animation from frame zero.
+    deniedTileId.value = null;
+    await nextTick();
+    deniedTileId.value = props.deniedTileIndex ?? null;
+    deniedTimer = setTimeout(() => {
+      deniedTileId.value = null;
+      deniedTimer = null;
+    }, 260);
+  },
+);
+
 onBeforeUnmount(() => {
   if (shakeTimer) clearTimeout(shakeTimer);
+  if (deniedTimer) clearTimeout(deniedTimer);
 });
 
 /**
@@ -313,6 +335,7 @@ watch(
             :is-done="visitedSet.has(tile.id)"
             :is-hinted="hintedTiles.has(tile.id)"
             :is-shaking="shakingTileId === tile.id"
+            :is-denied="deniedTileId === tile.id"
             :hint-delay-ms="hintDelays.get(tile.id)"
             :tab-index="tile.tabIndex"
             :disabled="disabled"

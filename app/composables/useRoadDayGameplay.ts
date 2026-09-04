@@ -197,10 +197,12 @@ function celebrationTierForMedal(medal: Medal | null): CelebrationTier {
 
 type SetupGameOptions = {
   attemptNumber?: number;
+  restoreLocalProgress?: boolean;
 };
 
 type ApplyRoadDayOptions = {
   preferredMode?: PuzzleType | null;
+  restoreLocalProgress?: boolean;
 };
 
 function createSessionId(): string {
@@ -255,6 +257,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
   const celebration = ref<CelebrationState | null>(null);
   const successfulMoveSignal = ref(0);
   const deniedMoveSignal = ref(0);
+  const deniedTileIndex = ref<number | null>(null);
   const deadEndSignal = ref(0);
   const undoSignal = ref(0);
   const hintNudgeSignal = ref(0);
@@ -566,11 +569,22 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
   }
 
   function setupGame(next: PublicGame, options: SetupGameOptions = {}) {
-    const progress = localProgress.getGameProgress(
-      next.gameNo,
-      next.puzzleType,
-      progressScope,
-    );
+    const restoreLocalProgress = options.restoreLocalProgress !== false;
+    const progress = restoreLocalProgress
+      ? localProgress.getGameProgress(
+          next.gameNo,
+          next.puzzleType,
+          progressScope,
+        )
+      : {
+          attempts: 0,
+          solved: false,
+          hintsUsed: 0,
+          solveTimeMs: null,
+          activeTimeMs: 0,
+          timerStartedAt: null,
+          guidePath: [],
+        };
     const progressAttemptNumber = Math.max(progress.attempts, 0) + 1;
     // Archive progress is transient (cleared on solve); the durable solved
     // signal for archived roads is the completion map merged with live
@@ -629,9 +643,15 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     activeSet.value = new Set(active);
     syncGuideHighlight();
     updateTileStates();
-    syncCurrentRoadContext(next);
+    if (restoreLocalProgress) {
+      syncCurrentRoadContext(next);
+    }
 
-    if (solveTimerCanResume.value && documentVisibility.value === 'visible') {
+    if (
+      restoreLocalProgress &&
+      solveTimerCanResume.value &&
+      documentVisibility.value === 'visible'
+    ) {
       resumeSolveTimer();
     }
   }
@@ -679,7 +699,9 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
       if (replacesMountedGame && !lastSolved.value) {
         stopSolveTimer();
       }
-      setupGame(next);
+      setupGame(next, {
+        restoreLocalProgress: options.restoreLocalProgress,
+      });
     }
   }
 
@@ -1178,6 +1200,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
         undoLastStep();
         return;
       }
+      deniedTileIndex.value = tileIndex;
       deniedMoveSignal.value += 1;
       return;
     }
@@ -1467,6 +1490,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     celebration,
     successfulMoveSignal,
     deniedMoveSignal,
+    deniedTileIndex,
     deadEndSignal,
     undoSignal,
     hintNudgeSignal,

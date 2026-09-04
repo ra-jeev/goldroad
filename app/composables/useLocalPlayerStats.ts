@@ -261,10 +261,8 @@ export function useLocalPlayerStats(
       solveRate: activeModes.length
         ? Math.round((solvedModes.length / activeModes.length) * 100)
         : 0,
-      currentClassicStreak: classicSummary.currentStreak,
-      bestClassicStreak: classicSummary.bestStreak,
-      currentExpeditionStreak: expeditionSummary.currentStreak,
-      bestExpeditionStreak: expeditionSummary.bestStreak,
+      currentStreak: classicSummary.currentStreak,
+      bestStreak: classicSummary.bestStreak,
       totalHints: activeModes.reduce((sum, entry) => sum + entry.hintsUsed, 0),
       averageSolvedAttempts: formatAverageSolvedAttempts(solvedModes),
       averageSolveTimeMs: solvedDurations.length

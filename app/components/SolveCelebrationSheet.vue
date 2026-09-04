@@ -45,7 +45,8 @@ const expeditionLeads = computed(
 const showExpeditionCta = computed(
   () => isClassic.value && Boolean(props.celebration?.hasExpedition),
 );
-const showStreakTick = computed(() => !isReplay.value);
+// Classic keeps the one daily streak. Expedition is an additional challenge.
+const showStreakTick = computed(() => isClassic.value);
 
 function medalLabel(medal: string | null): string | null {
   if (!medal) return null;
@@ -658,7 +659,7 @@ onBeforeUnmount(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 3rem;
+  min-height: 2.5rem;
   padding: 0 1.1rem;
   border-radius: var(--radius-full);
   border: 1px solid transparent;

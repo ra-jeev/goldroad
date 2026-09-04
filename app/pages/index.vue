@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, watch, watchEffect } from 'vue';
+import { onMounted, onUnmounted, watch } from 'vue';
 
 const {
   game,
@@ -40,6 +40,7 @@ const {
   celebration,
   successfulMoveSignal,
   deniedMoveSignal,
+  deniedTileIndex,
   deadEndSignal,
   undoSignal,
   hintNudgeSignal,
@@ -57,7 +58,7 @@ const {
   continueToExpedition,
   shareCelebrationResult,
   shareCurrentResult,
-} = useGoldroadGame();
+} = await useGoldroadGame();
 
 const currentRoadLabel = useState<string | null>(
   'current-road-label',
@@ -105,12 +106,6 @@ function onV1DismissWelcome() {
   acknowledgeLatestUpdate();
 }
 
-watchEffect(() => {
-  currentRoadLabel.value = game.value
-    ? `Day #${game.value.gameNo}`
-    : null;
-});
-
 watch(
   shouldShowFirstRunTutorial,
   (shouldShow) => {
@@ -150,6 +145,15 @@ watch(solveCelebrationSignal, () => {
 }, { flush: 'sync' });
 
 onMounted(() => {
+  watch(
+    game,
+    (currentGame) => {
+      currentRoadLabel.value = currentGame
+        ? `Day #${currentGame.gameNo}`
+        : null;
+    },
+    { immediate: true },
+  );
   void checkV1Notice();
 });
 
@@ -196,6 +200,8 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
           :path-history="pathHistory"
           :disabled="ended || loading"
           :fail-signal="deadEndSignal"
+          :denied-move-signal="deniedMoveSignal"
+          :denied-tile-index="deniedTileIndex"
           @select="moveTo"
           @scoring-move="onScoringMove"
         />

@@ -36,8 +36,6 @@ export const UI_COPY = {
     ariaLabels: {
       controls: 'Road controls',
       puzzleMode: 'Puzzle mode',
-      roadScore: 'Road score',
-      roadScoreOverTarget: 'Road score, now past the target',
     },
   },
   contact: {
@@ -164,8 +162,8 @@ export const UI_COPY = {
       },
       relief: {
         eyebrow: 'Classic solved',
-        title: 'You made it.',
-        body: 'That road put up a fight and you got through it.',
+        title: 'Road conquered.',
+        body: 'Every solve counts. You stayed with the road and found the way through.',
       },
     },
     noExpeditionBody: 'That wraps the Classic road for today.',
@@ -222,7 +220,7 @@ export const UI_COPY = {
 
   runtime: {
     loadingGame: 'Loading the road…',
-    loadingTodaysRoad: 'Loading today’s road…',
+    currentRoadUnavailable: 'Today’s road is unavailable. Please try again.',
     findingAnotherRoad: 'Finding another road…',
     preRun: 'You’re on the footprints. Step onto any glowing tile to begin.',
     destinationSolved: 'Solved.',

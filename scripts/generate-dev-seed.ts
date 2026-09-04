@@ -52,17 +52,17 @@ const originalRandom = Math.random;
 Math.random = mulberry32(20260403);
 
 try {
-  const rows = [
-    // Day 1 - Past games (gameNo 1)
-    buildInsertRow(1, 'classic', false, '2026-01-01T00:00:00.000Z'),
-    buildInsertRow(1, 'expedition', false, '2026-01-01T00:00:00.000Z'),
-    // Day 2 - Past games (gameNo 2)
-    buildInsertRow(2, 'classic', false, '2026-01-02T00:00:00.000Z'),
-    buildInsertRow(2, 'expedition', false, '2026-01-02T00:00:00.000Z'),
-    // Day 3 - Current games (gameNo 3)
-    buildInsertRow(3, 'classic', true, '2026-01-03T00:00:00.000Z'),
-    buildInsertRow(3, 'expedition', true, '2026-01-03T00:00:00.000Z'),
-  ];
+  // Keep two archived roads, one current road, and four future roads so local
+  // rotation can be exercised repeatedly without regenerating the database.
+  const rows = Array.from({ length: 7 }, (_, index) => {
+    const gameNo = index + 1;
+    const playableAt = new Date(Date.UTC(2026, 0, gameNo)).toISOString();
+    const isCurrent = gameNo === 3;
+    return [
+      buildInsertRow(gameNo, 'classic', isCurrent, playableAt),
+      buildInsertRow(gameNo, 'expedition', isCurrent, playableAt),
+    ];
+  }).flat();
 
   const sql = `-- Local development seed data for GoldRoad API testing.
 -- Generated from the current puzzle generator to keep maxScore/path consistent.

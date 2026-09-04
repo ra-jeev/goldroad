@@ -188,8 +188,8 @@ onBeforeUnmount(() => {
         <p class="score-line practice-score-line">
           {{ UI_COPY.boardHeader.metrics.score }}
           <strong>{{ practice.score.value }}</strong>
-          <span>•</span>
-          {{ UI_COPY.boardHeader.metrics.target }}
+          <span aria-hidden="true">/</span>
+          <span class="sr-only">{{ UI_COPY.boardHeader.metrics.target }}</span>
           <strong>{{ practice.maxScore.value }}</strong>
           <span>•</span>
           {{ UI_COPY.boardHeader.metrics.boardTotal }}
@@ -332,7 +332,7 @@ onBeforeUnmount(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 3rem;
+  min-height: 2.5rem;
   border: 1px solid transparent;
   border-radius: var(--radius-full);
   padding: 0 1.1rem;
@@ -407,7 +407,7 @@ onBeforeUnmount(() => {
 }
 
 .step-switch button {
-  min-height: 2.75rem;
+  min-height: var(--segmented-control-size);
   border: 0;
   border-radius: var(--radius-full);
   padding: 0.18rem 0.8rem;

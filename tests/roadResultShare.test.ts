@@ -17,15 +17,21 @@ describe('road result sharing', () => {
   };
 
   it('presents a first-attempt solve as an awarded gold medal', () => {
-    expect(buildRoadResultShareText(baseInput).text).toContain(
-      '🥇 Gold in 1 try',
-    );
+    const text = buildRoadResultShareText(baseInput).text;
+    expect(text).toContain('🟩');
+    expect(text).toContain('🥇 Gold in 1 try');
   });
 
   it('keeps the plain solved wording when no medal tier applies', () => {
-    expect(
-      buildRoadResultShareText({ ...baseInput, attempts: 5 }).text,
-    ).toContain('😅 Solved in 5 tries');
+    const text = buildRoadResultShareText({ ...baseInput, attempts: 5 }).text;
+    expect(text).toContain('🟫🟫🟫🟫🟩');
+    expect(text).toContain('😅 Solved in 5 tries');
+  });
+
+  it('caps long attempt trails while preserving the actual try count', () => {
+    const text = buildRoadResultShareText({ ...baseInput, attempts: 11 }).text;
+    expect(text).toContain('🟫🟫🟫🟫🟫🟫🟫🟩 +3');
+    expect(text).toContain('Solved in 11 tries');
   });
 
   it('sends every road result to the configured canonical homepage', () => {

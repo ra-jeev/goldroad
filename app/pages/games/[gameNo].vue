@@ -57,6 +57,7 @@ const {
   celebration,
   successfulMoveSignal,
   deniedMoveSignal,
+  deniedTileIndex,
   deadEndSignal,
   undoSignal,
   solveCelebrationSignal,
@@ -209,6 +210,8 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
           :path-history="pathHistory"
           :disabled="ended || busy"
           :fail-signal="deadEndSignal"
+          :denied-move-signal="deniedMoveSignal"
+          :denied-tile-index="deniedTileIndex"
           @select="moveTo"
           @scoring-move="onScoringMove"
         />

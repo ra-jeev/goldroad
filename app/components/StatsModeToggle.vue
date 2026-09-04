@@ -36,7 +36,7 @@ const nextLabel = computed(() =>
 
 <style scoped>
 .stats-mode-toggle {
-  min-height: 2.75rem;
+  min-height: var(--segmented-control-size);
   padding: 0.55rem 0.25rem 0.1rem;
   border: 0;
   border-top: 1px solid rgb(var(--color-gold-rgb) / 0.14);

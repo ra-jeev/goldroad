@@ -4,8 +4,9 @@ import { UI_COPY } from '../content/uiCopy';
 import { getRoadDayKeyFromPlayableAt } from './useGoldroadLocalState';
 import { useNextRoadCountdown } from './useNextRoadCountdown';
 
-export function useGoldroadGame() {
+export async function useGoldroadGame() {
   const gamesApi = useGamesApi();
+  const requestFetch = useRequestFetch();
   const localProgress = useLocalGameProgress();
   const gameplay = useRoadDayGameplay({ entryType: 'live' });
   // Anchored to the loaded road's own schedule: a tab open at rotation (or a
@@ -48,17 +49,33 @@ export function useGoldroadGame() {
     return gameplay.selectedMode.value;
   }
 
-  async function loadCurrentGame() {
-    gameplay.loading.value = true;
-    gameplay.status.value = UI_COPY.runtime.loadingTodaysRoad;
-    try {
-      const response = await gamesApi.getCurrentGames();
-      gameplay.applyRoadDay(response, {
-        preferredMode: getPreferredMode(response),
-      });
-    } finally {
-      gameplay.loading.value = false;
-    }
+  const initialRoadDayRequest = useAsyncData('current-road-day', () =>
+    requestFetch<CurrentGamesResponse>('/api/games/current'),
+  );
+
+  // Register before awaiting async setup so Vue can associate the lifecycle
+  // hook with this component instance.
+  onMounted(() => {
+    if (!initialRoadDayRequest.data.value) return;
+    localProgress.load();
+    gameplay.applyRoadDay(initialRoadDayRequest.data.value, {
+      preferredMode: getPreferredMode(initialRoadDayRequest.data.value),
+    });
+  });
+
+  const { data: initialRoadDay, error: initialRoadDayError } =
+    await initialRoadDayRequest;
+
+  if (initialRoadDay.value) {
+    gameplay.applyRoadDay(initialRoadDay.value, {
+      // The server cannot see localStorage. Use the same clean state during
+      // SSR and hydration, then restore the player's saved mode/progress once
+      // mounted so Vue never hydrates conflicting tabs or medals.
+      preferredMode: null,
+      restoreLocalProgress: false,
+    });
+  } else if (initialRoadDayError.value) {
+    gameplay.status.value = UI_COPY.runtime.currentRoadUnavailable;
   }
 
   // The rotation cron can lag UTC midnight by a moment, so the server may
@@ -98,10 +115,6 @@ export function useGoldroadGame() {
       loadNewRoadInFlight = false;
     }
   }
-
-  onMounted(async () => {
-    await loadCurrentGame();
-  });
 
   return {
     ...gameplay,

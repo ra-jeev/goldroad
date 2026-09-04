@@ -232,7 +232,7 @@ onBeforeUnmount(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 3rem;
+  min-height: 2.5rem;
   padding: 0 1.1rem;
   border-radius: var(--radius-full);
   border: 1px solid transparent;

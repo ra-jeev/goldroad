@@ -26,27 +26,6 @@ const emit = defineEmits<{
   selectMode: [mode: PuzzleType];
 }>();
 
-const metrics = computed(() => {
-  return [
-    {
-      key: 'score',
-      label: UI_COPY.boardHeader.metrics.score,
-      value: `${props.score}`,
-    },
-    {
-      key: 'target',
-      label: UI_COPY.boardHeader.metrics.target,
-      value: `${props.maxScore}`,
-    },
-    {
-      key: 'boardTotal',
-      label: UI_COPY.boardHeader.metrics.boardTotal,
-      value: `${props.totalCoins}`,
-      description: UI_COPY.boardHeader.metrics.boardTotalDescription,
-    },
-  ];
-});
-
 // A fresh :key each pulse replays the score-pulse animation. Color follows
 // the traversed edge's hue. The pulse marks a score change the player did not
 // ask for directly — an edge cost collected by crossing it. A take-back is
@@ -106,7 +85,7 @@ function statusLabel(solved: boolean, medal: Medal | null): string {
             <path d="m3.5 8.2 2.8 2.8 6.2-6.2" />
           </svg>
           <span v-else class="mode-status-dot" aria-hidden="true" />
-          <span class="mode-status-label">
+          <span class="sr-only">
             {{ statusLabel(classicSolved, classicMedal) }}
           </span>
         </span>
@@ -139,38 +118,36 @@ function statusLabel(solved: boolean, medal: Medal | null): string {
             <path d="m3.5 8.2 2.8 2.8 6.2-6.2" />
           </svg>
           <span v-else class="mode-status-dot" aria-hidden="true" />
-          <span class="mode-status-label">
+          <span class="sr-only">
             {{ statusLabel(expeditionSolved, expeditionMedal) }}
           </span>
         </span>
       </button>
     </div>
 
-    <p
+    <div
       :key="pulseKey"
       class="metric-line"
       :class="{ 'metric-line--pulse': pulse }"
       :style="pulseStyle"
-      :aria-label="
-        overTarget
-          ? UI_COPY.boardHeader.ariaLabels.roadScoreOverTarget
-          : UI_COPY.boardHeader.ariaLabels.roadScore
-      "
     >
-      <span v-for="(metric, index) in metrics" :key="metric.label">
-        <span class="metric-label" :title="metric.description">
-          {{ metric.label }}
-        </span>
-        <strong
-          :class="{
-            'metric-value--over': metric.key === 'score' && overTarget,
-          }"
-        >{{ metric.value }}</strong>
-        <span v-if="index < metrics.length - 1" class="metric-separator">
-          •
-        </span>
+      <span class="score-target">
+        <span class="metric-label">{{ UI_COPY.boardHeader.metrics.score }}</span>
+        <strong :class="{ 'metric-value--over': overTarget }">{{ score }}</strong>
+        <span v-if="overTarget" class="sr-only">Past target.</span>
+        <span class="target-divider" aria-hidden="true">/</span>
+        <span class="sr-only">{{ UI_COPY.boardHeader.metrics.target }}</span>
+        <strong class="target-value">{{ maxScore }}</strong>
       </span>
-    </p>
+      <span class="metric-separator" aria-hidden="true">•</span>
+      <span>
+        <span
+          class="metric-label"
+          :title="UI_COPY.boardHeader.metrics.boardTotalDescription"
+        >{{ UI_COPY.boardHeader.metrics.boardTotal }}</span>
+        <strong>{{ totalCoins }}</strong>
+      </span>
+    </div>
   </section>
 </template>
 
@@ -178,7 +155,7 @@ function statusLabel(solved: boolean, medal: Medal | null): string {
 .board-header-card {
   display: grid;
   justify-items: center;
-  gap: 0.45rem;
+  gap: 0.75rem;
   padding: 0.25rem 0;
   text-align: center;
 }
@@ -195,10 +172,7 @@ function statusLabel(solved: boolean, medal: Medal | null): string {
 }
 
 .mode-option {
-  /* Height is set here, not by the padding: at 2.75rem the min-height
-     swallowed it entirely. 2.5rem keeps a comfortable target on a pill
-     that is ~110px wide. */
-  min-height: 2.5rem;
+  min-height: var(--segmented-control-size);
   border: 0;
   border-radius: var(--radius-full);
   padding: 0.25rem 1rem;
@@ -267,22 +241,10 @@ function statusLabel(solved: boolean, medal: Medal | null): string {
   border-color: var(--color-gold-bright);
 }
 
-.mode-status-label {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
 .metric-line {
   margin: 0;
   color: rgb(var(--color-gold-rgb) / 0.76);
-  font-size: var(--font-size-board-meta);
+  font-size: 1.125rem;
   font-weight: 700;
   /* Score climbs from one digit to three as the road is walked; without this
      the whole line re-flows on every move. */
@@ -290,13 +252,28 @@ function statusLabel(solved: boolean, medal: Medal | null): string {
 }
 
 .metric-label {
-  margin-right: 0.25rem;
+  margin-right: 0.4rem;
   color: rgb(var(--color-gold-rgb) / 0.58);
+}
+
+.score-target {
+  display: inline-flex;
+  align-items: baseline;
+}
+
+.target-divider {
+  margin: 0 0.28rem;
+  color: rgb(var(--color-gold-rgb) / 0.42);
+}
+
+.metric-line strong.target-value {
+  color: rgb(var(--color-gold-rgb) / 0.72);
 }
 
 .metric-line strong {
   color: var(--color-gold);
   display: inline-block;
+  font-size: 1.25rem;
   transition: color 220ms ease;
 }
 

@@ -47,6 +47,14 @@ function formatAttemptLabel(attempts: number): string {
   return `${attempts} ${attempts === 1 ? 'try' : 'tries'}`;
 }
 
+/** Spoiler-free picture of the attempt journey: every square is a try. */
+function formatAttemptTrail(attempts: number, solved: boolean): string {
+  const visibleAttempts = Math.min(Math.max(attempts, 1), 8);
+  const misses = solved ? visibleAttempts - 1 : visibleAttempts;
+  const trail = `${'🟫'.repeat(misses)}${solved ? '🟩' : ''}`;
+  return attempts > visibleAttempts ? `${trail} +${attempts - visibleAttempts}` : trail;
+}
+
 function formatResultLine(input: {
   attempts: number;
   solved: boolean;
@@ -133,6 +141,7 @@ export function buildRoadResultShareText(
     title,
     text: [
       `GoldRoad Day #${input.gameNo} · ${formatModeLabel(input.puzzleType)}`,
+      formatAttemptTrail(input.attempts, input.solved),
       resultLine,
       timeLine,
       hintLine,
@@ -160,7 +169,7 @@ function formatDayModeLine(
       ? ` · ${formatDurationMs(result.solveTimeMs)}`
       : '';
 
-  return `${label}: ${formatResultLine(result)}${timeSuffix}`;
+  return `${label}: ${formatAttemptTrail(result.attempts, result.solved)} ${formatResultLine(result)}${timeSuffix}`;
 }
 
 export function buildDayResultShareText(

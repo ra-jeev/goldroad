@@ -66,10 +66,10 @@
      .shell padding reads this too, so the tile math can rely on it. */
   --board-margin: 12px;
 
-  /* Interactive controls and icons keep the same physical presence across
-     shared surfaces. Mobile navigation may expose fewer controls, but never
-     smaller ones. */
-  --control-size: 2.75rem;
+  /* Icon-only controls use a little more room than compact segmented tabs.
+     Labelled primary actions set their own larger minimum height. */
+  --control-size: 2.25rem;
+  --segmented-control-size: 2rem;
   --icon-size: 1.5rem;
 
   /* ── Border radius ────────────────────────────────────────── */
@@ -233,6 +233,20 @@ body {
   font-size: var(--font-size-base);
 }
 
+/* Keep explanatory text available to assistive technology without placing it
+   in the visual layout. Shared by board controls, tutorial, and stats. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* Page titles, panel titles and celebration lines carry the display face.
    h3 deliberately does not: every h3 in the app is a small label — tutorial
    lesson titles, help sections, update entries, empty states — at around
@@ -277,7 +291,7 @@ h3 {
 }
 
 .segmented-control__option {
-  min-height: 2.75rem;
+  min-height: var(--segmented-control-size);
   border: 0;
   border-radius: var(--radius-full);
   background: transparent;
