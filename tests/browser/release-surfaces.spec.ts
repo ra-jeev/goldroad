@@ -180,8 +180,11 @@ test('stats surface loads its core sections', async ({ page }) => {
     page.getByRole('heading', { name: 'Stats', exact: true }),
   ).toBeVisible();
   await expect(page.getByRole('region', { name: 'Medals earned' })).toBeVisible();
+  // Nothing earned yet, so each tier shows a dash rather than a zero.
+  await expect(page.locator('.medal-count').first()).toHaveText('–');
+  await expect(page.getByText('Fewer tries, better medal.')).toBeVisible();
   await expect(page.getByRole('region', { name: 'Streak' })).toContainText(
-    'Solve today’s Classic road to light the flame.',
+    'Solve today’s road to light the flame.',
   );
   await expect(
     page.getByRole('region', {
@@ -206,14 +209,14 @@ test('stats surface loads its core sections', async ({ page }) => {
   expect(runtimeErrors).toEqual([]);
 });
 
-test('a lapsed streak is nudged by the best run behind it', async ({ page }) => {
-  const runtimeErrors = captureRuntimeErrors(page);
-  // Roads 5 to 7 are a solved run of three. None of them is the current road
-  // or the one before it, so the streak has lapsed while the best survives.
-  await page.addInitScript(() => {
+// Seeds solved Classic roads into local history. The seeded database serves
+// road 3, so any road number other than 3 or 2 leaves the streak lapsed while
+// the solves behind it survive.
+async function seedSolvedClassicRoads(page: Page, gameNos: number[]) {
+  await page.addInitScript((roads: number[]) => {
     const historyByDay: Record<string, unknown> = {};
-    for (const gameNo of [5, 6, 7]) {
-      const day = `2026-01-0${gameNo}`;
+    for (const gameNo of roads) {
+      const day = `2026-01-${String(gameNo).padStart(2, '0')}`;
       historyByDay[day] = {
         day,
         gameNo,
@@ -250,14 +253,50 @@ test('a lapsed streak is nudged by the best run behind it', async ({ page }) => 
         lastAcknowledgedUpdateId: null,
       }),
     );
-  });
+  }, gameNos);
+}
+
+test('a lapsed streak is nudged by the best run behind it', async ({ page }) => {
+  const runtimeErrors = captureRuntimeErrors(page);
+  await seedSolvedClassicRoads(page, [5, 6, 7]);
 
   await page.goto('/stats');
 
   const streak = page.getByRole('region', { name: 'Streak' });
   await expect(streak).toContainText('No streak yet');
   await expect(streak).toContainText(
-    'You once did 3 days. Solve today’s Classic road to light it again.',
+    'You once did 3 days. Solve today’s road to light it again.',
+  );
+  expect(runtimeErrors).toEqual([]);
+});
+
+test('a lapsed player who never ran two roads together is nudged by the solves', async ({
+  page,
+}) => {
+  const runtimeErrors = captureRuntimeErrors(page);
+  // Two solves with a gap between them: the best run is one road, so there is
+  // no number of days worth naming, but there are still roads conquered. The
+  // count is the solves, not the best run, which stays at one throughout.
+  await seedSolvedClassicRoads(page, [5, 7]);
+
+  await page.goto('/stats');
+
+  const streak = page.getByRole('region', { name: 'Streak' });
+  await expect(streak).toContainText('No streak yet');
+  await expect(streak).toContainText(
+    '2 roads conquered so far. Solve today’s road to make it 3 and start a streak.',
+  );
+  expect(runtimeErrors).toEqual([]);
+});
+
+test('a single lapsed solve counts up from one road', async ({ page }) => {
+  const runtimeErrors = captureRuntimeErrors(page);
+  await seedSolvedClassicRoads(page, [5]);
+
+  await page.goto('/stats');
+
+  await expect(page.getByRole('region', { name: 'Streak' })).toContainText(
+    '1 road conquered so far. Solve today’s road to make it 2 and start a streak.',
   );
   expect(runtimeErrors).toEqual([]);
 });

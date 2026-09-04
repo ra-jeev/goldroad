@@ -148,6 +148,14 @@ const medalTiles = computed(() =>
   })),
 );
 
+// A tier at zero shows a dash where the count goes. "x 0" is a score, and
+// three of them read as three failures to a player who has simply not got
+// there yet, where a dash reads as not filled in. The dash is the same one
+// the record rows use for a value there is nothing to report yet.
+const hasAnyMedal = computed(() =>
+  medalTiles.value.some((tier) => tier.count > 0),
+);
+
 // ---------------------------------------------------------------------------
 // One daily streak: solving Classic keeps it alive. Expedition remains an
 // additional challenge and does not gate the habit loop.
@@ -158,12 +166,23 @@ const streakCard = computed(() => {
   const best = summary.value.bestStreak;
   const isBest = current > 0 && current >= best;
 
-  // Both halves of the sub line name the personal best, because a number the
-  // player has already reached is the thing that pulls them back. A live run
-  // gets the distance left to cover; a lapsed one gets the run it is measured
-  // against. A best of one road is nobody's high-water mark, so that case
-  // keeps the plain invitation.
+  // The sub line names whatever the player has already reached, because that
+  // is the thing that pulls them back. A live run gets the distance left to
+  // cover. A lapsed one gets the run it is measured against, or, for someone
+  // who has never had two roads fall together, the roads they conquered
+  // anyway. The headline stays "No streak yet" throughout: the past belongs
+  // in the sub line, where it can say that it is the past.
+  //
+  // The two lapsed lines are worded apart on purpose. "You once did N days"
+  // was one unbroken run, so "once" is the truth of it. A solve count is a
+  // tally gathered across scattered days, so it says "so far" and counts up
+  // to the next one: "once conquered 2 roads" would read as a run of two,
+  // which is exactly what it is not.
   const gap = best - current;
+  // Classic solves, not the cross-mode count, since Classic is what the
+  // streak follows. A best of one says nothing about how many roads were
+  // conquered — five solves with no two in a row still leave the best at one.
+  const classicSolves = summary.value.modeBreakdown.classic.exactSolves;
 
   return {
     lit: current > 0,
@@ -178,8 +197,10 @@ const streakCard = computed(() => {
       current > 0
         ? null
         : best > 1
-          ? `You once did ${best} days. Solve today’s Classic road to light it again.`
-          : 'Solve today’s Classic road to light the flame.',
+          ? `You once did ${best} days. Solve today’s road to light it again.`
+          : classicSolves > 0
+            ? `${classicSolves} road${classicSolves === 1 ? '' : 's'} conquered so far. Solve today’s road to make it ${classicSolves + 1} and start a streak.`
+            : 'Solve today’s road to light the flame.',
   };
 });
 
@@ -241,7 +262,7 @@ const todayCard = computed(() => {
       detail:
         classic && classic.attempts > 0
           ? `The solve is still out there after ${formatRunCount(classic.attempts)}.`
-          : 'Chart today’s Classic road to start your streak.',
+          : 'Chart today’s road to start your streak.',
     };
   }
 
@@ -509,7 +530,7 @@ onMounted(async () => {
             <span
               class="medal-count"
               :class="{ 'medal-count--bumped': tier.earnedToday > 0 }"
-            >{{ tier.count }}</span>
+            >{{ tier.count > 0 ? tier.count : '–' }}</span>
           </span>
           <span class="medal-sub">{{ tier.sub }}</span>
           <span class="sr-only">
@@ -517,6 +538,10 @@ onMounted(async () => {
           </span>
         </div>
       </section>
+
+      <p v-if="!hasAnyMedal" class="medal-note">
+        Fewer tries, better medal.
+      </p>
 
       <section v-if="loading" class="panel panel--loading">
         <p>Gathering your roads…</p>
@@ -756,6 +781,14 @@ onMounted(async () => {
 .medal-art {
   font-size: 2.1rem;
   filter: drop-shadow(0 3px 6px rgb(0 0 0 / 0.4));
+}
+
+.medal-note {
+  margin: -0.35rem 0 0;
+  text-align: center;
+  font-size: var(--font-size-caption);
+  font-weight: 700;
+  color: rgb(var(--color-gold-rgb) / 0.55);
 }
 
 .medal-multiply {
