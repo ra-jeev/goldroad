@@ -212,23 +212,28 @@ test('stats surface loads its core sections', async ({ page }) => {
 // Seeds solved Classic roads into local history. The seeded database serves
 // road 3, so any road number other than 3 or 2 leaves the streak lapsed while
 // the solves behind it survive.
-async function seedSolvedClassicRoads(page: Page, gameNos: number[]) {
-  await page.addInitScript((roads: number[]) => {
+async function seedSolvedRoads(
+  page: Page,
+  gameNos: number[],
+  options: { bothModes?: boolean } = {},
+) {
+  await page.addInitScript((input: { roads: number[]; bothModes: boolean }) => {
     const historyByDay: Record<string, unknown> = {};
-    for (const gameNo of roads) {
+    const solvedMode = {
+      attempts: 1,
+      solved: true,
+      hintsUsed: 0,
+      solveTimeMs: 60_000,
+      updatedAt: new Date().toISOString(),
+    };
+    for (const gameNo of input.roads) {
       const day = `2026-01-${String(gameNo).padStart(2, '0')}`;
       historyByDay[day] = {
         day,
         gameNo,
-        modes: {
-          classic: {
-            attempts: 1,
-            solved: true,
-            hintsUsed: 0,
-            solveTimeMs: 60_000,
-            updatedAt: new Date().toISOString(),
-          },
-        },
+        modes: input.bothModes
+          ? { classic: solvedMode, expedition: solvedMode }
+          : { classic: solvedMode },
       };
     }
 
@@ -253,12 +258,12 @@ async function seedSolvedClassicRoads(page: Page, gameNos: number[]) {
         lastAcknowledgedUpdateId: null,
       }),
     );
-  }, gameNos);
+  }, { roads: gameNos, bothModes: options.bothModes ?? false });
 }
 
 test('a lapsed streak is nudged by the best run behind it', async ({ page }) => {
   const runtimeErrors = captureRuntimeErrors(page);
-  await seedSolvedClassicRoads(page, [5, 6, 7]);
+  await seedSolvedRoads(page, [5, 6, 7]);
 
   await page.goto('/stats');
 
@@ -277,26 +282,40 @@ test('a lapsed player who never ran two roads together is nudged by the solves',
   // Two solves with a gap between them: the best run is one road, so there is
   // no number of days worth naming, but there are still roads conquered. The
   // count is the solves, not the best run, which stays at one throughout.
-  await seedSolvedClassicRoads(page, [5, 7]);
+  await seedSolvedRoads(page, [5, 7]);
 
   await page.goto('/stats');
 
   const streak = page.getByRole('region', { name: 'Streak' });
   await expect(streak).toContainText('No streak yet');
   await expect(streak).toContainText(
-    '2 roads conquered so far. Solve today’s road to make it 3 and start a streak.',
+    '2 roads conquered so far. Solve one today to make it 3 and light the flame.',
   );
   expect(runtimeErrors).toEqual([]);
 });
 
 test('a single lapsed solve counts up from one road', async ({ page }) => {
   const runtimeErrors = captureRuntimeErrors(page);
-  await seedSolvedClassicRoads(page, [5]);
+  await seedSolvedRoads(page, [5]);
 
   await page.goto('/stats');
 
   await expect(page.getByRole('region', { name: 'Streak' })).toContainText(
-    '1 road conquered so far. Solve today’s road to make it 2 and start a streak.',
+    '1 road conquered so far. Solve one today to make it 2 and light the flame.',
+  );
+  expect(runtimeErrors).toEqual([]);
+});
+
+test('both halves of one lapsed day count as two roads', async ({ page }) => {
+  const runtimeErrors = captureRuntimeErrors(page);
+  // One road day, Classic and Expedition both solved. The app calls that
+  // "Both roads conquered.", so the tally says two, not one.
+  await seedSolvedRoads(page, [5], { bothModes: true });
+
+  await page.goto('/stats');
+
+  await expect(page.getByRole('region', { name: 'Streak' })).toContainText(
+    '2 roads conquered so far. Solve one today to make it 3 and light the flame.',
   );
   expect(runtimeErrors).toEqual([]);
 });

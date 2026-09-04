@@ -179,10 +179,13 @@ const streakCard = computed(() => {
   // to the next one: "once conquered 2 roads" would read as a run of two,
   // which is exactly what it is not.
   const gap = best - current;
-  // Classic solves, not the cross-mode count, since Classic is what the
-  // streak follows. A best of one says nothing about how many roads were
-  // conquered — five solves with no two in a row still leave the best at one.
-  const classicSolves = summary.value.modeBreakdown.classic.exactSolves;
+  // Every solved road counts here, Classic and Expedition alike, because the
+  // rest of the app calls them two roads: finishing both halves of a day is
+  // "Both roads conquered." The streak still follows Classic alone, but this
+  // line is about what the player has already done, not about the mechanism.
+  // A best of one says nothing about that total — five solves with no two in
+  // a row still leave the best at one.
+  const solves = summary.value.exactSolves;
 
   return {
     lit: current > 0,
@@ -198,8 +201,8 @@ const streakCard = computed(() => {
         ? null
         : best > 1
           ? `You once did ${best} days. Solve today’s road to light it again.`
-          : classicSolves > 0
-            ? `${classicSolves} road${classicSolves === 1 ? '' : 's'} conquered so far. Solve today’s road to make it ${classicSolves + 1} and start a streak.`
+          : solves > 0
+            ? `${solves} road${solves === 1 ? '' : 's'} conquered so far. Solve one today to make it ${solves + 1} and light the flame.`
             : 'Solve today’s road to light the flame.',
   };
 });

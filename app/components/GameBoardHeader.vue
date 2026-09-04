@@ -261,9 +261,11 @@ function statusLabel(solved: boolean, medal: Medal | null): string {
   align-items: baseline;
 }
 
+/* The slash sits with the target, not with the score: the pair is what the
+   score is walking toward, and the score alone stays brightest. */
 .target-divider {
   margin: 0 0.28rem;
-  color: rgb(var(--color-gold-rgb) / 0.42);
+  color: rgb(var(--color-gold-rgb) / 0.72);
 }
 
 .metric-line strong.target-value {
