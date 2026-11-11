@@ -102,6 +102,7 @@ export default defineNuxtConfig({
   routeRules: {
     '/': { headers: { 'cache-control': 'no-cache' } },
     '/about': { headers: { 'cache-control': 'no-cache' } },
+    '/how-to-play': { headers: { 'cache-control': 'no-cache' } },
     '/games': { headers: { 'cache-control': 'no-cache' } },
     '/games/**': { headers: { 'cache-control': 'no-cache' } },
     '/stats': { headers: { 'cache-control': 'no-cache' } },

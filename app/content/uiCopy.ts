@@ -135,6 +135,17 @@ export const UI_COPY = {
     },
   },
 
+  /**
+   * Static copy under the board on the home page. It is plain server-rendered
+   * text, so search engines and players with no game loaded still get words.
+   * Every rule here repeats `helpSheet` and the tutorial; change them together.
+   */
+  home: {
+    /** The board page's one heading. Read by screen readers and search, not
+     *  drawn: the wordmark above the board already says it to the eye. */
+    title: 'GoldRoad – a daily number path puzzle',
+  },
+
   celebration: {
     close: 'Close',
     dismiss: 'Dismiss celebration',

@@ -3,17 +3,11 @@ import { onBeforeUnmount, ref, watch } from 'vue';
 import { UI_COPY } from '../content/uiCopy';
 
 const { isNavDrawerOpen, closeNavDrawer } = useNavDrawer();
-const { openHowToPlay } = useHowToPlaySheet();
 const { hasUnseenUpdate } = useUpdatesNotice();
 const COPY = UI_COPY.navDrawer;
 const dialog = ref<HTMLElement | null>(null);
 
 useDialogFocusTrap(isNavDrawerOpen, dialog);
-
-function showHowToPlay() {
-  closeNavDrawer();
-  openHowToPlay();
-}
 
 function onKeydown(event: KeyboardEvent) {
   if (event.key === 'Escape') {
@@ -88,7 +82,7 @@ onBeforeUnmount(() => {
           {{ COPY.stats }}
         </NuxtLink>
 
-        <button type="button" class="drawer-link" @click="showHowToPlay">
+        <NuxtLink to="/how-to-play" class="drawer-link" @click="closeNavDrawer">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path
               d="M9.2 9a2.8 2.8 0 1 1 5.23 1.4c-.33.5-.86.92-1.4 1.3c-.78.56-1.53 1.1-1.53 2.3m.01 3h.01M22 12a10 10 0 1 1-20 0a10 10 0 0 1 20 0Z"
@@ -100,7 +94,7 @@ onBeforeUnmount(() => {
             />
           </svg>
           {{ COPY.howToPlay }}
-        </button>
+        </NuxtLink>
 
         <NuxtLink to="/games" class="drawer-link" @click="closeNavDrawer">
           <svg viewBox="0 0 24 24" aria-hidden="true">

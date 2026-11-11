@@ -8,7 +8,6 @@ const { muted, toggleMuted } = useGoldroadLocalState();
 // The persistent shell owns sound loading so page navigation cannot dispose of
 // the preloaded sound bank.
 useSoundEffects();
-const { openHowToPlay, closeHowToPlay } = useHowToPlaySheet();
 const { closeTutorial } = useTutorialFlow();
 const { isNavDrawerOpen, closeNavDrawer, toggleNavDrawer } = useNavDrawer();
 // Acknowledgment of the latest update is owned by the About page itself,
@@ -19,7 +18,6 @@ const { hasUnseenUpdate } = useUpdatesNotice();
 watch(
   () => route.fullPath,
   () => {
-    closeHowToPlay();
     closeTutorial();
     closeNavDrawer();
   },
@@ -106,15 +104,13 @@ watch(
             </svg>
           </NuxtLink>
 
-          <button
+          <NuxtLink
+            to="/how-to-play"
             class="icon-button header-direct-action"
             aria-label="Open How to Play"
             title="How to play"
             data-tooltip="How to play"
-            @click="
-              openHowToPlay();
-              closeNavDrawer();
-            "
+            @click="closeNavDrawer"
           >
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path
@@ -126,7 +122,7 @@ watch(
                 stroke-width="3"
               />
             </svg>
-          </button>
+          </NuxtLink>
 
           <button
             class="icon-button"
@@ -164,7 +160,6 @@ watch(
     <AppFooter />
 
     <AppNavDrawer />
-    <GameHelpSheet />
     <TutorialDialog />
   </div>
 </template>

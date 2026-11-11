@@ -8,6 +8,12 @@ import { UI_COPY } from '../content/uiCopy';
 
 <template>
   <footer class="contact-footer">
+    <nav class="footer-nav" aria-label="Site">
+      <NuxtLink to="/how-to-play">How to Play</NuxtLink>
+      <NuxtLink to="/games">Past Roads</NuxtLink>
+      <NuxtLink to="/stats">Stats</NuxtLink>
+      <NuxtLink to="/about">About</NuxtLink>
+    </nav>
     <p>
       <!-- The glyph is the brand mark, so the word "X" would only repeat it.
            The link's aria-label carries the name for screen readers. -->
@@ -51,6 +57,14 @@ import { UI_COPY } from '../content/uiCopy';
   padding: 1.4rem clamp(0.9rem, 3vw, 1.45rem) 1.8rem;
   text-align: center;
   color: rgb(var(--color-gold-rgb) / 0.76);
+}
+
+.footer-nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.35rem 1.2rem;
+  margin-bottom: 0.4rem;
 }
 
 .contact-footer p {

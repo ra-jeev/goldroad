@@ -1,6 +1,42 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, watch } from 'vue';
 
+import { UI_COPY } from '../content/uiCopy';
+
+// The How to Play sheet is this page's child route, /how-to-play. The pinned
+// key keeps the board mounted when the sheet opens and closes, so a road in
+// progress is never reloaded by it.
+definePageMeta({ key: 'home' });
+
+const { isHowToPlayOpen } = useHowToPlaySheet();
+const siteUrl = useRuntimeConfig().public.siteUrl as string;
+const siteDescription =
+  'Play GoldRoad, a free daily number path puzzle. Build a route from Start to Finish and land exactly on the target score.';
+
+// Tells search this is a free game. On the board's own address only.
+// No `author`: the site publishes no person or studio name, only X handles.
+useHead(() => ({
+  script: isHowToPlayOpen.value
+    ? []
+    : [
+        {
+          type: 'application/ld+json',
+          key: 'ld-home',
+          innerHTML: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': ['VideoGame', 'WebApplication'],
+            name: 'GoldRoad',
+            url: siteUrl,
+            description: siteDescription,
+            genre: 'Puzzle',
+            applicationCategory: 'GameApplication',
+            operatingSystem: 'Any',
+            offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+          }).replace(/</g, '\\u003c'),
+        },
+      ],
+}));
+
 const {
   game,
   tiles,
@@ -89,6 +125,9 @@ const shouldShowFirstRunTutorial = computed(
     !localState.tutorialState.value.completed &&
     !localState.tutorialState.value.lastSeenAt &&
     !localState.hasAnyLiveProgress.value &&
+    // A visitor who landed on the rules reads them first; the tutorial waits
+    // until that sheet is closed.
+    !isHowToPlayOpen.value &&
     v1CheckReady.value &&
     !showV1WelcomeNotice.value,
 );
@@ -170,6 +209,7 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
 <template>
   <div class="shell">
     <main class="layout">
+      <h1 v-if="!isHowToPlayOpen" class="sr-only">{{ UI_COPY.home.title }}</h1>
       <section v-if="game" class="board-column">
         <GameBoardHeader
           :selected-mode="selectedMode"
@@ -260,6 +300,9 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
       @show-whats-new="onV1ShowWhatsNew"
       @dismiss="onV1DismissWelcome"
     />
+
+    <!-- The How to Play sheet, when the route is /how-to-play. -->
+    <NuxtPage />
   </div>
 </template>
 

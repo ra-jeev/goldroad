@@ -87,7 +87,9 @@ export function useDialogFocusTrap(
       }
       opener = null;
     },
-    { flush: 'post' },
+    // Immediate: a dialog that is already open when the page loads (the
+    // How to Play sheet at its own URL) still has to take focus.
+    { flush: 'post', immediate: true },
   );
 
   onBeforeUnmount(() => {

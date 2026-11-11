@@ -17,11 +17,27 @@ const gamesApi = useGamesApi();
 const localStats = useLocalPlayerStats();
 const localProgress = useLocalGameProgress();
 
-const games = ref<
-  Array<Awaited<ReturnType<typeof gamesApi.getPastGames>>['games'][number]>
->([]);
-const loading = ref(true);
-const error = ref<string | null>(null);
+// Fetched during SSR so the calendar and its /games/N links are in the server
+// HTML. `lazy` keeps client-side navigation non-blocking, which is what shows
+// the loading state there.
+const {
+  data: pastGames,
+  status: pastGamesStatus,
+  error: pastGamesError,
+} = useAsyncData('past-games', () => gamesApi.getPastGames(), { lazy: true });
+
+const games = computed(() => pastGames.value?.games ?? []);
+const loading = computed(
+  () => !pastGames.value && pastGamesStatus.value === 'pending',
+);
+const error = computed(() =>
+  pastGamesError.value && !pastGames.value
+    ? 'Past roads are unavailable right now.'
+    : null,
+);
+// Local progress is read from localStorage, so it may only show after mount;
+// until then server and first client render stay identical.
+const progressReady = ref(false);
 const randomBusy = ref(false);
 const randomError = ref<string | null>(null);
 
@@ -49,7 +65,7 @@ function utcDateKey(iso: string): string {
 }
 
 function formatDate(value: string): string {
-  return new Intl.DateTimeFormat(undefined, {
+  return new Intl.DateTimeFormat('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
@@ -65,6 +81,7 @@ function formatDate(value: string): string {
  */
 const marksByGameNo = computed(() => {
   const marks = new Map<number, ModeMarks>();
+  if (!progressReady.value) return marks;
   const entry = (gameNo: number): ModeMarks => {
     const existing = marks.get(gameNo);
     if (existing) return existing;
@@ -161,7 +178,7 @@ const calendarMonths = computed<CalendarMonth[]>(() => {
 
     months.push({
       key: `${year}-${month}`,
-      title: new Intl.DateTimeFormat(undefined, {
+      title: new Intl.DateTimeFormat('en-US', {
         month: 'long',
         year: 'numeric',
         timeZone: 'UTC',
@@ -199,18 +216,10 @@ async function playRandomOlderRoad() {
   }
 }
 
-onMounted(async () => {
+onMounted(() => {
   localProgress.load();
   localStats.load();
-
-  try {
-    const response = await gamesApi.getPastGames();
-    games.value = response.games;
-  } catch {
-    error.value = 'Past roads are unavailable right now.';
-  } finally {
-    loading.value = false;
-  }
+  progressReady.value = true;
 });
 </script>
 
