@@ -14,6 +14,8 @@ useSeoMeta({
 });
 
 const gamesApi = useGamesApi();
+const requestFetch = useRequestFetch();
+type PastGames = Awaited<ReturnType<typeof gamesApi.getPastGames>>;
 const localStats = useLocalPlayerStats();
 const localProgress = useLocalGameProgress();
 
@@ -24,7 +26,14 @@ const {
   data: pastGames,
   status: pastGamesStatus,
   error: pastGamesError,
-} = useAsyncData('past-games', () => gamesApi.getPastGames(), { lazy: true });
+} = useAsyncData(
+  'past-games',
+  // The request-bound fetch carries the request's Cloudflare bindings into
+  // the in-process API call. A bare $fetch during SSR starts a call without
+  // them, so the API cannot reach D1 and the page renders its error panel.
+  () => requestFetch<PastGames>('/api/games/past', { params: { limit: 30 } }),
+  { lazy: true },
+);
 
 const games = computed(() => pastGames.value?.games ?? []);
 const loading = computed(
