@@ -57,6 +57,22 @@ export function useLocalGameProgress() {
     });
   }
 
+  function setLeftStart(
+    gameNo: number,
+    puzzleType: PuzzleType,
+    day: string,
+    leftStart: boolean,
+    scope: LocalProgressScope = 'live',
+  ) {
+    return localState.setLeftStart({
+      gameNo,
+      puzzleType,
+      day,
+      leftStart,
+      scope,
+    });
+  }
+
   function recordRun(
     gameNo: number,
     puzzleType: PuzzleType,
@@ -89,6 +105,7 @@ export function useLocalGameProgress() {
     getGameProgress,
     recordHint,
     setSolveTimerState,
+    setLeftStart,
     recordRun,
     recordArchiveCompletion: localState.recordArchiveCompletion,
     isRoadModeSolved: localState.isRoadModeSolved,

@@ -92,6 +92,18 @@ export function isDifferentGameIdentity(
  * write anything. Exported standalone so the solved-only gate is
  * unit-testable without the full gameplay composable (RP1-9).
  */
+/**
+ * A refresh spends the current try when the player has already left the
+ * start coin. A solved road, and a try that is still on the start coin,
+ * are free.
+ */
+export function shouldChargeAbandonedRun(progress: {
+  solved: boolean;
+  leftStart: boolean;
+}): boolean {
+  return progress.leftStart && !progress.solved;
+}
+
 export function shouldRecordArchiveCompletion(
   entryType: EntryType,
   solved: boolean,
@@ -477,6 +489,19 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
       : null;
   }
 
+  function rememberLeftStart(leftStart: boolean) {
+    if (!game.value || trackingDisabled.value) return;
+    const dayKey = getProgressDayKey(game.value);
+    if (!dayKey) return;
+    localProgress.setLeftStart(
+      game.value.gameNo,
+      game.value.puzzleType,
+      dayKey,
+      leftStart,
+      progressScope,
+    );
+  }
+
   function readCurrentSolveTimeMs(nowMs = Date.now()): number {
     return (
       activeSolveTimeMs.value +
@@ -576,7 +601,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
 
   function setupGame(next: PublicGame, options: SetupGameOptions = {}) {
     const restoreLocalProgress = options.restoreLocalProgress !== false;
-    const progress = restoreLocalProgress
+    let progress = restoreLocalProgress
       ? localProgress.getGameProgress(
           next.gameNo,
           next.puzzleType,
@@ -590,8 +615,8 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
           activeTimeMs: 0,
           timerStartedAt: null,
           guidePath: [],
+          leftStart: false,
         };
-    const progressAttemptNumber = Math.max(progress.attempts, 0) + 1;
     // Archive progress is transient (cleared on solve); the durable solved
     // signal for archived roads is the completion map merged with live
     // history. Live pages keep reading their own progress records.
@@ -599,6 +624,28 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
       progress.solved ||
       (progressScope === 'replay' &&
         localProgress.isRoadModeSolved(next.gameNo, next.puzzleType));
+    if (
+      restoreLocalProgress &&
+      !hasSolvedHistory &&
+      shouldChargeAbandonedRun(progress)
+    ) {
+      const dayKey = getRoadDayKeyFromPlayableAt(next.playableAt);
+      if (dayKey) {
+        // The route is gone. Close this try and keep the clock.
+        progress = localProgress.recordRun(
+          next.gameNo,
+          next.puzzleType,
+          dayKey,
+          Math.max(progress.attempts, 0) + 1,
+          false,
+          null,
+          progressScope,
+          progress.activeTimeMs,
+          null,
+        );
+      }
+    }
+    const progressAttemptNumber = Math.max(progress.attempts, 0) + 1;
     const solvedMedal = progress.solved
       ? calcMedalForAttempt(Math.max(progress.attempts, 1), true)
       : null;
@@ -1133,6 +1180,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     // the footer is quiet by design, and a move does not touch status either.
     if (result.pathHistory.length <= 1) {
       status.value = UI_COPY.runtime.preRun;
+      rememberLeftStart(false);
     }
 
     undoSignal.value += 1;
@@ -1222,6 +1270,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     if (moves.value === 1) {
       startAnalyticsOnce();
       startSolveTimer();
+      rememberLeftStart(true);
     }
 
     const board = game.value.board;

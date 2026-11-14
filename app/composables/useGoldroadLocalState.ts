@@ -29,6 +29,8 @@ export type LocalPuzzleProgress = {
   activeTimeMs: number;
   timerStartedAt: string | null;
   guidePath: number[];
+  /** True after this try has moved past the start coin. A refresh then spends the try. */
+  leftStart: boolean;
 };
 
 type PuzzleProgressRecord = LocalPuzzleProgress & {
@@ -135,7 +137,8 @@ function isValidLocalPuzzleProgress(
     isNullableNumber(value.solveTimeMs) &&
     typeof value.activeTimeMs === 'number' &&
     isNullableString(value.timerStartedAt) &&
-    isNumberArray(value.guidePath)
+    isNumberArray(value.guidePath) &&
+    typeof value.leftStart === 'boolean'
   );
 }
 
@@ -201,6 +204,7 @@ function normalizeStoredPuzzleProgressRecord(
     activeTimeMs: typeof activeTimeMs === 'number' ? activeTimeMs : 0,
     timerStartedAt: isNullableString(timerStartedAt) ? timerStartedAt : null,
     guidePath: [...guidePath],
+    leftStart: value.leftStart === true,
     day,
     gameNo,
     puzzleType,
@@ -321,6 +325,7 @@ function createEmptyLocalPuzzleProgress(): LocalPuzzleProgress {
     activeTimeMs: 0,
     timerStartedAt: null,
     guidePath: [],
+    leftStart: false,
   };
 }
 
@@ -375,6 +380,7 @@ function cloneLocalPuzzleProgress(
     activeTimeMs: progress.activeTimeMs,
     timerStartedAt: progress.timerStartedAt,
     guidePath: [...progress.guidePath],
+    leftStart: progress.leftStart === true,
   };
 }
 
@@ -877,6 +883,42 @@ export function useGoldroadLocalState() {
     });
   }
 
+  function setLeftStart(options: {
+    gameNo: number;
+    puzzleType: PuzzleType;
+    day: string;
+    leftStart: boolean;
+    scope?: LocalProgressScope;
+  }): LocalPuzzleProgress {
+    const scope = options.scope ?? 'live';
+    const nextState = ensureLoadedForWrite();
+    const key = buildPuzzleKey(options.gameNo, options.puzzleType);
+    const existing = getProgressMap(nextState, scope)[key];
+    if (
+      existing &&
+      existing.day === options.day &&
+      existing.leftStart === options.leftStart
+    ) {
+      return toLocalPuzzleProgress(existing);
+    }
+    if (!existing && !options.leftStart) {
+      return createEmptyLocalPuzzleProgress();
+    }
+
+    return updatePuzzleProgress({
+      gameNo: options.gameNo,
+      puzzleType: options.puzzleType,
+      day: options.day,
+      scope,
+      syncHistory: false,
+      updater: (progress) => ({
+        ...progress,
+        leftStart: options.leftStart,
+        updatedAt: nowIso(),
+      }),
+    });
+  }
+
   function recordRun(options: {
     gameNo: number;
     puzzleType: PuzzleType;
@@ -918,6 +960,7 @@ export function useGoldroadLocalState() {
             ? options.timerStartedAt
             : progress.timerStartedAt,
         guidePath: options.solved ? [] : [...progress.guidePath],
+        leftStart: false,
         updatedAt: nowIso(),
       }),
     });
@@ -1063,6 +1106,7 @@ export function useGoldroadLocalState() {
     getPuzzleProgress,
     recordHint,
     setSolveTimerState,
+    setLeftStart,
     recordRun,
     recordArchiveCompletion,
     isRoadModeSolved,
