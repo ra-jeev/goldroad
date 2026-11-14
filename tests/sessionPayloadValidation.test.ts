@@ -119,4 +119,10 @@ describe('HintRequestPayloadSchema bounds', () => {
     );
     expect(result.success).toBe(false);
   });
+
+  it('accepts the guide already lit by an earlier hint', () => {
+    expect(
+      HintRequestPayloadSchema.safeParse(baseHintPayload({ guidePath: [0, 1, 2] })).success,
+    ).toBe(true);
+  });
 });

@@ -320,6 +320,8 @@ export const HintRequestPayloadSchema = z.object({
   sessionId: z.string().uuid(),
   attemptNumber: z.number().int().positive().max(MAX_PLAUSIBLE_ATTEMPTS),
   pathHistory: z.array(z.number().int().min(0)).min(1).max(MAX_PLAUSIBLE_MOVES),
+  // Tiles a previous hint already lit. The next hint continues past them.
+  guidePath: z.array(z.number().int().min(0)).max(MAX_PLAUSIBLE_MOVES).optional(),
 });
 
 // ---------------------------------------------------------------------------

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  applyHintProgress,
   computeIsRoadModeSolved,
   normalizeStoredArchiveCompletionMap,
   serializeGoldroadLocalStorageSnapshot,
@@ -349,5 +350,33 @@ describe('local state serialization', () => {
       puzzleProgressByKey: { 'classic:10': { attempts: 1 } },
     });
     expect(localSnapshot).not.toHaveProperty('replayProgressByKey');
+  });
+});
+
+describe('applyHintProgress', () => {
+  const base = {
+    solved: false,
+    hintsUsed: 1,
+    guidePath: [0, 1, 2, 3, 4, 9],
+  };
+
+  it('stores a shorter guide when it is a different route', () => {
+    expect(applyHintProgress(base, [0, 1, 7, 8])).toEqual({
+      solved: false,
+      hintsUsed: 2,
+      guidePath: [0, 1, 7, 8],
+    });
+  });
+
+  it('keeps the longer guide when the new one is only a prefix', () => {
+    expect(applyHintProgress(base, [0, 1, 2])).toEqual({
+      ...base,
+      hintsUsed: 2,
+    });
+  });
+
+  it('leaves a solved road unchanged', () => {
+    const solved = { ...base, solved: true };
+    expect(applyHintProgress(solved, [0, 1, 7, 8])).toBe(solved);
   });
 });

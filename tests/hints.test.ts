@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { computeHint, guideHighlightTiles } from '../shared/utils/hints';
+import {
+  computeHint,
+  guideHighlightTiles,
+  hintRevealsNewTile,
+} from '../shared/utils/hints';
 
 describe('computeHint', () => {
   it('returns the next tile when the player path is a valid prefix of the optimal path', () => {
@@ -168,6 +172,114 @@ describe('computeHint', () => {
         guidePath: [0, 4, 8, 12],
       });
     });
+  });
+
+  it('reveals the next coin when a second hint is taken before the player moves', () => {
+    const optimalPaths = [[0, 1, 2, 5]];
+    const first = computeHint(optimalPaths, [0]);
+
+    expect(computeHint(optimalPaths, [0], first.guidePath)).toEqual({
+      kind: 'next-step',
+      nextTileIndex: 2,
+      guidePath: [0, 1, 2],
+    });
+  });
+
+  it('keeps revealing one new coin per hint while the player stays put', () => {
+    const optimalPaths = [[0, 1, 2, 5]];
+
+    expect(computeHint(optimalPaths, [0], [0, 1, 2])).toEqual({
+      kind: 'next-step',
+      nextTileIndex: 5,
+      guidePath: [0, 1, 2, 5],
+    });
+  });
+
+  it('stays on the route already revealed when several optimal paths tie', () => {
+    const optimalPaths = [
+      [0, 1, 5],
+      [0, 1, 4, 5],
+    ];
+
+    expect(computeHint(optimalPaths, [0], [0, 1])).toEqual({
+      kind: 'next-step',
+      nextTileIndex: 5,
+      guidePath: [0, 1, 5],
+    });
+  });
+
+  it('does not skip a tile the player has already walked', () => {
+    expect(computeHint([[0, 1, 2, 5]], [0, 1], [0, 1])).toEqual({
+      kind: 'next-step',
+      nextTileIndex: 2,
+      guidePath: [0, 1, 2],
+    });
+  });
+
+  it('extends a correction instead of repeating it when the player has not moved back', () => {
+    expect(computeHint([[0, 1, 2, 5]], [0, 3], [0, 1])).toEqual({
+      kind: 'diverged',
+      divergenceTileIndex: 0,
+      correctTileIndex: 2,
+      guidePath: [0, 1, 2],
+    });
+  });
+
+  it('stays a next step when the guide already shows the whole route and the player has not walked it', () => {
+    const hint = computeHint([[0, 1, 2]], [0], [0, 1, 2]);
+
+    expect(hint).toEqual({
+      kind: 'next-step',
+      nextTileIndex: 1,
+      guidePath: [0, 1, 2],
+    });
+    expect(hintRevealsNewTile([0, 1, 2], hint.guidePath)).toBe(false);
+  });
+
+  it('stays a next step when part of a fully lit route is already walked', () => {
+    const hint = computeHint([[0, 1, 2, 3, 4]], [0, 1], [0, 1, 2, 3, 4]);
+
+    expect(hint).toEqual({
+      kind: 'next-step',
+      nextTileIndex: 2,
+      guidePath: [0, 1, 2, 3, 4],
+    });
+    expect(hintRevealsNewTile([0, 1, 2, 3, 4], hint.guidePath)).toBe(false);
+  });
+
+  it('follows the shorter route after the player steps off a longer hinted route', () => {
+    const hintedRoute = [0, 1, 2, 3, 4, 9];
+    const hint = computeHint(
+      [hintedRoute, [0, 1, 7, 8, 9]],
+      [0, 1, 7],
+      hintedRoute,
+    );
+
+    expect(hint).toEqual({
+      kind: 'next-step',
+      nextTileIndex: 8,
+      guidePath: [0, 1, 7, 8],
+    });
+    expect(hintRevealsNewTile(hintedRoute, hint.guidePath)).toBe(true);
+  });
+});
+
+describe('hintRevealsNewTile', () => {
+  it('is false when the guide is unchanged', () => {
+    expect(hintRevealsNewTile([0, 1], [0, 1])).toBe(false);
+  });
+
+  it('is true when the guide grows or changes', () => {
+    expect(hintRevealsNewTile([0, 1], [0, 1, 2])).toBe(true);
+    expect(hintRevealsNewTile([0, 1, 2], [0, 3, 4])).toBe(true);
+  });
+
+  it('is false when the new guide is a shorter repeat of the same route', () => {
+    expect(hintRevealsNewTile([0, 1, 2], [0, 1])).toBe(false);
+  });
+
+  it('is true when a shorter guide is a different route', () => {
+    expect(hintRevealsNewTile([0, 1, 2, 3, 4, 9], [0, 1, 7, 8])).toBe(true);
   });
 });
 

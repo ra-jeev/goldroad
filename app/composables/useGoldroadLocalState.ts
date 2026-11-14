@@ -1,6 +1,7 @@
 import { computed } from 'vue';
 import { StorageSerializers, useStorage } from '@vueuse/core';
 import type { PuzzleType } from '#shared/types/game';
+import { hintRevealsNewTile } from '#shared/utils/hints';
 
 const STORAGE_KEY = 'goldroad-state-v2';
 const REPLAY_PROGRESS_STORAGE_KEY = 'goldroad-replay-progress-v2';
@@ -680,6 +681,21 @@ export function computeIsRoadModeSolved(
   );
 }
 
+/** Stored hint progress. A solved road keeps its record. */
+export function applyHintProgress<
+  T extends { solved: boolean; hintsUsed: number; guidePath: number[] },
+>(progress: T, guidePath: number[]): T {
+  if (progress.solved) return progress;
+
+  return {
+    ...progress,
+    hintsUsed: progress.hintsUsed + 1,
+    guidePath: hintRevealsNewTile(progress.guidePath, guidePath)
+      ? [...guidePath]
+      : [...progress.guidePath],
+  };
+}
+
 export function useGoldroadLocalState() {
   const storedState = useStorage<PersistedGoldroadLocalState | null>(
     STORAGE_KEY,
@@ -831,19 +847,9 @@ export function useGoldroadLocalState() {
       day: options.day,
       scope: options.scope ?? 'live',
       updater: (progress) => {
-        if (progress.solved) {
-          return progress;
-        }
-
-        return {
-          ...progress,
-          hintsUsed: progress.hintsUsed + 1,
-          guidePath:
-            options.guidePath.length >= progress.guidePath.length
-              ? [...options.guidePath]
-              : [...progress.guidePath],
-          updatedAt: nowIso(),
-        };
+        const next = applyHintProgress(progress, options.guidePath);
+        if (next === progress) return progress;
+        return { ...next, updatedAt: nowIso() };
       },
     });
   }

@@ -133,7 +133,11 @@ export default defineEventHandler(async (event) => {
     }
 
     const parsed = parseHintGameRow(row);
-    const hint = computeHint(parsed.optimalPaths, payload.pathHistory);
+    const hint = computeHint(
+      parsed.optimalPaths,
+      payload.pathHistory,
+      payload.guidePath ?? [],
+    );
 
     return {
       ok: true,

@@ -4,8 +4,8 @@ import {
   getActiveNeighbors,
   getEdgeType,
 } from '#shared/utils/puzzleEngine';
-import type { Direction, HintResult } from '#shared/types/game';
-import { guideHighlightTiles } from '#shared/utils/hints';
+import type { Direction } from '#shared/types/game';
+import { computeHint, guideHighlightTiles, hintRevealsNewTile } from '#shared/utils/hints';
 import { getNeighborId, parseTileIndex } from '#shared/utils/puzzleEngine';
 import { UI_COPY } from '../content/uiCopy';
 import { TUTORIAL_PRACTICE_GAME } from '../content/tutorialContent';
@@ -18,54 +18,6 @@ import {
   nextUndoAvailable,
   shouldHandleUndoKey,
 } from '../utils/undoLastStep';
-
-function computeTutorialHint(
-  optimalPaths: number[][],
-  pathHistory: number[],
-): HintResult {
-  const bestPath = optimalPaths[0] ?? [];
-  let matchedPrefixLength = 0;
-  const max = Math.min(bestPath.length, pathHistory.length);
-
-  while (
-    matchedPrefixLength < max &&
-    bestPath[matchedPrefixLength] === pathHistory[matchedPrefixLength]
-  ) {
-    matchedPrefixLength += 1;
-  }
-
-  if (
-    matchedPrefixLength === pathHistory.length &&
-    matchedPrefixLength < bestPath.length
-  ) {
-    return {
-      kind: 'next-step',
-      nextTileIndex: bestPath[matchedPrefixLength]!,
-      guidePath: bestPath.slice(0, matchedPrefixLength + 1),
-    };
-  }
-
-  if (
-    matchedPrefixLength === pathHistory.length &&
-    matchedPrefixLength === bestPath.length
-  ) {
-    return {
-      kind: 'already-solved',
-      guidePath: bestPath.slice(),
-    };
-  }
-
-  return {
-    kind: 'diverged',
-    divergenceTileIndex: bestPath[Math.max(0, matchedPrefixLength - 1)] ?? 0,
-    correctTileIndex:
-      bestPath[matchedPrefixLength] ?? bestPath[bestPath.length - 1] ?? 0,
-    guidePath: bestPath.slice(
-      0,
-      Math.min(bestPath.length, matchedPrefixLength + 1),
-    ),
-  };
-}
 
 export function useTutorialPractice() {
   // The practice road is the first board most players ever touch, so it
@@ -338,19 +290,25 @@ export function useTutorialPractice() {
   function requestHint() {
     if (ended.value || solved.value) return;
 
-    const hint = computeTutorialHint(
+    const hint = computeHint(
       TUTORIAL_PRACTICE_GAME.optimalPaths,
       pathHistory.value,
+      guidePath.value,
     );
-
-    hintsUsed.value += 1;
-    syncGuideHighlight(hint.guidePath);
-    hintMessage.value =
+    const hintCopy =
       hint.kind === 'next-step'
         ? UI_COPY.runtime.hintNextStep
         : hint.kind === 'already-solved'
           ? UI_COPY.runtime.hintAlreadySolved
-        : UI_COPY.runtime.hintDiverged;
+          : UI_COPY.runtime.hintDiverged;
+    if (!hintRevealsNewTile(guidePath.value, hint.guidePath)) {
+      hintMessage.value = hintCopy;
+      return;
+    }
+
+    hintsUsed.value += 1;
+    syncGuideHighlight(hint.guidePath);
+    hintMessage.value = hintCopy;
   }
 
   resetPractice();

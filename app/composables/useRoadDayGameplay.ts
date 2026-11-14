@@ -10,7 +10,11 @@ import {
 } from '#shared/utils/puzzleEngine';
 import { calcMedalForAttempt } from '../../lib/gameTiers';
 import { HINTS_PER_ROAD_MODE } from '../../lib/gameConstants';
-import { computeHint, guideHighlightTiles } from '#shared/utils/hints';
+import {
+  computeHint,
+  guideHighlightTiles,
+  hintRevealsNewTile,
+} from '#shared/utils/hints';
 import {
   applyUndoLastStep,
   canUndoLastStep,
@@ -1316,7 +1320,11 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     if (options.entryType !== 'live') {
       const optimalPaths = game.value.optimalPaths;
       if (!optimalPaths?.length) return;
-      hint = computeHint(optimalPaths, [...pathHistory.value]);
+      hint = computeHint(
+        optimalPaths,
+        [...pathHistory.value],
+        [...guidePath.value],
+      );
     } else {
       hintPending.value = true;
       try {
@@ -1327,6 +1335,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
           sessionId: sessionId.value,
           attemptNumber: attemptNumber.value,
           pathHistory: [...pathHistory.value],
+          guidePath: [...guidePath.value],
         });
         hint = res.hint;
       } catch {
@@ -1351,12 +1360,15 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
           ? UI_COPY.runtime.hintAlreadySolved
           : UI_COPY.runtime.hintDiverged;
 
+    // The same lit coins teach nothing new. Do not spend a hint on them.
+    if (!hintRevealsNewTile(guidePath.value, hint.guidePath)) {
+      hintMessage.value = hintCopy;
+      return;
+    }
+
     if (existingProgress.solved) {
       hintsUsed.value += 1;
-      guidePath.value =
-        hint.guidePath.length >= guidePath.value.length
-          ? [...hint.guidePath]
-          : [...guidePath.value];
+      guidePath.value = [...hint.guidePath];
       syncGuideHighlight();
       hintMessage.value = hintCopy;
       return;

@@ -11,11 +11,27 @@
  * Hint behavior:
  *   - If the current path is still a valid prefix of an optimal path, return
  *     the next correct tile.
+ *   - A hint taken again before that tile is walked reveals one tile further
+ *     along the same route. It does not repeat the tile already lit.
  *   - If the current path has diverged, return the divergence tile and the
  *     next tile the player should have taken on the best matching optimal path.
+ *     A further hint extends that correction by one tile.
  */
 
 import type { HintResult } from '../../shared/types/game';
+
+/**
+ * True when `nextGuide` shows a route the board is not already showing.
+ * A repeat, including a shorter prefix of the same route, spends no hint.
+ * A shorter guide on a different route is new.
+ */
+export function hintRevealsNewTile(
+  currentGuide: number[],
+  nextGuide: number[],
+): boolean {
+  if (nextGuide.length > currentGuide.length) return true;
+  return nextGuide.some((tile, index) => tile !== currentGuide[index]);
+}
 
 /**
  * Which guide tiles still need a marker on the board.
@@ -38,27 +54,50 @@ export function guideHighlightTiles(
 export function computeHint(
   optimalPaths: number[][],
   pathHistory: number[],
+  revealedGuide: number[] = [],
 ): HintResult {
-  const bestPath = pickBestMatchingPath(optimalPaths, pathHistory);
+  const bestPath = pickBestMatchingPath(
+    optimalPaths,
+    pathHistory,
+    revealedGuide,
+  );
   const matchedPrefixLength = getCommonPrefixLength(bestPath, pathHistory);
+  const revealedOnRoute = isPrefix(revealedGuide, bestPath)
+    ? revealedGuide.length
+    : 0;
 
   if (
     matchedPrefixLength === pathHistory.length &&
     matchedPrefixLength < bestPath.length
   ) {
+    const nextIndex = Math.max(matchedPrefixLength, revealedOnRoute);
+    // The guide can already show every coin while the player still stands
+    // earlier on the route. That is the next step, not a solve.
+    if (nextIndex >= bestPath.length) {
+      return {
+        kind: 'next-step',
+        nextTileIndex: bestPath[matchedPrefixLength]!,
+        guidePath: bestPath.slice(),
+      };
+    }
+
     return {
       kind: 'next-step',
-      nextTileIndex: bestPath[matchedPrefixLength]!,
-      guidePath: bestPath.slice(0, matchedPrefixLength + 1),
+      nextTileIndex: bestPath[nextIndex]!,
+      guidePath: bestPath.slice(0, nextIndex + 1),
     };
   }
 
   if (matchedPrefixLength === 0) {
+    const end = Math.min(
+      bestPath.length,
+      Math.max(2, revealedOnRoute > 0 ? revealedOnRoute + 1 : 2),
+    );
     return {
       kind: 'diverged',
       divergenceTileIndex: bestPath[0]!,
-      correctTileIndex: bestPath[1] ?? bestPath[0]!,
-      guidePath: bestPath.slice(0, Math.min(bestPath.length, 2)),
+      correctTileIndex: bestPath[end - 1] ?? bestPath[0]!,
+      guidePath: bestPath.slice(0, end),
     };
   }
 
@@ -72,22 +111,35 @@ export function computeHint(
     };
   }
 
+  const end = Math.min(
+    bestPath.length,
+    Math.max(
+      matchedPrefixLength + 1,
+      revealedOnRoute > matchedPrefixLength ? revealedOnRoute + 1 : 0,
+    ),
+  );
   return {
     kind: 'diverged',
     divergenceTileIndex: bestPath[matchedPrefixLength - 1]!,
     correctTileIndex:
-      bestPath[matchedPrefixLength] ?? bestPath[bestPath.length - 1]!,
-    guidePath: bestPath.slice(
-      0,
-      Math.min(bestPath.length, matchedPrefixLength + 1),
-    ),
+      bestPath[end - 1] ?? bestPath[bestPath.length - 1]!,
+    guidePath: bestPath.slice(0, end),
   };
 }
 
 function pickBestMatchingPath(
   optimalPaths: number[][],
   pathHistory: number[],
+  revealedGuide: number[] = [],
 ): number[] {
+  // Stay on the route a previous hint already showed, when the player has
+  // not walked off it. A fresh pick would tie-break to the first optimal
+  // path and repeat the first step.
+  if (revealedGuide.length > 1 && isPrefix(pathHistory, revealedGuide)) {
+    const guided = optimalPaths.find((path) => isPrefix(revealedGuide, path));
+    if (guided) return guided;
+  }
+
   let bestPath = optimalPaths[0] ?? [];
   let bestPrefixLength = -1;
 
@@ -100,6 +152,16 @@ function pickBestMatchingPath(
   }
 
   return bestPath;
+}
+
+function isPrefix(prefix: number[], full: number[]): boolean {
+  if (prefix.length > full.length) return false;
+
+  for (let index = 0; index < prefix.length; index += 1) {
+    if (prefix[index] !== full[index]) return false;
+  }
+
+  return true;
 }
 
 function getCommonPrefixLength(left: number[], right: number[]): number {

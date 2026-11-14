@@ -26,6 +26,7 @@ export interface HintRequest {
   sessionId: string;
   attemptNumber: number;
   pathHistory: number[];
+  guidePath?: number[];
 }
 
 export function useSessionApi() {
