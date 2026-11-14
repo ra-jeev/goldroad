@@ -8,18 +8,24 @@ import { computed } from 'vue';
  * a reason to withhold/pause the active solve timer, since the player isn't
  * actually looking at — let alone able to click — the real board.
  */
+export function useRetryConfirmation() {
+  return useState('board-retry-confirmation', () => false);
+}
+
 export function useBoardOverlayGate() {
   const { isHowToPlayOpen } = useHowToPlaySheet();
   const { isTutorialOpen } = useTutorialFlow();
   const { showNotice: showV1WelcomeNotice } = useV1ReturningPlayerNotice();
   const { isNavDrawerOpen } = useNavDrawer();
+  const retryConfirmationOpen = useRetryConfirmation();
 
   const isBoardOverlayOpen = computed(
     () =>
       isHowToPlayOpen.value ||
       isTutorialOpen.value ||
       showV1WelcomeNotice.value ||
-      isNavDrawerOpen.value,
+      isNavDrawerOpen.value ||
+      retryConfirmationOpen.value,
   );
 
   return { isBoardOverlayOpen };

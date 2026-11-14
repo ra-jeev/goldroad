@@ -8,10 +8,10 @@
  * deliberate addition since v1 had no hint feature.
  */
 export type FooterState =
-  | 'resting-first' // board at rest, first attempt: one instruction
-  | 'resting-retry' // board at rest after a retry: attempt count only
-  | 'mid-run' // moves made: no text, quiet retry + hint icons only
-  | 'failed' // run ended unsolved: what happened + promoted Try again
+  | 'resting-first' // board at rest, first attempt
+  | 'resting-retry' // board at rest after a retry
+  | 'mid-run' // moves made, run still active
+  | 'failed' // run ended unsolved
   | 'solved-next' // solved, Expedition waiting: actions only
   | 'solved-final'; // solved, day done here: ticker + quiet actions
 
@@ -23,16 +23,6 @@ export type FooterStateInput = {
   trackingDisabled: boolean;
   canSwitchToExpedition: boolean;
 };
-
-/**
- * Undo appears once the player has moved, the same rule Try again follows.
- * At rest there is nothing to take back and never will be from that state, so
- * a greyed button there is furniture. Undoing all the way to the start drops
- * both controls together, which reads as one change rather than a flicker.
- */
-export function shouldShowUndoAction(state: FooterState): boolean {
-  return state === 'mid-run';
-}
 
 export function computeFooterState(input: FooterStateInput): FooterState {
   if (input.solved) {

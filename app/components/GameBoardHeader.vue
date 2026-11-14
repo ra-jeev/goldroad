@@ -139,13 +139,15 @@ function statusLabel(solved: boolean, medal: Medal | null): string {
         <span class="sr-only">{{ UI_COPY.boardHeader.metrics.target }}</span>
         <strong class="target-value">{{ maxScore }}</strong>
       </span>
-      <span class="metric-separator" aria-hidden="true">•</span>
-      <span>
-        <span
-          class="metric-label"
-          :title="UI_COPY.boardHeader.metrics.boardTotalDescription"
-        >{{ UI_COPY.boardHeader.metrics.boardTotal }}</span>
-        <strong>{{ totalCoins }}</strong>
+      <span class="metric-total">
+        <span class="metric-separator" aria-hidden="true">•</span>
+        <span>
+          <span
+            class="metric-label"
+            :title="UI_COPY.boardHeader.metrics.boardTotalDescription"
+          >{{ UI_COPY.boardHeader.metrics.boardTotal }}</span>
+          <strong>{{ totalCoins }}</strong>
+        </span>
       </span>
     </div>
   </section>
@@ -242,6 +244,11 @@ function statusLabel(solved: boolean, medal: Medal | null): string {
 }
 
 .metric-line {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: baseline;
+  column-gap: var(--board-dot-gap);
   margin: 0;
   color: rgb(var(--color-gold-rgb) / 0.76);
   font-size: 1.125rem;
@@ -292,11 +299,13 @@ function statusLabel(solved: boolean, medal: Medal | null): string {
 }
 
 .metric-separator {
-  /* The line runs close to the viewport edge on a narrow phone once the score
-     reaches three digits, so the separators carry as little width as they can
-     while still reading as separators. */
-  margin: 0 0.3rem;
-  color: rgb(var(--color-gold-rgb) / 0.64);
+  color: rgb(var(--color-gold-rgb) / 0.6);
+}
+
+.metric-total {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--board-dot-gap);
 }
 
 @media (max-width: 760px) {

@@ -31,6 +31,7 @@ const {
   tiles,
   currentTileIndex,
   tileFocusSignal,
+  progressSyncSignal,
   visited,
   activeSet,
   pathHistory,
@@ -46,7 +47,6 @@ const {
   submitting,
   status,
   lastSolved,
-  hintsUsed,
   trackingDisabled,
   attemptNumber,
   maxScore,
@@ -221,6 +221,7 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
         <GameBoardFooter
           :status="status"
           :hint-message="hintMessage"
+          :progress-sync-signal="progressSyncSignal"
           :solve-acknowledgement="solveAcknowledgement"
           :attempt-number="attemptNumber"
           :has-moved="moves > 1"
@@ -229,7 +230,6 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
           secondary-link-to="/games"
           secondary-link-label="Back to Past Roads"
           :expedition-just-unlocked="false"
-          :hints-used="hintsUsed"
           :hints-remaining="hintsRemaining"
           :hint-pending="hintPending"
           :has-guide-path="guidePath.length > 0"

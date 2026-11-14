@@ -59,6 +59,11 @@ export const UI_COPY = {
   },
   boardFooter: {
     retryRoad: 'Try again',
+    confirmRetry: 'Start over?',
+    confirmRetryDetail: 'Your current route will be cleared and this will spend a try.',
+    keepPlaying: 'Keep playing',
+    dismissFeedback: 'Dismiss message',
+    progressSynced: 'Road updated from another tab.',
     undoLastStep: 'Undo last step',
     undoSpent: 'Move again to undo',
     openHint: 'Hint',
@@ -79,8 +84,7 @@ export const UI_COPY = {
     playNewRoad: 'Play the new road',
     hintTitle: 'Hint',
     helpTitle: 'How to play',
-    /** Tooltip on the hint button: what is left, not what is spent. */
-    hintUsedLabel: (remaining: number) =>
+    hintsLeftLabel: (remaining: number) =>
       remaining === 1 ? '1 hint left' : `${remaining} hints left`,
     hintLoading: 'Reading the map…',
     /**
@@ -231,7 +235,8 @@ export const UI_COPY = {
 
   runtime: {
     loadingGame: 'Loading the road…',
-    currentRoadUnavailable: 'Today’s road is unavailable. Please try again.',
+    currentRoadUnavailable: 'Today’s road is unavailable.',
+    retryLoadRoad: 'Retry',
     findingAnotherRoad: 'Finding another road…',
     preRun: 'You’re on the footprints. Step onto any glowing tile to begin.',
     destinationSolved: 'Solved.',

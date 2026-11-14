@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, ref, useId, watch } from 'vue';
+import { useRetryConfirmation } from '../composables/useBoardOverlayGate';
 import type { ShareRoadResultResponse } from '../composables/useRoadResultShare';
 import { UI_COPY } from '../content/uiCopy';
 import {
   computeFooterState,
-  shouldShowUndoAction,
   type FooterState,
 } from '../utils/footerState';
 
@@ -12,6 +12,8 @@ const props = withDefaults(
   defineProps<{
     status: string;
     hintMessage: string | null;
+    progressSyncSignal?: number;
+    startInstructionDay?: string | null;
     solveAcknowledgement?: string | null;
     attemptNumber: number;
     hasMoved: boolean;
@@ -19,7 +21,7 @@ const props = withDefaults(
     showNextResetCountdown?: boolean;
     newRoadReady?: boolean;
     expeditionJustUnlocked: boolean;
-    hintsUsed: number;
+    practice?: boolean;
     hintsRemaining?: number;
     hintPending?: boolean;
     /** A hint route is on the board waiting to be followed. */
@@ -87,12 +89,49 @@ watch(
 );
 
 const shareBusy = ref(false);
-const shareMessage = ref<string | null>(null);
-let shareMessageTimer: ReturnType<typeof setTimeout> | null = null;
+const feedbackMessage = ref<string | null>(null);
+let feedbackTimer: ReturnType<typeof setTimeout> | undefined;
+
+function showFeedback(message: string | null, persistent = false) {
+  clearTimeout(feedbackTimer);
+  feedbackMessage.value = message;
+  if (message && !persistent && !props.practice) {
+    feedbackTimer = setTimeout(() => {
+      feedbackMessage.value = null;
+    }, 6000);
+  }
+}
+
+watch(() => props.startInstructionDay, (day) => {
+  if (day) showFeedback(UI_COPY.runtime.preRun);
+});
+
+watch(() => props.hasMoved, (hasMoved) => {
+  if (hasMoved && feedbackMessage.value === UI_COPY.runtime.preRun) {
+    showFeedback(null);
+  }
+});
+
+watch(
+  () => [props.hintMessage, props.hintsRemaining] as const,
+  ([message]) => {
+    if (!props.ended && !props.solved) showFeedback(message);
+  },
+);
+
+watch(() => props.progressSyncSignal, (signal, previous) => {
+  if (signal !== undefined && previous !== undefined && signal > previous) {
+    showFeedback(UI_COPY.boardFooter.progressSynced);
+  }
+}, { flush: 'post' });
 
 onBeforeUnmount(() => {
   if (hintNudgeTimer) clearTimeout(hintNudgeTimer);
-  if (shareMessageTimer) clearTimeout(shareMessageTimer);
+  clearTimeout(feedbackTimer);
+  if (retryDialog.value?.open) {
+    retryDialog.value.close();
+    retryConfirmationOpen.value = false;
+  }
 });
 
 async function onShare() {
@@ -101,17 +140,7 @@ async function onShare() {
   shareBusy.value = true;
   try {
     const response = await props.shareHandler();
-    if (shareMessageTimer) {
-      clearTimeout(shareMessageTimer);
-      shareMessageTimer = null;
-    }
-    shareMessage.value = response?.message ?? null;
-    if (shareMessage.value) {
-      shareMessageTimer = setTimeout(() => {
-        shareMessage.value = null;
-        shareMessageTimer = null;
-      }, 3000);
-    }
+    showFeedback(response?.message ?? null);
   } finally {
     shareBusy.value = false;
   }
@@ -137,24 +166,14 @@ const footerMessage = computed<string | null>(() => {
   if (props.solveAcknowledgement && props.solved) {
     return props.solveAcknowledgement;
   }
-  // A hint the player just asked for always replaces the resting message.
-  if (props.hintMessage && !props.solved && !props.ended) {
-    return props.hintMessage;
+  if (props.practice && feedbackMessage.value && !props.solved && !props.ended) {
+    return feedbackMessage.value;
   }
 
   switch (footerState.value) {
     case 'resting-first':
-      return props.hasGuidePath
-        ? UI_COPY.boardFooter.followGuide
-        : props.status;
-    case 'resting-retry': {
-      const attempt = UI_COPY.boardFooter.attemptResting(props.attemptNumber);
-      return props.hasGuidePath
-        ? `${attempt} · ${UI_COPY.boardFooter.followGuide}`
-        : attempt;
-    }
     case 'failed':
-      return props.status;
+      return props.practice ? props.status : null;
     // Both solved states carry the next-road ticker — the day's next beat.
     case 'solved-next':
     case 'solved-final':
@@ -167,36 +186,86 @@ const footerMessage = computed<string | null>(() => {
   }
 });
 
-// Undefined means the caller does not budget hints; treat that as unlimited
-// rather than silently hiding the control.
-const hintsLeft = computed(() => props.hintsRemaining ?? Number.POSITIVE_INFINITY);
-
-const showHintAction = computed(
+const hintUnavailable = computed(
   () =>
-    (footerState.value === 'resting-first' ||
-      footerState.value === 'resting-retry' ||
-      footerState.value === 'mid-run') &&
-    !props.trackingDisabled &&
-    !props.newRoadReady &&
-    hintsLeft.value > 0,
+    props.ended ||
+    props.solved ||
+    props.trackingDisabled ||
+    props.newRoadReady ||
+    props.hintsRemaining === 0,
 );
 
-const hintTitle = computed(() => {
-  if (props.hintPending) return UI_COPY.boardFooter.hintLoading;
-  return Number.isFinite(hintsLeft.value)
-    ? UI_COPY.boardFooter.hintUsedLabel(hintsLeft.value)
-    : UI_COPY.boardFooter.openHint;
-});
-// Mid-run keeps Hint reachable but drops its label so nothing competes
-// with the board.
-const hintIsQuiet = computed(() => footerState.value === 'mid-run');
-// Expiry removes retry and hint but never touches the board: the active
-// attempt may finish; afterwards the only forward action is the new road.
+const hintBudget = computed(() =>
+  props.hintsRemaining === undefined
+    ? null
+    : UI_COPY.boardFooter.hintsLeftLabel(props.hintsRemaining),
+);
+const hintLabel = computed(() =>
+  hintBudget.value
+    ? `${UI_COPY.boardFooter.openHint}, ${hintBudget.value}`
+    : UI_COPY.boardFooter.openHint,
+);
 const showRetryAction = computed(() => props.canRetry && !props.newRoadReady);
 const retryIsPrimary = computed(() => footerState.value === 'failed');
-// Stays on the row at rest and mid-run so undoing back to the start
-// only disables it. Expiry keeps it — the in-flight attempt may finish.
-const showUndoAction = computed(() => shouldShowUndoAction(footerState.value));
+const showAttemptCount = computed(() => footerState.value === 'resting-retry');
+
+watch(
+  () => [footerState.value, props.status] as const,
+  ([state, status], [previous]) => {
+    if (props.practice) return;
+    if (state === 'failed') showFeedback(status, true);
+    else if (previous === 'failed' || props.solved) showFeedback(null);
+  },
+);
+
+const retryDialog = ref<HTMLDialogElement | null>(null);
+const retryButton = ref<HTMLButtonElement | null>(null);
+const hintButton = ref<HTMLButtonElement | null>(null);
+const retryConfirmationOpen = useRetryConfirmation();
+const dialogId = useId();
+const needsRetryConfirmation = computed(
+  () =>
+    showRetryAction.value &&
+    props.hasMoved &&
+    !props.ended &&
+    !props.trackingDisabled &&
+    !props.practice,
+);
+
+function requestRetry() {
+  if (!needsRetryConfirmation.value) {
+    emit('retry');
+    return;
+  }
+
+  const dialog = retryDialog.value;
+  if (dialog && !dialog.open) {
+    dialog.returnValue = '';
+    dialog.showModal();
+    retryConfirmationOpen.value = true;
+  }
+}
+
+function confirmRetry() {
+  if (!needsRetryConfirmation.value || retryBusy.value) return;
+  retryDialog.value?.close('retry');
+  emit('retry');
+}
+
+function onRetryDialogClose(event: Event) {
+  retryConfirmationOpen.value = false;
+  if (event.target instanceof HTMLDialogElement && event.target.returnValue === 'retry') {
+    return;
+  }
+  const retry = retryButton.value;
+  const button = retry && !retry.disabled ? retry : hintButton.value;
+  button?.focus({ preventScroll: true });
+}
+
+watch(needsRetryConfirmation, (needed) => {
+  if (!needed) retryDialog.value?.close();
+});
+
 const undoTitle = computed(() =>
   props.canUndo
     ? UI_COPY.boardFooter.undoLastStep
@@ -225,85 +294,41 @@ const showSecondaryLink = computed(
 );
 const secondaryLinkTo = computed(() => props.secondaryLinkTo ?? '/');
 const secondaryLinkLabel = computed(() => props.secondaryLinkLabel ?? '');
-// Transient share feedback borrows the message slot so the footer's height
-// never changes.
-const displayMessage = computed(
-  () => shareMessage.value ?? footerMessage.value,
+watch(
+  () => [props.hasGuidePath, props.hasMoved, props.attemptNumber] as const,
+  ([hasGuidePath, hasMoved]) => {
+    if (
+      !props.practice &&
+      !props.ended &&
+      !props.solved &&
+      hasGuidePath &&
+      !hasMoved &&
+      !props.hintMessage
+    ) {
+      showFeedback(UI_COPY.boardFooter.followGuide);
+    }
+  },
 );
 </script>
 
 <template>
   <section class="board-footer-card">
-    <!-- Both slots always render at fixed heights so the board never
-         shifts as messages and actions come and go. -->
-    <div class="footer-message-slot" aria-live="polite">
-      <p v-if="displayMessage" class="footer-message">{{ displayMessage }}</p>
-    </div>
-
-    <div class="action-row">
+    <div v-if="!solved" class="play-actions">
       <button
-        v-if="showUndoAction"
-        type="button"
-        class="action-button ghost"
-        :disabled="busy || !canUndo"
-        :aria-label="UI_COPY.boardFooter.undoLastStep"
-        :title="undoTitle"
-        @click="emit('undo')"
-      >
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path
-            d="M4.5 5.5v13M20 12H9m0 0 4.5-4.5M9 12l4.5 4.5"
-            fill="none"
-            stroke="currentColor"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="3"
-          />
-        </svg>
-      </button>
-
-      <button
-        v-if="showRetryAction"
-        type="button"
-        :class="[
-          'action-button',
-          retryIsPrimary ? 'primary' : 'ghost',
-          { 'action-button--text': retryIsPrimary },
-          { 'action-button--promoted': retryIsPrimary },
-        ]"
-        :disabled="retryBusy"
-        :aria-label="UI_COPY.boardFooter.retryRoad"
-        :title="UI_COPY.boardFooter.retryRoad"
-        @click="emit('retry')"
-      >
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path
-            d="M4.5 11.2a7.5 7.5 0 1 1 2.2 5.3M4.5 11.2V6.5m0 4.7h4.7"
-            fill="none"
-            stroke="currentColor"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="3"
-          />
-        </svg>
-        <span v-if="retryIsPrimary">{{ UI_COPY.boardFooter.retryRoad }}</span>
-      </button>
-
-      <button
-        v-if="showHintAction"
+        ref="hintButton"
         type="button"
         :class="[
           'action-button',
           'ghost',
           'ghost--hint',
-          { 'action-button--text': !hintIsQuiet },
+          'play-hint',
           { 'is-pending': hintPending },
           { 'is-nudging': hintNudging && !hintPending },
         ]"
-        :disabled="busy || hintPending"
-        :aria-label="UI_COPY.boardFooter.openHint"
+        :disabled="busy || hintPending || hintUnavailable"
+        :aria-label="hintLabel"
         :aria-busy="hintPending"
-        :title="hintTitle"
+        :title="hintPending ? UI_COPY.boardFooter.hintLoading : hintLabel"
         @click="emit('hint')"
       >
         <svg
@@ -333,11 +358,75 @@ const displayMessage = computed(
             stroke-width="3"
           />
         </svg>
-        <template v-if="!hintIsQuiet">
-          {{ UI_COPY.boardFooter.openHint }}
-        </template>
+        <span v-if="hintBudget" class="hint-count" aria-hidden="true">
+          {{ hintsRemaining }}
+        </span>
       </button>
 
+      <span v-if="showAttemptCount" class="play-attempt" role="status">
+        {{ UI_COPY.boardFooter.attemptResting(attemptNumber) }}
+      </span>
+      <button
+        v-else
+        ref="retryButton"
+        type="button"
+        class="action-button play-retry"
+        :class="[
+          retryIsPrimary && showRetryAction
+            ? 'primary action-button--promoted'
+            : 'ghost',
+          { 'play-retry--text': retryIsPrimary },
+        ]"
+        :disabled="retryBusy || !showRetryAction"
+        :aria-label="UI_COPY.boardFooter.retryRoad"
+        :title="UI_COPY.boardFooter.retryRoad"
+        @click="requestRetry"
+      >
+        <svg v-if="!retryIsPrimary" viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M4.5 11.2a7.5 7.5 0 1 1 2.2 5.3M4.5 11.2V6.5m0 4.7h4.7"
+            fill="none"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="3"
+          />
+        </svg>
+        <span v-else>{{ UI_COPY.boardFooter.retryRoad }}</span>
+      </button>
+
+      <button
+        type="button"
+        class="action-button ghost play-undo"
+        :disabled="busy || !canUndo"
+        :aria-label="UI_COPY.boardFooter.undoLastStep"
+        :title="undoTitle"
+        @click="emit('undo')"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M9 5H20V19H9L3 12L9 5ZM12 9L17 15M17 9L12 15"
+            fill="none"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="1.8"
+          />
+        </svg>
+      </button>
+    </div>
+
+    <div
+      v-if="
+        showShareAction ||
+        showSecondaryLink ||
+        showStatsAction ||
+        showNewRoadAction ||
+        canSwitchToExpedition ||
+        $slots.actions
+      "
+      class="action-row"
+    >
       <button
         v-if="showShareAction"
         type="button"
@@ -397,6 +486,66 @@ const displayMessage = computed(
       <slot name="actions" />
     </div>
 
+    <div class="footer-status" role="status" :aria-live="solved ? 'off' : 'polite'">
+      <p v-if="footerMessage">{{ footerMessage }}</p>
+    </div>
+
+    <Teleport v-if="!practice" to="#teleports">
+      <div class="footer-feedback">
+        <Transition name="board-toast">
+          <div v-if="feedbackMessage" class="feedback-toast">
+            <p>{{ feedbackMessage }}</p>
+            <button
+              type="button"
+              class="feedback-close"
+              :aria-label="UI_COPY.boardFooter.dismissFeedback"
+              @click="showFeedback(null)"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="m6 6 12 12M18 6 6 18"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                />
+              </svg>
+            </button>
+          </div>
+        </Transition>
+        <div class="sr-only" role="status">{{ feedbackMessage }}</div>
+      </div>
+    </Teleport>
+
+    <dialog
+      v-if="!practice && !trackingDisabled"
+      ref="retryDialog"
+      class="retry-dialog"
+      :aria-labelledby="`${dialogId}-title`"
+      :aria-describedby="`${dialogId}-detail`"
+      @close="onRetryDialogClose"
+    >
+      <h2 :id="`${dialogId}-title`">{{ UI_COPY.boardFooter.confirmRetry }}</h2>
+      <p :id="`${dialogId}-detail`">{{ UI_COPY.boardFooter.confirmRetryDetail }}</p>
+      <div class="action-row">
+        <form method="dialog">
+          <button
+            type="submit"
+            class="action-button secondary action-button--text"
+            autofocus
+          >
+            {{ UI_COPY.boardFooter.keepPlaying }}
+          </button>
+        </form>
+        <button
+          type="button"
+          class="action-button primary action-button--text"
+          @click="confirmRetry"
+        >
+          {{ UI_COPY.boardFooter.retryRoad }}
+        </button>
+      </div>
+    </dialog>
   </section>
 </template>
 
@@ -426,38 +575,183 @@ const displayMessage = computed(
 
 .board-footer-card {
   display: grid;
+  width: min(100%, 23rem);
   justify-items: center;
   gap: 0.5rem;
-  padding: 0.2rem 0;
+  padding: 0.95rem 0 0.2rem;
   text-align: center;
 }
 
-/* Fixed-height message slot: tall enough for the longest two-line message
-   at mobile width, occupied or not, so the board below never jumps. */
-.footer-message-slot {
-  display: grid;
-  align-items: center;
-  justify-items: center;
-  min-height: 3rem;
+.footer-status:empty {
+  position: absolute;
 }
 
-.footer-message {
+.footer-status p {
   margin: 0;
   color: var(--color-gold-bright);
   font-size: var(--font-size-board-meta);
   font-weight: 700;
   line-height: var(--line-height-snug);
-  /* Carries the next-road countdown, which ticks every second. */
   font-variant-numeric: tabular-nums;
+}
+
+.footer-feedback {
+  position: fixed;
+  z-index: 100;
+  inset-inline: 0;
+  bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+  display: grid;
+  justify-items: center;
+  padding-inline: 1rem;
+  pointer-events: none;
+}
+
+.feedback-toast,
+.retry-dialog {
+  background: var(--gradient-card-status);
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.35);
+  box-shadow: var(--shadow-lg);
+  color: var(--color-gold-bright);
+}
+
+.feedback-toast {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  column-gap: 0.5rem;
+  width: min(100%, 27rem);
+  min-height: 3.5rem;
+  padding: 0.75rem 0.75rem 0.75rem 1.25rem;
+  border-radius: var(--radius-lg);
+}
+
+.feedback-toast p {
+  margin: 0;
+  line-height: var(--line-height-snug);
+}
+
+.feedback-toast .feedback-close {
+  width: 2.75rem;
+  height: 2.75rem;
+  color: inherit;
+  background: transparent;
+  pointer-events: auto;
+}
+
+.feedback-close svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+@media (max-height: 700px) {
+  .footer-feedback {
+    top: calc(0.75rem + env(safe-area-inset-top, 0px));
+    bottom: auto;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .board-toast-enter-active,
+  .board-toast-leave-active {
+    transition: opacity 180ms ease, transform 180ms ease;
+  }
+
+  .board-toast-enter-from,
+  .board-toast-leave-to {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+}
+
+.retry-dialog {
+  width: min(24rem, calc(100% - 2rem));
+  padding: 1.25rem;
+  border-radius: var(--radius-xl);
+}
+
+.retry-dialog::backdrop {
+  background: rgb(0 0 0 / 0.68);
+}
+
+.retry-dialog h2 {
+  margin: 0;
 }
 
 .action-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 1.5rem;
+  gap: 0.75rem 1.5rem;
   justify-content: center;
   align-items: center;
-  min-height: 2.35rem;
+}
+
+.play-actions {
+  --play-button-size: 2.75rem;
+  --play-icon-size: 1.5rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(6rem, max-content) minmax(0, 1fr);
+  align-items: center;
+  width: 100%;
+}
+
+.play-actions .action-button {
+  width: var(--play-button-size);
+  height: var(--play-button-size);
+}
+
+.play-actions .action-button svg {
+  width: var(--play-icon-size);
+  height: var(--play-icon-size);
+}
+
+.play-actions .play-hint {
+  position: relative;
+  justify-self: start;
+}
+
+.play-retry,
+.play-attempt {
+  justify-self: center;
+}
+
+.play-attempt {
+  display: grid;
+  place-items: center;
+  min-height: var(--play-button-size);
+  color: var(--color-gold-bright);
+  font-size: var(--font-size-board-meta);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.play-actions .play-retry--text {
+  width: auto;
+  min-width: var(--play-button-size);
+  padding-inline: 1.25rem;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+}
+
+.play-undo {
+  justify-self: end;
+}
+
+.hint-count {
+  position: absolute;
+  inset-block-start: -0.25rem;
+  inset-inline-end: -0.3rem;
+  display: grid;
+  place-items: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding-inline: 0.2rem;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-gold);
+  background: var(--color-gold);
+  color: var(--color-text-on-gold);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
 }
 
 button,
@@ -612,8 +906,14 @@ button:disabled {
 }
 
 @media (max-width: 760px) {
-  .footer-message {
-    max-width: 34ch;
+  .action-row .action-button,
+  .action-row .link-button {
+    min-height: 2.75rem;
+  }
+
+  .play-actions {
+    --play-button-size: 3.25rem;
+    --play-icon-size: 1.75rem;
   }
 }
 </style>

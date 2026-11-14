@@ -288,9 +288,8 @@ watch(
 <template>
   <section class="board-shell">
     <div class="board-stage">
-      <div class="board-info-slot">
+      <div v-if="puzzleType === 'expedition'" class="board-info-slot">
         <div
-          v-if="puzzleType === 'expedition'"
           class="board-info"
           aria-label="Expedition road values"
         >
@@ -305,6 +304,7 @@ watch(
               {{ board.tollValue }}
             </span>
           </div>
+          <span class="info-separator" aria-hidden="true">•</span>
           <div class="info-item">
             <span class="info-road" aria-hidden="true">
               <RoadGlyph type="bonus" state="default" />
@@ -378,14 +378,19 @@ watch(
 .board-info {
   display: flex;
   flex-wrap: wrap;
-  gap: 1.5rem;
+  column-gap: var(--board-dot-gap);
   justify-content: center;
   align-items: center;
-  width: 100%;
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 0.5rem;
+  padding: 4px clamp(1rem, 4vw, 1.5rem);
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.35);
+  border-radius: var(--radius-lg);
+  background: var(--gradient-card-status);
 }
 
 .board-info-slot {
-  min-height: 1.35rem;
   display: grid;
   place-items: center;
   width: 100%;
@@ -395,14 +400,21 @@ watch(
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: rgb(var(--color-gold-rgb) / 0.64);
+  color: rgb(var(--color-gold-rgb) / 0.8);
   font-size: var(--font-size-board-meta);
-  line-height: 1;
+  line-height: var(--line-height-snug);
+  white-space: nowrap;
+}
+
+.info-separator {
+  color: rgb(var(--color-gold-rgb) / 0.6);
 }
 
 .info-value {
-  font-weight: 700;
-  color: var(--color-gold);
+  color: var(--color-gold-bright);
+  font-size: 1.25rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
 }
 
 .info-road {
@@ -425,15 +437,4 @@ watch(
   gap: var(--tile-gap);
 }
 
-@media (max-width: 760px) {
-  .board-info {
-    justify-content: center;
-    gap: 0.6rem;
-  }
-
-  .info-item {
-    padding: 0.35rem 0.65rem;
-    font-size: var(--font-size-board-meta);
-  }
-}
 </style>

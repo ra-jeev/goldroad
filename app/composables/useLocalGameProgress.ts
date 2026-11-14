@@ -94,6 +94,7 @@ export function useLocalGameProgress() {
     getGameProgress,
     recordHint,
     setSolveTimerState,
+    discardSavedRoute: localState.discardSavedRoute,
     recordRun,
     recordArchiveCompletion: localState.recordArchiveCompletion,
     isRoadModeSolved: localState.isRoadModeSolved,

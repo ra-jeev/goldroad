@@ -56,17 +56,17 @@ export async function useGoldroadGame() {
   // Register before awaiting async setup so Vue can associate the lifecycle
   // hook with this component instance.
   onMounted(() => {
-    if (!initialRoadDayRequest.data.value) return;
+    const response = initialRoadDayRequest.data.value;
+    if (!response?.classic && !response?.expedition) return;
     localProgress.load();
-    gameplay.applyRoadDay(initialRoadDayRequest.data.value, {
-      preferredMode: getPreferredMode(initialRoadDayRequest.data.value),
+    gameplay.applyRoadDay(response, {
+      preferredMode: getPreferredMode(response),
     });
   });
 
-  const { data: initialRoadDay, error: initialRoadDayError } =
-    await initialRoadDayRequest;
+  const { data: initialRoadDay } = await initialRoadDayRequest;
 
-  if (initialRoadDay.value) {
+  if (initialRoadDay.value?.classic || initialRoadDay.value?.expedition) {
     gameplay.applyRoadDay(initialRoadDay.value, {
       // The server cannot see localStorage. Use the same clean state during
       // SSR and hydration, then restore the player's saved mode/progress once
@@ -74,7 +74,7 @@ export async function useGoldroadGame() {
       preferredMode: null,
       restoreLocalProgress: false,
     });
-  } else if (initialRoadDayError.value) {
+  } else {
     gameplay.status.value = UI_COPY.runtime.currentRoadUnavailable;
   }
 
@@ -89,6 +89,11 @@ export async function useGoldroadGame() {
   async function loadNewRoad() {
     if (loadNewRoadInFlight) return;
     loadNewRoadInFlight = true;
+    const recovering = !gameplay.game.value;
+    if (recovering) {
+      gameplay.loading.value = true;
+      gameplay.status.value = UI_COPY.runtime.loadingGame;
+    }
 
     try {
       let response: CurrentGamesResponse;
@@ -112,6 +117,12 @@ export async function useGoldroadGame() {
         preferredMode: getPreferredMode(response),
       });
     } finally {
+      if (recovering) {
+        gameplay.loading.value = false;
+        if (!gameplay.game.value) {
+          gameplay.status.value = UI_COPY.runtime.currentRoadUnavailable;
+        }
+      }
       loadNewRoadInFlight = false;
     }
   }

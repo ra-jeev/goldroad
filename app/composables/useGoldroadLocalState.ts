@@ -5,6 +5,7 @@ import { hintRevealsNewTile } from '#shared/utils/hints';
 export const GOLDROAD_STORAGE_KEY = 'goldroad-state-v2';
 export const REPLAY_PROGRESS_STORAGE_KEY = 'goldroad-replay-progress-v2';
 const STORAGE_VERSION = 2 as const;
+const START_INSTRUCTION_DAYS = 3;
 const FALLBACK_UUID = '00000000-0000-4000-8000-000000000000';
 const LEGACY_STORAGE_KEYS = [
   'goldroad-progress-v1',
@@ -93,6 +94,7 @@ type GoldroadLocalState = {
   celebratedSolveKeys: string[];
   v1NoticeDismissed: boolean;
   lastAcknowledgedUpdateId: string | null;
+  lastStartInstructionDay: string | null;
 };
 
 type PersistedGoldroadLocalState = Omit<
@@ -337,6 +339,7 @@ function createEmptyState(playerUUID = createPlayerUUID()): GoldroadLocalState {
     celebratedSolveKeys: [],
     v1NoticeDismissed: false,
     lastAcknowledgedUpdateId: null,
+    lastStartInstructionDay: null,
   };
 }
 
@@ -471,6 +474,7 @@ function cloneState(value: GoldroadLocalState): GoldroadLocalState {
     celebratedSolveKeys: [...value.celebratedSolveKeys],
     v1NoticeDismissed: value.v1NoticeDismissed,
     lastAcknowledgedUpdateId: value.lastAcknowledgedUpdateId,
+    lastStartInstructionDay: value.lastStartInstructionDay,
   };
 }
 
@@ -561,6 +565,10 @@ function normalizeStoredState(value: unknown): GoldroadLocalState | null {
     lastAcknowledgedUpdateId:
       typeof value.lastAcknowledgedUpdateId === 'string'
         ? value.lastAcknowledgedUpdateId
+        : null,
+    lastStartInstructionDay:
+      typeof value.lastStartInstructionDay === 'string'
+        ? value.lastStartInstructionDay
         : null,
   };
 }
@@ -743,6 +751,21 @@ export function useGoldroadLocalState() {
     return typeof window === 'undefined' ? ensureLoaded() : load();
   }
 
+  function claimStartInstruction(day: string): boolean {
+    const current = ensureLoadedForWrite();
+    if (current.lastStartInstructionDay === day) return false;
+
+    const playedDays = new Set(Object.keys(current.historyByDay));
+    for (const progress of Object.values(current.puzzleProgressByKey)) {
+      if (progress.route) playedDays.add(progress.day);
+    }
+    playedDays.delete(day);
+    if (playedDays.size >= START_INSTRUCTION_DAYS) return false;
+
+    commit({ ...current, lastStartInstructionDay: day });
+    return true;
+  }
+
   function updatePuzzleProgress(options: {
     gameNo: number;
     puzzleType: PuzzleType;
@@ -764,6 +787,7 @@ export function useGoldroadLocalState() {
             options.day,
           );
     const updated = options.updater(current);
+    if (updated === current) return toLocalPuzzleProgress(current);
 
     setProgressMap(nextState, options.scope, {
       ...progressMap,
@@ -852,6 +876,23 @@ export function useGoldroadLocalState() {
         route: options.route === undefined ? progress.route : options.route,
         updatedAt: nowIso(),
       }),
+    });
+  }
+
+  function discardSavedRoute(options: {
+    gameNo: number;
+    puzzleType: PuzzleType;
+    day: string;
+    scope: LocalProgressScope;
+    route: SavedRoute;
+  }): LocalPuzzleProgress {
+    return updatePuzzleProgress({
+      ...options,
+      syncHistory: false,
+      updater: (progress) =>
+        JSON.stringify(progress.route) === JSON.stringify(options.route)
+          ? { ...progress, route: null }
+          : progress,
     });
   }
 
@@ -1049,8 +1090,10 @@ export function useGoldroadLocalState() {
       );
     }),
     getPuzzleProgress,
+    claimStartInstruction,
     recordHint,
     setSolveTimerState,
+    discardSavedRoute,
     recordRun,
     recordArchiveCompletion,
     isRoadModeSolved,

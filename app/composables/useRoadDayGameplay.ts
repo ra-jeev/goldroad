@@ -239,6 +239,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
   const currentTileIndex = ref<number | null>(null);
   // Bumps only after a player move. Board setup must not focus the start coin.
   const tileFocusSignal = ref(0);
+  const progressSyncSignal = ref(0);
   const visited = ref<Set<number>>(new Set());
   const activeSet = ref<Set<number>>(new Set());
   const pathHistory = ref<number[]>([]);
@@ -383,9 +384,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
       return;
     }
 
-    if (visibility === 'visible' && syncSavedProgress()) {
-      resumeSolveTimer();
-    }
+    if (visibility === 'visible') handleBoardFocus();
   });
 
   watch(isBoardOverlayOpen, (open) => {
@@ -547,7 +546,6 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     if (
       trackingDisabled.value ||
       !game.value ||
-      ended.value ||
       lastSolved.value ||
       !solveTimerCanResume.value ||
       solveTimerStartedAtMs.value !== null ||
@@ -561,7 +559,11 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
 
   function pauseSolveTimerForVisibility() {
     if (solveTimerStartedAtMs.value === null) return;
-    if (syncSavedProgress()) persistSolveTimerState(false);
+    if (syncSavedProgress(false)) {
+      persistSolveTimerState(false);
+    } else {
+      solveTimerStartedAtMs.value = null;
+    }
   }
 
   function stopSolveTimer(): number {
@@ -582,7 +584,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
   function setupGame(next: PublicGame, options: SetupGameOptions = {}) {
     const restoreLocalProgress = options.restoreLocalProgress !== false;
     const dayKey = getRoadDayKeyFromPlayableAt(next.playableAt);
-    const progress = restoreLocalProgress
+    let progress = restoreLocalProgress
       ? localProgress.getGameProgress(
           next.gameNo,
           next.puzzleType,
@@ -606,9 +608,20 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
       progress.solved ||
       (progressScope === 'replay' &&
         localProgress.isRoadModeSolved(next.gameNo, next.puzzleType));
+    let route = hasSolvedHistory ? null : progress.route;
+    let resumed = route && restoreRoadRoute(next.board, route.path);
+    if (route && !resumed) {
+      progress = localProgress.discardSavedRoute({
+        gameNo: next.gameNo,
+        puzzleType: next.puzzleType,
+        day: dayKey,
+        scope: progressScope,
+        route,
+      });
+      route = progress.solved ? null : progress.route;
+      resumed = route && restoreRoadRoute(next.board, route.path);
+    }
     savedRoute = progress.route;
-    const route = hasSolvedHistory ? null : savedRoute;
-    const resumed = route && restoreRoadRoute(next.board, route.path);
     const restored = resumed ?? restoreRoadRoute(next.board, [next.board.start])!;
     const path = resumed && route ? [...route.path] : [next.board.start];
     const progressAttemptNumber = Math.max(progress.attempts, 0) + 1;
@@ -649,8 +662,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
       ? (progress.solveTimeMs ?? 0)
       : progress.activeTimeMs;
     solveTimerStartedAtMs.value = null;
-    solveTimerCanResume.value =
-      !hasSolvedHistory && (path.length > 1 || progress.activeTimeMs > 0);
+    solveTimerCanResume.value = !hasSolvedHistory;
 
     activeSet.value = new Set(restored.neighbors);
     syncGuideHighlight();
@@ -678,9 +690,9 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     );
   }
 
-  // A storage event refreshes idle tabs. Read again before an action in case
-  // the event from another tab has not been delivered yet.
-  function syncSavedProgress(): boolean {
+  // Read before actions as well as on focus so a stale click cannot
+  // overwrite a route saved by another tab.
+  function syncSavedProgress(applyBoardUpdate = true): boolean {
     if (!game.value || trackingDisabled.value) return true;
     localProgress.reload();
     const progress = readSavedProgress();
@@ -693,7 +705,10 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
       progress.attempts !== attemptNumber.value - (ended.value ? 0 : 1) ||
       JSON.stringify(progress.route) !== JSON.stringify(savedRoute)
     ) {
-      setupGame(game.value, { syncContext: false });
+      if (applyBoardUpdate) {
+        setupGame(game.value, { syncContext: false });
+        progressSyncSignal.value += 1;
+      }
       return false;
     }
 
@@ -704,13 +719,19 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
       }
     }
 
-    if (progress.hintsUsed !== hintsUsed.value) {
+    if (applyBoardUpdate && progress.hintsUsed !== hintsUsed.value) {
       hintsUsed.value = progress.hintsUsed;
       guidePath.value = progress.guidePath;
       hintKind.value = null;
       syncGuideHighlight();
+      progressSyncSignal.value += 1;
     }
     return true;
+  }
+
+  function handleBoardFocus() {
+    if (documentVisibility.value !== 'visible' || !document.hasFocus()) return;
+    if (syncSavedProgress()) resumeSolveTimer();
   }
 
   function handleStorageChange(event: StorageEvent) {
@@ -718,7 +739,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
       event.key === GOLDROAD_STORAGE_KEY ||
       event.key === REPLAY_PROGRESS_STORAGE_KEY
     ) {
-      syncSavedProgress();
+      handleBoardFocus();
     }
   }
 
@@ -1061,7 +1082,9 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     const expeditionWasUnlocked = isExpeditionUnlocked.value;
     const solved = endReason === 'solved';
     const dayKey = getProgressDayKey(game.value);
-    const elapsedSolveTimeMs = isUntrackedReplay ? 0 : stopSolveTimer();
+    const elapsedSolveTimeMs = solved || endReason === 'retry'
+      ? stopSolveTimer()
+      : persistSolveTimerState(solveTimerStartedAtMs.value !== null);
     const solveTimeMs = solved ? elapsedSolveTimeMs : null;
     const { medal, wouldHaveMedal } = resolveRunMedals(
       options.entryType,
@@ -1094,7 +1117,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
         solveTimeMs,
         progressScope,
         solved ? 0 : elapsedSolveTimeMs,
-        null,
+        solveTimerStartedAtMs.value === null ? null : undefined,
       );
       savedRoute = null;
     }
@@ -1225,9 +1248,12 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
 
     if (!ended.value && !lastSolved.value && !trackingDisabled.value) {
       await finalizeRun('retry');
+    } else if (solveTimerStartedAtMs.value !== null) {
+      persistSolveTimerState(false);
     }
 
     setupGame(game.value);
+    tileFocusSignal.value += 1;
     nudgeHintIfStuck(nextAttemptNumber);
   }
 
@@ -1511,6 +1537,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     window.addEventListener('beforeunload', handlePageExit);
     window.addEventListener('pagehide', handlePageExit);
     window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('focus', handleBoardFocus);
   });
 
   onUnmounted(() => {
@@ -1519,6 +1546,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     window.removeEventListener('beforeunload', handlePageExit);
     window.removeEventListener('pagehide', handlePageExit);
     window.removeEventListener('storage', handleStorageChange);
+    window.removeEventListener('focus', handleBoardFocus);
     if (typeof window !== 'undefined') {
       document.body.classList.remove('mode-classic', 'mode-expedition');
     }
@@ -1531,6 +1559,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     tiles,
     currentTileIndex,
     tileFocusSignal,
+    progressSyncSignal,
     visited,
     activeSet,
     pathHistory,

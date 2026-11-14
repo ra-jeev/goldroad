@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   computeFooterState,
-  shouldShowUndoAction,
   type FooterStateInput,
 } from '../app/utils/footerState';
 
@@ -62,16 +61,6 @@ describe('computeFooterState (RP1-10 six-state contract)', () => {
         baseInput({ attemptNumber: 2, trackingDisabled: true }),
       ),
     ).toBe('resting-first');
-  });
-
-  it('shows undo only once the player has moved and the run is still live', () => {
-    expect(shouldShowUndoAction('mid-run')).toBe(true);
-    // Nothing to take back before the first step, or after the run ends.
-    expect(shouldShowUndoAction('resting-first')).toBe(false);
-    expect(shouldShowUndoAction('resting-retry')).toBe(false);
-    expect(shouldShowUndoAction('failed')).toBe(false);
-    expect(shouldShowUndoAction('solved-next')).toBe(false);
-    expect(shouldShowUndoAction('solved-final')).toBe(false);
   });
 
   it('solved always wins over ended/hasMoved/attemptNumber', () => {

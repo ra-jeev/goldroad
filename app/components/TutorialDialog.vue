@@ -213,6 +213,7 @@ onBeforeUnmount(() => {
         />
 
         <GameBoardFooter
+          practice
           :status="practice.status.value"
           :hint-message="practice.hintMessage.value"
           :solve-acknowledgement="practice.status.value"
@@ -221,7 +222,6 @@ onBeforeUnmount(() => {
           :show-next-reset-countdown="false"
           :show-stats-link="false"
           :expedition-just-unlocked="false"
-          :hints-used="practice.hintsUsed.value"
           :ended="practice.ended.value"
           :solved="practice.solved.value"
           :can-retry="practice.canRetry.value"

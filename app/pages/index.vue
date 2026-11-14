@@ -2,6 +2,7 @@
 import { onMounted, onUnmounted, watch } from 'vue';
 
 import { UI_COPY } from '../content/uiCopy';
+import { getRoadDayKeyFromPlayableAt } from '../composables/useGoldroadLocalState';
 
 // The How to Play sheet is this page's child route, /how-to-play. The pinned
 // key keeps the board mounted when the sheet opens and closes, so a road in
@@ -42,6 +43,7 @@ const {
   tiles,
   currentTileIndex,
   tileFocusSignal,
+  progressSyncSignal,
   visited,
   activeSet,
   pathHistory,
@@ -57,7 +59,6 @@ const {
   submitting,
   status,
   lastSolved,
-  hintsUsed,
   trackingDisabled,
   expeditionJustUnlocked,
   maxScore,
@@ -102,6 +103,8 @@ const currentRoadLabel = useState<string | null>(
   () => null,
 );
 const localState = useGoldroadLocalState();
+const { isBoardOverlayOpen } = useBoardOverlayGate();
+const startInstructionDay = ref<string | null>(null);
 const soundEffects = useSoundEffects();
 const { isTutorialOpen, openTutorial } = useTutorialFlow();
 const {
@@ -186,6 +189,25 @@ watch(solveCelebrationSignal, () => {
 
 onMounted(() => {
   watch(
+    () => {
+      if (
+        !game.value || loading.value || newRoadReady.value || ended.value ||
+        moves.value !== 1 || attemptNumber.value !== 1 || lastSolved.value ||
+        guidePath.value.length > 0 || !v1CheckReady.value || isBoardOverlayOpen.value
+      ) {
+        return null;
+      }
+      return getRoadDayKeyFromPlayableAt(game.value.playableAt);
+    },
+    (day) => {
+      if (day && localState.claimStartInstruction(day)) {
+        startInstructionDay.value = day;
+      }
+    },
+    { immediate: true, flush: 'post' },
+  );
+
+  watch(
     game,
     (currentGame) => {
       currentRoadLabel.value = currentGame
@@ -250,7 +272,9 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
 
         <GameBoardFooter
           :status="status"
+          :start-instruction-day="startInstructionDay"
           :hint-message="hintMessage"
+          :progress-sync-signal="progressSyncSignal"
           :solve-acknowledgement="solveAcknowledgement"
           :attempt-number="attemptNumber"
           :has-moved="moves > 1"
@@ -258,7 +282,6 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
           :hint-nudge-signal="hintNudgeSignal"
           :new-road-ready="newRoadReady"
           :expedition-just-unlocked="expeditionJustUnlocked"
-          :hints-used="hintsUsed"
           :hints-remaining="hintsRemaining"
           :hint-pending="hintPending"
           :has-guide-path="guidePath.length > 0"
@@ -285,7 +308,15 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
       </section>
 
       <section v-else class="loading-card">
-        <p>{{ status }}</p>
+        <p role="status">{{ status }}</p>
+        <button
+          type="button"
+          class="loading-retry"
+          :disabled="loading"
+          @click="loadNewRoad"
+        >
+          {{ UI_COPY.runtime.retryLoadRoad }}
+        </button>
       </section>
     </main>
 
@@ -355,6 +386,23 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
   box-shadow: var(--shadow-border-dark), var(--shadow-lg);
   color: var(--color-gold-bright);
   text-align: center;
+}
+
+.loading-retry {
+  min-height: 2.75rem;
+  padding: 0 1.1rem;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--gradient-button-primary);
+  color: var(--color-text-on-gold);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.loading-retry:disabled {
+  opacity: 0.5;
+  cursor: progress;
 }
 
 @media (max-width: 980px) {

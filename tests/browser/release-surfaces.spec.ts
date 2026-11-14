@@ -17,6 +17,27 @@ async function expectNoHorizontalOverflow(page: Page) {
   expect(hasOverflow).toBe(false);
 }
 
+test('short screens show one visible start notification after hydration', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 640 });
+  const runtimeErrors = captureRuntimeErrors(page);
+  const response = await page.request.get('/api/games/current');
+  expect(response.ok()).toBe(true);
+  const { classic } = await response.json() as CurrentGamesResponse;
+  expect(classic).toBeTruthy();
+  await page.clock.setFixedTime(new Date(classic!.playableAt));
+
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: 'Learn the road' })).toBeVisible();
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
+  await page.evaluate(() => window.scrollTo(0, 0));
+
+  await expect(page.locator('.footer-feedback')).toHaveCount(1);
+  const toast = page.locator('#teleports .feedback-toast');
+  await expect(toast).toContainText('Step onto any glowing tile to begin.');
+  await expect(toast).toBeInViewport({ ratio: 0.95 });
+  expect(runtimeErrors).toEqual([]);
+});
+
 test('live board and tutorial are usable', async ({ page }) => {
   const runtimeErrors = captureRuntimeErrors(page);
   const response = await page.goto('/');
@@ -443,4 +464,86 @@ test('archived-road replay loads the production board', async ({ page }) => {
 
   await expectNoHorizontalOverflow(page);
   expect(runtimeErrors).toEqual([]);
+});
+
+test('reloading a saved route twice preserves the try', async ({ page }) => {
+  await page.goto('/games/1');
+  const road = await page.request.get('/api/games/1/board');
+  const { classic } = await road.json() as CurrentGamesResponse;
+  const nextTile = classic?.optimalPaths?.[0]?.[1];
+  expect(nextTile).toBeDefined();
+
+  const tile = page.locator('.board-column .tile').nth(nextTile!);
+  await expect(tile).toHaveClass(/\bactive\b/);
+  await tile.click();
+  const score = page.locator('.score-target strong').first();
+  const savedScore = await score.innerText();
+  const undo = page.getByRole('button', { name: 'Undo last step' });
+
+  for (let reload = 0; reload < 2; reload++) {
+    await page.reload();
+    await expect(tile).toHaveClass(/\bcurrent\b/);
+    await expect(score).toHaveText(savedScore);
+    await expect(undo).toBeEnabled();
+    const attempts = await page.evaluate(() => {
+      const progress = JSON.parse(localStorage.getItem('goldroad-replay-progress-v2') ?? '{}');
+      return progress['classic:1']?.attempts;
+    });
+    expect(attempts).toBe(0);
+  }
+});
+
+test('failed road counts visible time until retry', async ({ page }) => {
+  const response = await page.request.get('/api/games/1/board');
+  const road = await response.json() as CurrentGamesResponse;
+  const classic = road.classic!;
+  const path = classic.optimalPaths![0]!;
+  await page.route('**/api/games/1/board', (route) =>
+    route.fulfill({ json: { ...road, classic: { ...classic, maxScore: classic.maxScore + 1 } } }),
+  );
+  await page.clock.install();
+  await page.goto('/games/1');
+
+  const tiles = page.locator('.board-column .tile');
+  for (const index of path.slice(1)) {
+    await expect(tiles.nth(index)).toHaveClass(/\bactive\b/);
+    await tiles.nth(index).click();
+  }
+
+  const retry = page.getByRole('button', { name: 'Try again', exact: true });
+  await expect(retry).toBeEnabled();
+  const readProgress = () => page.evaluate(() => {
+    const progress = JSON.parse(localStorage.getItem('goldroad-replay-progress-v2') ?? '{}');
+    return progress['classic:1'] as {
+      attempts: number;
+      activeTimeMs: number;
+      timerStartedAt: string | null;
+    };
+  });
+
+  const failed = await readProgress();
+  expect(failed.attempts).toBe(1);
+  expect(failed.timerStartedAt).not.toBeNull();
+  await page.clock.fastForward(5_000);
+
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' });
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  const paused = await readProgress();
+  expect(paused.timerStartedAt).toBeNull();
+  expect(paused.activeTimeMs - failed.activeTimeMs).toBeGreaterThanOrEqual(5_000);
+  await page.clock.fastForward(60_000);
+  await page.evaluate(() => {
+    Reflect.deleteProperty(document, 'visibilityState');
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await page.clock.fastForward(5_000);
+  await retry.click();
+
+  const restarted = await readProgress();
+  expect(restarted.attempts).toBe(1);
+  expect(restarted.activeTimeMs - paused.activeTimeMs).toBeGreaterThanOrEqual(5_000);
+  expect(restarted.activeTimeMs - paused.activeTimeMs).toBeLessThan(60_000);
+  await expect(tiles.nth(classic.board.start)).toHaveClass(/\bcurrent\b/);
 });
