@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, ref, watch } from 'vue';
+import { ref, watch } from 'vue';
 import { UI_COPY } from '../content/uiCopy';
 
 const props = defineProps<{
@@ -21,6 +21,11 @@ const props = defineProps<{
    * lights up as a direction to follow rather than a scatter of lit tiles.
    */
   hintDelayMs?: number;
+  /**
+   * Bumps after a player move. A reload also changes which coin is current,
+   * and focusing that coin paints the blue ring on the start.
+   */
+  focusSignal?: number;
 }>();
 
 const emit = defineEmits<{
@@ -29,17 +34,17 @@ const emit = defineEmits<{
 
 const button = ref<HTMLButtonElement | null>(null);
 
-// Arrow-key moves are handled at the board level. Keep DOM focus aligned with
-// the newly current tile so the roving tabindex remains useful to keyboard and
-// assistive-technology users after each move. Do not steal focus on first
-// render; the watcher only runs when the current tile actually changes.
+// Arrow-key moves are handled at the board level. After a player move, keep
+// DOM focus on the current coin so keyboard and screen-reader users follow it.
+// A reload also makes the start coin current. Focusing it then paints the
+// blue ring, so this runs only when a move bumps focusSignal.
 watch(
-  () => props.isCurrent,
-  async (isCurrent, wasCurrent) => {
-    if (!isCurrent || wasCurrent !== false) return;
-    await nextTick();
-    button.value?.focus();
+  () => props.focusSignal,
+  (signal) => {
+    if (!signal || !props.isCurrent) return;
+    button.value?.focus({ preventScroll: true });
   },
+  { flush: 'post' },
 );
 </script>
 

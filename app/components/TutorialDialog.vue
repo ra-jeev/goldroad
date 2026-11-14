@@ -201,6 +201,7 @@ onBeforeUnmount(() => {
           puzzle-type="expedition"
           :tiles="practice.tiles.value"
           :current-tile-index="practice.currentTileIndex.value"
+          :focus-signal="practice.tileFocusSignal.value"
           :active-set="practice.activeSet.value"
           :visited-set="practice.visited.value"
           :hinted-tiles="practice.hintedTiles.value"

@@ -29,6 +29,8 @@ const props = defineProps<{
   failSignal?: number;
   deniedMoveSignal?: number;
   deniedTileIndex?: number | null;
+  /** Bumps after a player move so the current coin can take keyboard focus. */
+  focusSignal?: number;
 }>();
 
 const emit = defineEmits<{
@@ -337,6 +339,7 @@ watch(
             :is-shaking="shakingTileId === tile.id"
             :is-denied="deniedTileId === tile.id"
             :hint-delay-ms="hintDelays.get(tile.id)"
+            :focus-signal="focusSignal"
             :tab-index="tile.tabIndex"
             :disabled="disabled"
             @select="emit('select', tile.id)"

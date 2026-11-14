@@ -41,6 +41,7 @@ const {
   game,
   tiles,
   currentTileIndex,
+  tileFocusSignal,
   visited,
   activeSet,
   pathHistory,
@@ -233,6 +234,7 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
           :puzzle-type="game.puzzleType"
           :tiles="tiles"
           :current-tile-index="currentTileIndex"
+          :focus-signal="tileFocusSignal"
           :active-set="activeSet"
           :visited-set="visited"
           :hinted-tiles="hintedTiles"

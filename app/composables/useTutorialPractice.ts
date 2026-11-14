@@ -75,6 +75,7 @@ export function useTutorialPractice() {
   const initialStatus = UI_COPY.runtime.preRun;
   const tiles = ref(buildInitialTileStates(board));
   const currentTileIndex = ref<number | null>(null);
+  const tileFocusSignal = ref(0);
   const visited = ref<Set<number>>(new Set());
   const activeSet = ref<Set<number>>(new Set());
   const hintedTiles = ref<Set<number>>(new Set());
@@ -199,6 +200,7 @@ export function useTutorialPractice() {
     visited.value.add(tileIndex);
     pathHistory.value = [...pathHistory.value, tileIndex];
     currentTileIndex.value = tileIndex;
+    tileFocusSignal.value += 1;
     score.value += (board.tiles[tileIndex] ?? 0) + modifier;
     moves.value += 1;
     hintMessage.value = null;
@@ -267,6 +269,7 @@ export function useTutorialPractice() {
     pathHistory.value = result.pathHistory;
     visited.value = result.visited;
     currentTileIndex.value = result.currentTileIndex;
+    tileFocusSignal.value += 1;
     score.value = result.score;
     moves.value = result.moves;
     activeSet.value = new Set(result.activeNeighbors);
@@ -357,6 +360,7 @@ export function useTutorialPractice() {
     board,
     tiles,
     currentTileIndex,
+    tileFocusSignal,
     visited,
     activeSet,
     hintedTiles,

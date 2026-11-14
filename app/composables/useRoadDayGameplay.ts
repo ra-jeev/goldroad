@@ -228,6 +228,8 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
   const game = ref<PublicGame | null>(null);
   const tiles = ref<ReturnType<typeof buildInitialTileStates>>([]);
   const currentTileIndex = ref<number | null>(null);
+  // Bumps only after a player move. Board setup must not focus the start coin.
+  const tileFocusSignal = ref(0);
   const visited = ref<Set<number>>(new Set());
   const activeSet = ref<Set<number>>(new Set());
   const pathHistory = ref<number[]>([]);
@@ -1103,6 +1105,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     pathHistory.value = result.pathHistory;
     visited.value = result.visited;
     currentTileIndex.value = result.currentTileIndex;
+    tileFocusSignal.value += 1;
     score.value = result.score;
     moves.value = result.moves;
     activeSet.value = new Set(result.activeNeighbors);
@@ -1230,6 +1233,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     visited.value.add(tileIndex);
     pathHistory.value = [...pathHistory.value, tileIndex];
     currentTileIndex.value = tileIndex;
+    tileFocusSignal.value += 1;
     const nextScore = score.value + (board.tiles[tileIndex] ?? 0) + edgeCost;
     score.value = nextScore;
     moves.value += 1;
@@ -1455,6 +1459,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     game,
     tiles,
     currentTileIndex,
+    tileFocusSignal,
     visited,
     activeSet,
     pathHistory,
