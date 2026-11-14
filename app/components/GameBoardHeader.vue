@@ -304,5 +304,12 @@ function statusLabel(solved: boolean, medal: Medal | null): string {
     padding: 0.1rem 0;
   }
 
+  .metric-line {
+    font-size: 1.25rem;
+  }
+
+  .metric-line strong {
+    font-size: 1.5rem;
+  }
 }
 </style>
