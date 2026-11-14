@@ -4,6 +4,7 @@ import {
   useGoldroadLocalState,
   type LocalProgressScope,
   type LocalPuzzleProgress,
+  type SavedRoute,
 } from './useGoldroadLocalState';
 
 export type LocalGameProgressRecord = LocalPuzzleProgress;
@@ -19,8 +20,9 @@ export function useLocalGameProgress() {
     gameNo: number,
     puzzleType: PuzzleType,
     scope: LocalProgressScope = 'live',
+    day?: string,
   ): LocalGameProgressRecord {
-    return localState.getPuzzleProgress(gameNo, puzzleType, scope);
+    return localState.getPuzzleProgress(gameNo, puzzleType, scope, day);
   }
 
   function recordHint(
@@ -46,6 +48,7 @@ export function useLocalGameProgress() {
     activeTimeMs: number,
     timerStartedAt: string | null,
     scope: LocalProgressScope = 'live',
+    route?: SavedRoute | null,
   ) {
     return localState.setSolveTimerState({
       gameNo,
@@ -54,22 +57,7 @@ export function useLocalGameProgress() {
       activeTimeMs,
       timerStartedAt,
       scope,
-    });
-  }
-
-  function setLeftStart(
-    gameNo: number,
-    puzzleType: PuzzleType,
-    day: string,
-    leftStart: boolean,
-    scope: LocalProgressScope = 'live',
-  ) {
-    return localState.setLeftStart({
-      gameNo,
-      puzzleType,
-      day,
-      leftStart,
-      scope,
+      route,
     });
   }
 
@@ -102,10 +90,10 @@ export function useLocalGameProgress() {
     playerUUID: localState.playerUUID,
     currentRoadContext: localState.currentRoadContext,
     load,
+    reload: localState.reload,
     getGameProgress,
     recordHint,
     setSolveTimerState,
-    setLeftStart,
     recordRun,
     recordArchiveCompletion: localState.recordArchiveCompletion,
     isRoadModeSolved: localState.isRoadModeSolved,

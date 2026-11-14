@@ -1,6 +1,8 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useDocumentVisibility } from '@vueuse/core';
 import { buildInitialTileStates } from '../utils/boardUtils';
+import { getHintMessage } from '../utils/hintMessage';
+import { restoreRoadRoute } from '../utils/restoreRoadRoute';
 import {
   buildEdgeMap,
   getActiveNeighbors,
@@ -35,6 +37,9 @@ import type {
 import { UI_COPY } from '../content/uiCopy';
 import {
   getRoadDayKeyFromPlayableAt,
+  GOLDROAD_STORAGE_KEY,
+  REPLAY_PROGRESS_STORAGE_KEY,
+  type SavedRoute,
   type LocalProgressScope,
 } from './useGoldroadLocalState';
 import {
@@ -92,18 +97,6 @@ export function isDifferentGameIdentity(
  * write anything. Exported standalone so the solved-only gate is
  * unit-testable without the full gameplay composable (RP1-9).
  */
-/**
- * A refresh spends the current try when the player has already left the
- * start coin. A solved road, and a try that is still on the start coin,
- * are free.
- */
-export function shouldChargeAbandonedRun(progress: {
-  solved: boolean;
-  leftStart: boolean;
-}): boolean {
-  return progress.leftStart && !progress.solved;
-}
-
 export function shouldRecordArchiveCompletion(
   entryType: EntryType,
   solved: boolean,
@@ -212,8 +205,8 @@ function celebrationTierForMedal(medal: Medal | null): CelebrationTier {
 }
 
 type SetupGameOptions = {
-  attemptNumber?: number;
   restoreLocalProgress?: boolean;
+  syncContext?: boolean;
 };
 
 type ApplyRoadDayOptions = {
@@ -251,8 +244,11 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
   const pathHistory = ref<number[]>([]);
   const score = ref(0);
   const moves = ref(0);
-  const hintMessage = ref<string | null>(null);
   const hintedTiles = ref<Set<number>>(new Set());
+  const hintKind = ref<ReturnType<typeof computeHint>['kind'] | null>(null);
+  const hintMessage = computed(() =>
+    hintKind.value ? getHintMessage(hintKind.value, hintedTiles.value.size) : null,
+  );
   const guidePath = ref<number[]>([]);
   // Guards the live hint round trip. Without it a second tap while the first
   // request is in flight spends a second hint token on the same intent.
@@ -287,6 +283,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
   // One take-back per step. A successful non-ending move earns it; undo
   // spends it until the player moves again.
   const undoAvailable = ref(false);
+  let savedRoute: SavedRoute | null = null;
   const solvedRestMedal = ref<Medal | null>(null);
   const canUndo = computed(() =>
     canUndoLastStep({
@@ -386,7 +383,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
       return;
     }
 
-    if (visibility === 'visible') {
+    if (visibility === 'visible' && syncSavedProgress()) {
       resumeSolveTimer();
     }
   });
@@ -411,7 +408,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     pathHistory.value = [];
     score.value = 0;
     moves.value = 0;
-    hintMessage.value = null;
+    hintKind.value = null;
     hintedTiles.value = new Set();
     guidePath.value = [];
     ended.value = false;
@@ -432,6 +429,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     celebration.value = null;
     solveAcknowledgement.value = null;
     undoAvailable.value = false;
+    savedRoute = null;
     solvedRestMedal.value = null;
   }
 
@@ -489,19 +487,6 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
       : null;
   }
 
-  function rememberLeftStart(leftStart: boolean) {
-    if (!game.value || trackingDisabled.value) return;
-    const dayKey = getProgressDayKey(game.value);
-    if (!dayKey) return;
-    localProgress.setLeftStart(
-      game.value.gameNo,
-      game.value.puzzleType,
-      dayKey,
-      leftStart,
-      progressScope,
-    );
-  }
-
   function readCurrentSolveTimeMs(nowMs = Date.now()): number {
     return (
       activeSolveTimeMs.value +
@@ -511,7 +496,10 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     );
   }
 
-  function persistSolveTimerState(continueRunning: boolean): number {
+  function persistSolveTimerState(
+    continueRunning: boolean,
+    route?: SavedRoute | null,
+  ): number {
     if (trackingDisabled.value) return activeSolveTimeMs.value;
     if (!game.value) return activeSolveTimeMs.value;
 
@@ -523,7 +511,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     activeSolveTimeMs.value = nextActiveTimeMs;
     solveTimerStartedAtMs.value = continueRunning ? nowMs : null;
 
-    localProgress.setSolveTimerState(
+    const progress = localProgress.setSolveTimerState(
       game.value.gameNo,
       game.value.puzzleType,
       dayKey,
@@ -532,9 +520,12 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
         ? new Date(solveTimerStartedAtMs.value).toISOString()
         : null,
       progressScope,
+      route,
     );
+    activeSolveTimeMs.value = progress.activeTimeMs;
+    savedRoute = progress.route;
 
-    return nextActiveTimeMs;
+    return progress.activeTimeMs;
   }
 
   function startSolveTimer() {
@@ -542,25 +533,14 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
       trackingDisabled.value ||
       !game.value ||
       lastSolved.value ||
+      documentVisibility.value !== 'visible' ||
       solveTimerStartedAtMs.value !== null
     ) {
       return;
     }
 
-    const dayKey = getProgressDayKey(game.value);
-    if (!dayKey) return;
-
-    const nowMs = Date.now();
     solveTimerCanResume.value = true;
-    solveTimerStartedAtMs.value = nowMs;
-    localProgress.setSolveTimerState(
-      game.value.gameNo,
-      game.value.puzzleType,
-      dayKey,
-      activeSolveTimeMs.value,
-      new Date(nowMs).toISOString(),
-      progressScope,
-    );
+    solveTimerStartedAtMs.value = Date.now();
   }
 
   function resumeSolveTimer() {
@@ -581,7 +561,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
 
   function pauseSolveTimerForVisibility() {
     if (solveTimerStartedAtMs.value === null) return;
-    persistSolveTimerState(false);
+    if (syncSavedProgress()) persistSolveTimerState(false);
   }
 
   function stopSolveTimer(): number {
@@ -601,11 +581,13 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
 
   function setupGame(next: PublicGame, options: SetupGameOptions = {}) {
     const restoreLocalProgress = options.restoreLocalProgress !== false;
-    let progress = restoreLocalProgress
+    const dayKey = getRoadDayKeyFromPlayableAt(next.playableAt);
+    const progress = restoreLocalProgress
       ? localProgress.getGameProgress(
           next.gameNo,
           next.puzzleType,
           progressScope,
+          dayKey,
         )
       : {
           attempts: 0,
@@ -615,36 +597,20 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
           activeTimeMs: 0,
           timerStartedAt: null,
           guidePath: [],
-          leftStart: false,
+          route: null,
         };
-    // Archive progress is transient (cleared on solve); the durable solved
+    // Archive progress is cleared on solve. The durable solved
     // signal for archived roads is the completion map merged with live
     // history. Live pages keep reading their own progress records.
     const hasSolvedHistory =
       progress.solved ||
       (progressScope === 'replay' &&
         localProgress.isRoadModeSolved(next.gameNo, next.puzzleType));
-    if (
-      restoreLocalProgress &&
-      !hasSolvedHistory &&
-      shouldChargeAbandonedRun(progress)
-    ) {
-      const dayKey = getRoadDayKeyFromPlayableAt(next.playableAt);
-      if (dayKey) {
-        // The route is gone. Close this try and keep the clock.
-        progress = localProgress.recordRun(
-          next.gameNo,
-          next.puzzleType,
-          dayKey,
-          Math.max(progress.attempts, 0) + 1,
-          false,
-          null,
-          progressScope,
-          progress.activeTimeMs,
-          null,
-        );
-      }
-    }
+    savedRoute = progress.route;
+    const route = hasSolvedHistory ? null : savedRoute;
+    const resumed = route && restoreRoadRoute(next.board, route.path);
+    const restored = resumed ?? restoreRoadRoute(next.board, [next.board.start])!;
+    const path = resumed && route ? [...route.path] : [next.board.start];
     const progressAttemptNumber = Math.max(progress.attempts, 0) + 1;
     const solvedMedal = progress.solved
       ? calcMedalForAttempt(Math.max(progress.attempts, 1), true)
@@ -653,14 +619,14 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     selectedMode.value = next.puzzleType;
     game.value = next;
     tiles.value = buildInitialTileStates(next.board);
-    visited.value = new Set([next.board.start]);
-    pathHistory.value = [next.board.start];
-    currentTileIndex.value = next.board.start;
-    score.value = next.board.tiles[next.board.start] ?? 0;
-    moves.value = 1;
+    visited.value = restored.visited;
+    pathHistory.value = path;
+    currentTileIndex.value = restored.current;
+    score.value = restored.score;
+    moves.value = path.length;
     ended.value = false;
     submitting.value = false;
-    hintMessage.value = null;
+    hintKind.value = null;
     hintedTiles.value = new Set();
     expeditionJustUnlocked.value = false;
     status.value = UI_COPY.runtime.preRun;
@@ -671,10 +637,10 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     lastMedal.value = hasSolvedHistory ? solvedMedal : null;
     lastSolved.value = hasSolvedHistory;
     solvedRestMedal.value = hasSolvedHistory ? solvedMedal : null;
-    undoAvailable.value = nextUndoAvailable('reset', false);
+    undoAvailable.value = path.length > 1 && route?.undoAvailable === true;
     attemptNumber.value = hasSolvedHistory
       ? 1
-      : (options.attemptNumber ?? progressAttemptNumber);
+      : progressAttemptNumber;
     hintsUsed.value = progress.hintsUsed;
     guidePath.value = [...progress.guidePath];
     sessionId.value = createSessionId();
@@ -683,20 +649,13 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
       ? (progress.solveTimeMs ?? 0)
       : progress.activeTimeMs;
     solveTimerStartedAtMs.value = null;
-    solveTimerCanResume.value = !hasSolvedHistory;
+    solveTimerCanResume.value =
+      !hasSolvedHistory && (path.length > 1 || progress.activeTimeMs > 0);
 
-    const edgeMap = buildEdgeMap(next.board);
-    const active = getActiveNeighbors(
-      next.board.start,
-      next.board.rows,
-      next.board.cols,
-      edgeMap,
-      visited.value,
-    );
-    activeSet.value = new Set(active);
+    activeSet.value = new Set(restored.neighbors);
     syncGuideHighlight();
     updateTileStates();
-    if (restoreLocalProgress) {
+    if (restoreLocalProgress && options.syncContext !== false) {
       syncCurrentRoadContext(next);
     }
 
@@ -707,6 +666,67 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     ) {
       resumeSolveTimer();
     }
+  }
+
+  function readSavedProgress() {
+    if (!game.value) return null;
+    return localProgress.getGameProgress(
+      game.value.gameNo,
+      game.value.puzzleType,
+      progressScope,
+      getRoadDayKeyFromPlayableAt(game.value.playableAt),
+    );
+  }
+
+  // A storage event refreshes idle tabs. Read again before an action in case
+  // the event from another tab has not been delivered yet.
+  function syncSavedProgress(): boolean {
+    if (!game.value || trackingDisabled.value) return true;
+    localProgress.reload();
+    const progress = readSavedProgress();
+    if (!progress) return true;
+
+    if (
+      progress.solved ||
+      (progressScope === 'replay' &&
+        localProgress.isRoadModeSolved(game.value.gameNo, game.value.puzzleType)) ||
+      progress.attempts !== attemptNumber.value - (ended.value ? 0 : 1) ||
+      JSON.stringify(progress.route) !== JSON.stringify(savedRoute)
+    ) {
+      setupGame(game.value, { syncContext: false });
+      return false;
+    }
+
+    if (progress.activeTimeMs > activeSolveTimeMs.value) {
+      activeSolveTimeMs.value = progress.activeTimeMs;
+      if (solveTimerStartedAtMs.value !== null) {
+        solveTimerStartedAtMs.value = Date.now();
+      }
+    }
+
+    if (progress.hintsUsed !== hintsUsed.value) {
+      hintsUsed.value = progress.hintsUsed;
+      guidePath.value = progress.guidePath;
+      hintKind.value = null;
+      syncGuideHighlight();
+    }
+    return true;
+  }
+
+  function handleStorageChange(event: StorageEvent) {
+    if (
+      event.key === GOLDROAD_STORAGE_KEY ||
+      event.key === REPLAY_PROGRESS_STORAGE_KEY
+    ) {
+      syncSavedProgress();
+    }
+  }
+
+  function saveCurrentRoute() {
+    const route = pathHistory.value.length > 1
+      ? { path: pathHistory.value, undoAvailable: undoAvailable.value }
+      : null;
+    persistSolveTimerState(solveTimerStartedAtMs.value !== null, route);
   }
 
   function getPreferredMode(
@@ -750,7 +770,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
       const replacesMountedGame =
         game.value && isDifferentGameIdentity(game.value, next);
       if (replacesMountedGame && !lastSolved.value) {
-        stopSolveTimer();
+        pauseSolveTimerForVisibility();
       }
       setupGame(next, {
         restoreLocalProgress: options.restoreLocalProgress,
@@ -811,8 +831,9 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
         : availableGames.value.expedition;
     if (!next) return;
 
-    if (game.value && game.value.puzzleType !== mode && !lastSolved.value) {
-      stopSolveTimer();
+    if (game.value?.puzzleType === mode) return;
+    if (game.value && !lastSolved.value) {
+      pauseSolveTimerForVisibility();
     }
 
     setupGame(next);
@@ -1075,6 +1096,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
         solved ? 0 : elapsedSolveTimeMs,
         null,
       );
+      savedRoute = null;
     }
     // An archive solve writes exactly one durable fact: this road+mode is
     // complete. It feeds only the calendar and solved/unlock presentation.
@@ -1144,7 +1166,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
   }
 
   function undoLastStep() {
-    if (!game.value || !canUndo.value) return;
+    if (!game.value || !canUndo.value || !syncSavedProgress()) return;
 
     const result = applyUndoLastStep(game.value.board, {
       pathHistory: pathHistory.value,
@@ -1161,7 +1183,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     moves.value = result.moves;
     activeSet.value = new Set(result.activeNeighbors);
     undoAvailable.value = nextUndoAvailable('undo', false);
-    hintMessage.value = null;
+    hintKind.value = null;
     syncGuideHighlight();
 
     if (
@@ -1180,9 +1202,9 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     // the footer is quiet by design, and a move does not touch status either.
     if (result.pathHistory.length <= 1) {
       status.value = UI_COPY.runtime.preRun;
-      rememberLeftStart(false);
     }
 
+    saveCurrentRoute();
     undoSignal.value += 1;
     updateTileStates();
   }
@@ -1195,6 +1217,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     // No moves made yet: the board is already at its starting state, so a
     // retry would only churn messages. Pure no-op.
     if (!ended.value && moves.value <= 1) return;
+    if (!syncSavedProgress()) return;
 
     const nextAttemptNumber = trackingDisabled.value
       ? attemptNumber.value
@@ -1204,9 +1227,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
       await finalizeRun('retry');
     }
 
-    setupGame(game.value, {
-      attemptNumber: nextAttemptNumber,
-    });
+    setupGame(game.value);
     nudgeHintIfStuck(nextAttemptNumber);
   }
 
@@ -1246,6 +1267,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
 
   async function moveTo(tileIndex: number) {
     if (!game.value || ended.value || currentTileIndex.value === null) return;
+    if (!syncSavedProgress()) return;
     if (tileIndex === currentTileIndex.value) return;
     if (!activeSet.value.has(tileIndex)) {
       // The tile you came from is the Undo button by another route. Once the
@@ -1267,11 +1289,8 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
       solveAcknowledgement.value = null;
     }
 
-    if (moves.value === 1) {
-      startAnalyticsOnce();
-      startSolveTimer();
-      rememberLeftStart(true);
-    }
+    startAnalyticsOnce();
+    startSolveTimer();
 
     const board = game.value.board;
     const edgeMap = buildEdgeMap(board);
@@ -1291,7 +1310,9 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     score.value = nextScore;
     moves.value += 1;
     successfulMoveSignal.value += 1;
-    hintMessage.value = null;
+    if (!pathHistory.value.every((tile, index) => tile === guidePath.value[index])) {
+      hintKind.value = null;
+    }
     syncGuideHighlight();
 
     if (tileIndex === board.end) {
@@ -1334,10 +1355,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
 
     undoAvailable.value = nextUndoAvailable('move', false);
 
-    if (solveTimerStartedAtMs.value !== null) {
-      persistSolveTimerState(true);
-    }
-
+    saveCurrentRoute();
     updateTileStates();
   }
 
@@ -1354,11 +1372,15 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     // One request at a time, and never more than the day's allowance for
     // this mode.
     if (hintPending.value) return;
-    if (hintsUsed.value >= HINTS_PER_ROAD_MODE) return;
     // The live hint endpoint no longer accepts this road once it rotates
     // out; already-visible guide tiles stay, new hints quietly retire.
-    if (isLiveRoadExpired()) return;
+    if (isLiveRoadExpired() || !syncSavedProgress()) return;
+    if (hintsUsed.value >= HINTS_PER_ROAD_MODE) return;
 
+    const requestedBoard = game.value;
+    const requestedPath = pathHistory.value;
+    const requestedSession = sessionId.value;
+    const requestedGuide = guidePath.value;
     if (solveTimerStartedAtMs.value !== null) {
       persistSolveTimerState(true);
     }
@@ -1396,45 +1418,31 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
       }
     }
 
-    const existingProgress = localProgress.getGameProgress(
-      game.value.gameNo,
-      game.value.puzzleType,
-      progressScope,
-    );
-
-    const hintCopy =
-      hint.kind === 'next-step'
-        ? UI_COPY.runtime.hintNextStep
-        : hint.kind === 'already-solved'
-          ? UI_COPY.runtime.hintAlreadySolved
-          : UI_COPY.runtime.hintDiverged;
-
-    // The same lit coins teach nothing new. Do not spend a hint on them.
-    if (!hintRevealsNewTile(guidePath.value, hint.guidePath)) {
-      hintMessage.value = hintCopy;
+    if (
+      !syncSavedProgress() ||
+      game.value !== requestedBoard ||
+      sessionId.value !== requestedSession ||
+      pathHistory.value !== requestedPath ||
+      guidePath.value !== requestedGuide ||
+      ended.value
+    ) {
       return;
     }
 
-    if (existingProgress.solved) {
-      hintsUsed.value += 1;
-      guidePath.value = [...hint.guidePath];
+    if (hintRevealsNewTile(guidePath.value, hint.guidePath)) {
+      const progress = localProgress.recordHint(
+        requestedBoard.gameNo,
+        requestedBoard.puzzleType,
+        getRoadDayKeyFromPlayableAt(requestedBoard.playableAt),
+        hint.guidePath,
+        progressScope,
+      );
+
+      hintsUsed.value = progress.hintsUsed;
+      guidePath.value = progress.guidePath;
       syncGuideHighlight();
-      hintMessage.value = hintCopy;
-      return;
     }
-
-    const progress = localProgress.recordHint(
-      game.value.gameNo,
-      game.value.puzzleType,
-      getRoadDayKeyFromPlayableAt(game.value.playableAt),
-      hint.guidePath,
-      progressScope,
-    );
-
-    hintsUsed.value = progress.hintsUsed;
-    guidePath.value = [...progress.guidePath];
-    syncGuideHighlight();
-    hintMessage.value = hintCopy;
+    hintKind.value = hint.kind;
   }
 
   function handlePageExit() {
@@ -1502,6 +1510,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     window.addEventListener('keydown', handleKeydown);
     window.addEventListener('beforeunload', handlePageExit);
     window.addEventListener('pagehide', handlePageExit);
+    window.addEventListener('storage', handleStorageChange);
   });
 
   onUnmounted(() => {
@@ -1509,6 +1518,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     window.removeEventListener('keydown', handleKeydown);
     window.removeEventListener('beforeunload', handlePageExit);
     window.removeEventListener('pagehide', handlePageExit);
+    window.removeEventListener('storage', handleStorageChange);
     if (typeof window !== 'undefined') {
       document.body.classList.remove('mode-classic', 'mode-expedition');
     }

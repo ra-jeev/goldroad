@@ -5,11 +5,16 @@ import {
   getEdgeType,
 } from '#shared/utils/puzzleEngine';
 import type { Direction } from '#shared/types/game';
-import { computeHint, guideHighlightTiles, hintRevealsNewTile } from '#shared/utils/hints';
+import {
+  computeHint,
+  guideHighlightTiles,
+  hintRevealsNewTile,
+} from '#shared/utils/hints';
 import { getNeighborId, parseTileIndex } from '#shared/utils/puzzleEngine';
 import { UI_COPY } from '../content/uiCopy';
 import { TUTORIAL_PRACTICE_GAME } from '../content/tutorialContent';
 import { buildInitialTileStates } from '../utils/boardUtils';
+import { getHintMessage } from '../utils/hintMessage';
 import {
   applyUndoLastStep,
   canUndoLastStep,
@@ -45,7 +50,13 @@ export function useTutorialPractice() {
   // Same contract as the live board: increments whenever a run ends badly,
   // so the board can call out the tile the player stopped on.
   const failSignal = ref(0);
-  const hintMessage = ref<string | null>(null);
+  const teachingMessage = ref<string | null>(null);
+  const hintKind = ref<ReturnType<typeof computeHint>['kind'] | null>(null);
+  const hintMessage = computed(() =>
+    hintKind.value
+      ? getHintMessage(hintKind.value, hintedTiles.value.size)
+      : teachingMessage.value,
+  );
   const undoAvailable = ref(false);
 
   const maxScore = computed(() => TUTORIAL_PRACTICE_GAME.maxScore);
@@ -91,7 +102,8 @@ export function useTutorialPractice() {
       retryCount.value > 0
         ? 'Fresh road, same rules. Hint is there if you want a nudge.'
         : initialStatus;
-    hintMessage.value = null;
+    teachingMessage.value = null;
+    hintKind.value = null;
     guidePath.value = [];
     undoAvailable.value = nextUndoAvailable('reset', false);
     syncGuideHighlight();
@@ -125,7 +137,7 @@ export function useTutorialPractice() {
     // The one practice-only exception: a gentle teaching nudge toward Hint,
     // routed through the hint-message slot so it actually renders mid-run.
     if (hintsUsed.value === 0 && moves.value >= 4) {
-      hintMessage.value =
+      teachingMessage.value =
         'If you are unsure which way to go, Hint can show the next useful move.';
     }
   }
@@ -155,7 +167,10 @@ export function useTutorialPractice() {
     tileFocusSignal.value += 1;
     score.value += (board.tiles[tileIndex] ?? 0) + modifier;
     moves.value += 1;
-    hintMessage.value = null;
+    teachingMessage.value = null;
+    if (!pathHistory.value.every((tile, index) => tile === guidePath.value[index])) {
+      hintKind.value = null;
+    }
     // The guide survives the move and simply shrinks as the player walks it,
     // matching the live board.
     syncGuideHighlight();
@@ -226,7 +241,8 @@ export function useTutorialPractice() {
     moves.value = result.moves;
     activeSet.value = new Set(result.activeNeighbors);
     undoAvailable.value = nextUndoAvailable('undo', false);
-    hintMessage.value = null;
+    teachingMessage.value = null;
+    hintKind.value = null;
     syncGuideHighlight();
     status.value =
       result.pathHistory.length <= 1
@@ -295,20 +311,11 @@ export function useTutorialPractice() {
       pathHistory.value,
       guidePath.value,
     );
-    const hintCopy =
-      hint.kind === 'next-step'
-        ? UI_COPY.runtime.hintNextStep
-        : hint.kind === 'already-solved'
-          ? UI_COPY.runtime.hintAlreadySolved
-          : UI_COPY.runtime.hintDiverged;
-    if (!hintRevealsNewTile(guidePath.value, hint.guidePath)) {
-      hintMessage.value = hintCopy;
-      return;
+    if (hintRevealsNewTile(guidePath.value, hint.guidePath)) {
+      hintsUsed.value += 1;
+      syncGuideHighlight(hint.guidePath);
     }
-
-    hintsUsed.value += 1;
-    syncGuideHighlight(hint.guidePath);
-    hintMessage.value = hintCopy;
+    hintKind.value = hint.kind;
   }
 
   resetPractice();

@@ -1,10 +1,9 @@
 import { computed } from 'vue';
-import { StorageSerializers, useStorage } from '@vueuse/core';
 import type { PuzzleType } from '#shared/types/game';
 import { hintRevealsNewTile } from '#shared/utils/hints';
 
-const STORAGE_KEY = 'goldroad-state-v2';
-const REPLAY_PROGRESS_STORAGE_KEY = 'goldroad-replay-progress-v2';
+export const GOLDROAD_STORAGE_KEY = 'goldroad-state-v2';
+export const REPLAY_PROGRESS_STORAGE_KEY = 'goldroad-replay-progress-v2';
 const STORAGE_VERSION = 2 as const;
 const FALLBACK_UUID = '00000000-0000-4000-8000-000000000000';
 const LEGACY_STORAGE_KEYS = [
@@ -21,6 +20,11 @@ const LEGACY_STORAGE_PREFIXES = [
 
 export type LocalProgressScope = 'live' | 'replay';
 
+export type SavedRoute = {
+  path: number[];
+  undoAvailable: boolean;
+};
+
 export type LocalPuzzleProgress = {
   attempts: number;
   solved: boolean;
@@ -29,8 +33,7 @@ export type LocalPuzzleProgress = {
   activeTimeMs: number;
   timerStartedAt: string | null;
   guidePath: number[];
-  /** True after this try has moved past the start coin. A refresh then spends the try. */
-  leftStart: boolean;
+  route: SavedRoute | null;
 };
 
 type PuzzleProgressRecord = LocalPuzzleProgress & {
@@ -125,46 +128,6 @@ function isStringArray(value: unknown): value is string[] {
   );
 }
 
-function isValidLocalPuzzleProgress(
-  value: unknown,
-): value is LocalPuzzleProgress {
-  if (!isPlainObject(value)) return false;
-
-  return (
-    typeof value.attempts === 'number' &&
-    typeof value.solved === 'boolean' &&
-    typeof value.hintsUsed === 'number' &&
-    isNullableNumber(value.solveTimeMs) &&
-    typeof value.activeTimeMs === 'number' &&
-    isNullableString(value.timerStartedAt) &&
-    isNumberArray(value.guidePath) &&
-    typeof value.leftStart === 'boolean'
-  );
-}
-
-function isValidPuzzleProgressRecord(
-  value: unknown,
-): value is PuzzleProgressRecord {
-  if (!isPlainObject(value) || !isValidLocalPuzzleProgress(value)) return false;
-
-  const candidate = value as Partial<PuzzleProgressRecord>;
-  return (
-    typeof candidate.day === 'string' &&
-    typeof candidate.gameNo === 'number' &&
-    isPuzzleType(candidate.puzzleType) &&
-    typeof candidate.updatedAt === 'string'
-  );
-}
-
-function isValidPuzzleProgressMap(
-  value: unknown,
-): value is Record<string, PuzzleProgressRecord> {
-  return (
-    isPlainObject(value) &&
-    Object.values(value).every(isValidPuzzleProgressRecord)
-  );
-}
-
 function normalizeStoredPuzzleProgressRecord(
   value: unknown,
 ): PuzzleProgressRecord | null {
@@ -204,7 +167,15 @@ function normalizeStoredPuzzleProgressRecord(
     activeTimeMs: typeof activeTimeMs === 'number' ? activeTimeMs : 0,
     timerStartedAt: isNullableString(timerStartedAt) ? timerStartedAt : null,
     guidePath: [...guidePath],
-    leftStart: value.leftStart === true,
+    route:
+      isPlainObject(value.route) &&
+      isNumberArray(value.route.path) &&
+      typeof value.route.undoAvailable === 'boolean'
+        ? {
+            path: [...value.route.path],
+            undoAvailable: value.route.undoAvailable,
+          }
+        : null,
     day,
     gameNo,
     puzzleType,
@@ -325,7 +296,7 @@ function createEmptyLocalPuzzleProgress(): LocalPuzzleProgress {
     activeTimeMs: 0,
     timerStartedAt: null,
     guidePath: [],
-    leftStart: false,
+    route: null,
   };
 }
 
@@ -380,7 +351,12 @@ function cloneLocalPuzzleProgress(
     activeTimeMs: progress.activeTimeMs,
     timerStartedAt: progress.timerStartedAt,
     guidePath: [...progress.guidePath],
-    leftStart: progress.leftStart === true,
+    route: progress.route
+      ? {
+          path: [...progress.route.path],
+          undoAvailable: progress.route.undoAvailable,
+        }
+      : null,
   };
 }
 
@@ -570,7 +546,7 @@ function normalizeStoredState(value: unknown): GoldroadLocalState | null {
     currentRoadContext: value.currentRoadContext,
     puzzleProgressByKey,
     // Legacy replay progress in the localStorage blob is deliberately
-    // dropped. Replay progress is session-scoped under its own storage key.
+    // dropped. Replay progress uses its own storage key.
     replayProgressByKey: {},
     historyByDay: value.historyByDay,
     archiveCompletionByGame: normalizeStoredArchiveCompletionMap(
@@ -589,16 +565,16 @@ function normalizeStoredState(value: unknown): GoldroadLocalState | null {
   };
 }
 
-function loadReplayProgressFromSessionStorage(): Record<
+function loadReplayProgress(): Record<
   string,
   PuzzleProgressRecord
 > {
   if (typeof window === 'undefined') return {};
 
   try {
-    const serialized = window.sessionStorage.getItem(
-      REPLAY_PROGRESS_STORAGE_KEY,
-    );
+    const serialized =
+      window.localStorage.getItem(REPLAY_PROGRESS_STORAGE_KEY) ??
+      window.sessionStorage.getItem(REPLAY_PROGRESS_STORAGE_KEY);
     if (!serialized) return {};
     return normalizeStoredPuzzleProgressMap(JSON.parse(serialized)) ?? {};
   } catch {
@@ -606,19 +582,18 @@ function loadReplayProgressFromSessionStorage(): Record<
   }
 }
 
-function persistReplayProgressToSessionStorage(
+function persistReplayProgress(
   replayProgressByKey: Record<string, PuzzleProgressRecord>,
 ) {
   if (typeof window === 'undefined') return;
 
   try {
-    window.sessionStorage.setItem(
-      REPLAY_PROGRESS_STORAGE_KEY,
-      JSON.stringify(replayProgressByKey),
-    );
+    const serialized = JSON.stringify(replayProgressByKey);
+    if (window.localStorage.getItem(REPLAY_PROGRESS_STORAGE_KEY) !== serialized) {
+      window.localStorage.setItem(REPLAY_PROGRESS_STORAGE_KEY, serialized);
+    }
   } catch {
-    // Session storage can be unavailable (for example, restrictive privacy
-    // settings). Replay progress is intentionally best-effort and ephemeral.
+    // Replay progress is best-effort when storage is unavailable.
   }
 }
 
@@ -627,7 +602,7 @@ function removeLegacyKeys() {
 
   for (let index = window.localStorage.length - 1; index >= 0; index -= 1) {
     const key = window.localStorage.key(index);
-    if (!key || key === STORAGE_KEY) continue;
+    if (!key || key === GOLDROAD_STORAGE_KEY) continue;
 
     if (
       LEGACY_STORAGE_KEYS.includes(
@@ -703,15 +678,6 @@ export function applyHintProgress<
 }
 
 export function useGoldroadLocalState() {
-  const storedState = useStorage<PersistedGoldroadLocalState | null>(
-    STORAGE_KEY,
-    null,
-    undefined,
-    {
-      serializer: StorageSerializers.object,
-      writeDefaults: false,
-    },
-  );
   const state = useState<GoldroadLocalState | null>(
     'goldroad-local-state',
     () => null,
@@ -720,8 +686,17 @@ export function useGoldroadLocalState() {
   function commit(nextState: GoldroadLocalState) {
     const snapshot = cloneState(nextState);
     state.value = snapshot;
-    storedState.value = createLocalStorageSnapshot(snapshot);
-    persistReplayProgressToSessionStorage(snapshot.replayProgressByKey);
+    if (typeof window !== 'undefined') {
+      try {
+        window.localStorage.setItem(
+          GOLDROAD_STORAGE_KEY,
+          JSON.stringify(createLocalStorageSnapshot(snapshot)),
+        );
+      } catch {
+        // Keep the in-memory board playable when storage is unavailable.
+      }
+    }
+    persistReplayProgress(snapshot.replayProgressByKey);
     return snapshot;
   }
 
@@ -733,12 +708,22 @@ export function useGoldroadLocalState() {
       return state.value;
     }
 
-    removeLegacyKeys();
+    try {
+      const raw = window.localStorage.getItem(GOLDROAD_STORAGE_KEY);
+      const normalized = raw ? normalizeStoredState(JSON.parse(raw)) : null;
+      if (normalized) {
+        normalized.replayProgressByKey = loadReplayProgress();
+        state.value = normalized;
+        return normalized;
+      }
+    } catch {
+      // A blocked store or malformed snapshot falls back to in-memory play.
+    }
 
-    const normalized =
-      normalizeStoredState(storedState.value) ?? createEmptyState();
-    normalized.replayProgressByKey = loadReplayProgressFromSessionStorage();
-    return commit(normalized);
+    if (state.value && state.value.playerUUID !== FALLBACK_UUID) return state.value;
+    const initial = createEmptyState();
+    initial.replayProgressByKey = loadReplayProgress();
+    return commit(initial);
   }
 
   function ensureLoaded(): GoldroadLocalState {
@@ -752,26 +737,10 @@ export function useGoldroadLocalState() {
     return state.value ?? createEmptyState(FALLBACK_UUID);
   }
 
-  /**
-   * Like ensureLoaded, but safe to build a WRITE on. The server renders
-   * with a FALLBACK_UUID placeholder that Nuxt hydrates into the shared
-   * state; committing a mutation derived from that placeholder would
-   * clobber the player's real stored data. Mutators run from event
-   * handlers and lifecycle hooks (never during render), so loading here
-   * is side-effect-safe.
-   */
+  // Read the latest snapshot before mutating so a tab cannot write back
+  // stale progress for a different road or mode.
   function ensureLoadedForWrite(): GoldroadLocalState {
-    if (
-      typeof window !== 'undefined' &&
-      state.value?.playerUUID === FALLBACK_UUID
-    ) {
-      const loaded = load();
-      if (loaded) {
-        return loaded;
-      }
-    }
-
-    return ensureLoaded();
+    return typeof window === 'undefined' ? ensureLoaded() : load();
   }
 
   function updatePuzzleProgress(options: {
@@ -831,11 +800,12 @@ export function useGoldroadLocalState() {
     gameNo: number,
     puzzleType: PuzzleType,
     scope: LocalProgressScope = 'live',
+    day?: string,
   ): LocalPuzzleProgress {
     const nextState = ensureLoaded();
     const key = buildPuzzleKey(gameNo, puzzleType);
     const progress = getProgressMap(nextState, scope)[key];
-    return progress
+    return progress && (day === undefined || progress.day === day)
       ? toLocalPuzzleProgress(progress)
       : createEmptyLocalPuzzleProgress();
   }
@@ -867,6 +837,7 @@ export function useGoldroadLocalState() {
     activeTimeMs: number;
     timerStartedAt: string | null;
     scope?: LocalProgressScope;
+    route?: SavedRoute | null;
   }): LocalPuzzleProgress {
     return updatePuzzleProgress({
       gameNo: options.gameNo,
@@ -876,44 +847,9 @@ export function useGoldroadLocalState() {
       syncHistory: false,
       updater: (progress) => ({
         ...progress,
-        activeTimeMs: Math.max(0, options.activeTimeMs),
+        activeTimeMs: Math.max(progress.activeTimeMs, options.activeTimeMs),
         timerStartedAt: options.timerStartedAt,
-        updatedAt: nowIso(),
-      }),
-    });
-  }
-
-  function setLeftStart(options: {
-    gameNo: number;
-    puzzleType: PuzzleType;
-    day: string;
-    leftStart: boolean;
-    scope?: LocalProgressScope;
-  }): LocalPuzzleProgress {
-    const scope = options.scope ?? 'live';
-    const nextState = ensureLoadedForWrite();
-    const key = buildPuzzleKey(options.gameNo, options.puzzleType);
-    const existing = getProgressMap(nextState, scope)[key];
-    if (
-      existing &&
-      existing.day === options.day &&
-      existing.leftStart === options.leftStart
-    ) {
-      return toLocalPuzzleProgress(existing);
-    }
-    if (!existing && !options.leftStart) {
-      return createEmptyLocalPuzzleProgress();
-    }
-
-    return updatePuzzleProgress({
-      gameNo: options.gameNo,
-      puzzleType: options.puzzleType,
-      day: options.day,
-      scope,
-      syncHistory: false,
-      updater: (progress) => ({
-        ...progress,
-        leftStart: options.leftStart,
+        route: options.route === undefined ? progress.route : options.route,
         updatedAt: nowIso(),
       }),
     });
@@ -960,7 +896,7 @@ export function useGoldroadLocalState() {
             ? options.timerStartedAt
             : progress.timerStartedAt,
         guidePath: options.solved ? [] : [...progress.guidePath],
-        leftStart: false,
+        route: null,
         updatedAt: nowIso(),
       }),
     });
@@ -1085,7 +1021,15 @@ export function useGoldroadLocalState() {
 
   return {
     state,
-    load,
+    load: () => {
+      try {
+        removeLegacyKeys();
+      } catch {
+        // Storage can be blocked by browser settings.
+      }
+      return load();
+    },
+    reload: load,
     playerUUID: computed(() => ensureLoaded().playerUUID),
     muted: computed(() => ensureLoaded().settings.muted),
     currentRoadContext: computed(() => ensureLoaded().currentRoadContext),
@@ -1099,6 +1043,7 @@ export function useGoldroadLocalState() {
             progress.attempts > 0 ||
             progress.solved ||
             progress.hintsUsed > 0 ||
+            progress.route !== null ||
             progress.activeTimeMs > 0,
         )
       );
@@ -1106,7 +1051,6 @@ export function useGoldroadLocalState() {
     getPuzzleProgress,
     recordHint,
     setSolveTimerState,
-    setLeftStart,
     recordRun,
     recordArchiveCompletion,
     isRoadModeSolved,

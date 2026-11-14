@@ -15,30 +15,9 @@ import {
   shouldStartSessionApi,
   shouldSubmitSessionEnd,
   shouldRecordArchiveCompletion,
-  shouldChargeAbandonedRun,
   resolveRunMedals,
 } from '../app/composables/useRoadDayGameplay';
 import { calcMedalForAttempt } from '../lib/gameTiers';
-
-describe('shouldChargeAbandonedRun', () => {
-  it('spends the try when a refresh drops a route past the start coin', () => {
-    expect(shouldChargeAbandonedRun({ solved: false, leftStart: true })).toBe(
-      true,
-    );
-  });
-
-  it('does not spend a try when the player is still on the start coin', () => {
-    expect(shouldChargeAbandonedRun({ solved: false, leftStart: false })).toBe(
-      false,
-    );
-  });
-
-  it('does not spend a try on a solved road', () => {
-    expect(shouldChargeAbandonedRun({ solved: true, leftStart: true })).toBe(
-      false,
-    );
-  });
-});
 
 describe('isDifferentGameIdentity', () => {
   it('treats the two modes of one road as different games', () => {
