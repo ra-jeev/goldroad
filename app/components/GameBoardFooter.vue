@@ -596,6 +596,7 @@ watch(
 }
 
 .footer-feedback {
+  --toast-slide-offset: 0.75rem;
   position: fixed;
   z-index: 100;
   inset-inline: 0;
@@ -645,6 +646,7 @@ watch(
 
 @media (max-height: 700px) {
   .footer-feedback {
+    --toast-slide-offset: -0.75rem;
     top: calc(0.75rem + env(safe-area-inset-top, 0px));
     bottom: auto;
   }
@@ -659,7 +661,7 @@ watch(
   .board-toast-enter-from,
   .board-toast-leave-to {
     opacity: 0;
-    transform: translateY(0.75rem);
+    transform: translateY(var(--toast-slide-offset));
   }
 }
 
