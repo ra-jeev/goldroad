@@ -185,16 +185,11 @@ onBeforeUnmount(() => {
         aria-labelledby="tutorial-practice-tab"
         :aria-label="COPY.practiceAriaLabel"
       >
-        <p class="score-line practice-score-line">
-          {{ UI_COPY.boardHeader.metrics.score }}
-          <strong>{{ practice.score.value }}</strong>
-          <span aria-hidden="true">/</span>
-          <span class="sr-only">{{ UI_COPY.boardHeader.metrics.target }}</span>
-          <strong>{{ practice.maxScore.value }}</strong>
-          <span>•</span>
-          {{ UI_COPY.boardHeader.metrics.boardTotal }}
-          <strong>{{ practice.totalCoins.value }}</strong>
-        </p>
+        <GameBoardMetrics
+          :score="practice.score.value"
+          :max-score="practice.maxScore.value"
+          :total-coins="practice.totalCoins.value"
+        />
 
         <GameBoard
           :board="practice.board"
@@ -453,8 +448,7 @@ onBeforeUnmount(() => {
   font-size: 1rem;
 }
 
-.lesson-card p,
-.score-line {
+.lesson-card p {
   margin: 0;
   color: rgb(var(--color-gold-rgb) / 0.8);
   line-height: var(--line-height-base);
@@ -465,24 +459,6 @@ onBeforeUnmount(() => {
   justify-items: center;
   gap: 1rem;
   padding-top: 0.25rem;
-}
-
-.practice-score-line {
-  width: min(100%, 620px);
-  text-align: center;
-}
-
-.score-line {
-  font-weight: 800;
-}
-
-.score-line strong {
-  color: var(--color-gold-bright);
-}
-
-.score-line span {
-  margin: 0 0.3rem;
-  color: rgb(var(--color-gold-rgb) / 0.4);
 }
 
 @media (max-width: 760px) {

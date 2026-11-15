@@ -118,8 +118,16 @@ withDefaults(
   justify-content: center;
   width: 100%;
   height: 100%;
-  color: var(--color-gold);
+  color: var(--road-type-color, var(--color-gold));
   opacity: 0.78;
+}
+
+.road-glyph--toll {
+  --road-type-color: var(--color-toll-bright);
+}
+
+.road-glyph--bonus {
+  --road-type-color: var(--color-bonus);
 }
 
 .road-glyph--closed {
@@ -137,7 +145,7 @@ withDefaults(
 
 .road-glyph--traversed {
   opacity: 1;
-  color: var(--color-gold-dark);
+  color: var(--road-type-color, var(--color-gold-dark));
   /* The road the game is named after used to materialise. It now draws itself
      in the direction of travel, and because the clip covers the whole glyph
      the arrow arrives with the stroke that carries it. */
@@ -241,7 +249,7 @@ withDefaults(
   width: 10px;
   height: 10px;
   flex-shrink: 0;
-  color: var(--color-gold-dark);
+  color: var(--road-type-color, var(--color-gold-dark));
 }
 
 .road-arrow--right {

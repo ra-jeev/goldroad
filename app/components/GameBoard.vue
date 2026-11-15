@@ -293,7 +293,7 @@ watch(
           class="board-info"
           aria-label="Expedition road values"
         >
-          <div class="info-item">
+          <div class="info-item info-item--toll">
             <span class="info-road" aria-hidden="true">
               <RoadGlyph type="toll" state="default" />
             </span>
@@ -301,19 +301,19 @@ watch(
               {{ UI_COPY.board.info.tollCost }}
             </span>
             <span class="info-value">
-              {{ board.tollValue }}
+              −{{ board.tollValue }}
             </span>
           </div>
           <span class="info-separator" aria-hidden="true">•</span>
-          <div class="info-item">
+          <div class="info-item info-item--bonus">
             <span class="info-road" aria-hidden="true">
               <RoadGlyph type="bonus" state="default" />
             </span>
-            <span>
+            <span class="info-label">
               {{ UI_COPY.board.info.roadBonus }}
             </span>
             <span class="info-value">
-              {{ board.bonusValue }}
+              +{{ board.bonusValue }}
             </span>
           </div>
         </div>
@@ -400,10 +400,21 @@ watch(
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: rgb(var(--color-gold-rgb) / 0.8);
   font-size: var(--font-size-board-meta);
   line-height: var(--line-height-snug);
   white-space: nowrap;
+}
+
+.info-item--toll {
+  color: var(--color-toll-bright);
+}
+
+.info-item--bonus {
+  color: var(--color-bonus);
+}
+
+.info-label {
+  opacity: 0.72;
 }
 
 .info-separator {
@@ -411,7 +422,6 @@ watch(
 }
 
 .info-value {
-  color: var(--color-gold-bright);
   font-size: 1.25rem;
   font-weight: 800;
   font-variant-numeric: tabular-nums;

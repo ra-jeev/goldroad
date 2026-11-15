@@ -66,7 +66,7 @@ test('live board and tutorial are usable', async ({ page }) => {
   );
   await expect(page.locator('.target-value')).toHaveCSS(
     'color',
-    'rgba(218, 165, 32, 0.72)',
+    'rgb(218, 165, 32)',
   );
   // The seed board is freshly generated, so the start tile's coin value
   // varies from run to run. Match the marker, not the number.
