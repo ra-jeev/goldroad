@@ -13,7 +13,7 @@ struct GoldRoadApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ClassicRoadView()
+            GoldRoadHomeView()
                 .preferredColorScheme(.dark)
         }
     }

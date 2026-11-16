@@ -1,0 +1,115 @@
+import SwiftUI
+
+struct GoldRoadHomeView: View {
+    @State private var showingRoad = false
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    brand
+                        .padding(.bottom, 32)
+
+                    dailyRoad
+                }
+                .frame(maxWidth: 460, alignment: .leading)
+                .padding(.horizontal, 24)
+                .padding(.top, 26)
+                .padding(.bottom, 40)
+                .frame(maxWidth: .infinity, alignment: .top)
+            }
+            .background(background)
+            .toolbar(.hidden, for: .navigationBar)
+            .navigationDestination(isPresented: $showingRoad) {
+                ClassicRoadView(onBack: { showingRoad = false })
+                    .toolbar(.hidden, for: .navigationBar)
+            }
+        }
+        .tint(RoadTheme.gold)
+    }
+
+    private var brand: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "sparkle")
+                .font(.system(size: 18, weight: .semibold))
+                .accessibilityHidden(true)
+            Text("GoldRoad")
+                .font(.custom("Marcellus-Regular", size: 25, relativeTo: .title2))
+        }
+        .foregroundStyle(
+            LinearGradient(colors: [RoadTheme.color(0xFFE8A3), RoadTheme.gold],
+                           startPoint: .top, endPoint: .bottom)
+        )
+        .accessibilityElement(children: .combine)
+    }
+
+    private var dailyRoad: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .center) {
+                Text("Daily Road")
+                    .font(.custom("Marcellus-Regular", size: 30, relativeTo: .title))
+                    .foregroundStyle(RoadTheme.color(0xFFE4A0))
+                    .accessibilityAddTraits(.isHeader)
+                Spacer()
+                Image(systemName: "sun.max")
+                    .font(.system(size: 20))
+                    .foregroundStyle(RoadTheme.gold.opacity(0.8))
+                    .accessibilityHidden(true)
+            }
+
+            Text("Reach the finish with exactly the target score. Solve Classic to unlock Expedition.")
+                .font(.body)
+                .foregroundStyle(RoadTheme.color(0xDDC79A))
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 12)
+
+            Button {
+                showingRoad = true
+            } label: {
+                HStack {
+                    Text("Open daily puzzle")
+                    Spacer(minLength: 12)
+                    Image(systemName: "arrow.right")
+                        .accessibilityHidden(true)
+                }
+                .font(.custom("Chivo-Bold", size: 16, relativeTo: .body))
+                .foregroundStyle(RoadTheme.ink)
+                .padding(.horizontal, 18)
+                .frame(minHeight: 52)
+                .background(
+                    LinearGradient(colors: [RoadTheme.color(0xF7D77E), RoadTheme.gold],
+                                   startPoint: .topLeading, endPoint: .bottomTrailing),
+                    in: RoundedRectangle(cornerRadius: 12)
+                )
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 28)
+        }
+        .padding(22)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            LinearGradient(colors: [RoadTheme.color(0x3A250C), RoadTheme.color(0x211407)],
+                           startPoint: .topLeading, endPoint: .bottomTrailing),
+            in: RoundedRectangle(cornerRadius: 20)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 20)
+                .strokeBorder(RoadTheme.gold.opacity(0.34), lineWidth: 1)
+        }
+    }
+
+    private var background: some View {
+        ZStack {
+            LinearGradient(colors: [RoadTheme.color(0x1A0E03), RoadTheme.color(0x110900), RoadTheme.color(0x0D0702)],
+                           startPoint: .top, endPoint: .bottom)
+            RadialGradient(colors: [RoadTheme.color(0xA05A00).opacity(0.24), .clear],
+                           center: .topLeading, startRadius: 0, endRadius: 360)
+        }
+        .ignoresSafeArea()
+    }
+}
+
+#Preview {
+    GoldRoadHomeView()
+        .preferredColorScheme(.dark)
+}

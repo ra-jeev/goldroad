@@ -11,6 +11,20 @@ struct ClassicRoad: Codable, Equatable {
     let maxScore: Int
     let playableAt: String
     let board: Board
+    var nextGameAt: String?
+
+    var cutoff: Date? {
+        guard let nextGameAt else { return nil }
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = formatter.date(from: nextGameAt) { return date }
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter.date(from: nextGameAt)
+    }
+
+    func isExpired(at date: Date) -> Bool {
+        cutoff.map { $0 <= date } ?? false
+    }
 }
 
 struct Board: Codable, Equatable {
@@ -73,7 +87,7 @@ struct RoadRun: Equatable {
         case deadEnd
     }
 
-    let road: ClassicRoad
+    private(set) var road: ClassicRoad
     private(set) var path: [Int]
     private(set) var undoAvailable = false
     private(set) var attempt = 1
@@ -111,6 +125,11 @@ struct RoadRun: Equatable {
     var legalMoves: [Int] { outcome == .inProgress ? unvisitedNeighbors : [] }
 
     var canUndo: Bool { undoAvailable && outcome == .inProgress }
+
+    mutating func updateSchedule(from publishedRoad: ClassicRoad) {
+        guard road.gameNo == publishedRoad.gameNo else { return }
+        road.nextGameAt = publishedRoad.nextGameAt ?? road.nextGameAt
+    }
 
     var visibleGuide: [Int] {
         let shared = zip(path, guidePath).prefix { $0.0 == $0.1 }.count

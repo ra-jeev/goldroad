@@ -61,3 +61,30 @@ let hintedSnapshot = try JSONDecoder().decode(RoadRun.Snapshot.self, from: hinte
 precondition(RoadRun(snapshot: hintedSnapshot) == hinted)
 
 print("Passed \(fixture.cases.count) gameplay cases, undo, hint progress, and save compatibility.")
+
+var outgoing = fixture.road
+outgoing.nextGameAt = "2026-01-02T00:00:00.000Z"
+let cutoff = outgoing.cutoff!
+let beforeCutoff = cutoff.addingTimeInterval(-1)
+let oldDay = ClassicRoadClient.RoadDay(classic: outgoing, expedition: nil)
+precondition(oldDay.availability(after: nil, at: beforeCutoff) == .open)
+precondition(oldDay.availability(after: nil, at: cutoff) == .waiting)
+precondition(oldDay.availability(after: outgoing, at: cutoff) == .sameDay)
+precondition(ClassicRoadClient.RoadDay(classic: nil, expedition: nil)
+    .availability(after: outgoing, at: cutoff) == .waiting)
+
+let incoming = ClassicRoad(gameNo: outgoing.gameNo + 1, maxScore: outgoing.maxScore,
+                           playableAt: "2026-01-02T00:00:00Z", board: outgoing.board,
+                           nextGameAt: "2026-01-03T00:00:00Z")
+let newDay = ClassicRoadClient.RoadDay(classic: incoming, expedition: outgoing)
+precondition(newDay.availability(after: outgoing, at: cutoff) == .ready)
+precondition(newDay.playableExpedition == nil)
+precondition(oldDay.availability(after: incoming, at: beforeCutoff) == .waiting)
+
+var restored = RoadRun(snapshot: legacySave)!
+restored.updateSchedule(from: outgoing)
+precondition(restored.road.isExpired(at: cutoff))
+precondition(restored.path == [0, 1] && restored.canUndo)
+restored.updateSchedule(from: incoming)
+precondition(restored.road == outgoing)
+print("Passed rollover availability and legacy schedule migration cases.")

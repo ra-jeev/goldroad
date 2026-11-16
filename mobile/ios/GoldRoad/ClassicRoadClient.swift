@@ -4,6 +4,24 @@ struct ClassicRoadClient {
     struct RoadDay: Decodable {
         let classic: ClassicRoad?
         let expedition: ClassicRoad?
+
+        var playableExpedition: ClassicRoad? {
+            guard let expedition, expedition.gameNo == classic?.gameNo,
+                  expedition.board.isPlayable else { return nil }
+            return expedition
+        }
+
+        func availability(after current: ClassicRoad?, at now: Date) -> Availability {
+            guard let classic, classic.board.isPlayable else { return .waiting }
+            if classic.gameNo == current?.gameNo { return .sameDay }
+            guard !classic.isExpired(at: now) else { return .waiting }
+            guard let current else { return .open }
+            return classic.gameNo > current.gameNo ? .ready : .waiting
+        }
+
+        enum Availability {
+            case waiting, sameDay, open, ready
+        }
     }
 
     struct Hint: Decodable {
@@ -44,7 +62,11 @@ struct ClassicRoadClient {
     func fetch() async throws -> RoadDay {
         let request = URLRequest(url: baseURL.appending(path: "api/games/current"),
                                  cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 15)
-        return try await send(request)
+        do {
+            return try await send(request)
+        } catch let error as HTTPError where error.status == 404 {
+            return RoadDay(classic: nil, expedition: nil)
+        }
     }
 
     func hint(for run: RoadRun, mode: RoadMode, player: UUID, session: UUID) async throws -> Hint {
@@ -61,9 +83,16 @@ struct ClassicRoadClient {
 
     private func send<Response: Decodable>(_ request: URLRequest) async throws -> Response {
         let (data, response) = try await URLSession.shared.data(for: request)
-        guard let response = response as? HTTPURLResponse, (200..<300).contains(response.statusCode) else {
+        guard let response = response as? HTTPURLResponse else {
             throw URLError(.badServerResponse)
         }
+        guard (200..<300).contains(response.statusCode) else {
+            throw HTTPError(status: response.statusCode)
+        }
         return try JSONDecoder().decode(Response.self, from: data)
+    }
+
+    private struct HTTPError: Error {
+        let status: Int
     }
 }

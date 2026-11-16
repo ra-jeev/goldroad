@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct ClassicRoadView: View {
+    var onBack: (() -> Void)? = nil
+
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage("classicRun.v1") private var savedClassic = Data()
     @AppStorage("expeditionRun.v1") private var savedExpedition = Data()
@@ -14,12 +16,18 @@ struct ClassicRoadView: View {
     @State private var isLoading = true
     @State private var notice: String?
     @State private var loadID = 0
+    @State private var nextDay: ClassicRoadClient.RoadDay?
+    @State private var waitingForRoad = false
+    @State private var now = Date()
     @State private var hintMessage: String?
     @State private var hintRequest: UUID?
     @State private var showHelp = false
 
     private let client = ClassicRoadClient()
     private var run: RoadRun? { mode == .classic ? classic : expedition }
+    private var roadExpired: Bool {
+        nextDay != nil || classic?.road.isExpired(at: now) == true
+    }
     private var expeditionUnlocked: Bool {
         classic?.outcome == .solved && classic?.road.gameNo == expedition?.road.gameNo
     }
@@ -40,10 +48,13 @@ struct ClassicRoadView: View {
                                 .font(.footnote)
                                 .foregroundStyle(RoadTheme.bright)
                                 .multilineTextAlignment(.center)
-                            if run == nil {
+                            if !waitingForRoad && !roadExpired {
                                 Button("Try again") { loadID += 1 }
                                     .buttonStyle(.bordered)
                             }
+                        }
+                        if run == nil && waitingForRoad {
+                            newRoadButton
                         }
                     }
                     .frame(maxWidth: 370)
@@ -65,16 +76,20 @@ struct ClassicRoadView: View {
         .foregroundStyle(RoadTheme.gold)
         .tint(RoadTheme.gold)
         .task(id: loadID) { await loadRoad() }
-        .onChange(of: scenePhase) { _, current in
-            if current == .active { loadID += 1 }
-        }
+        .onChange(of: scenePhase) { _, _ in loadID += 1 }
+        .onDisappear { clearInteraction() }
         .sheet(isPresented: $showHelp) { help }
     }
 
     private var header: some View {
         HStack(spacing: 9) {
-            Text("GoldRoad")
+            if let onBack {
+                iconButton("chevron.left", label: "Home", action: onBack)
+            }
+            Text(onBack == nil ? "GoldRoad" : "Daily Road")
                 .font(.custom("Marcellus-Regular", size: 24, relativeTo: .title2))
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
                 .foregroundStyle(
                     LinearGradient(colors: [RoadTheme.color(0xFFE08A), RoadTheme.darkGold],
                                    startPoint: .top, endPoint: .bottom)
@@ -92,8 +107,6 @@ struct ClassicRoadView: View {
                 if muted { sound.stop() }
             }
             iconButton("questionmark.circle", label: "How to play") { showHelp = true }
-            iconButton("arrow.clockwise", label: "Check for today’s road") { loadID += 1 }
-                .disabled(isLoading)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 5)
@@ -107,6 +120,12 @@ struct ClassicRoadView: View {
         VStack(spacing: 14) {
             modes
             metrics(run)
+            if roadExpired {
+                Text(nextDay == nil ? "You can still finish this road." : "The new road is ready. You can still finish this one.")
+                    .font(.footnote)
+                    .multilineTextAlignment(.center)
+                    .accessibilityIdentifier("rollover-notice")
+            }
             if mode == .expedition {
                 HStack(spacing: 18) {
                     Text("Toll −\(run.road.board.tollValue)").foregroundStyle(RoadTheme.toll)
@@ -126,6 +145,7 @@ struct ClassicRoadView: View {
                 .padding(.top, 7)
                 .accessibilityIdentifier("road-status")
             actions(run)
+            if roadExpired { newRoadButton }
         }
     }
 
@@ -152,7 +172,7 @@ struct ClassicRoadView: View {
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(RoadTheme.gold.opacity(locked ? 0.48 : active ? 1 : 0.72))
-                .disabled(locked)
+                .disabled(locked || roadExpired)
                 .accessibilityAddTraits(active ? .isSelected : [])
                 .accessibilityHint(locked ? "Solve Classic to unlock Expedition." : solved ? "Solved" : "")
             }
@@ -188,29 +208,31 @@ struct ClassicRoadView: View {
                 if run.canUndo {
                     iconButton("arrow.uturn.backward", label: "Undo") { undo() }
                 }
-                if run.path.count > 1 {
+                if run.path.count > 1 && !roadExpired {
                     iconButton("arrow.counterclockwise", label: "Restart") { restart() }
                 }
-                Button {
-                    requestHint(for: run)
-                } label: {
-                    Label("Hint", systemImage: "lightbulb.fill")
-                        .padding(.horizontal, 14)
-                        .frame(minHeight: 42)
+                if !roadExpired {
+                    Button {
+                        requestHint(for: run)
+                    } label: {
+                        Label("Hint", systemImage: "lightbulb.fill")
+                            .padding(.horizontal, 14)
+                            .frame(minHeight: 42)
+                    }
+                    .buttonStyle(.plain)
+                    .background(RoadTheme.gold.opacity(0.09), in: Capsule())
+                    .overlay(Capsule().strokeBorder(RoadTheme.gold.opacity(0.24), lineWidth: 1))
+                    .opacity(hintRequest != nil || run.hintsUsed >= 5 ? 0.55 : 1)
+                    .disabled(hintRequest != nil || run.hintsUsed >= 5)
+                    .accessibilityHint("\(5 - run.hintsUsed) hints left")
                 }
-                .buttonStyle(.plain)
-                .background(RoadTheme.gold.opacity(0.09), in: Capsule())
-                .overlay(Capsule().strokeBorder(RoadTheme.gold.opacity(0.24), lineWidth: 1))
-                .opacity(hintRequest != nil || run.hintsUsed >= 5 ? 0.55 : 1)
-                .disabled(hintRequest != nil || run.hintsUsed >= 5)
-                .accessibilityHint("\(5 - run.hintsUsed) hints left")
             } else if run.outcome == .solved {
-                if mode == .classic && expeditionUnlocked {
+                if mode == .classic && expeditionUnlocked && !roadExpired {
                     Button("Play Expedition") { switchMode(.expedition) }
                         .buttonStyle(.borderedProminent)
                         .foregroundStyle(RoadTheme.ink)
                 }
-            } else {
+            } else if !roadExpired {
                 Button("Try again", systemImage: "arrow.counterclockwise") { restart() }
                     .buttonStyle(.borderedProminent)
                     .foregroundStyle(RoadTheme.ink)
@@ -218,6 +240,21 @@ struct ClassicRoadView: View {
         }
         .font(.custom("Chivo-Bold", size: 16, relativeTo: .body))
         .frame(minHeight: 44)
+    }
+
+    private var newRoadButton: some View {
+        Button(nextDay == nil ? "Check for new road" : "Play the new road") {
+            if let nextDay,
+               nextDay.availability(after: classic?.road, at: Date()) == .ready {
+                openRoadDay(nextDay)
+                loadID += 1
+            } else {
+                nextDay = nil
+                loadID += 1
+            }
+        }
+        .buttonStyle(.bordered)
+        .disabled(isLoading)
     }
 
     private func iconButton(_ icon: String, label: String, action: @escaping () -> Void) -> some View {
@@ -304,7 +341,7 @@ struct ClassicRoadView: View {
     }
 
     private func restart() {
-        guard var run else { return }
+        guard !roadExpired, classic?.road.isExpired(at: Date()) != true, var run else { return }
         clearInteraction()
         run.restart()
         save(run, for: mode)
@@ -321,7 +358,8 @@ struct ClassicRoadView: View {
     }
 
     private func requestHint(for requestedRun: RoadRun) {
-        guard hintRequest == nil, requestedRun.hintsUsed < 5 else { return }
+        guard !roadExpired, classic?.road.isExpired(at: Date()) != true,
+              hintRequest == nil, requestedRun.hintsUsed < 5 else { return }
         let id = UUID()
         let mode = self.mode
         let player = UUID(uuidString: playerUUID) ?? UUID()
@@ -359,38 +397,90 @@ struct ClassicRoadView: View {
     }
 
     private func loadRoad() async {
+        guard scenePhase == .active else { return }
         if classic == nil { classic = restore(savedClassic) }
         if expedition == nil { expedition = restore(savedExpedition) }
         if !expeditionUnlocked { switchMode(.classic) }
         sound.prepare()
+        await checkForRoad()
+        guard !Task.isCancelled else { return }
+
+        if let cutoff = classic?.road.cutoff, !roadExpired {
+            do {
+                try await Task.sleep(for: .seconds(max(0, cutoff.timeIntervalSinceNow)))
+            } catch { return }
+            await checkForRoad()
+        }
+        for _ in 0..<5 {
+            guard !Task.isCancelled, nextDay == nil, waitingForRoad || roadExpired else { return }
+            do {
+                try await Task.sleep(for: .seconds(5))
+            } catch { return }
+            await checkForRoad()
+        }
+    }
+
+    private func checkForRoad() async {
+        guard !Task.isCancelled else { return }
+        now = Date()
+        if roadExpired { clearInteraction() }
         isLoading = true
-        notice = nil
+        defer { if !Task.isCancelled { isLoading = false } }
         do {
             let day = try await client.fetch()
             try Task.checkCancellation()
-            if let next = day.classic, next.board.isPlayable {
-                if classic?.road != next {
-                    switchMode(.classic)
-                    clearInteraction()
-                    save(RoadRun(road: next), for: .classic)
+            now = Date()
+            if nextDay?.classic?.isExpired(at: now) == true { nextDay = nil }
+            notice = nil
+            switch day.availability(after: classic?.road, at: now) {
+            case .open:
+                openRoadDay(day)
+            case .ready:
+                nextDay = day
+                waitingForRoad = false
+                clearInteraction()
+            case .sameDay:
+                if let published = day.classic, var run = classic {
+                    run.updateSchedule(from: published)
+                    if run != classic { save(run, for: .classic) }
                 }
-                let currentExpedition = day.expedition.flatMap {
-                    $0.gameNo == next.gameNo && $0.board.isPlayable ? $0 : nil
+                if !roadExpired, let published = day.playableExpedition {
+                    if var run = expedition, run.road.gameNo == published.gameNo {
+                        run.updateSchedule(from: published)
+                        if run != expedition { save(run, for: .expedition) }
+                    } else {
+                        save(RoadRun(road: published), for: .expedition)
+                    }
                 }
-                if expedition?.road != currentExpedition {
-                    if mode == .expedition { clearInteraction() }
-                    save(currentExpedition.map(RoadRun.init(road:)), for: .expedition)
+                waitingForRoad = roadExpired && nextDay == nil
+            case .waiting:
+                waitingForRoad = nextDay == nil && (classic == nil || roadExpired)
+                if !waitingForRoad && nextDay == nil {
+                    notice = "Today’s road is unavailable. You can still play the saved puzzle."
                 }
-                if !expeditionUnlocked { switchMode(.classic) }
-            } else {
-                notice = run == nil ? "Today’s road isn’t ready yet." : "Today’s road isn’t ready yet. You’re playing a saved road."
+            }
+            if waitingForRoad {
+                notice = "The new road is still being prepared."
+            }
+            if roadExpired {
+                hintMessage = nil
+                hintRequest = nil
             }
         } catch {
             guard !Task.isCancelled else { return }
-            notice = run == nil ? "Couldn’t load today’s road. Try again when you’re online."
-                : "Couldn’t load today’s road. You’re playing a saved road."
+            notice = "Couldn’t check for today’s road. Try again when you’re online."
         }
-        isLoading = false
+    }
+
+    private func openRoadDay(_ day: ClassicRoadClient.RoadDay) {
+        guard let newClassic = day.classic else { return }
+        clearInteraction()
+        nextDay = nil
+        waitingForRoad = false
+        notice = nil
+        mode = .classic
+        save(RoadRun(road: newClassic), for: .classic)
+        save(day.playableExpedition.map(RoadRun.init(road:)), for: .expedition)
     }
 }
 
