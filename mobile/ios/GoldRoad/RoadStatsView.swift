@@ -42,11 +42,18 @@ struct DailyRoadRecord: Codable, Identifiable {
 private struct StatsOverview: Decodable {
     struct Day: Decodable {
         struct Community: Decodable {
+            struct Behavior: Decodable {
+                let totalHints: Int
+                let averageSolveTimeMs: Int?
+                let bestSolveTimeMs: Int?
+            }
+
             let plays: Int
             let solveRate: Double
             let exactSolves: Int
             let solvedAttempts: [String: Int]
             let solvedAttemptsExact: [String: Int]
+            let behavior: Behavior
         }
         let gameNo: Int?
         let classic: Community?
@@ -204,11 +211,28 @@ struct RoadStatsView: View {
                         }
                     }
                 }
+                if let text = shareText(for: day) {
+                    ShareLink(item: text) {
+                        Label("Share today’s result", systemImage: "square.and.arrow.up")
+                    }
+                    .buttonStyle(.bordered)
+                }
             } else {
                 Text(loading ? "Loading today’s road…" : "Today’s road is unavailable.")
                     .font(.subheadline)
             }
         }
+    }
+
+    private func shareText(for day: Int) -> String? {
+        let results = (history ?? []).filter { $0.gameNo == day && $0.solved }.map {
+            RoadResult(gameNo: $0.gameNo, mode: $0.mode, attempts: $0.attempts,
+                       elapsed: $0.activeSeconds.map(Double.init), hintsUsed: $0.hintsUsed)
+        }
+        let classic = results.first { $0.mode == .classic }
+        let expedition = results.first { $0.mode == .expedition }
+        if let classic, let expedition { return expedition.dayShareText(with: classic) }
+        return (classic ?? expedition)?.shareText
     }
 
     private var personalCard: some View {
@@ -253,6 +277,13 @@ struct RoadStatsView: View {
                         Text("\(Int(field.solveRate.rounded()))% of roadgoers reached the finish.")
                             .font(.subheadline)
                         histogram(field.solvedAttempts)
+                        statRow("Hints used by solvers", "\(field.behavior.totalHints)")
+                        if let average = field.behavior.averageSolveTimeMs {
+                            statRow("Average solve time", duration(Int((Double(average) / 1000).rounded())))
+                        }
+                        if let fastest = field.behavior.bestSolveTimeMs {
+                            statRow("Fastest solve", duration(Int((Double(fastest) / 1000).rounded())))
+                        }
                     } else {
                         Text("No community results were recorded for this road.").font(.subheadline)
                     }
