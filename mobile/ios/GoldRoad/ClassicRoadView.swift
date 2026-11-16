@@ -336,7 +336,7 @@ struct ClassicRoadView: View {
         switch run.outcome {
         case .inProgress:
             run.path.count == 1 ? "You’re on the footprints. Step onto any glowing tile to begin." : ""
-        case .solved: "Solved."
+        case .solved: roadExpired ? "Solved. Saved to Past Roads." : "Solved."
         case .wrongTotal:
             "You reached the finish \(abs(run.road.maxScore - run.score)) \(run.score > run.road.maxScore ? "over" : "short of") the target."
         case .deadEnd: "Dead end. Walk it again to find the way through."
@@ -378,6 +378,7 @@ struct ClassicRoadView: View {
             feedback = BoardFeedback(tile: tile, kind: .step)
         case .solved:
             feedback = BoardFeedback(tile: tile, kind: .step)
+            ArchiveCompletion.record(run.road.gameNo, mode)
             play(.solve)
             resultPresented = countsAsDaily
         case .wrongTotal, .deadEnd:
@@ -480,8 +481,8 @@ struct ClassicRoadView: View {
 
     private func loadRoad() async {
         guard scenePhase == .active else { return }
-        if classic == nil { classic = restore(savedClassic) }
-        if expedition == nil { expedition = restore(savedExpedition) }
+        if classic == nil { classic = restore(savedClassic, mode: .classic) }
+        if expedition == nil { expedition = restore(savedExpedition, mode: .expedition) }
         if !expeditionUnlocked { switchMode(.classic) }
         sound.prepare()
         resumeClock()
@@ -501,6 +502,14 @@ struct ClassicRoadView: View {
             } catch { return }
             await checkForRoad()
         }
+    }
+
+    private func restore(_ data: Data, mode: RoadMode) -> RoadRun? {
+        let restored = restore(data)
+        if let restored, restored.outcome == .solved {
+            ArchiveCompletion.record(restored.road.gameNo, mode)
+        }
+        return restored
     }
 
     private func checkForRoad() async {

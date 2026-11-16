@@ -11,6 +11,13 @@ struct GoldRoadHomeView: View {
                         .padding(.bottom, 32)
 
                     dailyRoad
+                    NavigationLink {
+                        PastRoadsView()
+                    } label: {
+                        destinationLabel("Past Roads", icon: "calendar", actionIcon: "chevron.right")
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.top, 16)
                 }
                 .frame(maxWidth: 460, alignment: .leading)
                 .padding(.horizontal, 24)
@@ -26,6 +33,22 @@ struct GoldRoadHomeView: View {
             }
         }
         .tint(RoadTheme.gold)
+    }
+
+    private func destinationLabel(_ title: String, icon: String, actionIcon: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon).accessibilityHidden(true)
+            Text(title)
+            Spacer()
+            Image(systemName: actionIcon)
+                .font(.footnote.weight(.semibold))
+                .accessibilityHidden(true)
+        }
+        .font(.custom("Chivo-Bold", size: 16, relativeTo: .body))
+        .foregroundStyle(RoadTheme.gold)
+        .padding(16)
+        .frame(minHeight: 52)
+        .background(RoadTheme.gold.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
     }
 
     private var brand: some View {

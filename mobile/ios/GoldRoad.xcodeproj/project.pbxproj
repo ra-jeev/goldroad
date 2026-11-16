@@ -18,6 +18,7 @@
 		8CCB3376FF1E9EECE2EE5F07 /* ClassicRoadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97E1B26709CF2358A8B397F9 /* ClassicRoadView.swift */; };
 		FDC19E9CA58A044A3AFAB05D /* ClassicRoad.swift in Sources */ = {isa = PBXBuildFile; fileRef = 056A77F573C242782ADED410 /* ClassicRoad.swift */; };
 		C4DBC16CB513429CA86536C0 /* RoadResultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE9463F3280647D8B8803DB0 /* RoadResultView.swift */; };
+		CDA3594266EA42B798D7F0A7 /* PastRoadsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DEC0384A4A345978C981AA3 /* PastRoadsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -33,6 +34,7 @@
 		97E1B26709CF2358A8B397F9 /* ClassicRoadView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClassicRoadView.swift; sourceTree = "<group>"; };
 		A5FA69F805201210BDDEF7F6 /* RoadBoardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoadBoardView.swift; sourceTree = "<group>"; };
 		CE9463F3280647D8B8803DB0 /* RoadResultView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoadResultView.swift; sourceTree = "<group>"; };
+		8DEC0384A4A345978C981AA3 /* PastRoadsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PastRoadsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -47,6 +49,7 @@
 				6E58D01CD978BBCAE716621A /* GoldRoadApp.swift */,
 				CA23179CE0534AA2AE096520 /* GoldRoadHomeView.swift */,
 				A5FA69F805201210BDDEF7F6 /* RoadBoardView.swift */,
+				8DEC0384A4A345978C981AA3 /* PastRoadsView.swift */,
 				CE9463F3280647D8B8803DB0 /* RoadResultView.swift */,
 				CA23179CE0534AA2AE096512 /* RoadSound.swift */,
 				CA23179CE0534AA2AE096518 /* sounds */,
@@ -145,6 +148,7 @@
 				0810D420C37F3D8944FC5732 /* GoldRoadApp.swift in Sources */,
 				CA23179CE0534AA2AE096521 /* GoldRoadHomeView.swift in Sources */,
 				6A1D35478F75095807F5907E /* RoadBoardView.swift in Sources */,
+				CDA3594266EA42B798D7F0A7 /* PastRoadsView.swift in Sources */,
 				C4DBC16CB513429CA86536C0 /* RoadResultView.swift in Sources */,
 				CA23179CE0534AA2AE096511 /* RoadSound.swift in Sources */,
 			);
