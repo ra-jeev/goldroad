@@ -25,9 +25,10 @@ struct ClassicRoadView: View {
     @State private var confirmRestart = false
     @State private var resultPresented = false
     @State private var activeSince: TimeInterval?
+    @State private var replay: RoadRun?
 
     private let client = ClassicRoadClient()
-    private var run: RoadRun? { mode == .classic ? classic : expedition }
+    private var run: RoadRun? { replay ?? (mode == .classic ? classic : expedition) }
     private var roadExpired: Bool {
         nextDay != nil || classic?.road.isExpired(at: now) == true
     }
@@ -185,7 +186,22 @@ struct ClassicRoadView: View {
                 .padding(.top, 7)
                 .accessibilityIdentifier("road-status")
             actions(run)
+            replayAction(run)
             if roadExpired { newRoadButton }
+            if replay == nil, run.outcome == .solved, !roadExpired,
+               let cutoff = classic?.road.cutoff {
+                TimelineView(.periodic(from: .now, by: 1)) { context in
+                    if cutoff > context.date {
+                        HStack(spacing: 5) {
+                            Text("Next road in")
+                            Text(timerInterval: context.date...cutoff, countsDown: true)
+                                .monospacedDigit()
+                                .fixedSize()
+                        }
+                        .font(.footnote)
+                    }
+                }
+            }
         }
     }
 
@@ -251,7 +267,7 @@ struct ClassicRoadView: View {
                 if run.path.count > 1 && !roadExpired {
                     iconButton("arrow.counterclockwise", label: "Try again") { confirmRestart = true }
                 }
-                if !roadExpired {
+                if !roadExpired && replay == nil {
                     Button {
                         requestHint(for: run)
                     } label: {
@@ -268,7 +284,7 @@ struct ClassicRoadView: View {
                     .accessibilityHint("\(5 - run.hintsUsed) hints left")
                 }
             } else if run.outcome == .solved {
-                if !roadExpired {
+                if !roadExpired && replay == nil {
                     Button("View result", systemImage: "medal") { resultPresented = true }
                         .buttonStyle(.bordered)
                 }
@@ -285,6 +301,23 @@ struct ClassicRoadView: View {
         }
         .font(.custom("Chivo-Bold", size: 16, relativeTo: .body))
         .frame(minHeight: 44)
+    }
+
+    @ViewBuilder
+    private func replayAction(_ run: RoadRun) -> some View {
+        if replay != nil {
+            Button("End replay") {
+                replay = nil
+                clearInteraction()
+            }
+            .buttonStyle(.bordered)
+        } else if run.outcome == .solved, !roadExpired {
+            Button("Replay road") {
+                clearInteraction()
+                replay = RoadRun(road: run.road)
+            }
+            .buttonStyle(.bordered)
+        }
     }
 
     private var newRoadButton: some View {
@@ -320,7 +353,8 @@ struct ClassicRoadView: View {
         switch run.outcome {
         case .inProgress:
             run.path.count == 1 ? "You’re on the footprints. Step onto any glowing tile to begin." : ""
-        case .solved: roadExpired ? "Solved. Saved to Past Roads." : "Solved."
+        case .solved:
+            replay != nil ? "Solved again." : roadExpired ? "Solved. Saved to Past Roads." : "Solved."
         case .wrongTotal:
             "You reached the finish \(abs(run.road.maxScore - run.score)) \(run.score > run.road.maxScore ? "over" : "short of") the target."
         case .deadEnd: "Dead end. Walk it again to find the way through."
@@ -331,6 +365,7 @@ struct ClassicRoadView: View {
         guard self.mode != mode else { return }
         pauseClock()
         clearInteraction()
+        replay = nil
         self.mode = mode
         resumeClock()
     }
@@ -348,13 +383,13 @@ struct ClassicRoadView: View {
         }
 
         clearInteraction()
-        let countsAsDaily = !roadExpired && classic?.road.isExpired(at: Date()) != true
+        let countsAsDaily = replay == nil && !roadExpired && classic?.road.isExpired(at: Date()) != true
         if countsAsDaily {
             if activeSince == nil { activeSince = ProcessInfo.processInfo.systemUptime }
             bankTime(into: &run)
         }
         run.select(tile)
-        save(run, for: mode)
+        saveProgress(run)
         if countsAsDaily {
             DailyRoadRecord.record(run, mode: mode)
             DailyRoadAnalytics.shared.startIfNeeded(for: run, mode: mode)
@@ -381,7 +416,7 @@ struct ClassicRoadView: View {
         clearInteraction()
         bankTime(into: &run)
         run.undo()
-        save(run, for: mode)
+        saveProgress(run)
         resumeClock()
         play(.undo)
     }
@@ -391,8 +426,8 @@ struct ClassicRoadView: View {
         clearInteraction()
         bankTime(into: &run)
         run.restart()
-        save(run, for: mode)
-        DailyRoadRecord.record(run, mode: mode)
+        saveProgress(run)
+        if replay == nil { DailyRoadRecord.record(run, mode: mode) }
     }
 
     private func play(_ effect: RoadSound.Effect) {
@@ -417,7 +452,7 @@ struct ClassicRoadView: View {
     }
 
     private func resumeClock() {
-        guard activeSince == nil, scenePhase == .active, !roadExpired, !showHelp,
+        guard activeSince == nil, scenePhase == .active, replay == nil, !roadExpired, !showHelp,
               !confirmRestart, !resultPresented, let run,
               run.outcome != .solved, run.path.count > 1 else { return }
         activeSince = ProcessInfo.processInfo.systemUptime
@@ -463,6 +498,10 @@ struct ClassicRoadView: View {
             expedition = run
             savedExpedition = data
         }
+    }
+
+    private func saveProgress(_ run: RoadRun) {
+        if replay != nil { replay = run } else { save(run, for: mode) }
     }
 
     private func restore(_ data: Data) -> RoadRun? {
@@ -565,6 +604,7 @@ struct ClassicRoadView: View {
         guard let newClassic = day.classic else { return }
         pauseClock()
         clearInteraction()
+        replay = nil
         nextDay = nil
         waitingForRoad = false
         notice = nil
