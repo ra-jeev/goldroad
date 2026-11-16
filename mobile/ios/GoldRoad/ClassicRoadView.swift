@@ -355,7 +355,10 @@ struct ClassicRoadView: View {
         }
         run.select(tile)
         save(run, for: mode)
-        if countsAsDaily { DailyRoadRecord.record(run, mode: mode) }
+        if countsAsDaily {
+            DailyRoadRecord.record(run, mode: mode)
+            DailyRoadAnalytics.shared.startIfNeeded(for: run, mode: mode)
+        }
         play(.move)
         if countsAsDaily && run.outcome != .solved { resumeClock() }
         switch run.outcome {
@@ -365,6 +368,7 @@ struct ClassicRoadView: View {
             feedback = BoardFeedback(tile: tile, kind: .step)
             ArchiveCompletion.record(run.road.gameNo, mode)
             play(.solve)
+            if countsAsDaily { DailyRoadAnalytics.shared.recordSolve(for: run, mode: mode) }
             resultPresented = countsAsDaily
         case .wrongTotal, .deadEnd:
             feedback = BoardFeedback(tile: tile, kind: .failed)

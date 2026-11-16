@@ -27,6 +27,11 @@ struct GoldRoadHomeView: View {
                     }
                     .buttonStyle(.plain)
                     .padding(.top, 10)
+                    Link(destination: URL(string: "https://playgoldroad.com/about")!) {
+                        destinationLabel("About & Privacy", icon: "info.circle", actionIcon: "arrow.up.right")
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.top, 10)
                     Button {
                         showingTutorial = true
                     } label: {

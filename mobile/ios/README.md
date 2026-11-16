@@ -6,6 +6,8 @@ Open the daily puzzle from Home. Solve Classic to unlock Expedition. Both runs a
 
 Hints use the live GoldRoad API. The app bundles the web sound effects from `public/sounds`. Use the speaker button to mute or unmute them.
 
+The app keeps daily history and Past Roads completion on the device. It sends the same anonymous start and exact-solve events as the web app for the live daily puzzle. Practice, archive play, and solves after rollover stay local.
+
 ## Verify the rules
 
 From the repository root, use the Swift compiler to run the gameplay and save tests without a simulator.
