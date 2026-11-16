@@ -1,16 +1,10 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import type { EdgeType } from '#shared/types/game';
 
-/*
- * Toll and bonus roads are drawn as two parallel rails inside the road's
- * `--road-thickness` band. The rails sit at 4/24 and 20/24 of the band rather
- * than 6/18: with a non-scaling 3.2px stroke, the old positions left barely
- * 2px of dark space between the rails on a phone, so the pair merged into one
- * thick line and the toll/bonus distinction disappeared.
- */
 type RoadVisualType = 'open' | EdgeType;
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     type: RoadVisualType;
     state?: 'default' | 'closed' | 'active' | 'traversed' | 'guide';
@@ -25,6 +19,10 @@ withDefaults(
     orientation: 'h',
   },
 );
+
+const hasDoubleRails = computed(
+  () => props.type === 'toll' || props.type === 'bonus',
+);
 </script>
 
 <template>
@@ -38,7 +36,7 @@ withDefaults(
     ]"
   >
     <svg
-      v-if="type === 'toll'"
+      v-if="hasDoubleRails"
       class="road-icon"
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
@@ -46,31 +44,13 @@ withDefaults(
       aria-hidden="true"
     >
       <path
-        class="toll-rail"
+        :class="{ 'toll-rail': type === 'toll' }"
         fill="none"
         stroke="currentColor"
-        stroke-linecap="butt"
+        :stroke-linecap="type === 'toll' ? 'butt' : 'round'"
         stroke-width="3.2"
         vector-effect="non-scaling-stroke"
-        :d="orientation === 'h' ? 'M0 4H24M0 20H24' : 'M4 0V24M20 0V24'"
-      />
-    </svg>
-
-    <svg
-      v-else-if="type === 'bonus'"
-      class="road-icon"
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      preserveAspectRatio="none"
-      aria-hidden="true"
-    >
-      <path
-        fill="none"
-        stroke="currentColor"
-        stroke-linecap="round"
-        stroke-width="3.2"
-        vector-effect="non-scaling-stroke"
-        :d="orientation === 'h' ? 'M0 4H24M0 20H24' : 'M4 0V24M20 0V24'"
+        :d="orientation === 'h' ? 'M0 -1.4H24M0 25.4H24' : 'M-1.4 0V24M25.4 0V24'"
       />
     </svg>
 
@@ -94,11 +74,14 @@ withDefaults(
 
     <svg
       v-if="arrowDir"
-      :class="['road-arrow', `road-arrow--${arrowDir}`]"
+      :class="['road-arrow', `road-arrow--${arrowDir}`, { 'road-arrow--triangle': hasDoubleRails }]"
       xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 32 32"
+      :viewBox="hasDoubleRails ? '0 0 6.235 7.2' : '0 0 32 32'"
+      aria-hidden="true"
     >
+      <path v-if="hasDoubleRails" fill="currentColor" d="M0 0L6.235 3.6L0 7.2Z" />
       <path
+        v-else
         fill="none"
         stroke="currentColor"
         stroke-linecap="round"
@@ -112,6 +95,7 @@ withDefaults(
 
 <style scoped>
 .road-glyph {
+  --rail-clip-inset: 0px;
   position: relative;
   display: flex;
   align-items: center;
@@ -128,6 +112,13 @@ withDefaults(
 
 .road-glyph--bonus {
   --road-type-color: var(--color-bonus);
+}
+
+.road-glyph--toll,
+.road-glyph--bonus {
+  /* The wider rails extend beyond the road band. Leave room for them
+     and their shadow while the travelled path draws itself. */
+  --rail-clip-inset: -5px;
 }
 
 .road-glyph--closed {
@@ -176,41 +167,41 @@ withDefaults(
 
 @keyframes road-draw-right {
   from {
-    clip-path: inset(0 100% 0 0);
+    clip-path: inset(var(--rail-clip-inset) 100% var(--rail-clip-inset) 0);
   }
 
   to {
-    clip-path: inset(0 0 0 0);
+    clip-path: inset(var(--rail-clip-inset) 0 var(--rail-clip-inset) 0);
   }
 }
 
 @keyframes road-draw-left {
   from {
-    clip-path: inset(0 0 0 100%);
+    clip-path: inset(var(--rail-clip-inset) 0 var(--rail-clip-inset) 100%);
   }
 
   to {
-    clip-path: inset(0 0 0 0);
+    clip-path: inset(var(--rail-clip-inset) 0 var(--rail-clip-inset) 0);
   }
 }
 
 @keyframes road-draw-down {
   from {
-    clip-path: inset(0 0 100% 0);
+    clip-path: inset(0 var(--rail-clip-inset) 100% var(--rail-clip-inset));
   }
 
   to {
-    clip-path: inset(0 0 0 0);
+    clip-path: inset(0 var(--rail-clip-inset) 0 var(--rail-clip-inset));
   }
 }
 
 @keyframes road-draw-up {
   from {
-    clip-path: inset(100% 0 0 0);
+    clip-path: inset(100% var(--rail-clip-inset) 0 var(--rail-clip-inset));
   }
 
   to {
-    clip-path: inset(0 0 0 0);
+    clip-path: inset(0 var(--rail-clip-inset) 0 var(--rail-clip-inset));
   }
 }
 
@@ -250,25 +241,32 @@ withDefaults(
   height: 10px;
   flex-shrink: 0;
   color: var(--road-type-color, var(--color-gold-dark));
+  transform: rotate(var(--arrow-angle, 0deg));
 }
 
 .road-arrow--right {
   right: -2px;
-  transform: rotate(0deg);
 }
 
 .road-arrow--down {
+  --arrow-angle: 90deg;
   bottom: -2px;
-  transform: rotate(90deg);
 }
 
 .road-arrow--left {
+  --arrow-angle: 180deg;
   left: -2px;
-  transform: rotate(180deg);
 }
 
 .road-arrow--up {
+  --arrow-angle: 270deg;
   top: -2px;
-  transform: rotate(270deg);
+}
+
+.road-arrow--triangle {
+  inset: 50% auto auto 50%;
+  width: 6.235px;
+  height: 7.2px;
+  transform: translate(-50%, -50%) rotate(var(--arrow-angle, 0deg));
 }
 </style>
