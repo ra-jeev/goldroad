@@ -59,6 +59,13 @@ precondition(hinted.hintsUsed == 1 && hinted.attempt == 2)
 let hintedData = try JSONEncoder().encode(hinted.snapshot)
 let hintedSnapshot = try JSONDecoder().decode(RoadRun.Snapshot.self, from: hintedData)
 precondition(RoadRun(snapshot: hintedSnapshot) == hinted)
+hinted.applyHint([0, 1])
+hinted.applyHint([0, 1, 4])
+precondition(hinted.hintsUsed == 1 && hinted.guidePath == [0, 1, 4])
+hinted.applyHint([0, 1, 4, 5])
+precondition(hinted.hintsUsed == 2 && hinted.guidePath == [0, 1, 4, 5])
+hinted.applyHint([0, 1, 2])
+precondition(hinted.hintsUsed == 3 && hinted.guidePath == [0, 1, 2])
 
 print("Passed \(fixture.cases.count) gameplay cases, undo, hint progress, and save compatibility.")
 

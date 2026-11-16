@@ -80,7 +80,8 @@ struct RoadBoardView: View {
                 let closed = visited.contains(from) || visited.contains(to)
                 let adjustment = board.adjustment(from: from, to: to)
                 let normal = adjustment < 0 ? RoadTheme.toll : adjustment > 0 ? RoadTheme.bonus : RoadTheme.gold
-                let color = walked[key] != nil ? RoadTheme.darkGold : guide[key] != nil ? RoadTheme.hint : normal
+                let color = guide[key] != nil && walked[key] == nil ? RoadTheme.hint
+                    : walked[key] != nil && adjustment == 0 ? RoadTheme.darkGold : normal
                 let opacity = direction != nil || active ? 1.0 : closed ? 0.26 : 0.78
 
                 let horizontal = to - from == 1
@@ -110,15 +111,27 @@ struct RoadBoardView: View {
                 }
 
                 if let direction {
-                    let tip = direction ? length : 0
-                    let tail = direction ? tip - 4.5 : tip + 4.5
-                    let arrow = Path { path in
-                        path.move(to: point(tail, -4))
-                        path.addLine(to: point(tip, 0))
-                        path.addLine(to: point(tail, 4))
+                    if adjustment != 0 {
+                        let sign: CGFloat = direction ? 1 : -1
+                        let middle = length / 2
+                        let arrow = Path { path in
+                            path.move(to: point(middle + sign * 3.1175, 0))
+                            path.addLine(to: point(middle - sign * 3.1175, -3.6))
+                            path.addLine(to: point(middle - sign * 3.1175, 3.6))
+                            path.closeSubpath()
+                        }
+                        context.fill(arrow, with: .color(color))
+                    } else {
+                        let tip = direction ? length : 0
+                        let tail = direction ? tip - 4.5 : tip + 4.5
+                        let arrow = Path { path in
+                            path.move(to: point(tail, -4))
+                            path.addLine(to: point(tip, 0))
+                            path.addLine(to: point(tail, 4))
+                        }
+                        context.stroke(arrow, with: .color(color),
+                                       style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
                     }
-                    context.stroke(arrow, with: .color(color),
-                                   style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
                 }
             }
         }

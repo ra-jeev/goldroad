@@ -22,6 +22,7 @@ struct ClassicRoadView: View {
     @State private var hintMessage: String?
     @State private var hintRequest: UUID?
     @State private var showHelp = false
+    @State private var confirmRestart = false
 
     private let client = ClassicRoadClient()
     private var run: RoadRun? { mode == .classic ? classic : expedition }
@@ -79,6 +80,15 @@ struct ClassicRoadView: View {
         .onChange(of: scenePhase) { _, _ in loadID += 1 }
         .onDisappear { clearInteraction() }
         .sheet(isPresented: $showHelp) { help }
+        .alert("Start over?", isPresented: $confirmRestart) {
+            Button("Keep playing", role: .cancel) {}
+            Button("Try again", role: .destructive) { restart() }
+        } message: {
+            Text("This ends your current try and starts a new one.")
+        }
+        .onChange(of: roadExpired) { _, expired in
+            if expired { confirmRestart = false }
+        }
     }
 
     private var header: some View {
@@ -209,13 +219,14 @@ struct ClassicRoadView: View {
                     iconButton("arrow.uturn.backward", label: "Undo") { undo() }
                 }
                 if run.path.count > 1 && !roadExpired {
-                    iconButton("arrow.counterclockwise", label: "Restart") { restart() }
+                    iconButton("arrow.counterclockwise", label: "Try again") { confirmRestart = true }
                 }
                 if !roadExpired {
                     Button {
                         requestHint(for: run)
                     } label: {
-                        Label("Hint", systemImage: "lightbulb.fill")
+                        Label(hintRequest != nil ? "Loading hint…" : "Hint · \(5 - run.hintsUsed)",
+                              systemImage: "lightbulb.fill")
                             .padding(.horizontal, 14)
                             .frame(minHeight: 42)
                     }
@@ -369,10 +380,11 @@ struct ClassicRoadView: View {
             defer { if hintRequest == id { hintRequest = nil } }
             do {
                 let hint = try await client.hint(for: requestedRun, mode: mode, player: player, session: id)
-                guard hintRequest == id, var run, run == requestedRun else { return }
+                guard hintRequest == id, !roadExpired, var run, run == requestedRun,
+                      !run.road.isExpired(at: Date()) else { return }
                 run.applyHint(hint.guidePath)
                 save(run, for: mode)
-                hintMessage = hint.message
+                hintMessage = hint.message(highlightedCount: max(0, run.visibleGuide.count - 1))
             } catch {
                 if hintRequest == id { hintMessage = "Couldn’t load a hint. Try again in a moment." }
             }

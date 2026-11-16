@@ -137,6 +137,13 @@ struct RoadRun: Equatable {
     }
 
     mutating func applyHint(_ route: [Int]) {
+        guard hintsUsed < 5, !guidePath.starts(with: route),
+              route.first == road.board.start,
+              Set(route).count == route.count,
+              route.allSatisfy(road.board.tiles.indices.contains),
+              zip(route, route.dropFirst()).allSatisfy({
+                  road.board.neighbors(of: $0.0).contains($0.1)
+              }) else { return }
         hintsUsed += 1
         guidePath = route
     }

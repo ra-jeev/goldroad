@@ -34,9 +34,12 @@ struct ClassicRoadClient {
         let kind: Kind
         let guidePath: [Int]
 
-        var message: String {
+        func message(highlightedCount: Int) -> String? {
             switch kind {
-            case .nextStep: "The highlighted tile is your next move."
+            case .nextStep:
+                highlightedCount == 0 ? nil : highlightedCount == 1
+                    ? "The highlighted tile is your next move."
+                    : "Follow the highlighted path."
             case .diverged: "Paths diverged. Try again and follow the highlighted path."
             case .alreadySolved: "You already found the best route."
             }
@@ -50,6 +53,7 @@ struct ClassicRoadClient {
         let sessionId: UUID
         let attemptNumber: Int
         let pathHistory: [Int]
+        let guidePath: [Int]
     }
 
     private struct HintResponse: Decodable {
@@ -71,7 +75,8 @@ struct ClassicRoadClient {
 
     func hint(for run: RoadRun, mode: RoadMode, player: UUID, session: UUID) async throws -> Hint {
         let payload = HintRequest(playerUUID: player, gameNo: run.road.gameNo, puzzleType: mode.rawValue,
-                                  sessionId: session, attemptNumber: run.attempt, pathHistory: run.path)
+                                  sessionId: session, attemptNumber: run.attempt, pathHistory: run.path,
+                                  guidePath: run.guidePath)
         var request = URLRequest(url: baseURL.appending(path: "api/session/hint"), timeoutInterval: 15)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
