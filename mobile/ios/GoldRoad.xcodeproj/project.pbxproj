@@ -1,0 +1,335 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		CA23179CE0534AA2AE096511 /* RoadSound.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA23179CE0534AA2AE096512 /* RoadSound.swift */; };
+		CA23179CE0534AA2AE096513 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CA23179CE0534AA2AE096514 /* Assets.xcassets */; };
+		CA23179CE0534AA2AE096515 /* Fonts in Resources */ = {isa = PBXBuildFile; fileRef = CA23179CE0534AA2AE096516 /* Fonts */; };
+		CA23179CE0534AA2AE096517 /* sounds in Resources */ = {isa = PBXBuildFile; fileRef = CA23179CE0534AA2AE096518 /* sounds */; };
+		0810D420C37F3D8944FC5732 /* GoldRoadApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E58D01CD978BBCAE716621A /* GoldRoadApp.swift */; };
+		11B120DA1254606160CC860C /* ClassicRoadClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A989F8730EA004A8FC55748 /* ClassicRoadClient.swift */; };
+		6A1D35478F75095807F5907E /* RoadBoardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5FA69F805201210BDDEF7F6 /* RoadBoardView.swift */; };
+		8CCB3376FF1E9EECE2EE5F07 /* ClassicRoadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97E1B26709CF2358A8B397F9 /* ClassicRoadView.swift */; };
+		FDC19E9CA58A044A3AFAB05D /* ClassicRoad.swift in Sources */ = {isa = PBXBuildFile; fileRef = 056A77F573C242782ADED410 /* ClassicRoad.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		CA23179CE0534AA2AE096512 /* RoadSound.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoadSound.swift; sourceTree = "<group>"; };
+		CA23179CE0534AA2AE096514 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		CA23179CE0534AA2AE096516 /* Fonts */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Fonts; sourceTree = "<group>"; };
+		CA23179CE0534AA2AE096518 /* sounds */ = {isa = PBXFileReference; lastKnownFileType = folder; name = sounds; path = ../../public/sounds; sourceTree = SOURCE_ROOT; };
+		056A77F573C242782ADED410 /* ClassicRoad.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClassicRoad.swift; sourceTree = "<group>"; };
+		3A989F8730EA004A8FC55748 /* ClassicRoadClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClassicRoadClient.swift; sourceTree = "<group>"; };
+		6CBF7959DA123845435570FF /* GoldRoad.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = GoldRoad.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		6E58D01CD978BBCAE716621A /* GoldRoadApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoldRoadApp.swift; sourceTree = "<group>"; };
+		97E1B26709CF2358A8B397F9 /* ClassicRoadView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClassicRoadView.swift; sourceTree = "<group>"; };
+		A5FA69F805201210BDDEF7F6 /* RoadBoardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoadBoardView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		592F82A0EDA5BDD9C33E8761 /* GoldRoad */ = {
+			isa = PBXGroup;
+			children = (
+				CA23179CE0534AA2AE096514 /* Assets.xcassets */,
+				CA23179CE0534AA2AE096516 /* Fonts */,
+				056A77F573C242782ADED410 /* ClassicRoad.swift */,
+				3A989F8730EA004A8FC55748 /* ClassicRoadClient.swift */,
+				97E1B26709CF2358A8B397F9 /* ClassicRoadView.swift */,
+				6E58D01CD978BBCAE716621A /* GoldRoadApp.swift */,
+				A5FA69F805201210BDDEF7F6 /* RoadBoardView.swift */,
+				CA23179CE0534AA2AE096512 /* RoadSound.swift */,
+				CA23179CE0534AA2AE096518 /* sounds */,
+			);
+			path = GoldRoad;
+			sourceTree = "<group>";
+		};
+		C2799A652AA16801D1528838 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				6CBF7959DA123845435570FF /* GoldRoad.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		EB3E3FD832D43CF74A07A258 = {
+			isa = PBXGroup;
+			children = (
+				592F82A0EDA5BDD9C33E8761 /* GoldRoad */,
+				C2799A652AA16801D1528838 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		B148460CF5F29D39217DA99B /* GoldRoad */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 975691FD0C81788C2BEDD28C /* Build configuration list for PBXNativeTarget "GoldRoad" */;
+			buildPhases = (
+				0479C3F7FE391CA5FE27F385 /* Sources */,
+				CA23179CE0534AA2AE096519 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = GoldRoad;
+			packageProductDependencies = (
+			);
+			productName = GoldRoad;
+			productReference = 6CBF7959DA123845435570FF /* GoldRoad.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		89F7E103DBDC835AD7E93D77 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+				};
+			};
+			buildConfigurationList = 5522B5DEB42E58F2882391B7 /* Build configuration list for PBXProject "GoldRoad" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = EB3E3FD832D43CF74A07A258;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = C2799A652AA16801D1528838 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				B148460CF5F29D39217DA99B /* GoldRoad */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		CA23179CE0534AA2AE096519 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CA23179CE0534AA2AE096513 /* Assets.xcassets in Resources */,
+				CA23179CE0534AA2AE096515 /* Fonts in Resources */,
+				CA23179CE0534AA2AE096517 /* sounds in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		0479C3F7FE391CA5FE27F385 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FDC19E9CA58A044A3AFAB05D /* ClassicRoad.swift in Sources */,
+				11B120DA1254606160CC860C /* ClassicRoadClient.swift in Sources */,
+				8CCB3376FF1E9EECE2EE5F07 /* ClassicRoadView.swift in Sources */,
+				0810D420C37F3D8944FC5732 /* GoldRoadApp.swift in Sources */,
+				6A1D35478F75095807F5907E /* RoadBoardView.swift in Sources */,
+				CA23179CE0534AA2AE096511 /* RoadSound.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		0530DD6FB8542113EDD29024 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		4C85CA1F060C2D8147109EB8 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = GoldRoad;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.playgoldroad.ios;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		988847F127F78B6A2AC7553C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = GoldRoad;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.playgoldroad.ios;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		E6B057BE4B3C92C4DE0E4E38 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		5522B5DEB42E58F2882391B7 /* Build configuration list for PBXProject "GoldRoad" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0530DD6FB8542113EDD29024 /* Debug */,
+				E6B057BE4B3C92C4DE0E4E38 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		975691FD0C81788C2BEDD28C /* Build configuration list for PBXNativeTarget "GoldRoad" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				988847F127F78B6A2AC7553C /* Debug */,
+				4C85CA1F060C2D8147109EB8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 89F7E103DBDC835AD7E93D77 /* Project object */;
+}

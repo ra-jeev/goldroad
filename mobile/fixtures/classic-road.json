@@ -1,0 +1,31 @@
+{
+  "road": {
+    "gameNo": 1,
+    "puzzleType": "classic",
+    "maxScore": 17,
+    "totalCoins": 20,
+    "playableAt": "2026-01-01T00:00:00Z",
+    "nextGameAt": null,
+    "board": {
+      "rows": 3,
+      "cols": 3,
+      "tiles": [2, 3, 1, 1, 4, 2, 1, 1, 5],
+      "missingEdges": [{ "from": 0, "to": 3 }, { "from": 2, "to": 5 }],
+      "tollEdges": [{ "from": 0, "to": 1 }],
+      "bonusEdges": [{ "from": 1, "to": 4 }],
+      "tollValue": 2,
+      "bonusValue": 3,
+      "start": 0,
+      "end": 8
+    }
+  },
+  "cases": [
+    { "name": "Missing road", "taps": [3], "path": [0], "score": 2, "legalMoves": [1], "canUndo": false, "outcome": "inProgress" },
+    { "name": "Toll", "taps": [1], "path": [0, 1], "score": 3, "legalMoves": [2, 4], "canUndo": true, "outcome": "inProgress" },
+    { "name": "Bonus", "taps": [1, 4], "path": [0, 1, 4], "score": 10, "legalMoves": [3, 5, 7], "canUndo": true, "outcome": "inProgress" },
+    { "name": "Undo once", "taps": [1, 4, 1, 0], "path": [0, 1], "score": 3, "legalMoves": [2, 4], "canUndo": false, "outcome": "inProgress" },
+    { "name": "Exact target", "taps": [1, 4, 5, 8], "path": [0, 1, 4, 5, 8], "score": 17, "legalMoves": [], "canUndo": false, "outcome": "solved" },
+    { "name": "Wrong total", "taps": [1, 4, 7, 8], "path": [0, 1, 4, 7, 8], "score": 16, "legalMoves": [], "canUndo": false, "outcome": "wrongTotal" },
+    { "name": "Dead end", "taps": [1, 2, 1], "path": [0, 1, 2], "score": 4, "legalMoves": [], "canUndo": false, "outcome": "deadEnd" }
+  ]
+}
