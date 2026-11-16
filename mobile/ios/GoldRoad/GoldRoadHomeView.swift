@@ -2,6 +2,7 @@ import SwiftUI
 
 struct GoldRoadHomeView: View {
     @State private var showingRoad = false
+    @State private var showingStats = false
 
     var body: some View {
         NavigationStack {
@@ -18,6 +19,13 @@ struct GoldRoadHomeView: View {
                     }
                     .buttonStyle(.plain)
                     .padding(.top, 16)
+                    Button {
+                        showingStats = true
+                    } label: {
+                        destinationLabel("Your Stats", icon: "chart.bar", actionIcon: "chevron.right")
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.top, 10)
                 }
                 .frame(maxWidth: 460, alignment: .leading)
                 .padding(.horizontal, 24)
@@ -29,6 +37,10 @@ struct GoldRoadHomeView: View {
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(isPresented: $showingRoad) {
                 ClassicRoadView(onBack: { showingRoad = false })
+                    .toolbar(.hidden, for: .navigationBar)
+            }
+            .navigationDestination(isPresented: $showingStats) {
+                RoadStatsView(onBack: { showingStats = false })
                     .toolbar(.hidden, for: .navigationBar)
             }
         }

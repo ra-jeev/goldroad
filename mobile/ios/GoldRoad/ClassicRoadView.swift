@@ -371,6 +371,7 @@ struct ClassicRoadView: View {
         }
         run.select(tile)
         save(run, for: mode)
+        if countsAsDaily { DailyRoadRecord.record(run, mode: mode) }
         play(.move)
         if countsAsDaily && run.outcome != .solved { resumeClock() }
         switch run.outcome {
@@ -403,6 +404,7 @@ struct ClassicRoadView: View {
         bankTime(into: &run)
         run.restart()
         save(run, for: mode)
+        DailyRoadRecord.record(run, mode: mode)
     }
 
     private func play(_ effect: RoadSound.Effect) {
@@ -455,6 +457,7 @@ struct ClassicRoadView: View {
                       !run.road.isExpired(at: Date()) else { return }
                 run.applyHint(hint.guidePath)
                 save(run, for: mode)
+                DailyRoadRecord.record(run, mode: mode)
                 hintMessage = hint.message(highlightedCount: max(0, run.visibleGuide.count - 1))
             } catch {
                 if hintRequest == id { hintMessage = "Couldn’t load a hint. Try again in a moment." }
@@ -545,6 +548,12 @@ struct ClassicRoadView: View {
                     }
                 }
                 waitingForRoad = roadExpired && nextDay == nil
+                if !roadExpired {
+                    if let classic { DailyRoadRecord.record(classic, mode: .classic) }
+                    if let expedition, expedition.road.gameNo == classic?.road.gameNo {
+                        DailyRoadRecord.record(expedition, mode: .expedition)
+                    }
+                }
             case .waiting:
                 waitingForRoad = nextDay == nil && (classic == nil || roadExpired)
                 if !waitingForRoad && nextDay == nil {

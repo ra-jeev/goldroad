@@ -1,6 +1,6 @@
 import Foundation
 
-enum RoadMode: String, CaseIterable {
+enum RoadMode: String, CaseIterable, Codable {
     case classic, expedition
 
     var title: String { rawValue.capitalized }
