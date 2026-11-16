@@ -35,6 +35,7 @@ const hasDoubleRails = computed(
       arrowDir ? `road-glyph--to-${arrowDir}` : null,
     ]"
   >
+    <!-- The rails extend beyond the viewBox to leave clearance for the centered marker. -->
     <svg
       v-if="hasDoubleRails"
       class="road-icon"

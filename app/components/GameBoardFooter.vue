@@ -15,11 +15,14 @@ const props = withDefaults(
     progressSyncSignal?: number;
     startInstructionDay?: string | null;
     solveAcknowledgement?: string | null;
+    solvedAfterRollover?: boolean;
     attemptNumber: number;
     hasMoved: boolean;
     nextResetCountdown?: string;
     showNextResetCountdown?: boolean;
+    roadExpired?: boolean;
     newRoadReady?: boolean;
+    newRoadCheckFeedback?: { message: string } | null;
     expeditionJustUnlocked: boolean;
     practice?: boolean;
     hintsRemaining?: number;
@@ -45,6 +48,7 @@ const props = withDefaults(
   {
     nextResetCountdown: '00:00:00',
     showNextResetCountdown: true,
+    roadExpired: false,
     newRoadReady: false,
     showStatsLink: true,
     trackingDisabled: false,
@@ -115,7 +119,7 @@ watch(() => props.hasMoved, (hasMoved) => {
 watch(
   () => [props.hintMessage, props.hintsRemaining] as const,
   ([message]) => {
-    if (!props.ended && !props.solved) showFeedback(message);
+    if (!props.roadExpired && !props.ended && !props.solved) showFeedback(message);
   },
 );
 
@@ -124,6 +128,11 @@ watch(() => props.progressSyncSignal, (signal, previous) => {
     showFeedback(UI_COPY.boardFooter.progressSynced);
   }
 }, { flush: 'post' });
+
+watch(() => props.newRoadCheckFeedback, (result) => {
+  if (result) showFeedback(result.message);
+  else if (feedbackMessage.value === UI_COPY.runtime.nextRoadPublishing) showFeedback(null);
+});
 
 onBeforeUnmount(() => {
   if (hintNudgeTimer) clearTimeout(hintNudgeTimer);
@@ -163,7 +172,7 @@ const footerState = computed<FooterState>(() =>
 );
 
 const footerMessage = computed<string | null>(() => {
-  if (props.solveAcknowledgement && props.solved) {
+  if (props.solveAcknowledgement && props.solved && !props.solvedAfterRollover) {
     return props.solveAcknowledgement;
   }
   if (props.practice && feedbackMessage.value && !props.solved && !props.ended) {
@@ -178,9 +187,9 @@ const footerMessage = computed<string | null>(() => {
     case 'solved-next':
     case 'solved-final':
       if (!props.showNextResetCountdown) return null;
-      return props.newRoadReady
-        ? UI_COPY.boardFooter.newRoadReady
-        : UI_COPY.boardFooter.nextRoadShort(props.nextResetCountdown);
+      if (props.newRoadReady) return UI_COPY.boardFooter.newRoadReady;
+      if (props.roadExpired) return UI_COPY.runtime.nextRoadPublishing;
+      return UI_COPY.boardFooter.nextRoadShort(props.nextResetCountdown);
     default:
       return null;
   }
@@ -191,7 +200,7 @@ const hintUnavailable = computed(
     props.ended ||
     props.solved ||
     props.trackingDisabled ||
-    props.newRoadReady ||
+    props.roadExpired ||
     props.hintsRemaining === 0,
 );
 
@@ -205,22 +214,34 @@ const hintLabel = computed(() =>
     ? `${UI_COPY.boardFooter.openHint}, ${hintBudget.value}`
     : UI_COPY.boardFooter.openHint,
 );
-const showRetryAction = computed(() => props.canRetry && !props.newRoadReady);
+const showRetryAction = computed(() => props.canRetry && !props.roadExpired);
 const retryIsPrimary = computed(() => footerState.value === 'failed');
 const showAttemptCount = computed(() => footerState.value === 'resting-retry');
 
 watch(
-  () => [footerState.value, props.status] as const,
-  ([state, status], [previous]) => {
+  () => [footerState.value, props.status, props.roadExpired, props.solveAcknowledgement] as const,
+  ([state, status, expired, acknowledgement], [previous, previousStatus, wasExpired]) => {
     if (props.practice) return;
-    if (state === 'failed') showFeedback(status, true);
-    else if (previous === 'failed' || props.solved) showFeedback(null);
+    if (props.solved && props.solvedAfterRollover && acknowledgement && state !== previous) {
+      showFeedback(acknowledgement);
+      return;
+    }
+    if (state === 'failed') {
+      if (previous === 'failed' && status === previousStatus && !feedbackMessage.value) return;
+      const deadEndAtRollover = expired && status === UI_COPY.runtime.deadEnd;
+      showFeedback(deadEndAtRollover ? UI_COPY.runtime.expiredDeadEnd : status, true);
+    } else if (expired && !wasExpired && !props.solved) {
+      showFeedback(UI_COPY.boardFooter.finishExpiredRoad);
+    } else if (previous === 'failed' || props.solved) {
+      showFeedback(null);
+    }
   },
 );
 
 const retryDialog = ref<HTMLDialogElement | null>(null);
 const retryButton = ref<HTMLButtonElement | null>(null);
 const hintButton = ref<HTMLButtonElement | null>(null);
+const rolloverButton = ref<HTMLButtonElement | null>(null);
 const retryConfirmationOpen = useRetryConfirmation();
 const dialogId = useId();
 const needsRetryConfirmation = computed(
@@ -257,8 +278,8 @@ function onRetryDialogClose(event: Event) {
   if (event.target instanceof HTMLDialogElement && event.target.returnValue === 'retry') {
     return;
   }
-  const retry = retryButton.value;
-  const button = retry && !retry.disabled ? retry : hintButton.value;
+  const button = [retryButton.value, rolloverButton.value, hintButton.value]
+    .find((candidate) => candidate && !candidate.disabled);
   button?.focus({ preventScroll: true });
 }
 
@@ -278,14 +299,14 @@ const showStatsAction = computed(
   () =>
     props.showStatsLink &&
     footerState.value === 'solved-final' &&
-    !showNewRoadAction.value,
+    !props.roadExpired,
 );
-// Once the next road is live, loading it is the day's next beat — it takes
-// the primary slot (and the stats link steps back) until the fetch actually
-// returns a new road. It shows in every state: mid-run it sits quietly next
-// to the board without replacing any message.
-const showNewRoadAction = computed(
-  () => props.newRoadReady && props.showNextResetCountdown,
+const rolloverAction = computed(() =>
+  props.roadExpired && props.showNextResetCountdown
+    ? props.newRoadReady
+      ? UI_COPY.boardFooter.playNewRoad
+      : UI_COPY.boardFooter.checkForNewRoad
+    : null,
 );
 const showSecondaryLink = computed(
   () =>
@@ -299,6 +320,7 @@ watch(
   ([hasGuidePath, hasMoved]) => {
     if (
       !props.practice &&
+      !props.roadExpired &&
       !props.ended &&
       !props.solved &&
       hasGuidePath &&
@@ -363,7 +385,18 @@ watch(
         </span>
       </button>
 
-      <span v-if="showAttemptCount" class="play-attempt" role="status">
+      <button
+        v-if="rolloverAction"
+        ref="rolloverButton"
+        type="button"
+        class="action-button play-retry play-retry--text"
+        :class="newRoadReady ? 'primary' : 'secondary'"
+        :disabled="busy"
+        @click="emit('loadNewRoad')"
+      >
+        {{ rolloverAction }}
+      </button>
+      <span v-else-if="showAttemptCount" class="play-attempt" role="status">
         {{ UI_COPY.boardFooter.attemptResting(attemptNumber) }}
       </span>
       <button
@@ -421,7 +454,7 @@ watch(
         showShareAction ||
         showSecondaryLink ||
         showStatsAction ||
-        showNewRoadAction ||
+        (solved && rolloverAction) ||
         canSwitchToExpedition ||
         $slots.actions
       "
@@ -455,14 +488,15 @@ watch(
       </NuxtLink>
 
       <button
-        v-if="showNewRoadAction"
+        v-if="solved && rolloverAction"
+        ref="rolloverButton"
         type="button"
-        class="action-button primary action-button--text"
+        class="action-button action-button--text"
+        :class="newRoadReady ? 'primary' : 'secondary'"
         :disabled="busy"
-        :title="UI_COPY.boardFooter.playNewRoad"
         @click="emit('loadNewRoad')"
       >
-        {{ UI_COPY.boardFooter.playNewRoad }}
+        {{ rolloverAction }}
       </button>
 
       <button
@@ -486,7 +520,11 @@ watch(
       <slot name="actions" />
     </div>
 
-    <div class="footer-status" role="status" :aria-live="solved ? 'off' : 'polite'">
+    <div
+      class="footer-status"
+      role="status"
+      :aria-live="solved && (!solveAcknowledgement || solvedAfterRollover) ? 'off' : 'polite'"
+    >
       <p v-if="footerMessage">{{ footerMessage }}</p>
     </div>
 
@@ -649,6 +687,11 @@ watch(
     --toast-slide-offset: -0.75rem;
     top: calc(0.75rem + env(safe-area-inset-top, 0px));
     bottom: auto;
+  }
+
+  .feedback-toast {
+    /* The top toast can cover the header controls. */
+    pointer-events: auto;
   }
 }
 

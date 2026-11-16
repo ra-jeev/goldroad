@@ -24,7 +24,7 @@ useSeoMeta({
 const localProgress = useLocalGameProgress();
 const statsApi = useStatsApi();
 const roadResultShare = useRoadResultShare();
-const { countdown: nextRoadCountdown, newRoadReady } = useNextRoadCountdown();
+const { countdown: nextRoadCountdown, cutoffReached } = useNextRoadCountdown();
 
 const communityOverview = ref<Awaited<
   ReturnType<typeof statsApi.getOverview>
@@ -618,9 +618,8 @@ onMounted(async () => {
                midnight it becomes a passive link — the live page performs
                the authoritative fetch on arrival. -->
           <p class="next-road-line">
-            <template v-if="newRoadReady">
-              A new road is available ·
-              <NuxtLink to="/" class="next-road-link">Play now</NuxtLink>
+            <template v-if="cutoffReached">
+              <NuxtLink to="/" class="next-road-link">Check today’s road</NuxtLink>
             </template>
             <template v-else>Next road in {{ nextRoadCountdown }}</template>
           </p>

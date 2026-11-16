@@ -59,6 +59,7 @@ const {
   submitting,
   status,
   lastSolved,
+  solvedAfterRollover,
   trackingDisabled,
   expeditionJustUnlocked,
   maxScore,
@@ -72,7 +73,10 @@ const {
   expeditionMedalToday,
   attemptNumber,
   nextResetCountdown,
+  roadExpired,
   newRoadReady,
+  newRoadCheckFeedback,
+  checkForNewRoad,
   loadNewRoad,
   canSwitchToExpedition,
   celebration,
@@ -191,7 +195,7 @@ onMounted(() => {
   watch(
     () => {
       if (
-        !game.value || loading.value || newRoadReady.value || ended.value ||
+        !game.value || loading.value || roadExpired.value || ended.value ||
         moves.value !== 1 || attemptNumber.value !== 1 || lastSolved.value ||
         guidePath.value.length > 0 || !v1CheckReady.value || isBoardOverlayOpen.value
       ) {
@@ -224,6 +228,10 @@ onUnmounted(() => {
 });
 
 const scorePulse = ref<{ type: 'toll' | 'bonus'; key: number } | null>(null);
+const currentCelebration = computed(() => {
+  if (!roadExpired.value || !celebration.value?.hasExpedition) return celebration.value;
+  return { ...celebration.value, hasExpedition: false };
+});
 function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
   scorePulse.value = { type: payload.type, key: (scorePulse.value?.key ?? 0) + 1 };
 }
@@ -238,16 +246,16 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
           :selected-mode="selectedMode"
           :has-expedition="Boolean(availableGames.expedition)"
           :is-expedition-unlocked="isExpeditionUnlocked"
-          :classic-solved="classicSolvedToday"
+          :classic-solved="classicSolvedToday || (solvedAfterRollover && selectedMode === 'classic')"
           :classic-medal="classicMedalToday"
-          :expedition-solved="expeditionSolvedToday"
+          :expedition-solved="expeditionSolvedToday || (solvedAfterRollover && selectedMode === 'expedition')"
           :expedition-medal="expeditionMedalToday"
           :score="score"
           :max-score="maxScore"
           :total-coins="totalCoins"
           :pulse="scorePulse"
           :over-target="overTarget"
-          :mode-switch-locked="newRoadReady"
+          :mode-switch-locked="roadExpired"
           @select-mode="selectMode"
         />
 
@@ -276,11 +284,14 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
           :hint-message="hintMessage"
           :progress-sync-signal="progressSyncSignal"
           :solve-acknowledgement="solveAcknowledgement"
+          :solved-after-rollover="solvedAfterRollover"
           :attempt-number="attemptNumber"
           :has-moved="moves > 1"
           :next-reset-countdown="nextResetCountdown"
           :hint-nudge-signal="hintNudgeSignal"
+          :road-expired="roadExpired"
           :new-road-ready="newRoadReady"
+          :new-road-check-feedback="newRoadCheckFeedback"
           :expedition-just-unlocked="expeditionJustUnlocked"
           :hints-remaining="hintsRemaining"
           :hint-pending="hintPending"
@@ -292,18 +303,18 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
           :can-switch-to-expedition="
             canSwitchToExpedition &&
             (ended || moves <= 1 || lastSolved) &&
-            !newRoadReady
+            !roadExpired
           "
           :loading="loading"
           :submitting="submitting"
           :tracking-disabled="trackingDisabled"
-          :show-share="lastSolved"
+          :show-share="lastSolved && !solvedAfterRollover"
           :share-handler="shareCurrentResult"
           @retry="retryCurrentGame"
           @undo="undoLastStep"
           @hint="requestHint"
           @switch-expedition="switchToExpedition"
-          @load-new-road="loadNewRoad"
+          @load-new-road="newRoadReady ? loadNewRoad() : checkForNewRoad()"
         />
       </section>
 
@@ -315,13 +326,13 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
           :disabled="loading"
           @click="loadNewRoad"
         >
-          {{ UI_COPY.runtime.retryLoadRoad }}
+          {{ newRoadReady ? UI_COPY.boardFooter.playNewRoad : UI_COPY.runtime.retryLoadRoad }}
         </button>
       </section>
     </main>
 
     <SolveCelebrationSheet
-      :celebration="celebration"
+      :celebration="currentCelebration"
       :next-reset-countdown="nextResetCountdown"
       :share-handler="shareCelebrationResult"
       @dismiss="dismissCelebration"

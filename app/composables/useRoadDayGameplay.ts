@@ -132,20 +132,19 @@ export function shouldStartSessionApi(
 export function shouldSubmitSessionEnd(
   entryType: EntryType,
   isUntrackedReplay: boolean,
-  roadExpired: boolean,
   endReason: 'solved' | 'wrong-exit' | 'dead-end' | 'retry',
 ): boolean {
   return (
     endReason === 'solved' &&
-    shouldCallSessionApi(entryType, isUntrackedReplay, roadExpired)
+    shouldCallSessionApi(entryType, isUntrackedReplay)
   );
 }
 
 /**
  * The midnight contract (RP1-16): once the loaded road's own nextGameAt has
  * passed, the board stays exactly as it is, but retry, hints, mode switching,
- * and server analytics all stop — the in-flight (or one first) attempt may
- * still finish with full local credit, streak included.
+ * and server analytics all stop. The open board can still be completed as
+ * archive play.
  */
 export function isRoadExpired(
   nextGameAt: string | null | undefined,
@@ -261,6 +260,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
   const lastTier = ref<OutcomeTier | null>(null);
   const lastMedal = ref<Medal | null>(null);
   const lastSolved = ref(false);
+  const solvedAfterRollover = ref(false);
   const attemptNumber = ref(1);
   const expeditionJustUnlocked = ref(false);
   const sessionId = ref('');
@@ -416,6 +416,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     lastTier.value = null;
     lastMedal.value = null;
     lastSolved.value = false;
+    solvedAfterRollover.value = false;
     attemptNumber.value = 1;
     expeditionJustUnlocked.value = false;
     sessionId.value = '';
@@ -509,6 +510,9 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     const nextActiveTimeMs = readCurrentSolveTimeMs(nowMs);
     activeSolveTimeMs.value = nextActiveTimeMs;
     solveTimerStartedAtMs.value = continueRunning ? nowMs : null;
+
+    // Keep the open board playable without updating the old daily record.
+    if (isLiveRoadExpired()) return nextActiveTimeMs;
 
     const progress = localProgress.setSolveTimerState(
       game.value.gameNo,
@@ -649,6 +653,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     // untracked replay run.
     lastMedal.value = hasSolvedHistory ? solvedMedal : null;
     lastSolved.value = hasSolvedHistory;
+    solvedAfterRollover.value = false;
     solvedRestMedal.value = hasSolvedHistory ? solvedMedal : null;
     undoAvailable.value = path.length > 1 && route?.undoAvailable === true;
     attemptNumber.value = hasSolvedHistory
@@ -693,7 +698,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
   // Read before actions as well as on focus so a stale click cannot
   // overwrite a route saved by another tab.
   function syncSavedProgress(applyBoardUpdate = true): boolean {
-    if (!game.value || trackingDisabled.value) return true;
+    if (!game.value || trackingDisabled.value || isLiveRoadExpired()) return true;
     localProgress.reload();
     const progress = readSavedProgress();
     if (!progress) return true;
@@ -998,6 +1003,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
   function continueToExpedition() {
     const shouldSwitch =
       celebration.value?.variant === 'classic-solve' &&
+      !isLiveRoadExpired() &&
       Boolean(availableGames.value.expedition) &&
       isExpeditionUnlocked.value;
     dismissCelebration();
@@ -1007,7 +1013,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
   }
 
   async function shareCurrentResult(): Promise<ShareRoadResultResponse | null> {
-    if (!game.value) return null;
+    if (!game.value || solvedAfterRollover.value) return null;
 
     const progress = localProgress.getGameProgress(
       game.value.gameNo,
@@ -1075,12 +1081,32 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
       return;
     }
 
+    const solved = endReason === 'solved';
+    if (isLiveRoadExpired()) {
+      if (solved) {
+        stopSolveTimer();
+        localProgress.reload();
+        const alreadySolved = localProgress.isRoadModeSolved(game.value.gameNo, game.value.puzzleType);
+        if (!alreadySolved) {
+          localProgress.recordArchiveCompletion(game.value.gameNo, game.value.puzzleType);
+        }
+        guidePath.value = [];
+        hintedTiles.value = new Set();
+        lastSolved.value = true;
+        solvedAfterRollover.value = true;
+        solveAcknowledgement.value = alreadySolved
+          ? UI_COPY.runtime.solvedAgain
+          : UI_COPY.runtime.savedToPastRoads;
+        solveCelebrationSignal.value += 1;
+      }
+      return;
+    }
+
     const isUntrackedReplay = trackingDisabled.value;
     // Only an exact solve is submitted. Failed routes remain local gameplay
     // states and never enter an analytics-submission state.
     submitting.value = false;
     const expeditionWasUnlocked = isExpeditionUnlocked.value;
-    const solved = endReason === 'solved';
     const dayKey = getProgressDayKey(game.value);
     const elapsedSolveTimeMs = solved || endReason === 'retry'
       ? stopSolveTimer()
@@ -1101,7 +1127,6 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     expeditionJustUnlocked.value =
       options.entryType === 'live' &&
       !isUntrackedReplay &&
-      !isLiveRoadExpired() &&
       selectedMode.value === 'classic' &&
       solved &&
       !expeditionWasUnlocked &&
@@ -1145,14 +1170,11 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
       });
     }
 
-    // Archived play never creates analytics rows (RP0-5), and an expired
-    // road's grandfathered finish keeps its full local result but skips the
-    // server, which only accepts the current road (RP1-16).
+    // Archived play never creates analytics rows (RP0-5).
     if (
       !shouldSubmitSessionEnd(
         options.entryType,
         isUntrackedReplay,
-        isLiveRoadExpired(),
         endReason,
       )
     ) {
@@ -1372,7 +1394,9 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     if (!next.length) {
       ended.value = true;
       undoAvailable.value = nextUndoAvailable('move', true);
-      status.value = UI_COPY.runtime.deadEnd;
+      status.value = isLiveRoadExpired()
+        ? UI_COPY.runtime.expiredDeadEnd
+        : UI_COPY.runtime.deadEnd;
       updateTileStates();
       deadEndSignal.value += 1;
       await finalizeRun('dead-end');
@@ -1445,6 +1469,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     }
 
     if (
+      isLiveRoadExpired() ||
       !syncSavedProgress() ||
       game.value !== requestedBoard ||
       sessionId.value !== requestedSession ||
@@ -1579,6 +1604,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     lastTier,
     lastMedal,
     lastSolved,
+    solvedAfterRollover,
     attemptNumber,
     expeditionJustUnlocked,
     hintsUsed,

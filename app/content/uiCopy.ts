@@ -82,6 +82,8 @@ export const UI_COPY = {
     nextRoadShort: (countdown: string) => `Next road in ${countdown}`,
     newRoadReady: 'A new road just opened.',
     playNewRoad: 'Play the new road',
+    checkForNewRoad: 'Check for new road',
+    finishExpiredRoad: 'You can still finish this road and save it to Past Roads. It won’t count toward your streak.',
     hintTitle: 'Hint',
     helpTitle: 'How to play',
     hintsLeftLabel: (remaining: number) =>
@@ -236,16 +238,19 @@ export const UI_COPY = {
   runtime: {
     loadingGame: 'Loading the road…',
     currentRoadUnavailable: 'Today’s road is unavailable.',
+    nextRoadPublishing: 'The new road is still being prepared.',
     retryLoadRoad: 'Retry',
     findingAnotherRoad: 'Finding another road…',
     preRun: 'You’re on the footprints. Step onto any glowing tile to begin.',
     destinationSolved: 'Solved.',
+    savedToPastRoads: 'Solved. Saved to Past Roads.',
     solvedAgain: 'Solved again.',
     destinationShort: (delta: number) =>
       `You reached the finish ${delta} short of the target.`,
     destinationOver: (delta: number) =>
       `You reached the finish ${delta} over the target.`,
     deadEnd: 'Dead end. Walk it again to find the way through.',
+    expiredDeadEnd: 'Dead end.',
     // The board lights up the moment a hint lands, so the copy does not need
     // to announce that a hint was applied — only what to do with it.
     hintNextStep: 'The highlighted tile is your next move.',

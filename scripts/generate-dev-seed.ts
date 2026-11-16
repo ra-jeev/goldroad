@@ -29,9 +29,11 @@ function buildInsertRow(
     );
   }
 
-  const nextGameAt = isCurrent
-    ? new Date(new Date(playableAt).getTime() + 86400000).toISOString()
-    : null;
+  // Keep the fixture's road numbers and history dates stable while making
+  // its current road playable whenever the seed is applied.
+  const nextGameAtSql = isCurrent
+    ? "strftime('%Y-%m-%dT%H:%M:%fZ', 'now', 'start of day', '+1 day')"
+    : 'NULL';
 
   return `(
   ${gameNo},
@@ -44,7 +46,7 @@ function buildInsertRow(
   1,
   ${isCurrent ? 1 : 0},
   ${toSqlString(playableAt)},
-  ${toSqlString(nextGameAt)}
+  ${nextGameAtSql}
 )`;
 }
 

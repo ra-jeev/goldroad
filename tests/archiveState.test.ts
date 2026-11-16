@@ -247,10 +247,10 @@ describe('start and solve-only analytics gates', () => {
   });
 
   it('submits only exact solves, never failed outcomes or manual retries', () => {
-    expect(shouldSubmitSessionEnd('live', false, false, 'solved')).toBe(true);
-    expect(shouldSubmitSessionEnd('live', false, false, 'dead-end')).toBe(false);
-    expect(shouldSubmitSessionEnd('live', false, false, 'wrong-exit')).toBe(false);
-    expect(shouldSubmitSessionEnd('live', false, false, 'retry')).toBe(false);
+    expect(shouldSubmitSessionEnd('live', false, 'solved')).toBe(true);
+    expect(shouldSubmitSessionEnd('live', false, 'dead-end')).toBe(false);
+    expect(shouldSubmitSessionEnd('live', false, 'wrong-exit')).toBe(false);
+    expect(shouldSubmitSessionEnd('live', false, 'retry')).toBe(false);
   });
 });
 

@@ -1,5 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import type { CurrentGamesResponse } from '../../shared/types/game';
+import { buildEdgeMap, getActiveNeighbors } from '../../shared/utils/puzzleEngine';
+import { findAllRoutes } from '../../server/utils/pathfinder';
 
 function captureRuntimeErrors(page: Page) {
   const errors: string[] = [];
@@ -35,6 +37,16 @@ test('short screens show one visible start notification after hydration', async 
   const toast = page.locator('#teleports .feedback-toast');
   await expect(toast).toContainText('Step onto any glowing tile to begin.');
   await expect(toast).toBeInViewport({ ratio: 0.95 });
+  const mute = page.getByRole('button', { name: 'Mute sounds' });
+  await expect.poll(() => mute.evaluate((button) => {
+    const { left, top, width, height } = button.getBoundingClientRect();
+    return Boolean(document.elementFromPoint(left + width / 2, top + height / 2)
+      ?.closest('.feedback-toast'));
+  })).toBe(true);
+  await toast.getByRole('button', { name: 'Dismiss message' }).click();
+  await expect(mute).toBeEnabled();
+  await mute.click();
+  await expect(page.getByRole('button', { name: 'Unmute sounds' })).toBeVisible();
   expect(runtimeErrors).toEqual([]);
 });
 
@@ -96,7 +108,7 @@ test('live board and tutorial are usable', async ({ page }) => {
   )).toBe(2);
   await expect(ordinaryTile).toHaveCSS('touch-action', 'manipulation');
   await expect(ordinaryTile).toHaveCSS('user-select', 'none');
-  await expect(page.getByRole('button', { name: 'Play the new road' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Play the new road' })).toBeHidden();
 
   await expectNoHorizontalOverflow(page);
   expect(runtimeErrors).toEqual([]);
@@ -152,26 +164,26 @@ test('returning player hydration restores an unlocked Expedition', async ({ page
   expect(runtimeErrors).toEqual([]);
 });
 
-test('Play the new road replaces the expired board without navigation', async ({ page }) => {
+test('rollover waits for publication and switches only on request', async ({ page }) => {
   const runtimeErrors = captureRuntimeErrors(page);
-  await page.route('**/api/games/current', async (route) => {
-    // The initial request runs inside SSR and is deliberately invisible to
-    // page.route. This handler sees only the client-side new-road request.
-    const response = await route.fetch();
-    const roadDay = (await response.json()) as CurrentGamesResponse;
-    const nextGameAt = new Date(Date.now() + 86_400_000).toISOString();
-    const promote = (game: NonNullable<CurrentGamesResponse['classic']>) => ({
-      ...game,
-      gameNo: game.gameNo + 1,
-      playableAt: new Date().toISOString(),
-      nextGameAt,
-    });
-    roadDay.classic = roadDay.classic ? promote(roadDay.classic) : null;
-    roadDay.expedition = roadDay.expedition
-      ? promote(roadDay.expedition)
-      : null;
-
-    await route.fulfill({ response, json: roadDay });
+  const roadDay = await (await page.request.get('/api/games/current')).json() as CurrentGamesResponse;
+  const classic = roadDay.classic!;
+  const cutoff = new Date(classic.nextGameAt!);
+  let published = false;
+  let checks = 0;
+  await page.clock.install({ time: new Date(cutoff.getTime() - 120_000) });
+  await page.route('**/api/games/current', (route) => {
+    checks++;
+    if (!published) return route.fulfill({ json: roadDay });
+    return route.fulfill({ json: {
+      classic: {
+        ...classic,
+        gameNo: classic.gameNo + 1,
+        playableAt: cutoff.toISOString(),
+        nextGameAt: new Date(cutoff.getTime() + 86_400_000).toISOString(),
+      },
+      expedition: null,
+    } });
   });
 
   await page.goto('/');
@@ -180,17 +192,132 @@ test('Play the new road replaces the expired board without navigation', async ({
   ).toBeVisible();
   await page.getByRole('button', { name: 'Close' }).click();
 
-  await expect(page.getByText('Day #3')).toBeVisible();
-  await page.getByRole('button', { name: 'Play the new road' }).click();
+  const newRoad = page.getByRole('button', { name: 'Play the new road' });
+  const check = page.locator('.play-actions').getByRole('button', { name: 'Check for new road' });
+  const toast = page.locator('#teleports .feedback-toast');
+  await page.locator('.board-column .tile.active').first().click();
+  await page.getByRole('button', { name: 'Try again', exact: true }).click();
+  const retryDialog = page.getByRole('dialog', { name: 'Start over?' });
+  await expect(retryDialog).toBeVisible();
+  await expect(newRoad).toBeHidden();
+  await page.clock.fastForward(121_000);
+  await expect.poll(() => checks).toBeGreaterThan(0);
+  await expect(newRoad).toBeHidden();
+  await expect(retryDialog).toBeHidden();
+  await expect(check).toBeFocused();
+  await expect(toast).toContainText('You can still finish this road and save it to Past Roads.');
+  await expect(page.getByText(`Day #${classic.gameNo}`, { exact: true })).toBeVisible();
 
-  await expect(page.getByText('Day #4')).toBeVisible();
-  await expect(
-    page.getByRole('button', { name: 'Play the new road' }),
-  ).toBeHidden();
+  await check.click();
+  await expect(toast).toHaveText('The new road is still being prepared.');
+  published = true;
+  await check.click();
+  await expect(page.locator('.play-actions').getByRole('button', { name: 'Play the new road' })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+  await expect(page.getByText(`Day #${classic.gameNo}`, { exact: true })).toBeVisible();
+  await newRoad.click();
+  await expect(page.getByText(`Day #${classic.gameNo + 1}`, { exact: true })).toBeVisible();
+  await expect(newRoad).toBeHidden();
   await expect(
     page.getByRole('tab', { name: 'Classic Not solved' }),
   ).toBeEnabled();
   expect(runtimeErrors).toEqual([]);
+});
+
+test('a stale solve preserves daily attempts and only marks archive completion', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 640 });
+  const roadDay = await (await page.request.get('/api/games/current')).json() as CurrentGamesResponse;
+  const classic = roadDay.classic!;
+  const path = findAllRoutes(classic.board).find(({ total }) => total === classic.maxScore)!.path;
+  const cutoff = new Date(classic.nextGameAt!);
+  let submittedSolves = 0;
+  await page.clock.install({ time: new Date(cutoff.getTime() - 120_000) });
+  await page.route('**/api/session/start', (route) => route.fulfill({ json: { ok: true } }));
+  await page.route('**/api/session/end', (route) => {
+    submittedSolves++;
+    return route.fulfill({ json: { ok: true } });
+  });
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: 'Learn the road' })).toBeVisible();
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
+
+  const tiles = page.locator('.board-column .tile');
+  for (let i = 0; i < 2; i++) {
+    await tiles.nth(path[1]!).click();
+    await page.getByRole('button', { name: 'Try again', exact: true }).click();
+    await page.getByRole('dialog', { name: 'Start over?' }).getByRole('button', { name: 'Try again' }).click();
+    await expect(tiles.nth(path[0]!)).toHaveClass(/\bcurrent\b/);
+  }
+
+  const storedResult = () => page.evaluate(({ gameNo, day }) => {
+    const state = JSON.parse(localStorage.getItem('goldroad-state-v2') ?? '{}');
+    return {
+      daily: state.historyByDay?.[day]?.modes?.classic,
+      archived: state.archiveCompletionByGame?.[gameNo]?.classic,
+    };
+  }, { gameNo: classic.gameNo, day: classic.playableAt.split('T')[0]! });
+  const before = await storedResult();
+  expect(before.daily).toMatchObject({ attempts: 2, solved: false });
+  expect(before.archived).toBeUndefined();
+  await page.clock.fastForward(121_000);
+  await expect(page.getByRole('button', { name: 'Check for new road' })).toBeVisible();
+
+  // A first move made after cutoff still works on the already-open board.
+  for (const index of path.slice(1)) {
+    await tiles.nth(index).click();
+  }
+  const solveToast = page.locator('#teleports .feedback-toast');
+  await expect(solveToast).toHaveText('Solved. Saved to Past Roads.');
+  await expect(solveToast).toBeInViewport({ ratio: 0.95 });
+  await expect(page.getByRole('status').filter({ hasText: 'Solved. Saved to Past Roads.' })).toHaveCount(1);
+  expect(await storedResult()).toEqual({ daily: before.daily, archived: true });
+  expect(submittedSolves).toBe(0);
+
+  // The same response must not open the old road on a fresh load.
+  await page.reload();
+  await expect(page.getByText('The new road is still being prepared.')).toBeVisible();
+  await expect(page.locator('.board-column')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Retry', exact: true })).toBeEnabled();
+});
+
+test('a stale dead end shows the outcome without offering another daily try', async ({ page }) => {
+  const { classic } = await (await page.request.get('/api/games/current')).json() as CurrentGamesResponse;
+  const { board, nextGameAt, playableAt } = classic!;
+  const edges = buildEdgeMap(board);
+
+  function findDeadEnd(path: number[]): number[] | null {
+    const current = path.at(-1)!;
+    if (current === board.end) return null;
+    const neighbors = getActiveNeighbors(current, board.rows, board.cols, edges, new Set(path));
+    if (!neighbors.length) return path;
+    for (const neighbor of neighbors) {
+      const result = findDeadEnd([...path, neighbor]);
+      if (result) return result;
+    }
+    return null;
+  }
+
+  const path = findDeadEnd([board.start])!;
+  const cutoff = Date.parse(nextGameAt!);
+  await page.clock.install({ time: new Date(cutoff - 120_000) });
+  await page.route('**/api/session/start', (route) => route.fulfill({ json: { ok: true } }));
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: 'Learn the road' })).toBeVisible();
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
+
+  const tiles = page.locator('.board-column .tile');
+  await tiles.nth(path[1]!).click();
+  await page.clock.fastForward(121_000);
+  await expect(page.getByRole('button', { name: 'Check for new road' })).toBeVisible();
+  for (const index of path.slice(2)) await tiles.nth(index).click();
+
+  await expect(page.locator('#teleports .feedback-toast p')).toHaveText('Dead end.');
+  await expect(page.getByRole('button', { name: 'Try again', exact: true })).toHaveCount(0);
+  const attempts = await page.evaluate((day) => {
+    const state = JSON.parse(localStorage.getItem('goldroad-state-v2') ?? '{}');
+    return state.historyByDay?.[day]?.modes?.classic?.attempts ?? 0;
+  }, playableAt.split('T')[0]!);
+  expect(attempts).toBe(0);
 });
 
 test('stats surface loads its core sections', async ({ page }) => {

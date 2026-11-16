@@ -1,14 +1,12 @@
-import { onMounted, onUnmounted, ref } from 'vue';
+import { onMounted, onUnmounted, ref, watch } from 'vue';
 
 /**
  * Live HH:MM:SS countdown to the next road (00:00 UTC rotation).
  * Starts ticking on mount, cleans up on unmount.
  *
  * When `getAnchor` is provided (the live page passes the loaded road's
- * `nextGameAt`), the target comes from the road's own schedule — so a page
- * opened during a delayed rotation is immediately "ready" instead of counting
- * a fresh 24 hours against yesterday's road. Once a new road is applied, the
- * anchor moves into the future and `newRoadReady` clears on its own.
+ * `nextGameAt`), the target comes from the road's own schedule. In that
+ * case `cutoffReached` signals the scheduled cutoff.
  *
  * Without an anchor (the stats page), the target is the next wall-clock UTC
  * midnight, fixed at mount so the ready state sticks instead of silently
@@ -18,7 +16,7 @@ export function useNextRoadCountdown(
   getAnchor?: () => string | null | undefined,
 ) {
   const countdown = ref('00:00:00');
-  const newRoadReady = ref(false);
+  const cutoffReached = ref(false);
   let fallbackTargetMs: number | null = null;
   let timer: ReturnType<typeof setInterval> | null = null;
 
@@ -46,7 +44,7 @@ export function useNextRoadCountdown(
 
   function update() {
     const diff = Math.max(0, resolveTargetMs() - Date.now());
-    newRoadReady.value = diff === 0;
+    cutoffReached.value = diff === 0;
     if (diff === 0) {
       countdown.value = '00:00:00';
       return;
@@ -61,6 +59,7 @@ export function useNextRoadCountdown(
 
   onMounted(() => {
     update();
+    if (getAnchor) watch(getAnchor, update, { flush: 'sync' });
     timer = setInterval(update, 1000);
   });
 
@@ -71,5 +70,5 @@ export function useNextRoadCountdown(
     }
   });
 
-  return { countdown, newRoadReady };
+  return { countdown, cutoffReached };
 }

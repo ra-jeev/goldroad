@@ -4,6 +4,7 @@ import { useDb } from '../../db/client'
 import { parsePublicGameRow } from '../../utils/apiGames'
 
 export default defineEventHandler(async (event) => {
+  setResponseHeader(event, 'Cache-Control', 'no-store')
   const db = useDb(event)
   const nowIso = new Date().toISOString()
 

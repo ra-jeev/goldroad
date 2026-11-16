@@ -80,7 +80,7 @@ INSERT INTO games (
   1,
   1,
   '2026-01-03T00:00:00.000Z',
-  '2026-01-04T00:00:00.000Z'
+  strftime('%Y-%m-%dT%H:%M:%fZ', 'now', 'start of day', '+1 day')
 ),
 (
   3,
@@ -93,7 +93,7 @@ INSERT INTO games (
   1,
   1,
   '2026-01-03T00:00:00.000Z',
-  '2026-01-04T00:00:00.000Z'
+  strftime('%Y-%m-%dT%H:%M:%fZ', 'now', 'start of day', '+1 day')
 ),
 (
   4,
