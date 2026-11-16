@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, useId, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, ref, useId, watch } from 'vue';
 import { useRetryConfirmation } from '../composables/useBoardOverlayGate';
 import type { ShareRoadResultResponse } from '../composables/useRoadResultShare';
 import { UI_COPY } from '../content/uiCopy';
@@ -93,16 +93,45 @@ watch(
 );
 
 const shareBusy = ref(false);
+const footerCard = ref<HTMLElement | null>(null);
+const feedbackClose = ref<HTMLButtonElement | null>(null);
 const feedbackMessage = ref<string | null>(null);
+let focusBeforeToast: HTMLElement | null = null;
 let feedbackTimer: ReturnType<typeof setTimeout> | undefined;
+
+function rememberToastFocus(event: FocusEvent) {
+  const previous = event.relatedTarget;
+  focusBeforeToast = previous instanceof HTMLElement && previous !== document.body
+    ? previous
+    : null;
+}
+
+async function restoreToastFocus(closeButton: HTMLButtonElement) {
+  const previous = focusBeforeToast;
+  focusBeforeToast = null;
+  await nextTick();
+  if (document.activeElement !== closeButton && document.activeElement !== document.body) return;
+
+  const currentTile = footerCard.value?.closest('.board-column')
+    ?.querySelector<HTMLElement>('.board-wrapper .tile[tabindex="0"]');
+  const footerAction = footerCard.value?.querySelector<HTMLElement>('button:not(:disabled), a[href]');
+  for (const target of [previous, currentTile, footerAction]) {
+    if (!target?.isConnected || target.matches(':disabled') || !target.getClientRects().length) continue;
+    target.focus({ preventScroll: true });
+    if (document.activeElement === target) return;
+  }
+}
 
 function showFeedback(message: string | null, persistent = false) {
   clearTimeout(feedbackTimer);
   feedbackMessage.value = message;
-  if (message && !persistent && !props.practice) {
-    feedbackTimer = setTimeout(() => {
-      feedbackMessage.value = null;
-    }, 6000);
+  if (!message) {
+    const closeButton = feedbackClose.value;
+    if (closeButton && document.activeElement === closeButton) {
+      void restoreToastFocus(closeButton);
+    }
+  } else if (!persistent && !props.practice) {
+    feedbackTimer = setTimeout(() => showFeedback(null), 6000);
   }
 }
 
@@ -231,7 +260,7 @@ watch(
       const deadEndAtRollover = expired && status === UI_COPY.runtime.deadEnd;
       showFeedback(deadEndAtRollover ? UI_COPY.runtime.expiredDeadEnd : status, true);
     } else if (expired && !wasExpired && !props.solved) {
-      showFeedback(UI_COPY.boardFooter.finishExpiredRoad);
+      showFeedback(null);
     } else if (previous === 'failed' || props.solved) {
       showFeedback(null);
     }
@@ -334,7 +363,7 @@ watch(
 </script>
 
 <template>
-  <section class="board-footer-card">
+  <section ref="footerCard" class="board-footer-card">
     <div v-if="!solved" class="play-actions">
       <button
         ref="hintButton"
@@ -532,11 +561,13 @@ watch(
       <div class="footer-feedback">
         <Transition name="board-toast">
           <div v-if="feedbackMessage" class="feedback-toast">
-            <p>{{ feedbackMessage }}</p>
+            <p aria-hidden="true">{{ feedbackMessage }}</p>
             <button
+              ref="feedbackClose"
               type="button"
               class="feedback-close"
               :aria-label="UI_COPY.boardFooter.dismissFeedback"
+              @focus="rememberToastFocus"
               @click="showFeedback(null)"
             >
               <svg viewBox="0 0 24 24" aria-hidden="true">

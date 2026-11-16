@@ -228,6 +228,9 @@ onUnmounted(() => {
 });
 
 const scorePulse = ref<{ type: 'toll' | 'bonus'; key: number } | null>(null);
+const showRolloverNotice = computed(
+  () => roadExpired.value && !ended.value && !lastSolved.value,
+);
 const currentCelebration = computed(() => {
   if (!roadExpired.value || !celebration.value?.hasExpedition) return celebration.value;
   return { ...celebration.value, hasExpedition: false };
@@ -257,7 +260,13 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
           :over-target="overTarget"
           :mode-switch-locked="roadExpired"
           @select-mode="selectMode"
-        />
+        >
+          <template #after-metrics>
+            <div class="rollover-notice" :class="{ 'sr-only': !showRolloverNotice }" role="status">
+              <p v-if="showRolloverNotice">{{ UI_COPY.boardFooter.finishExpiredRoad }}</p>
+            </div>
+          </template>
+        </GameBoardHeader>
 
         <GameBoard
           :board="game.board"
@@ -385,6 +394,18 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
 
 .board-column > *:nth-child(3) {
   animation-delay: 120ms;
+}
+
+.rollover-notice p {
+  max-width: 26rem;
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.28);
+  border-radius: var(--radius-lg);
+  background: var(--gradient-card-status);
+  color: var(--color-gold-bright);
+  font-size: var(--font-size-board-meta);
+  line-height: var(--line-height-snug);
 }
 
 .loading-card {

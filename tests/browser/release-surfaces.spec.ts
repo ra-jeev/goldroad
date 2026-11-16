@@ -43,7 +43,14 @@ test('short screens show one visible start notification after hydration', async 
     return Boolean(document.elementFromPoint(left + width / 2, top + height / 2)
       ?.closest('.feedback-toast'));
   })).toBe(true);
-  await toast.getByRole('button', { name: 'Dismiss message' }).click();
+  const classicTab = page.getByRole('tab', { name: 'Classic Not solved' });
+  const dismiss = toast.getByRole('button', { name: 'Dismiss message' });
+  await expect(toast.locator('p')).toHaveAttribute('aria-hidden', 'true');
+  await expect(page.getByRole('status').filter({ hasText: 'Step onto any glowing tile to begin.' })).toHaveCount(1);
+  await classicTab.focus();
+  await dismiss.focus();
+  await dismiss.press('Enter');
+  await expect(classicTab).toBeFocused();
   await expect(mute).toBeEnabled();
   await mute.click();
   await expect(page.getByRole('button', { name: 'Unmute sounds' })).toBeVisible();
@@ -165,6 +172,7 @@ test('returning player hydration restores an unlocked Expedition', async ({ page
 });
 
 test('rollover waits for publication and switches only on request', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 568 });
   const runtimeErrors = captureRuntimeErrors(page);
   const roadDay = await (await page.request.get('/api/games/current')).json() as CurrentGamesResponse;
   const classic = roadDay.classic!;
@@ -205,7 +213,15 @@ test('rollover waits for publication and switches only on request', async ({ pag
   await expect(newRoad).toBeHidden();
   await expect(retryDialog).toBeHidden();
   await expect(check).toBeFocused();
-  await expect(toast).toContainText('You can still finish this road and save it to Past Roads.');
+  const notice = page.locator('.rollover-notice');
+  await expect(notice).toContainText('You can still finish this road and save it to Past Roads.');
+  await expect(toast).toHaveCount(0);
+  await expect.poll(() => notice.evaluate((element) => {
+    const score = document.querySelector('.metric-line')!.getBoundingClientRect();
+    const board = document.querySelector('.board-wrapper')!.getBoundingClientRect();
+    const banner = element.getBoundingClientRect();
+    return banner.top >= score.bottom && banner.bottom <= board.top;
+  })).toBe(true);
   await expect(page.getByText(`Day #${classic.gameNo}`, { exact: true })).toBeVisible();
 
   await check.click();
@@ -218,6 +234,7 @@ test('rollover waits for publication and switches only on request', async ({ pag
   await newRoad.click();
   await expect(page.getByText(`Day #${classic.gameNo + 1}`, { exact: true })).toBeVisible();
   await expect(newRoad).toBeHidden();
+  await expect(notice).toBeEmpty();
   await expect(
     page.getByRole('tab', { name: 'Classic Not solved' }),
   ).toBeEnabled();

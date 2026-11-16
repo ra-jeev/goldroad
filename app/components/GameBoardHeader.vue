@@ -113,6 +113,7 @@ function statusLabel(solved: boolean, medal: Medal | null): string {
       :pulse="pulse"
       :over-target="overTarget"
     />
+    <slot name="after-metrics" />
   </section>
 </template>
 
