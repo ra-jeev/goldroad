@@ -93,6 +93,7 @@ struct RoadRun: Equatable {
     private(set) var attempt = 1
     private(set) var hintsUsed = 0
     private(set) var guidePath: [Int] = []
+    private(set) var activeTime: TimeInterval?
 
     init(road: ClassicRoad) {
         self.road = road
@@ -125,6 +126,11 @@ struct RoadRun: Equatable {
     var legalMoves: [Int] { outcome == .inProgress ? unvisitedNeighbors : [] }
 
     var canUndo: Bool { undoAvailable && outcome == .inProgress }
+
+    mutating func addActiveTime(_ seconds: TimeInterval) {
+        guard seconds.isFinite && seconds >= 0 else { return }
+        activeTime = min((activeTime ?? 0) + seconds, 86_400)
+    }
 
     mutating func updateSchedule(from publishedRoad: ClassicRoad) {
         guard road.gameNo == publishedRoad.gameNo else { return }
@@ -176,11 +182,12 @@ struct RoadRun: Equatable {
         var attempt: Int?
         var hintsUsed: Int?
         var guidePath: [Int]?
+        var activeTime: TimeInterval?
     }
 
     var snapshot: Snapshot {
         Snapshot(road: road, path: path, undoAvailable: undoAvailable,
-                 attempt: attempt, hintsUsed: hintsUsed, guidePath: guidePath)
+                 attempt: attempt, hintsUsed: hintsUsed, guidePath: guidePath, activeTime: activeTime)
     }
 
     init?(snapshot: Snapshot) {
@@ -195,5 +202,6 @@ struct RoadRun: Equatable {
         attempt = min(max(1, snapshot.attempt ?? 1), 1000)
         hintsUsed = min(max(0, snapshot.hintsUsed ?? 0), 5)
         guidePath = snapshot.guidePath ?? []
+        if let activeTime = snapshot.activeTime { addActiveTime(activeTime) }
     }
 }

@@ -23,6 +23,8 @@ struct ClassicRoadView: View {
     @State private var hintRequest: UUID?
     @State private var showHelp = false
     @State private var confirmRestart = false
+    @State private var resultPresented = false
+    @State private var activeSince: TimeInterval?
 
     private let client = ClassicRoadClient()
     private var run: RoadRun? { mode == .classic ? classic : expedition }
@@ -77,9 +79,31 @@ struct ClassicRoadView: View {
         .foregroundStyle(RoadTheme.gold)
         .tint(RoadTheme.gold)
         .task(id: loadID) { await loadRoad() }
-        .onChange(of: scenePhase) { _, _ in loadID += 1 }
-        .onDisappear { clearInteraction() }
+        .onChange(of: scenePhase) { _, phase in
+            if phase != .active { pauseClock() }
+            loadID += 1
+        }
+        .onDisappear {
+            pauseClock()
+            clearInteraction()
+        }
         .sheet(isPresented: $showHelp) { help }
+        .sheet(isPresented: $resultPresented, onDismiss: resumeClock) {
+            if let run, run.outcome == .solved {
+                RoadResultView(
+                    result: result(for: run, mode: mode),
+                    classicResult: mode == .expedition ? classic.flatMap {
+                        $0.outcome == .solved ? result(for: $0, mode: .classic) : nil
+                    } : nil,
+                    onContinueToExpedition: mode == .classic && expeditionUnlocked && !roadExpired
+                        ? { resultPresented = false; switchMode(.expedition) } : nil,
+                    onDismiss: { resultPresented = false }
+                )
+            }
+        }
+        .onChange(of: showHelp) { _, visible in
+            if visible { pauseClock() } else { resumeClock() }
+        }
         .alert("Start over?", isPresented: $confirmRestart) {
             Button("Keep playing", role: .cancel) {}
             Button("Try again", role: .destructive) { restart() }
@@ -87,7 +111,13 @@ struct ClassicRoadView: View {
             Text("This ends your current try and starts a new one.")
         }
         .onChange(of: roadExpired) { _, expired in
-            if expired { confirmRestart = false }
+            if expired {
+                confirmRestart = false
+                pauseClock()
+            }
+        }
+        .onChange(of: confirmRestart) { _, visible in
+            if visible { pauseClock() } else { resumeClock() }
         }
     }
 
@@ -238,6 +268,10 @@ struct ClassicRoadView: View {
                     .accessibilityHint("\(5 - run.hintsUsed) hints left")
                 }
             } else if run.outcome == .solved {
+                if !roadExpired {
+                    Button("View result", systemImage: "medal") { resultPresented = true }
+                        .buttonStyle(.bordered)
+                }
                 if mode == .classic && expeditionUnlocked && !roadExpired {
                     Button("Play Expedition") { switchMode(.expedition) }
                         .buttonStyle(.borderedProminent)
@@ -311,8 +345,10 @@ struct ClassicRoadView: View {
 
     private func switchMode(_ mode: RoadMode) {
         guard self.mode != mode else { return }
+        pauseClock()
         clearInteraction()
         self.mode = mode
+        resumeClock()
     }
 
     private func selectTile(_ tile: Int) {
@@ -328,15 +364,22 @@ struct ClassicRoadView: View {
         }
 
         clearInteraction()
+        let countsAsDaily = !roadExpired && classic?.road.isExpired(at: Date()) != true
+        if countsAsDaily {
+            if activeSince == nil { activeSince = ProcessInfo.processInfo.systemUptime }
+            bankTime(into: &run)
+        }
         run.select(tile)
         save(run, for: mode)
         play(.move)
+        if countsAsDaily && run.outcome != .solved { resumeClock() }
         switch run.outcome {
         case .inProgress:
             feedback = BoardFeedback(tile: tile, kind: .step)
         case .solved:
             feedback = BoardFeedback(tile: tile, kind: .step)
             play(.solve)
+            resultPresented = countsAsDaily
         case .wrongTotal, .deadEnd:
             feedback = BoardFeedback(tile: tile, kind: .failed)
             play(.deadEnd)
@@ -346,20 +389,47 @@ struct ClassicRoadView: View {
     private func undo() {
         guard var run, run.canUndo else { return }
         clearInteraction()
+        bankTime(into: &run)
         run.undo()
         save(run, for: mode)
+        resumeClock()
         play(.undo)
     }
 
     private func restart() {
         guard !roadExpired, classic?.road.isExpired(at: Date()) != true, var run else { return }
         clearInteraction()
+        bankTime(into: &run)
         run.restart()
         save(run, for: mode)
     }
 
     private func play(_ effect: RoadSound.Effect) {
         if !muted { sound.play(effect) }
+    }
+
+    private func result(for run: RoadRun, mode: RoadMode) -> RoadResult {
+        RoadResult(gameNo: run.road.gameNo, mode: mode, attempts: run.attempt,
+                   elapsed: run.activeTime, hintsUsed: run.hintsUsed)
+    }
+
+    private func bankTime(into run: inout RoadRun) {
+        guard let activeSince else { return }
+        self.activeSince = nil
+        run.addActiveTime(ProcessInfo.processInfo.systemUptime - activeSince)
+    }
+
+    private func pauseClock() {
+        guard activeSince != nil, var run else { return }
+        bankTime(into: &run)
+        save(run, for: mode)
+    }
+
+    private func resumeClock() {
+        guard activeSince == nil, scenePhase == .active, !roadExpired, !showHelp,
+              !confirmRestart, !resultPresented, let run,
+              run.outcome != .solved, run.path.count > 1 else { return }
+        activeSince = ProcessInfo.processInfo.systemUptime
     }
 
     private func clearInteraction() {
@@ -414,6 +484,7 @@ struct ClassicRoadView: View {
         if expedition == nil { expedition = restore(savedExpedition) }
         if !expeditionUnlocked { switchMode(.classic) }
         sound.prepare()
+        resumeClock()
         await checkForRoad()
         guard !Task.isCancelled else { return }
 
@@ -486,6 +557,7 @@ struct ClassicRoadView: View {
 
     private func openRoadDay(_ day: ClassicRoadClient.RoadDay) {
         guard let newClassic = day.classic else { return }
+        pauseClock()
         clearInteraction()
         nextDay = nil
         waitingForRoad = false
