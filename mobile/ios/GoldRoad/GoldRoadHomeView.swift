@@ -3,6 +3,7 @@ import SwiftUI
 struct GoldRoadHomeView: View {
     @State private var showingRoad = false
     @State private var showingStats = false
+    @State private var showingTutorial = false
 
     var body: some View {
         NavigationStack {
@@ -26,6 +27,13 @@ struct GoldRoadHomeView: View {
                     }
                     .buttonStyle(.plain)
                     .padding(.top, 10)
+                    Button {
+                        showingTutorial = true
+                    } label: {
+                        destinationLabel("How to Play", icon: "questionmark.circle", actionIcon: "chevron.right")
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.top, 10)
                 }
                 .frame(maxWidth: 460, alignment: .leading)
                 .padding(.horizontal, 24)
@@ -42,6 +50,9 @@ struct GoldRoadHomeView: View {
             .navigationDestination(isPresented: $showingStats) {
                 RoadStatsView(onBack: { showingStats = false })
                     .toolbar(.hidden, for: .navigationBar)
+            }
+            .sheet(isPresented: $showingTutorial) {
+                RoadTutorialView(onFinish: { showingTutorial = false })
             }
         }
         .tint(RoadTheme.gold)

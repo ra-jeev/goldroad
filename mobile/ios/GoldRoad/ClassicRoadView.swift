@@ -87,7 +87,7 @@ struct ClassicRoadView: View {
             pauseClock()
             clearInteraction()
         }
-        .sheet(isPresented: $showHelp) { help }
+        .sheet(isPresented: $showHelp) { RoadTutorialView(onFinish: { showHelp = false }) }
         .sheet(isPresented: $resultPresented, onDismiss: resumeClock) {
             if let run, run.outcome == .solved {
                 RoadResultView(
@@ -314,22 +314,6 @@ struct ClassicRoadView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(label)
-    }
-
-    private var help: some View {
-        NavigationStack {
-            List {
-                Text("Start at the footprints and tap a glowing coin to move. Every coin adds its value to your score. You can visit each coin once.")
-                Text("Reach the flag with exactly the target score. Undo takes back your last move. Hints highlight the next step or show where to restart.")
-                Text("Solve Classic to unlock Expedition. Dashed roads subtract a toll and double solid roads add a bonus.")
-            }
-            .navigationTitle("How to play")
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { showHelp = false }
-                }
-            }
-        }
     }
 
     private func status(for run: RoadRun) -> String {

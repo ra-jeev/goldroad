@@ -20,6 +20,7 @@
 		C4DBC16CB513429CA86536C0 /* RoadResultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE9463F3280647D8B8803DB0 /* RoadResultView.swift */; };
 		CDA3594266EA42B798D7F0A7 /* PastRoadsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DEC0384A4A345978C981AA3 /* PastRoadsView.swift */; };
 		12C95E0BB6F44D2D9A886DAC /* RoadStatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CC8D76AC4004B18A83D7300 /* RoadStatsView.swift */; };
+		851BEC10EB3F433FA354BF5B /* RoadTutorialView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA5061A6F12D4FE89D5E9281 /* RoadTutorialView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -37,6 +38,7 @@
 		CE9463F3280647D8B8803DB0 /* RoadResultView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoadResultView.swift; sourceTree = "<group>"; };
 		8DEC0384A4A345978C981AA3 /* PastRoadsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PastRoadsView.swift; sourceTree = "<group>"; };
 		8CC8D76AC4004B18A83D7300 /* RoadStatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoadStatsView.swift; sourceTree = "<group>"; };
+		DA5061A6F12D4FE89D5E9281 /* RoadTutorialView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoadTutorialView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -51,6 +53,7 @@
 				6E58D01CD978BBCAE716621A /* GoldRoadApp.swift */,
 				CA23179CE0534AA2AE096520 /* GoldRoadHomeView.swift */,
 				A5FA69F805201210BDDEF7F6 /* RoadBoardView.swift */,
+				DA5061A6F12D4FE89D5E9281 /* RoadTutorialView.swift */,
 				8CC8D76AC4004B18A83D7300 /* RoadStatsView.swift */,
 				8DEC0384A4A345978C981AA3 /* PastRoadsView.swift */,
 				CE9463F3280647D8B8803DB0 /* RoadResultView.swift */,
@@ -151,6 +154,7 @@
 				0810D420C37F3D8944FC5732 /* GoldRoadApp.swift in Sources */,
 				CA23179CE0534AA2AE096521 /* GoldRoadHomeView.swift in Sources */,
 				6A1D35478F75095807F5907E /* RoadBoardView.swift in Sources */,
+				851BEC10EB3F433FA354BF5B /* RoadTutorialView.swift in Sources */,
 				12C95E0BB6F44D2D9A886DAC /* RoadStatsView.swift in Sources */,
 				CDA3594266EA42B798D7F0A7 /* PastRoadsView.swift in Sources */,
 				C4DBC16CB513429CA86536C0 /* RoadResultView.swift in Sources */,
