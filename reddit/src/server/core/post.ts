@@ -1,5 +1,6 @@
 import { context, reddit, redis } from '@devvit/web/server';
 import type { RoadPostData } from '../../shared/api';
+import { ensureResultsThread } from './comments';
 import { shortDayLabel, utcDay } from './day';
 import { getOrCreateRoad } from './road';
 
@@ -43,6 +44,12 @@ export async function ensureDailyPost(day: string = utcDay()): Promise<DailyPost
 
   await redis.set(dayPostKey(day), post.id);
   await redis.set(postDayKey(post.id), day);
+  try {
+    await ensureResultsThread(post.id);
+  } catch (error) {
+    // The first shared result creates it later.
+    console.error(`could not create the results comment: ${error}`);
+  }
   return { postId: post.id, created: true };
 }
 

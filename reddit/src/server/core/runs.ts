@@ -21,6 +21,8 @@ type StoredRun = {
   medal?: string;
   /** "1" when the solve came inside the post's day and went on the board. */
   counted?: string;
+  /** The player's result comment, once posted. One per road and mode. */
+  commentId?: string;
 };
 
 export class RunError extends Error {
@@ -53,11 +55,27 @@ function toPublic(stored: StoredRun): PlayerRun {
     solvedAttempt: stored.solvedAttempt ? Number(stored.solvedAttempt) : null,
     medal: (stored.medal as Medal | undefined) ?? null,
     solveSeconds: stored.solveSeconds ? Number(stored.solveSeconds) : null,
+    commented: stored.commentId !== undefined,
   };
 }
 
 export async function getRun(userId: string, day: string, mode: RoadMode): Promise<PlayerRun> {
   return toPublic(await read(userId, day, mode));
+}
+
+/**
+ * Keep one result comment per road and mode. Returns false when the player
+ * has already posted one, so a double tap never posts twice.
+ */
+export async function claimComment(userId: string, day: string, mode: RoadMode): Promise<boolean> {
+  const key = runKey(userId, day, mode);
+  return (await redis.hSetNX(key, 'commentId', 'pending')) === 1;
+}
+
+export async function saveComment(userId: string, day: string, mode: RoadMode, commentId: string | null) {
+  const key = runKey(userId, day, mode);
+  if (commentId) await redis.hSet(key, { commentId });
+  else await redis.hDel(key, ['commentId']);
 }
 
 /** True when the player's solve went on the board and the streak. */

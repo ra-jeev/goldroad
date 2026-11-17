@@ -1,4 +1,5 @@
 import type {
+  CommentResponse,
   FinishResponse,
   HintResponse,
   RoadMode,
@@ -40,3 +41,7 @@ export const postHint = (mode: RoadMode, path: number[], guide: number[]) =>
 
 export const postFinish = (mode: RoadMode, path: number[]) =>
   request<FinishResponse>('/api/finish', { mode, path });
+
+export const postComment = (mode: RoadMode) => request<CommentResponse>('/api/comment', { mode });
+
+export const postSubscribe = () => request<{ subscribed: boolean }>('/api/subscribe', {});

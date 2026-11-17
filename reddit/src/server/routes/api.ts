@@ -1,7 +1,8 @@
-import { context } from '@devvit/web/server';
+import { context, reddit } from '@devvit/web/server';
 import { Hono, type Context } from 'hono';
 import { z } from 'zod';
 import type {
+  CommentResponse,
   ErrorResponse,
   FinishResponse,
   HintResponse,
@@ -14,7 +15,19 @@ import type {
 import { utcDay } from '../core/day';
 import { dayForPost } from '../core/post';
 import { getGoldRoutes, getOrCreateRoad } from '../core/road';
-import { finishTry, getRun, guestHint, isCounted, type Player, RunError, startTry, useHint } from '../core/runs';
+import { ensureResultsThread, resultText, ThreadBusyError } from '../core/comments';
+import {
+  claimComment,
+  finishTry,
+  getRun,
+  guestHint,
+  isCounted,
+  type Player,
+  RunError,
+  saveComment,
+  startTry,
+  useHint,
+} from '../core/runs';
 import { getStanding } from '../core/standing';
 
 export const api = new Hono();
@@ -46,6 +59,7 @@ async function standingFor(day: string, mode: RoadMode, run: PlayerRun | null): 
 
 function fail(c: Context, error: unknown) {
   if (error instanceof RunError) return c.json<ErrorResponse>({ error: error.message }, error.status);
+  if (error instanceof ThreadBusyError) return c.json<ErrorResponse>({ error: error.message }, 409);
   if (error instanceof z.ZodError) return c.json<ErrorResponse>({ error: 'Bad request' }, 400);
   throw error;
 }
@@ -104,6 +118,51 @@ api.post('/finish', async (c) => {
     const result = await finishTry(player(), day, mode, road, path);
     const standing = result.outcome === 'solved' ? await standingFor(day, mode, result.run) : null;
     return c.json<FinishResponse>({ ...result, standing });
+  } catch (error) {
+    return fail(c, error);
+  }
+});
+
+/**
+ * Post the player's result from their own account, as a reply to the pinned
+ * results comment. The server writes the text from its own record, so a
+ * comment can never claim a better result. One per road and mode.
+ */
+api.post('/comment', async (c) => {
+  try {
+    const { mode } = ModeBody.parse(await c.req.json());
+    const { userId, postId } = context;
+    if (!userId || !postId) throw new RunError(403, 'Log in to comment');
+    const day = await postDay();
+    const run = await getRun(userId, day, mode);
+    if (!run.solved) throw new RunError(403, 'Solve the road first');
+    if (!(await claimComment(userId, day, mode))) throw new RunError(429, 'Result already posted');
+
+    try {
+      const road = await getOrCreateRoad(day, mode);
+      const threadId = await ensureResultsThread(postId);
+      const comment = await reddit.submitComment({
+        id: threadId as `t1_${string}`,
+        text: resultText(road.roadNo, mode, run),
+        runAs: 'USER',
+      });
+      await saveComment(userId, day, mode, comment.id);
+      return c.json<CommentResponse>({ commentId: comment.id, run: { ...run, commented: true } });
+    } catch (error) {
+      await saveComment(userId, day, mode, null);
+      throw error;
+    }
+  } catch (error) {
+    return fail(c, error);
+  }
+});
+
+/** Join the subreddit. Only ever on the player's own tap. */
+api.post('/subscribe', async (c) => {
+  try {
+    if (!context.userId) throw new RunError(403, 'Log in to join');
+    await reddit.subscribeToCurrentSubreddit();
+    return c.json({ subscribed: true });
   } catch (error) {
     return fail(c, error);
   }

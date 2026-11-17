@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { showLoginPrompt } from '@devvit/web/client';
+import { context, showLoginPrompt } from '@devvit/web/client';
 import { calcMedalForAttempt } from '#game/lib/gameTiers';
-import type { Medal, Standing } from '../shared/api';
+import type { Medal, RoadMode, Standing } from '../shared/api';
+import { postComment, postSubscribe } from './api';
 
 const props = defineProps<{
   roadNo: number;
+  mode: RoadMode;
+  commented: boolean;
   medal: Medal | null;
   attempts: number;
   hints: number;
@@ -13,7 +16,45 @@ const props = defineProps<{
   standing: Standing | null;
   loggedIn: boolean;
 }>();
-defineEmits<{ close: [] }>();
+const emit = defineEmits<{ close: []; commented: [] }>();
+
+// The two Reddit actions. Each is the player's own tap, never automatic.
+const subreddit = context.subredditName ?? null;
+const commentState = ref<'idle' | 'sending' | 'done' | 'failed'>(props.commented ? 'done' : 'idle');
+const joinState = ref<'idle' | 'sending' | 'done' | 'failed'>('idle');
+
+async function shareComment() {
+  if (commentState.value === 'sending' || commentState.value === 'done') return;
+  commentState.value = 'sending';
+  try {
+    await postComment(props.mode);
+    commentState.value = 'done';
+    emit('commented');
+  } catch (cause) {
+    console.error('comment failed', cause);
+    commentState.value = 'failed';
+  }
+}
+
+async function join() {
+  if (joinState.value !== 'idle' && joinState.value !== 'failed') return;
+  joinState.value = 'sending';
+  try {
+    await postSubscribe();
+    joinState.value = 'done';
+  } catch (cause) {
+    console.error('join failed', cause);
+    joinState.value = 'failed';
+  }
+}
+
+const COMMENT_LABEL = {
+  idle: 'Post my result as a comment',
+  sending: 'Posting…',
+  done: 'Result posted ✓',
+  failed: 'Could not post. Try again',
+} as const;
+
 
 const MEDAL_ICON: Record<Medal, string> = { gold: '🥇', silver: '🥈', bronze: '🥉' };
 
@@ -142,7 +183,32 @@ const nextRoad = computed(() => {
         Log in to save your streak and rank
       </button>
 
-      <button type="button" class="action" @click="$emit('close')">See the board</button>
+      <template v-if="loggedIn">
+        <button
+          type="button"
+          class="action action--primary"
+          :disabled="commentState === 'sending' || commentState === 'done'"
+          @click="shareComment"
+        >
+          {{ COMMENT_LABEL[commentState] }}
+        </button>
+        <p v-if="commentState !== 'done'" class="fine">
+          Posts from your account as a reply to the pinned comment. No route, no spoilers.
+        </p>
+      </template>
+
+      <div class="pair">
+        <button type="button" class="action" @click="emit('close')">See the board</button>
+        <button
+          v-if="loggedIn && subreddit"
+          type="button"
+          class="action"
+          :disabled="joinState === 'sending' || joinState === 'done'"
+          @click="join"
+        >
+          {{ joinState === 'done' ? 'Joined ✓' : joinState === 'failed' ? 'Try again' : `Join r/${subreddit}` }}
+        </button>
+      </div>
 
       <p class="next">Next road in {{ nextRoad }}</p>
     </section>
@@ -334,6 +400,32 @@ const nextRoad = computed(() => {
   font: inherit;
   font-weight: 700;
   cursor: pointer;
+}
+
+.action:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.pair {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.pair .action {
+  flex: 1;
+  min-width: 0;
+  padding: 0 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fine {
+  margin: -4px 0 0;
+  font-size: 0.75rem;
+  color: var(--color-gold-muted);
 }
 
 .action--primary {

@@ -43,6 +43,8 @@ export type PlayerRun = {
   solvedAttempt: number | null;
   medal: Medal | null;
   solveSeconds: number | null;
+  /** True once the player has posted their result as a comment. */
+  commented: boolean;
 };
 
 export type RoadResponse = {
@@ -93,3 +95,5 @@ export type Standing = {
   /** The top 10, then the player and the two around them if lower. */
   rows: LeaderRow[];
 };
+
+export type CommentResponse = { commentId: string; run: PlayerRun };

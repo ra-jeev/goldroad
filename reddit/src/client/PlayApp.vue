@@ -398,6 +398,8 @@ function onKeydown(event: KeyboardEvent) {
       <ResultCard
         v-if="showResult && hasResult"
         :road-no="road.roadNo"
+        :mode="road.mode"
+        :commented="!!record?.commented"
         :medal="medal"
         :attempts="result.attempts"
         :hints="result.hints"
@@ -405,6 +407,7 @@ function onKeydown(event: KeyboardEvent) {
         :standing="standing"
         :logged-in="loggedIn"
         @close="showResult = false"
+        @commented="record && (record = { ...record, commented: true })"
       />
     </template>
   </main>
