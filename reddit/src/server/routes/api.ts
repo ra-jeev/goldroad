@@ -28,6 +28,7 @@ import {
   startTry,
   useHint,
 } from '../core/runs';
+import { getHeat } from '../core/heat';
 import { getStanding } from '../core/standing';
 
 export const api = new Hono();
@@ -54,7 +55,9 @@ function player(): Player | null {
 async function standingFor(day: string, mode: RoadMode, run: PlayerRun | null): Promise<Standing | null> {
   const { userId } = context;
   if (!userId || !run?.solved) return null;
-  return getStanding(userId, day, mode, await isCounted(userId, day, mode));
+  const [road, gold] = await Promise.all([getOrCreateRoad(day, mode), getGoldRoutes(day, mode)]);
+  const heat = gold?.[0] ? await getHeat(day, mode, road.board.tiles.length, gold[0]) : null;
+  return getStanding(userId, day, mode, await isCounted(userId, day, mode), utcDay(), heat);
 }
 
 function fail(c: Context, error: unknown) {

@@ -4,9 +4,11 @@ import { context, showLoginPrompt } from '@devvit/web/client';
 import { calcMedalForAttempt } from '#game/lib/gameTiers';
 import type { Medal, RoadMode, Standing } from '../shared/api';
 import { postComment, postSubscribe } from './api';
+import CrowdMap from './CrowdMap.vue';
 
 const props = defineProps<{
   roadNo: number;
+  board: { rows: number; cols: number; start: number; end: number };
   mode: RoadMode;
   commented: boolean;
   medal: Medal | null;
@@ -158,6 +160,15 @@ const nextRoad = computed(() => {
           <span v-if="streakLine" class="streak">🔥 {{ streakLine }}</span>
         </p>
 
+        <CrowdMap
+          v-if="standing.heat"
+          :heat="standing.heat"
+          :rows="board.rows"
+          :cols="board.cols"
+          :start="board.start"
+          :end="board.end"
+        />
+
         <ol v-if="rows.length" ref="list" class="board" aria-label="Today's leaderboard">
           <li
             v-for="row in rows"
@@ -225,12 +236,16 @@ const nextRoad = computed(() => {
   justify-items: center;
   padding: 12px 12px max(12px, env(safe-area-inset-bottom));
   background: rgb(0 0 0 / 0.55);
+  grid-template-columns: minmax(0, 1fr);
   overflow-y: auto;
 }
 
 .card {
   width: min(100%, 420px);
+  min-width: 0;
+  box-sizing: border-box;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 10px;
   justify-items: center;
   padding: 18px 16px 14px;

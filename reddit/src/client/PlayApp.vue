@@ -398,6 +398,7 @@ function onKeydown(event: KeyboardEvent) {
       <ResultCard
         v-if="showResult && hasResult"
         :road-no="road.roadNo"
+        :board="road.board"
         :mode="road.mode"
         :commented="!!record?.commented"
         :medal="medal"

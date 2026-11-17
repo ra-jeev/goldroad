@@ -94,6 +94,19 @@ export type Standing = {
   bestStreak: number;
   /** The top 10, then the player and the two around them if lower. */
   rows: LeaderRow[];
+  /** Shown only to solvers: before a solve it is a spoiler. */
+  heat: Heat | null;
+};
+
+/** Where the crowd walked on their first try. */
+export type Heat = {
+  walkers: number;
+  /** Walkers who stepped on each tile, by tile index. */
+  tiles: number[];
+  /** Tile index of the first step → walkers who took it. */
+  firstSteps: Record<number, number>;
+  /** One gold route, drawn on top. */
+  goldRoute: number[];
 };
 
 export type CommentResponse = { commentId: string; run: PlayerRun };
