@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { showLoginPrompt } from '@devvit/web/client';
+import { calcMedalForAttempt } from '#game/lib/gameTiers';
 import type { Medal, Standing } from '../shared/api';
 
 const props = defineProps<{
@@ -54,6 +55,7 @@ const rows = computed(() =>
   (props.standing?.rows ?? []).map((row, i, all) => ({
     ...row,
     gapBefore: i > 0 && row.rank - all[i - 1]!.rank > 1,
+    medal: calcMedalForAttempt(row.attempts, true),
   })),
 );
 
@@ -123,11 +125,15 @@ const nextRoad = computed(() => {
             :class="{ 'row--me': row.me, 'row--gap': row.gapBefore }"
           >
             <span class="rank">{{ row.rank }}</span>
-            <span class="name">u/{{ row.name }}</span>
-            <span class="detail">
-              {{ plural(row.attempts, 'try', 'tries') }}<template v-if="row.hints">
-                · {{ plural(row.hints, 'hint', 'hints') }}</template> · {{ duration(row.seconds) }}
+            <span class="row-medal" aria-hidden="true">{{ row.medal ? MEDAL_ICON[row.medal] : '' }}</span>
+            <span class="who">
+              <span class="name">u/{{ row.name }}</span>
+              <span class="detail">
+                {{ plural(row.attempts, 'try', 'tries') }}<template v-if="row.hints">
+                  · {{ plural(row.hints, 'hint', 'hints') }}</template>
+              </span>
             </span>
+            <span class="time">{{ duration(row.seconds) }}</span>
           </li>
         </ol>
       </template>
@@ -257,8 +263,9 @@ const nextRoad = computed(() => {
 
 .row {
   display: grid;
-  grid-template-columns: 2.2em minmax(0, 1fr) auto;
-  gap: 8px;
+  grid-template-columns: 1.8em 1.4em minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
   padding: 5px 8px;
   border-radius: var(--radius-sm);
   font-size: 0.9rem;
@@ -291,6 +298,21 @@ const nextRoad = computed(() => {
   color: var(--color-gold-muted);
 }
 
+.row-medal {
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.who {
+  display: grid;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.time {
+  font-weight: 700;
+}
+
 .name {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -298,6 +320,7 @@ const nextRoad = computed(() => {
 }
 
 .detail {
+  font-size: 0.78rem;
   color: var(--color-gold-muted);
 }
 
