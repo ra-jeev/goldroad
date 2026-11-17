@@ -1,5 +1,5 @@
 import { redis } from '@devvit/web/server';
-import type { Heat, LeaderRow, RoadMode, Standing } from '../../shared/api';
+import type { LeaderRow, RoadMode, Standing, Trap } from '../../shared/api';
 import { previousDay, utcDay } from './day';
 import { namesKey, remember } from './userIndex';
 
@@ -79,7 +79,7 @@ export async function getStanding(
   mode: RoadMode,
   counted: boolean,
   today: string = utcDay(),
-  heat: Heat | null = null,
+  trap: Trap | null = null,
 ): Promise<Standing> {
   const key = boardKey(day, mode);
   const [index, players, streak] = await Promise.all([
@@ -91,5 +91,5 @@ export async function getStanding(
   if (index !== undefined && index >= TOP) {
     rows.push(...(await rowsAt(key, Math.max(TOP, index - 1), index + 1, userId)));
   }
-  return { counted, rank: index === undefined ? null : index + 1, players, ...streak, rows, heat };
+  return { counted, rank: index === undefined ? null : index + 1, players, ...streak, rows, trap };
 }

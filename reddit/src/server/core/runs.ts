@@ -6,7 +6,7 @@ import type { HintResult } from '#game/shared/types/game';
 import type { Medal, PlayerRun, PublicRoad, RoadMode } from '../../shared/api';
 import { replayRoute } from '../../shared/run';
 import { dayEndMs } from './day';
-import { recordWalk } from './heat';
+import { recordFirstTry } from './trap';
 import { recordSolve } from './standing';
 import { remember } from './userIndex';
 
@@ -24,7 +24,7 @@ type StoredRun = {
   counted?: string;
   /** The player's result comment, once posted. One per road and mode. */
   commentId?: string;
-  /** "1" once the first finished try went into the crowd heat map. */
+  /** "1" once the first finished try went into the trap counts. */
   walked?: string;
 };
 
@@ -165,10 +165,10 @@ export async function finishTry(
 
   await assertModeOpen(userId, day, mode);
   const stored = await read(userId, day, mode);
-  // The crowd map takes each player's first finished try, once.
+  // The trap counts each player's first finished try, once.
   if (Number(stored.attempts ?? 0) <= 1 && (await redis.hSetNX(runKey(userId, day, mode), 'walked', '1'))) {
     await remember(userId, runKey(userId, day, mode));
-    await recordWalk(day, mode, path);
+    await recordFirstTry(day, mode, path);
   }
   if (outcome !== 'solved' || stored.solvedAttempt !== undefined) {
     return { outcome, score, run: toPublic(stored) };

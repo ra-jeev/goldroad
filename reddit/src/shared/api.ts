@@ -95,17 +95,23 @@ export type Standing = {
   /** The top 10, then the player and the two around them if lower. */
   rows: LeaderRow[];
   /** Shown only to solvers: before a solve it is a spoiler. */
-  heat: Heat | null;
+  trap: Trap | null;
 };
 
-/** Where the crowd walked on their first try. */
-export type Heat = {
+/** The step where first tries most often left the gold road. */
+export type Trap = {
+  /** Players whose first try is counted. */
   walkers: number;
-  /** Walkers who stepped on each tile, by tile index. */
-  tiles: number[];
-  /** Tile index of the first step → walkers who took it. */
-  firstSteps: Record<number, number>;
-  /** One gold route, drawn on top. */
+  /** Of them, how many found the gold road on that first try. */
+  solvedFirst: number;
+  /** First tries that took the trap step. */
+  trapped: number;
+  /** The tile where they went wrong, and the tile they stepped to. */
+  from: number | null;
+  wrongTo: number | null;
+  /** The gold road's step from that same tile. */
+  goldTo: number | null;
+  /** One gold route, through the trap tile when it can. */
   goldRoute: number[];
 };
 

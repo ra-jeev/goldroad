@@ -4,11 +4,11 @@ import { context, showLoginPrompt } from '@devvit/web/client';
 import { calcMedalForAttempt } from '#game/lib/gameTiers';
 import type { Medal, RoadMode, Standing } from '../shared/api';
 import { postComment, postSubscribe } from './api';
-import CrowdMap from './CrowdMap.vue';
+import TrapMap from './TrapMap.vue';
 
 const props = defineProps<{
   roadNo: number;
-  board: { rows: number; cols: number; start: number; end: number };
+  board: { rows: number; cols: number; tiles: number[]; start: number; end: number };
   mode: RoadMode;
   commented: boolean;
   medal: Medal | null;
@@ -160,9 +160,10 @@ const nextRoad = computed(() => {
           <span v-if="streakLine" class="streak">🔥 {{ streakLine }}</span>
         </p>
 
-        <CrowdMap
-          v-if="standing.heat"
-          :heat="standing.heat"
+        <TrapMap
+          v-if="standing.trap"
+          :trap="standing.trap"
+          :tiles="board.tiles"
           :rows="board.rows"
           :cols="board.cols"
           :start="board.start"
