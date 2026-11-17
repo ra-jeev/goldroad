@@ -1,0 +1,8 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "esnext.disposable"],
+    "types": ["node"]
+  },
+  "include": ["../src/server/**/*", "../src/shared/**/*", "../vite.config.ts", "../vitest.config.ts"]
+}

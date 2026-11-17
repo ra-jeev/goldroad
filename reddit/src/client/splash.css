@@ -1,0 +1,70 @@
+.splash {
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.35);
+  background: radial-gradient(circle at 50% 30%, var(--color-bg-base), var(--color-bg-deepest) 70%);
+  text-align: center;
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 1.25rem;
+  letter-spacing: 0.08em;
+}
+
+.target {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-gold);
+}
+
+.line {
+  margin: 0;
+  max-width: 22rem;
+  color: var(--color-gold-muted);
+}
+
+.mini-board {
+  display: grid;
+  gap: 4px;
+}
+
+.mini-board:empty {
+  display: none;
+}
+
+.mini-tile {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 2px solid rgb(var(--color-gold-rgb) / 0.6);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.mini-tile.start,
+.mini-tile.end {
+  background: var(--color-gold);
+  color: var(--color-text-on-gold);
+}
+
+.play {
+  min-width: 10rem;
+  min-height: 44px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--color-gold);
+  color: var(--color-text-on-gold);
+  font-size: 1.05rem;
+  font-weight: 700;
+  cursor: pointer;
+}

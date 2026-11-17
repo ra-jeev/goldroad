@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["DOM", "DOM.Iterable", "ES2023"],
+    "customConditions": ["browser"],
+    "jsx": "preserve"
+  },
+  "include": ["../src/client/**/*", "../src/client/**/*.vue", "../src/shared/**/*"]
+}

@@ -1,0 +1,62 @@
+{
+  "$schema": "https://developers.reddit.com/schema/config-file.v1.json",
+  "name": "goldroad",
+  "post": {
+    "dir": "dist/client",
+    "entrypoints": {
+      "default": {
+        "inline": true,
+        "entry": "splash.html",
+        "height": "tall"
+      },
+      "play": {
+        "entry": "play.html"
+      },
+      "_direct_launch": {
+        "entry": "play.html"
+      }
+    }
+  },
+  "server": {
+    "dir": "dist/server",
+    "entry": "index.cjs"
+  },
+  "permissions": {
+    "redis": true,
+    "http": {
+      "enable": false
+    },
+    "reddit": {
+      "enable": true,
+      "asUser": ["SUBMIT_COMMENT", "SUBSCRIBE_TO_SUBREDDIT"]
+    }
+  },
+  "scheduler": {
+    "tasks": {
+      "daily-road": {
+        "endpoint": "/internal/scheduler/daily-road",
+        "cron": "0 0 * * *"
+      }
+    }
+  },
+  "menu": {
+    "items": [
+      {
+        "label": "GoldRoad: post today's road",
+        "description": "Create today's GoldRoad post if it does not exist yet.",
+        "location": "subreddit",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/post-today"
+      }
+    ]
+  },
+  "triggers": {
+    "onAppInstall": "/internal/triggers/on-app-install"
+  },
+  "additionalSourceRoots": ["../shared", "../lib", "../server/utils"],
+  "sourceIgnores": ["coverage/"],
+  "scripts": {
+    "dev": "vite build --watch",
+    "build": "vite build"
+  }
+}
