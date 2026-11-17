@@ -18,7 +18,9 @@
     "types": [],
     "paths": {
       "#game/*": ["../../*"],
-      "zod": ["../node_modules/zod"]
+      "#shared/*": ["../../shared/*"],
+      "zod": ["../node_modules/zod"],
+      "vue": ["../node_modules/vue"]
     }
   }
 }

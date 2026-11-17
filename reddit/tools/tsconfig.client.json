@@ -3,7 +3,11 @@
   "compilerOptions": {
     "lib": ["DOM", "DOM.Iterable", "ES2023"],
     "customConditions": ["browser"],
-    "jsx": "preserve"
+    "jsx": "preserve",
+    // The website components are checked by the website build; they keep
+    // some unused bindings that this stricter config would reject.
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
   },
   "include": ["../src/client/**/*", "../src/client/**/*.vue", "../src/shared/**/*"]
 }

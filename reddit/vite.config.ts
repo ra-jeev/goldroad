@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
@@ -9,12 +10,26 @@ import { devvit } from '@devvit/start/vite';
 // additionalSourceRoots so they ship in the review archive.
 const repoRoot = fileURLToPath(new URL('..', import.meta.url));
 
+// The Vue plugin compiles the website's board components with the repo root
+// tsconfig, which points into Nuxt's generated .nuxt folder. A checkout
+// without it cannot build, so say how to fix it instead of failing later.
+if (!existsSync(`${repoRoot}.nuxt/tsconfig.app.json`)) {
+  throw new Error('Run `pnpm install` in the repo root first: it generates .nuxt, which the board components need to build.');
+}
+
 export default defineConfig({
   // Files from the repo root would otherwise pick up the root tsconfig,
   // which extends Nuxt's generated .nuxt config. Use ours for every file.
   tsconfig: fileURLToPath(new URL('tools/tsconfig.client.json', import.meta.url)),
   resolve: {
-    alias: { '#game': repoRoot },
+    // Repo-root files import these too. Resolve them from this app only, so
+    // the build never mixes in the website's copies (or fails without them).
+    dedupe: ['vue', 'zod'],
+    alias: {
+      '#game': repoRoot,
+      // The website's own alias for shared/. Its board parts import through it.
+      '#shared': `${repoRoot}shared`,
+    },
   },
   // The Devvit plugin must stay last.
   plugins: [vue(), devvit()],

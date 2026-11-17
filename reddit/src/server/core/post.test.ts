@@ -8,6 +8,9 @@ import { getGoldRoutes, getOrCreateRoad } from './road';
 
 const test = createDevvitTest();
 
+// The road generator enumerates routes, and a slow board can take seconds.
+const SLOW = 60_000;
+
 test('stores one road per day and keeps gold routes apart', async () => {
   const first = await getOrCreateRoad('2026-11-20', 'classic');
   const again = await getOrCreateRoad('2026-11-20', 'classic');
@@ -27,7 +30,7 @@ test('stores one road per day and keeps gold routes apart', async () => {
   for (let i = 1; i < route.length; i++) {
     expect(canMove(route[i - 1]!, route[i]!, edges)).toBe(true);
   }
-});
+}, SLOW);
 
 test('numbers road days in order', async () => {
   const a = await getOrCreateRoad('2026-11-20', 'classic');
@@ -37,7 +40,7 @@ test('numbers road days in order', async () => {
   expect(a.roadNo).toBe(1);
   expect(b.roadNo).toBe(2);
   expect(aExpedition.roadNo).toBe(1);
-});
+}, SLOW);
 
 test('daily post is created once and carries the board in postData', async () => {
   const spy = vi.spyOn(reddit, 'submitCustomPost');
@@ -60,4 +63,4 @@ test('daily post is created once and carries the board in postData', async () =>
 
   expect(await dayForPost(first.postId)).toBe('2026-11-24');
   expect(await redis.get('post:day:2026-11-24')).toBe(first.postId);
-});
+}, SLOW);

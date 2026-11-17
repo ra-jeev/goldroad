@@ -59,7 +59,8 @@
   "additionalSourceRoots": [
     "../shared",
     "../lib",
-    "../server/utils"
+    "../server/utils",
+    "../app"
   ],
   "sourceIgnores": [
     "coverage/"
