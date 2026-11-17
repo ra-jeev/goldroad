@@ -1,6 +1,6 @@
 {
   "$schema": "https://developers.reddit.com/schema/config-file.v1.json",
-  "name": "goldroad",
+  "name": "goldroad-daily",
   "post": {
     "dir": "dist/client",
     "entrypoints": {
@@ -28,7 +28,10 @@
     },
     "reddit": {
       "enable": true,
-      "asUser": ["SUBMIT_COMMENT", "SUBSCRIBE_TO_SUBREDDIT"]
+      "asUser": [
+        "SUBMIT_COMMENT",
+        "SUBSCRIBE_TO_SUBREDDIT"
+      ]
     }
   },
   "scheduler": {
@@ -53,10 +56,19 @@
   "triggers": {
     "onAppInstall": "/internal/triggers/on-app-install"
   },
-  "additionalSourceRoots": ["../shared", "../lib", "../server/utils"],
-  "sourceIgnores": ["coverage/"],
+  "additionalSourceRoots": [
+    "../shared",
+    "../lib",
+    "../server/utils"
+  ],
+  "sourceIgnores": [
+    "coverage/"
+  ],
   "scripts": {
     "dev": "vite build --watch",
     "build": "vite build"
+  },
+  "dev": {
+    "subreddit": "goldroad_daily_dev"
   }
 }
