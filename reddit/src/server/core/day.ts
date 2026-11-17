@@ -14,3 +14,15 @@ export function shortDayLabel(day: string): string {
   const date = new Date(`${day}T00:00:00Z`);
   return `${WEEKDAYS[date.getUTCDay()]} ${date.getUTCDate()} ${MONTHS[date.getUTCMonth()]}`;
 }
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** The day before a "YYYY-MM-DD" day key. */
+export function previousDay(day: string): string {
+  return utcDay(new Date(Date.parse(`${day}T00:00:00Z`) - DAY_MS));
+}
+
+/** End of a road's own day (the next 00:00 UTC), in ms. */
+export function dayEndMs(day: string): number {
+  return Date.parse(`${day}T00:00:00Z`) + DAY_MS;
+}

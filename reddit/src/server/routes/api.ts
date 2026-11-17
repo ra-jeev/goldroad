@@ -7,12 +7,15 @@ import type {
   HintResponse,
   RoadMode,
   RoadResponse,
+  PlayerRun,
   StartResponse,
+  Standing,
 } from '../../shared/api';
 import { utcDay } from '../core/day';
 import { dayForPost } from '../core/post';
 import { getGoldRoutes, getOrCreateRoad } from '../core/road';
-import { finishTry, getRun, guestHint, RunError, startTry, useHint } from '../core/runs';
+import { finishTry, getRun, guestHint, isCounted, type Player, RunError, startTry, useHint } from '../core/runs';
+import { getStanding } from '../core/standing';
 
 export const api = new Hono();
 
@@ -30,6 +33,17 @@ async function postDay(): Promise<string> {
   return (await dayForPost(postId)) ?? utcDay();
 }
 
+function player(): Player | null {
+  const { userId, username } = context;
+  return userId ? { id: userId, name: username ?? 'walker' } : null;
+}
+
+async function standingFor(day: string, mode: RoadMode, run: PlayerRun | null): Promise<Standing | null> {
+  const { userId } = context;
+  if (!userId || !run?.solved) return null;
+  return getStanding(userId, day, mode, await isCounted(userId, day, mode));
+}
+
 function fail(c: Context, error: unknown) {
   if (error instanceof RunError) return c.json<ErrorResponse>({ error: error.message }, error.status);
   if (error instanceof z.ZodError) return c.json<ErrorResponse>({ error: 'Bad request' }, 400);
@@ -42,10 +56,12 @@ api.get('/road', async (c) => {
     const day = await postDay();
     const road = await getOrCreateRoad(day, mode);
     const { userId } = context;
+    const run = userId ? await getRun(userId, day, mode) : null;
     return c.json<RoadResponse>({
       road,
       username: context.username ?? null,
-      run: userId ? await getRun(userId, day, mode) : null,
+      run,
+      standing: await standingFor(day, mode, run),
     });
   } catch (error) {
     return fail(c, error);
@@ -85,8 +101,9 @@ api.post('/finish', async (c) => {
     const { mode, path } = RouteBody.parse(await c.req.json());
     const day = await postDay();
     const road = await getOrCreateRoad(day, mode);
-    const result = await finishTry(context.userId ?? null, day, mode, road, path);
-    return c.json<FinishResponse>(result);
+    const result = await finishTry(player(), day, mode, road, path);
+    const standing = result.outcome === 'solved' ? await standingFor(day, mode, result.run) : null;
+    return c.json<FinishResponse>({ ...result, standing });
   } catch (error) {
     return fail(c, error);
   }

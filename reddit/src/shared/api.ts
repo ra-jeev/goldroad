@@ -50,6 +50,7 @@ export type RoadResponse = {
   username: string | null;
   /** Null when the player is logged out: nothing is saved for them. */
   run: PlayerRun | null;
+  standing: Standing | null;
 };
 
 export type ModeRequest = { mode: RoadMode };
@@ -67,4 +68,28 @@ export type FinishResponse = {
   outcome: 'solved' | 'wrong-exit' | 'dead-end';
   score: number;
   run: PlayerRun | null;
+  standing: Standing | null;
+};
+
+/** One row of the daily leaderboard. */
+export type LeaderRow = {
+  rank: number;
+  name: string;
+  attempts: number;
+  hints: number;
+  seconds: number;
+  me: boolean;
+};
+
+/** Where a solver stands. Only for logged-in players who solved. */
+export type Standing = {
+  /** False when the solve came after the post's day: a practice road. */
+  counted: boolean;
+  rank: number | null;
+  players: number;
+  /** Days in a row with a counted Classic solve. */
+  streak: number;
+  bestStreak: number;
+  /** The top 10, then the player and the two around them if lower. */
+  rows: LeaderRow[];
 };

@@ -2,12 +2,14 @@ import { redis } from '@devvit/web/server';
 import { createDevvitTest } from '@devvit/test/server/vitest';
 import { expect } from 'vitest';
 import type { PublicRoad } from '../../shared/api';
-import { deleteUserData, finishTry, getRun, startTry, useHint } from './runs';
+import { finishTry, getRun, startTry, useHint } from './runs';
+import { deleteUserData } from './userIndex';
 
 const test = createDevvitTest();
 
 const DAY = '2026-11-24';
 const USER = 't2_walker';
+const ME = { id: USER, name: 'walker' };
 
 // 3x3, start 0, flag 8, road 2-5 missing, road 1-2 a toll.
 //  1 2 3
@@ -37,9 +39,9 @@ const WRONG_EXIT = [0, 1, 4, 7, 8];
 
 test('a try is counted on its first step and the solve keeps that number', async () => {
   await startTry(USER, DAY, 'classic');
-  await finishTry(USER, DAY, 'classic', road, WRONG_EXIT);
+  await finishTry(ME, DAY, 'classic', road, WRONG_EXIT);
   await startTry(USER, DAY, 'classic');
-  const result = await finishTry(USER, DAY, 'classic', road, WINNING);
+  const result = await finishTry(ME, DAY, 'classic', road, WINNING);
 
   expect(result.outcome).toBe('solved');
   expect(result.score).toBe(29);
@@ -48,27 +50,27 @@ test('a try is counted on its first step and the solve keeps that number', async
 
 test('the server scores the route itself and rejects illegal ones', async () => {
   await startTry(USER, DAY, 'classic');
-  const wrong = await finishTry(USER, DAY, 'classic', road, WRONG_EXIT);
+  const wrong = await finishTry(ME, DAY, 'classic', road, WRONG_EXIT);
   expect(wrong.outcome).toBe('wrong-exit');
   expect(wrong.run?.solved).toBe(false);
 
-  await expect(finishTry(USER, DAY, 'classic', road, [0, 8])).rejects.toMatchObject({ status: 400 });
+  await expect(finishTry(ME, DAY, 'classic', road, [0, 8])).rejects.toMatchObject({ status: 400 });
   // Not finished: still on the board.
-  await expect(finishTry(USER, DAY, 'classic', road, [0, 3])).rejects.toMatchObject({ status: 400 });
+  await expect(finishTry(ME, DAY, 'classic', road, [0, 3])).rejects.toMatchObject({ status: 400 });
 });
 
 test('a solve is kept once; later tries change nothing', async () => {
   await startTry(USER, DAY, 'classic');
-  await finishTry(USER, DAY, 'classic', road, WINNING);
+  await finishTry(ME, DAY, 'classic', road, WINNING);
   const again = await startTry(USER, DAY, 'classic');
-  await finishTry(USER, DAY, 'classic', road, WINNING);
+  await finishTry(ME, DAY, 'classic', road, WINNING);
 
   expect(again.attempts).toBe(1);
   expect(await getRun(USER, DAY, 'classic')).toMatchObject({ attempts: 1, solvedAttempt: 1, medal: 'gold' });
 });
 
 test('a solve with no recorded start still counts as one try', async () => {
-  const result = await finishTry(USER, DAY, 'classic', road, WINNING);
+  const result = await finishTry(ME, DAY, 'classic', road, WINNING);
   expect(result.run).toMatchObject({ attempts: 1, solvedAttempt: 1, medal: 'gold' });
 });
 
@@ -98,9 +100,9 @@ test('the sixth hint is refused', async () => {
 test('expedition stays locked until classic is solved', async () => {
   const expedition = { ...road, mode: 'expedition' as const };
   await expect(startTry(USER, DAY, 'expedition')).rejects.toMatchObject({ status: 403 });
-  await finishTry(USER, DAY, 'classic', road, WINNING);
+  await finishTry(ME, DAY, 'classic', road, WINNING);
   await expect(startTry(USER, DAY, 'expedition')).resolves.toMatchObject({ attempts: 1 });
-  await expect(finishTry(USER, DAY, 'expedition', expedition, WRONG_EXIT)).resolves.toMatchObject({
+  await expect(finishTry(ME, DAY, 'expedition', expedition, WRONG_EXIT)).resolves.toMatchObject({
     outcome: 'wrong-exit',
   });
 });
@@ -111,7 +113,7 @@ test('logged-out players get a checked result and nothing is stored', async () =
 });
 
 test('all data of a user can be deleted', async () => {
-  await finishTry(USER, DAY, 'classic', road, WINNING);
+  await finishTry(ME, DAY, 'classic', road, WINNING);
   await deleteUserData(USER);
   expect(await getRun(USER, DAY, 'classic')).toMatchObject({ attempts: 0, solved: false });
   expect(await redis.hKeys(`user:${USER}`)).toEqual([]);

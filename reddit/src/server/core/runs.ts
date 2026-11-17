@@ -5,10 +5,11 @@ import { computeHint, hintRevealsNewTile } from '#game/shared/utils/hints';
 import type { HintResult } from '#game/shared/types/game';
 import type { Medal, PlayerRun, PublicRoad, RoadMode } from '../../shared/api';
 import { replayRoute } from '../../shared/run';
+import { dayEndMs } from './day';
+import { recordSolve } from './standing';
+import { remember } from './userIndex';
 
 const runKey = (userId: string, day: string, mode: RoadMode) => `run:${userId}:${day}:${mode}`;
-/** Every run key of one user, so a deleted account can be removed in full. */
-const userKey = (userId: string) => `user:${userId}`;
 
 type StoredRun = {
   attempts?: string;
@@ -18,6 +19,8 @@ type StoredRun = {
   solvedAttempt?: string;
   solveSeconds?: string;
   medal?: string;
+  /** "1" when the solve came inside the post's day and went on the board. */
+  counted?: string;
 };
 
 export class RunError extends Error {
@@ -36,7 +39,7 @@ async function read(userId: string, day: string, mode: RoadMode): Promise<Stored
 async function write(userId: string, day: string, mode: RoadMode, fields: Record<string, string>) {
   const key = runKey(userId, day, mode);
   await redis.hSet(key, fields);
-  await redis.hSet(userKey(userId), { [key]: '1' });
+  await remember(userId, key);
 }
 
 function toPublic(stored: StoredRun): PlayerRun {
@@ -55,6 +58,11 @@ function toPublic(stored: StoredRun): PlayerRun {
 
 export async function getRun(userId: string, day: string, mode: RoadMode): Promise<PlayerRun> {
   return toPublic(await read(userId, day, mode));
+}
+
+/** True when the player's solve went on the board and the streak. */
+export async function isCounted(userId: string, day: string, mode: RoadMode): Promise<boolean> {
+  return (await read(userId, day, mode)).counted === '1';
 }
 
 /** Expedition opens once Classic is solved, as on the website. */
@@ -113,12 +121,16 @@ export function guestHint(road: PublicRoad, goldRoutes: number[][], path: number
   return computeHint(goldRoutes, path, guide);
 }
 
+export type Player = { id: string; name: string };
+
 /**
  * The end of a try. The server walks the route itself and decides the
  * result. A solve is kept once: later solves of the same road change nothing.
+ * A solve inside the post's own day goes on the leaderboard and the streak.
+ * A later one is kept, but as practice.
  */
 export async function finishTry(
-  userId: string | null,
+  player: Player | null,
   day: string,
   mode: RoadMode,
   road: PublicRoad,
@@ -127,7 +139,8 @@ export async function finishTry(
   const state = replayRoute(road.board, road.target, path);
   if (!state || !state.outcome) throw new RunError(400, 'Not a finished route');
   const { outcome, score } = state;
-  if (!userId) return { outcome, score, run: null };
+  if (!player) return { outcome, score, run: null };
+  const userId = player.id;
 
   await assertModeOpen(userId, day, mode);
   const stored = await read(userId, day, mode);
@@ -137,21 +150,22 @@ export async function finishTry(
   // A solve with no recorded start (for example a lost request) still counts
   // as one try, never as zero.
   const attempt = Math.max(1, Number(stored.attempts ?? 0));
-  const started = Number(stored.firstStartMs ?? Date.now());
+  const now = Date.now();
+  const started = Number(stored.firstStartMs ?? now);
+  const seconds = Math.max(0, Math.round((now - started) / 1000));
+  const counted = now < dayEndMs(day);
   const medal = calcMedalForAttempt(attempt, true);
   const fields: Record<string, string> = {
     attempts: String(attempt),
     solvedAttempt: String(attempt),
-    solveSeconds: String(Math.max(0, Math.round((Date.now() - started) / 1000))),
+    solveSeconds: String(seconds),
+    counted: counted ? '1' : '0',
   };
   if (medal) fields.medal = medal;
   await write(userId, day, mode, fields);
+  if (counted) {
+    const hints = Number(stored.hints ?? 0);
+    await recordSolve(userId, player.name, day, mode, { attempts: attempt, hints, seconds });
+  }
   return { outcome, score, run: toPublic({ ...stored, ...fields }) };
-}
-
-/** Remove everything stored for one user (Devvit rules, deleted accounts). */
-export async function deleteUserData(userId: string): Promise<void> {
-  const keys = await redis.hKeys(userKey(userId));
-  if (keys.length) await redis.del(...keys);
-  await redis.del(userKey(userId));
 }

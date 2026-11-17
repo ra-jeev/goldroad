@@ -7,9 +7,10 @@ import { HINTS_PER_ROAD_MODE } from '#game/lib/gameConstants';
 import { calcMedalForAttempt } from '#game/lib/gameTiers';
 import { guideHighlightTiles, hintRevealsNewTile } from '#game/shared/utils/hints';
 import type { HintResult } from '#game/shared/types/game';
-import type { Medal, PlayerRun, PublicRoad } from '../shared/api';
+import type { Medal, PlayerRun, PublicRoad, Standing } from '../shared/api';
 import { current, isOverTarget, moveTo, replayRoute, startRun, undo, type RunState } from '../shared/run';
 import { ApiError, fetchRoad, postFinish, postHint, postStart } from './api';
+import ResultCard from './ResultCard.vue';
 import { clearRoute, loadRoute, saveRoute } from './savedRoute';
 
 const road = ref<PublicRoad | null>(null);
@@ -32,6 +33,11 @@ const hintKind = ref<HintResult['kind'] | null>(null);
 const hinting = ref(false);
 const finishing = ref(false);
 const saveProblem = ref(false);
+/** Rank and streak from the server, once the road is solved. */
+const standing = ref<Standing | null>(null);
+const showResult = ref(false);
+/** A logged-out solve, kept here so the card can show it. */
+const guestSolved = ref(false);
 
 // Signals the website board listens to for its small animations.
 const failSignal = ref(0);
@@ -48,6 +54,8 @@ onMounted(async () => {
     loggedIn.value = response.run !== null;
     solvedBefore.value = !!response.run?.solved;
     guide.value = response.run?.guidePath ?? [];
+    standing.value = response.standing;
+    showResult.value = !!response.run?.solved;
     run.value = resumeOrStart(response.road);
   } catch (cause) {
     error.value = cause instanceof Error ? cause.message : String(cause);
@@ -105,7 +113,8 @@ const tryLabel = computed(() => (solvedBefore.value ? 'Practice' : `Try ${tryNum
 
 const medal = computed<Medal | null>(() => {
   if (loggedIn.value) return record.value?.medal ?? null;
-  return run.value?.outcome === 'solved' ? calcMedalForAttempt(guestAttempts.value, true) : null;
+  const solved = guestSolved.value || run.value?.outcome === 'solved';
+  return solved ? calcMedalForAttempt(guestAttempts.value, true) : null;
 });
 
 /** The gap to the target, in words, so it never relies on colour alone. */
@@ -152,6 +161,17 @@ const status = computed(() => {
   return '';
 });
 
+const hasResult = computed(() => (loggedIn.value ? !!record.value?.solved : guestSolved.value));
+const result = computed(() =>
+  loggedIn.value
+    ? {
+        attempts: record.value?.solvedAttempt ?? 0,
+        hints: record.value?.hintsUsed ?? 0,
+        seconds: record.value?.solveSeconds ?? null,
+      }
+    : { attempts: guestAttempts.value, hints: guestHints.value, seconds: null },
+);
+
 const canUndo = computed(() => !!run.value?.undoAvailable && !run.value.outcome);
 const ended = computed(() => !!run.value?.outcome);
 const canHint = computed(() => !ended.value && !hinting.value && hintsLeft.value > 0 && !solvedBefore.value);
@@ -185,6 +205,11 @@ async function finish() {
   try {
     const result = await postFinish(mode, run.value.path);
     if (result.run) record.value = result.run;
+    if (result.outcome === 'solved' && !solvedBefore.value) {
+      standing.value = result.standing;
+      if (!loggedIn.value) guestSolved.value = true;
+      showResult.value = true;
+    }
   } catch (cause) {
     console.error('finish failed', cause);
     saveProblem.value = true;
@@ -362,8 +387,25 @@ function onKeydown(event: KeyboardEvent) {
             Try again
           </button>
         </div>
-        <p class="try">{{ tryLabel }}</p>
+        <p class="try">
+          {{ tryLabel }}
+          <template v-if="hasResult">
+            · <button type="button" class="link" @click="showResult = true">Your result</button>
+          </template>
+        </p>
       </footer>
+
+      <ResultCard
+        v-if="showResult && hasResult"
+        :road-no="road.roadNo"
+        :medal="medal"
+        :attempts="result.attempts"
+        :hints="result.hints"
+        :seconds="result.seconds"
+        :standing="standing"
+        :logged-in="loggedIn"
+        @close="showResult = false"
+      />
     </template>
   </main>
 </template>
@@ -518,6 +560,16 @@ function onKeydown(event: KeyboardEvent) {
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--color-gold-muted);
+}
+
+.link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-gold);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
 }
 
 .control {
