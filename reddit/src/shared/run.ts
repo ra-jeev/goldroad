@@ -88,3 +88,19 @@ export function undo(board: Board, state: RunState): RunState | null {
 export function isOverTarget(mode: 'classic' | 'expedition', target: number, state: RunState): boolean {
   return mode === 'classic' && state.outcome === null && state.score >= target;
 }
+
+/**
+ * Walk a whole route from the footprints. Null if any step is not legal.
+ * The server uses this to decide every result: it never trusts a score.
+ */
+export function replayRoute(board: Board, target: number, path: readonly number[]): RunState | null {
+  if (path.length === 0 || path.length > board.tiles.length || path[0] !== board.start) return null;
+  let state = startRun(board);
+  for (const tile of path.slice(1)) {
+    if (!Number.isInteger(tile)) return null;
+    const result = moveTo(board, target, state, tile);
+    if (result.kind !== 'moved') return null;
+    state = result.state;
+  }
+  return state;
+}

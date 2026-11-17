@@ -3,15 +3,35 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import GameBoard from '#game/app/components/GameBoard.vue';
 import { buildInitialTileStates } from '#game/app/utils/boardUtils';
 import { UI_COPY } from '#game/app/content/uiCopy';
+import { HINTS_PER_ROAD_MODE } from '#game/lib/gameConstants';
 import { calcMedalForAttempt } from '#game/lib/gameTiers';
-import type { PublicRoad } from '../shared/api';
-import { fetchRoad } from './api';
-import { current, isOverTarget, moveTo, startRun, undo, type RunState } from './run';
+import { guideHighlightTiles, hintRevealsNewTile } from '#game/shared/utils/hints';
+import type { HintResult } from '#game/shared/types/game';
+import type { Medal, PlayerRun, PublicRoad } from '../shared/api';
+import { current, isOverTarget, moveTo, replayRoute, startRun, undo, type RunState } from '../shared/run';
+import { ApiError, fetchRoad, postFinish, postHint, postStart } from './api';
+import { clearRoute, loadRoute, saveRoute } from './savedRoute';
 
 const road = ref<PublicRoad | null>(null);
 const error = ref<string | null>(null);
 const run = ref<RunState | null>(null);
-const attempt = ref(1);
+
+/** The server's record. Null for a logged-out player. */
+const record = ref<PlayerRun | null>(null);
+const loggedIn = ref(false);
+/** Logged-out players: counted here only, never saved. */
+const guestAttempts = ref(0);
+const guestHints = ref(0);
+
+/** Whether the try on the board has been counted (its first step is taken). */
+const tryStarted = ref(false);
+/** Whether the road was already solved before this try began. */
+const solvedBefore = ref(false);
+const guide = ref<number[]>([]);
+const hintKind = ref<HintResult['kind'] | null>(null);
+const hinting = ref(false);
+const finishing = ref(false);
+const saveProblem = ref(false);
 
 // Signals the website board listens to for its small animations.
 const failSignal = ref(0);
@@ -22,15 +42,30 @@ const focusSignal = ref(0);
 onMounted(async () => {
   window.addEventListener('keydown', onKeydown);
   try {
-    const response = await fetchRoad();
+    const response = await fetchRoad('classic');
     road.value = response.road;
-    run.value = startRun(response.road.board);
+    record.value = response.run;
+    loggedIn.value = response.run !== null;
+    solvedBefore.value = !!response.run?.solved;
+    guide.value = response.run?.guidePath ?? [];
+    run.value = resumeOrStart(response.road);
   } catch (cause) {
     error.value = cause instanceof Error ? cause.message : String(cause);
   }
 });
 
 onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
+
+function resumeOrStart(next: PublicRoad): RunState {
+  const saved = loadRoute(next.day, next.mode);
+  const resumed = saved ? replayRoute(next.board, next.target, saved.path) : null;
+  if (saved && resumed && !resumed.outcome) {
+    tryStarted.value = saved.started;
+    return resumed;
+  }
+  clearRoute(next.day, next.mode);
+  return startRun(next.board);
+}
 
 const tiles = computed(() => {
   if (!road.value || !run.value) return [];
@@ -48,15 +83,30 @@ const tiles = computed(() => {
 });
 const activeSet = computed(() => new Set(run.value?.active ?? []));
 const visitedSet = computed(() => new Set(run.value?.path ?? []));
-const noHints = new Set<number>();
+const hintedTiles = computed(() =>
+  road.value && run.value
+    ? new Set(guideHighlightTiles(guide.value, run.value.path, road.value.board.start))
+    : new Set<number>(),
+);
 
 const toGo = computed(() => (road.value && run.value ? road.value.target - run.value.score : 0));
 const overTarget = computed(() =>
   road.value && run.value ? isOverTarget(road.value.mode, road.value.target, run.value) : false,
 );
-const medal = computed(() =>
-  run.value?.outcome === 'solved' ? calcMedalForAttempt(attempt.value, true) : null,
+
+const attempts = computed(() => (loggedIn.value ? record.value?.attempts ?? 0 : guestAttempts.value));
+/** The try on the board: counted once its first step is taken. */
+const tryNumber = computed(() => (tryStarted.value ? attempts.value : attempts.value + 1));
+const hintsLeft = computed(() =>
+  loggedIn.value ? record.value?.hintsLeft ?? 0 : HINTS_PER_ROAD_MODE - guestHints.value,
 );
+
+const tryLabel = computed(() => (solvedBefore.value ? 'Practice' : `Try ${tryNumber.value}`));
+
+const medal = computed<Medal | null>(() => {
+  if (loggedIn.value) return record.value?.medal ?? null;
+  return run.value?.outcome === 'solved' ? calcMedalForAttempt(guestAttempts.value, true) : null;
+});
 
 /** The gap to the target, in words, so it never relies on colour alone. */
 const gapLabel = computed(() => {
@@ -65,14 +115,23 @@ const gapLabel = computed(() => {
   return 'On target';
 });
 
+const HINT_COPY: Record<HintResult['kind'], string> = {
+  'next-step': UI_COPY.runtime.hintNextStep,
+  diverged: UI_COPY.runtime.hintDiverged,
+  'already-solved': UI_COPY.runtime.hintAlreadySolved,
+};
+
 const status = computed(() => {
   const state = run.value;
   if (!state) return '';
   switch (state.outcome) {
-    case 'solved':
-      return medal.value
-        ? `Solved. ${medal.value[0]!.toUpperCase()}${medal.value.slice(1)} on try ${attempt.value}.`
-        : `Solved on try ${attempt.value}.`;
+    case 'solved': {
+      if (solvedBefore.value) return UI_COPY.runtime.solvedAgain;
+      if (finishing.value) return 'Solved. Checking…';
+      const tries = loggedIn.value ? record.value?.solvedAttempt ?? tryNumber.value : guestAttempts.value;
+      const name = medal.value ? `${medal.value[0]!.toUpperCase()}${medal.value.slice(1)}` : 'Solved';
+      return `${name} on try ${tries}.`;
+    }
     case 'wrong-exit':
       return toGo.value > 0
         ? UI_COPY.runtime.destinationShort(toGo.value)
@@ -80,20 +139,62 @@ const status = computed(() => {
     case 'dead-end':
       return UI_COPY.runtime.deadEnd;
   }
+  if (saveProblem.value) return 'Could not reach the server. This try may not be saved.';
+  if (hintKind.value) return HINT_COPY[hintKind.value];
   if (overTarget.value) {
     return toGo.value === 0
       ? 'On target, but not on the flag. This walk cannot finish.'
       : `${-toGo.value} over. This walk can no longer land on the target.`;
   }
-  if (state.path.length === 1) return 'Step onto a glowing tile. Reach the flag exactly on the target.';
+  if (state.path.length === 1 && !tryStarted.value) {
+    return 'Step onto a glowing tile. Reach the flag exactly on the target.';
+  }
   return '';
 });
 
 const canUndo = computed(() => !!run.value?.undoAvailable && !run.value.outcome);
 const ended = computed(() => !!run.value?.outcome);
+const canHint = computed(() => !ended.value && !hinting.value && hintsLeft.value > 0 && !solvedBefore.value);
+
+function persist() {
+  if (!road.value || !run.value) return;
+  saveRoute(road.value.day, road.value.mode, { path: run.value.path, started: tryStarted.value });
+}
+
+async function countTry() {
+  if (!road.value) return;
+  tryStarted.value = true;
+  persist();
+  if (!loggedIn.value) {
+    if (!solvedBefore.value) guestAttempts.value += 1;
+    return;
+  }
+  try {
+    record.value = (await postStart(road.value.mode)).run;
+  } catch (cause) {
+    console.error('start failed', cause);
+    saveProblem.value = true;
+  }
+}
+
+async function finish() {
+  if (!road.value || !run.value) return;
+  const { mode, day } = road.value;
+  clearRoute(day, mode);
+  finishing.value = true;
+  try {
+    const result = await postFinish(mode, run.value.path);
+    if (result.run) record.value = result.run;
+  } catch (cause) {
+    console.error('finish failed', cause);
+    saveProblem.value = true;
+  } finally {
+    finishing.value = false;
+  }
+}
 
 function select(tile: number) {
-  if (!road.value || !run.value) return;
+  if (!road.value || !run.value || finishing.value) return;
   const result = moveTo(road.value.board, road.value.target, run.value, tile);
   if (result.kind === 'denied') {
     deniedTile.value = tile;
@@ -102,8 +203,13 @@ function select(tile: number) {
   }
   run.value = result.state;
   focusSignal.value += 1;
-  if (result.state.outcome === 'wrong-exit' || result.state.outcome === 'dead-end') {
-    failSignal.value += 1;
+  hintKind.value = null;
+  if (result.kind === 'moved' && !tryStarted.value) void countTry();
+  if (result.state.outcome) {
+    if (result.state.outcome !== 'solved') failSignal.value += 1;
+    void finish();
+  } else {
+    persist();
   }
 }
 
@@ -113,15 +219,46 @@ function takeBack() {
   if (back) {
     run.value = back;
     focusSignal.value += 1;
+    persist();
   }
 }
 
 function tryAgain() {
-  if (!road.value || !run.value) return;
-  // A try counts once the player has left the footprints.
-  if (run.value.path.length > 1 && run.value.outcome !== 'solved') attempt.value += 1;
+  if (!road.value || !run.value || finishing.value) return;
+  if (run.value.outcome === 'solved') solvedBefore.value = true;
   run.value = startRun(road.value.board);
+  tryStarted.value = false;
+  hintKind.value = null;
+  saveProblem.value = false;
+  clearRoute(road.value.day, road.value.mode);
   focusSignal.value += 1;
+}
+
+async function askHint() {
+  if (!road.value || !run.value || !canHint.value) return;
+  hinting.value = true;
+  const path = [...run.value.path];
+  try {
+    const response = await postHint(road.value.mode, path, guide.value);
+    // The player may have moved while the hint was on its way.
+    if (!run.value || run.value.path.length !== path.length) return;
+    if (response.run) {
+      record.value = response.run;
+      guide.value = response.run.guidePath;
+    } else if (hintRevealsNewTile(guide.value, response.hint.guidePath)) {
+      guestHints.value += 1;
+      guide.value = response.hint.guidePath;
+    }
+    hintKind.value = response.hint.kind;
+  } catch (cause) {
+    if (cause instanceof ApiError && cause.status === 429 && record.value) {
+      record.value = { ...record.value, hintsLeft: 0 };
+    } else {
+      console.error('hint failed', cause);
+    }
+  } finally {
+    hinting.value = false;
+  }
 }
 
 const ARROWS: Record<string, [number, number]> = {
@@ -184,9 +321,10 @@ function onKeydown(event: KeyboardEvent) {
           :current-tile-index="current(run)"
           :active-set="activeSet"
           :visited-set="visitedSet"
-          :hinted-tiles="noHints"
+          :hinted-tiles="hintedTiles"
           :path-history="run.path"
-          :disabled="ended"
+          :guide-path="guide"
+          :disabled="ended || finishing"
           :fail-signal="failSignal"
           :denied-move-signal="deniedSignal"
           :denied-tile-index="deniedTile"
@@ -196,22 +334,35 @@ function onKeydown(event: KeyboardEvent) {
       </section>
 
       <footer class="footer">
-        <p class="status" :class="{ 'status--solved': run.outcome === 'solved' }" aria-live="polite">
+        <p
+          class="status"
+          :class="{ 'status--solved': run.outcome === 'solved', 'status--hint': hintKind && !run.outcome }"
+          aria-live="polite"
+        >
           {{ status }}
         </p>
         <div class="controls">
           <button type="button" class="control" :disabled="!canUndo" @click="takeBack">Undo</button>
-          <span class="try">Try {{ attempt }}</span>
+          <button
+            type="button"
+            class="control control--hint"
+            :disabled="!canHint"
+            :aria-label="`Hint, ${hintsLeft} left`"
+            @click="askHint"
+          >
+            Hint <span class="count">{{ hintsLeft }}</span>
+          </button>
           <button
             type="button"
             class="control"
             :class="{ 'control--primary': ended || overTarget }"
-            :disabled="run.path.length === 1"
+            :disabled="(run.path.length === 1 && !ended) || finishing"
             @click="tryAgain"
           >
             Try again
           </button>
         </div>
+        <p class="try">{{ tryLabel }}</p>
       </footer>
     </template>
   </main>
@@ -343,6 +494,10 @@ function onKeydown(event: KeyboardEvent) {
   color: var(--color-gold-bright);
 }
 
+.status--hint {
+  color: var(--color-hint);
+}
+
 .status--solved {
   color: var(--color-solved);
   font-weight: 700;
@@ -350,7 +505,7 @@ function onKeydown(event: KeyboardEvent) {
 
 .controls {
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: center;
   gap: 10px;
   width: min(100%, 420px);
@@ -358,7 +513,9 @@ function onKeydown(event: KeyboardEvent) {
 }
 
 .try {
-  font-size: 0.9rem;
+  margin: 0;
+  text-align: center;
+  font-size: 0.85rem;
   font-weight: 600;
   color: var(--color-gold-muted);
 }
@@ -372,6 +529,18 @@ function onKeydown(event: KeyboardEvent) {
   font: inherit;
   font-weight: 700;
   cursor: pointer;
+}
+
+.count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.4em;
+  margin-left: 4px;
+  padding: 0 4px;
+  border-radius: var(--radius-full);
+  background: rgb(var(--color-hint-rgb) / 0.85);
+  color: #fff;
+  font-size: 0.8em;
 }
 
 .control:disabled {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Board } from '#game/shared/types/game';
-import { isOverTarget, moveTo, startRun, undo } from './run';
+import { isOverTarget, moveTo, replayRoute, startRun, undo } from './run';
 
 // 3x3, start top-left (0), flag bottom-right (8).
 //  1 2 3
@@ -72,5 +72,25 @@ describe('run', () => {
     const state = walk(8, [3, 4]);
     expect(isOverTarget('classic', 8, state)).toBe(true);
     expect(isOverTarget('expedition', 8, state)).toBe(false);
+  });
+});
+
+describe('replayRoute', () => {
+  it('scores a legal route the same as walking it', () => {
+    const replayed = replayRoute(board, 29, [0, 3, 6, 7, 8]);
+    expect(replayed?.score).toBe(29);
+    expect(replayed?.outcome).toBe('solved');
+  });
+
+  it('rejects routes that jump, repeat, cross a missing road or skip the start', () => {
+    expect(replayRoute(board, 29, [0, 8])).toBeNull();
+    expect(replayRoute(board, 29, [0, 1, 0])).toBeNull();
+    expect(replayRoute(board, 29, [0, 1, 2, 5])).toBeNull();
+    expect(replayRoute(board, 29, [1, 2])).toBeNull();
+    expect(replayRoute(board, 29, [])).toBeNull();
+  });
+
+  it('rejects steps after the flag', () => {
+    expect(replayRoute(board, 29, [0, 3, 6, 7, 8, 5])).toBeNull();
   });
 });

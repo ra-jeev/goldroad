@@ -1,4 +1,4 @@
-import type { Board } from '#game/shared/types/game';
+import type { Board, HintResult } from '#game/shared/types/game';
 
 export type RoadMode = 'classic' | 'expedition';
 
@@ -27,9 +27,44 @@ export type RoadPostData = {
   end: number;
 };
 
+export type ErrorResponse = { error: string };
+
+export type Medal = 'gold' | 'silver' | 'bronze';
+
+/** One player's record for one road and mode. The server owns every field. */
+export type PlayerRun = {
+  /** Tries started. A try starts with the first step off the footprints. */
+  attempts: number;
+  hintsUsed: number;
+  hintsLeft: number;
+  /** The hint route revealed so far. Stays across tries, as on the website. */
+  guidePath: number[];
+  solved: boolean;
+  solvedAttempt: number | null;
+  medal: Medal | null;
+  solveSeconds: number | null;
+};
+
 export type RoadResponse = {
   road: PublicRoad;
   username: string | null;
+  /** Null when the player is logged out: nothing is saved for them. */
+  run: PlayerRun | null;
 };
 
-export type ErrorResponse = { error: string };
+export type ModeRequest = { mode: RoadMode };
+/** `guide` is read only for logged-out players, who have no saved record. */
+export type RouteRequest = { mode: RoadMode; path: number[]; guide?: number[] };
+
+export type StartResponse = { run: PlayerRun | null };
+
+export type HintResponse = {
+  hint: HintResult;
+  run: PlayerRun | null;
+};
+
+export type FinishResponse = {
+  outcome: 'solved' | 'wrong-exit' | 'dead-end';
+  score: number;
+  run: PlayerRun | null;
+};
