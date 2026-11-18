@@ -9,6 +9,7 @@ struct ClassicRoadView: View {
     @AppStorage("roadMode") private var mode = RoadMode.classic
     @AppStorage("muted") private var muted = false
     @AppStorage("playerUUID") private var playerUUID = ""
+    @AppStorage(RoadTutorialView.seenKey) private var hasSeenTutorial = false
     @State private var classic: RoadRun?
     @State private var expedition: RoadRun?
     @State private var sound = RoadSound()
@@ -34,6 +35,12 @@ struct ClassicRoadView: View {
     }
     private var expeditionUnlocked: Bool {
         classic?.outcome == .solved && classic?.road.gameNo == expedition?.road.gameNo
+    }
+
+    private var shouldOpenTutorial: Bool {
+        guard !hasSeenTutorial, !isLoading, !roadExpired, let classic,
+              classic.path.count == 1, classic.attempt == 1, classic.hintsUsed == 0 else { return false }
+        return UserDefaults.standard.data(forKey: DailyRoadRecord.storageKey)?.isEmpty != false
     }
 
     var body: some View {
@@ -89,6 +96,9 @@ struct ClassicRoadView: View {
             clearInteraction()
         }
         .sheet(isPresented: $showHelp) { RoadTutorialView(onFinish: { showHelp = false }) }
+        .onChange(of: shouldOpenTutorial) { _, shouldOpen in
+            if shouldOpen { showHelp = true }
+        }
         .sheet(isPresented: $resultPresented, onDismiss: resumeClock) {
             if let run, run.outcome == .solved {
                 RoadResultView(

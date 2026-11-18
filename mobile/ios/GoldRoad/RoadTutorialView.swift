@@ -1,7 +1,10 @@
 import SwiftUI
 
 struct RoadTutorialView: View {
+    static let seenKey = "hasSeenRoadTutorial"
+
     let onFinish: () -> Void
+    @AppStorage(Self.seenKey) private var hasSeenTutorial = false
     @State private var practice = false
     @State private var run = RoadRun(road: Self.practiceRoad)
     @State private var message: String?
@@ -38,6 +41,7 @@ struct RoadTutorialView: View {
         }
         .background(RoadTheme.color(0x1A0E03).ignoresSafeArea())
         .tint(RoadTheme.gold)
+        .onAppear { hasSeenTutorial = true }
     }
 
     private var guideContent: some View {
