@@ -1,6 +1,7 @@
 import { redis } from '@devvit/web/server';
 import type { LeaderRow, RoadMode, Standing, Trap } from '../../shared/api';
 import { previousDay, utcDay } from './day';
+import { updateStreakFlair } from './flair';
 import { namesKey, remember } from './userIndex';
 
 const boardKey = (day: string, mode: RoadMode) => `lb:${day}:${mode}`;
@@ -40,16 +41,20 @@ export async function recordSolve(
   await redis.zAdd(key, { member: userId, score: leaderScore(solve.attempts, solve.hints, solve.seconds) });
   await redis.hSet(namesKey(key), { [userId]: name });
   await remember(userId, key, 'member');
-  if (mode === 'classic') await extendStreak(userId, day);
+  if (mode !== 'classic') return;
+  const streak = await extendStreak(userId, day);
+  if (streak) await updateStreakFlair(userId, name, streak.streak, streak.best);
 }
 
-async function extendStreak(userId: string, day: string): Promise<void> {
+/** Returns the new streak, or null when the day was already on it. */
+async function extendStreak(userId: string, day: string): Promise<{ streak: number; best: number } | null> {
   const stats = await redis.hGetAll(statsKey(userId));
-  if (stats.lastDay === day) return;
+  if (stats.lastDay === day) return null;
   const streak = stats.lastDay === previousDay(day) ? Number(stats.streak ?? 0) + 1 : 1;
   const best = Math.max(streak, Number(stats.best ?? 0));
   await redis.hSet(statsKey(userId), { lastDay: day, streak: String(streak), best: String(best) });
   await remember(userId, statsKey(userId));
+  return { streak, best };
 }
 
 /** The streak as it is today: it breaks when a whole day goes by. */

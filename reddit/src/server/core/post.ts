@@ -2,6 +2,7 @@ import { context, reddit, redis } from '@devvit/web/server';
 import type { RoadPostData } from '../../shared/api';
 import { ensureResultsThread } from './comments';
 import { shortDayLabel, utcDay } from './day';
+import { flairDailyPost } from './flair';
 import { getOrCreateRoad } from './road';
 
 /** Day → post id, so the daily job never posts twice. */
@@ -44,6 +45,11 @@ export async function ensureDailyPost(day: string = utcDay()): Promise<DailyPost
 
   await redis.set(dayPostKey(day), post.id);
   await redis.set(postDayKey(post.id), day);
+  try {
+    await flairDailyPost(post.id);
+  } catch (error) {
+    console.error(`could not flair the daily post: ${error}`);
+  }
   try {
     await ensureResultsThread(post.id);
   } catch (error) {

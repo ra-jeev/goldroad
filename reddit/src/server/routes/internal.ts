@@ -1,6 +1,7 @@
 import type { TaskResponse } from '@devvit/web/server';
 import type { TriggerResponse, UiResponse } from '@devvit/web/shared';
 import { Hono } from 'hono';
+import { ensurePostFlairs } from '../core/flair';
 import { ensureDailyPost } from '../core/post';
 
 export const internal = new Hono();
@@ -27,6 +28,11 @@ internal.post('/menu/post-today', async (c) => {
 });
 
 internal.post('/triggers/on-app-install', async (c) => {
+  try {
+    await ensurePostFlairs();
+  } catch (error) {
+    console.error(`could not create post flairs: ${error}`);
+  }
   try {
     const result = await ensureDailyPost();
     return c.json<TriggerResponse>({ status: 'success', message: `Road post ${result.postId}` });
