@@ -2,6 +2,26 @@ import SwiftUI
 
 /// A completed road's first-solve result. Elapsed time is measured in seconds.
 struct RoadResult {
+    enum Medal: Int {
+        case gold = 1, silver, bronze
+
+        var name: String {
+            switch self {
+            case .gold: "Gold"
+            case .silver: "Silver"
+            case .bronze: "Bronze"
+            }
+        }
+
+        var emoji: String {
+            switch self {
+            case .gold: "🥇"
+            case .silver: "🥈"
+            case .bronze: "🥉"
+            }
+        }
+    }
+
     let gameNo: Int
     let mode: RoadMode
     let attempts: Int
@@ -10,14 +30,7 @@ struct RoadResult {
 
     private var tryLabel: String { "\(attempts) \(attempts == 1 ? "try" : "tries")" }
 
-    private var medal: (emoji: String, name: String)? {
-        switch attempts {
-        case 1: ("🥇", "Gold")
-        case 2: ("🥈", "Silver")
-        case 3: ("🥉", "Bronze")
-        default: nil
-        }
-    }
+    private var medal: Medal? { Medal(rawValue: attempts) }
 
     var resultLabel: String {
         if let medal { return "\(medal.emoji) \(medal.name) in \(tryLabel)" }
@@ -42,11 +55,19 @@ struct RoadResult {
     }
 
     var shareText: String {
+        shareText(invitation: "Walk today’s road:", link: "https://playgoldroad.com/")
+    }
+
+    var archiveShareText: String {
+        shareText(invitation: "Walk this past road:", link: "https://playgoldroad.com/games/\(gameNo)")
+    }
+
+    private func shareText(invitation: String, link: String) -> String {
         var lines = ["GoldRoad Day #\(gameNo) · \(mode.title)", trail, resultLabel]
         if let timeLabel { lines.append("Solve time: \(timeLabel)") }
         if hintsUsed > 0 { lines.append("Hints used: \(hintsUsed)") }
-        lines.append("Walk today’s road:")
-        lines.append("https://playgoldroad.com/")
+        lines.append(invitation)
+        lines.append(link)
         return lines.joined(separator: "\n")
     }
 

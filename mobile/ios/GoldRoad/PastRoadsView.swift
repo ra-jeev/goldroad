@@ -65,6 +65,7 @@ enum ArchiveCompletion {
 }
 
 struct PastRoadsView: View {
+    @AppStorage(DailyRoadRecord.storageKey) private var historyData = Data()
     @State private var days: [ArchiveDay] = []
     @State private var loading = true
     @State private var error: String?
@@ -74,6 +75,12 @@ struct PastRoadsView: View {
     @State private var randomBusy = false
     @State private var randomError: String?
     private let client = ArchiveClient()
+    private let columns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 7)
+    private let calendar: Calendar = {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        return calendar
+    }()
 
     var body: some View {
         ScrollView {
@@ -89,25 +96,7 @@ struct PastRoadsView: View {
                 } else {
                     Text("Pick a day, walk its road")
                         .font(.custom("Chivo-Bold", size: 16, relativeTo: .body))
-                    ForEach(days) { day in
-                        NavigationLink {
-                            ArchivedRoadView(day: day) { completionVersion += 1 }
-                        } label: {
-                            HStack {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text("Day #\(day.gameNo)").font(.headline)
-                                    Text(archiveDate(day.playableAt)).font(.subheadline)
-                                }
-                                Spacer()
-                                mark(day.gameNo, .classic)
-                                mark(day.gameNo, .expedition)
-                                Image(systemName: "chevron.right")
-                            }
-                            .padding()
-                            .background(RoadTheme.gold.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
-                        }
-                        .buttonStyle(.plain)
-                    }
+                    archiveCalendar
                     if (days.first?.gameNo ?? 0) > 30 {
                         Button(randomBusy ? "Finding a road…" : "Surprise me with an older road") {
                             Task { await chooseOlderRoad() }
@@ -116,7 +105,7 @@ struct PastRoadsView: View {
                         .disabled(randomBusy)
                         if let randomError { Text(randomError).font(.footnote) }
                     }
-                    Text("Classic · Expedition. Solve Classic to unlock Expedition.")
+                    Text("Classic marks are on the left, Expedition on the right. Solve Classic to unlock Expedition.")
                         .font(.footnote).multilineTextAlignment(.center)
                 }
             }
@@ -147,6 +136,83 @@ struct PastRoadsView: View {
         }
     }
 
+    private var archiveCalendar: some View {
+        let gamesByDate = days.reduce(into: [Date: ArchiveDay]()) { games, day in
+            if let date = parseArchiveDate(day.playableAt) {
+                games[calendar.startOfDay(for: date)] = day
+            }
+        }
+        let months = Set(gamesByDate.keys.compactMap { calendar.dateInterval(of: .month, for: $0)?.start })
+        let history = (try? JSONDecoder().decode([DailyRoadRecord].self, from: historyData)) ?? []
+        return ForEach(months.sorted(by: >), id: \.self) { month in
+            monthGrid(month, gamesByDate: gamesByDate, history: history)
+        }
+    }
+
+    private func monthGrid(_ month: Date, gamesByDate: [Date: ArchiveDay], history: [DailyRoadRecord]) -> some View {
+        let blanks = calendar.component(.weekday, from: month) - 1
+        let count = calendar.range(of: .day, in: .month, for: month)?.count ?? 0
+        return VStack(alignment: .leading, spacing: 10) {
+            Text(month.formatted(Date.FormatStyle(calendar: calendar, timeZone: calendar.timeZone).month(.wide).year()))
+                .font(.headline)
+                .accessibilityAddTraits(.isHeader)
+            LazyVGrid(columns: columns, spacing: 4) {
+                ForEach(calendar.veryShortStandaloneWeekdaySymbols.indices, id: \.self) { index in
+                    Text(calendar.veryShortStandaloneWeekdaySymbols[index])
+                        .font(.caption2.bold())
+                        .accessibilityHidden(true)
+                }
+                ForEach(-blanks..<count, id: \.self) { offset in
+                    if offset < 0 {
+                        Color.clear.accessibilityHidden(true)
+                    } else if let date = calendar.date(byAdding: .day, value: offset, to: month),
+                              let day = gamesByDate[date] {
+                        dayLink(day, number: offset + 1, history: history)
+                    } else {
+                        Text("\(offset + 1)")
+                            .font(.caption)
+                            .foregroundStyle(RoadTheme.gold.opacity(0.45))
+                            .frame(minHeight: 44)
+                            .accessibilityHidden(true)
+                    }
+                }
+            }
+        }
+        .padding(10)
+        .background(RoadTheme.gold.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func dayLink(_ day: ArchiveDay, number: Int, history: [DailyRoadRecord]) -> some View {
+        let modes = RoadMode.allCases.map { mode in
+            let record = history.first { $0.gameNo == day.gameNo && $0.mode == mode && $0.solved }
+            let medal = record.flatMap { RoadResult.Medal(rawValue: $0.attempts) }
+            let solved = record != nil || ArchiveCompletion.contains(day.gameNo, mode)
+            return (mode: mode, medal: medal, solved: solved)
+        }
+        let status = modes.map { entry in
+            let result = entry.solved ? "solved" : "not solved"
+            return "\(entry.mode.title) \(result)" + (entry.medal.map { ", \($0.name)" } ?? "")
+        }.joined(separator: ". ")
+        return NavigationLink {
+            ArchivedRoadView(day: day) { completionVersion += 1 }
+        } label: {
+            VStack(spacing: 5) {
+                Text("\(number)").font(.caption.bold())
+                HStack(spacing: 4) {
+                    ForEach(modes.indices, id: \.self) { index in
+                        mark(medal: modes[index].medal, solved: modes[index].solved)
+                    }
+                }
+                .id(completionVersion)
+            }
+            .frame(maxWidth: .infinity, minHeight: 44)
+            .background(RoadTheme.gold.opacity(0.14), in: RoundedRectangle(cornerRadius: 7))
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Day #\(day.gameNo), \(archiveDate(day.playableAt)). \(status)")
+        }
+        .buttonStyle(.plain)
+    }
+
     private func chooseOlderRoad() async {
         randomBusy = true
         randomError = nil
@@ -159,19 +225,30 @@ struct PastRoadsView: View {
         }
     }
 
-    private func mark(_ gameNo: Int, _ mode: RoadMode) -> some View {
-        let solved = ArchiveCompletion.contains(gameNo, mode)
-        return Image(systemName: solved ? "checkmark.circle.fill" : "circle")
-            .accessibilityLabel("\(mode.title) \(solved ? "solved" : "not solved")")
-            .id(completionVersion)
+    private func mark(medal: RoadResult.Medal?, solved: Bool) -> some View {
+        let color: Color = switch medal {
+        case .gold: RoadTheme.gold
+        case .silver: RoadTheme.color(0xC0C0C0)
+        case .bronze: RoadTheme.color(0xCD7F32)
+        case nil: solved ? .green : RoadTheme.gold.opacity(0.4)
+        }
+        return Image(systemName: solved ? "circle.fill" : "circle")
+            .font(.system(size: 7, weight: .semibold))
+            .foregroundStyle(color)
+            .accessibilityHidden(true)
     }
 }
 
-private func archiveDate(_ value: String) -> String {
+private func parseArchiveDate(_ value: String) -> Date? {
     let formatter = ISO8601DateFormatter()
     formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-    let date = formatter.date(from: value) ?? ISO8601DateFormatter().date(from: value)
-    guard let date else { return value }
+    if let date = formatter.date(from: value) { return date }
+    formatter.formatOptions = [.withInternetDateTime]
+    return formatter.date(from: value)
+}
+
+private func archiveDate(_ value: String) -> String {
+    guard let date = parseArchiveDate(value) else { return value }
     let display = DateFormatter()
     display.dateStyle = .medium
     display.timeZone = TimeZone(secondsFromGMT: 0)
@@ -295,6 +372,14 @@ private struct ArchivedRoadView: View {
             }
             .buttonStyle(.bordered)
             .font(.subheadline.bold())
+            if run.outcome == .solved {
+                let result = RoadResult(gameNo: day.gameNo, mode: mode, attempts: run.attempt,
+                                        elapsed: nil, hintsUsed: run.hintsUsed)
+                ShareLink(item: result.archiveShareText) {
+                    Label("Share result", systemImage: "square.and.arrow.up")
+                }
+                .buttonStyle(.bordered)
+            }
         }
     }
 
