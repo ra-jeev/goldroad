@@ -121,11 +121,33 @@ const rankLine = computed(() => {
   return `#${standing.rank} of ${standing.players} today`;
 });
 
+// The same words as the streak flair on Reddit.
 const streakLine = computed(() => {
   const streak = props.standing?.streak ?? 0;
-  if (streak < 1) return null;
-  return streak === 1 ? 'Day 1 of your road' : `${streak}-day road`;
+  return streak < 1 ? null : `${streak}-day road`;
 });
+
+const summary = computed(() =>
+  [
+    plural(props.attempts, 'try', 'tries'),
+    plural(props.hints, 'hint', 'hints'),
+    props.seconds === null ? null : duration(props.seconds),
+  ]
+    .filter(Boolean)
+    .join(' · '),
+);
+
+// Board, trap and vote share one panel. Only one shows at a time.
+type Tab = 'board' | 'trap' | 'vote';
+const tabs = computed(() => {
+  const list: { id: Tab; label: string }[] = [];
+  if (props.standing?.counted && props.standing.rows.length) list.push({ id: 'board', label: 'Board' });
+  if (props.standing?.trap) list.push({ id: 'trap', label: 'Trap' });
+  if (props.ballot) list.push({ id: 'vote', label: 'Vote' });
+  return list;
+});
+const tab = ref<Tab | null>(null);
+const activeTab = computed(() => tabs.value.find((item) => item.id === tab.value)?.id ?? tabs.value[0]?.id ?? null);
 
 /** Rows with a gap marker where the list jumps (top 10, then the player). */
 const rows = computed(() =>
@@ -139,11 +161,12 @@ const rows = computed(() =>
 // Keep the player's own row in view when it is below the top 10.
 const list = ref<HTMLOListElement | null>(null);
 watch(
-  () => props.standing,
+  () => [props.standing, activeTab.value],
   async () => {
     await nextTick();
+    const panel = list.value?.parentElement;
     const own = list.value?.querySelector<HTMLElement>('.row--me');
-    if (list.value && own) list.value.scrollTop = own.offsetTop - list.value.clientHeight / 2;
+    if (panel && own) panel.scrollTop = own.offsetTop - panel.clientHeight / 2;
   },
   { immediate: true },
 );
@@ -166,124 +189,128 @@ const nextRoad = computed(() => {
 <template>
   <div class="scrim">
     <section class="card" role="dialog" aria-modal="true" aria-labelledby="result-headline">
-      <p class="eyebrow">GoldRoad #{{ roadNo }} · {{ community ? `Community road: ${community.label}` : 'Classic' }}</p>
-      <p class="medal" aria-hidden="true">{{ medal ? MEDAL_ICON[medal] : '✨' }}</p>
-      <h2 id="result-headline" class="headline">{{ headline }}</h2>
+      <p class="eyebrow">
+        GoldRoad #{{ roadNo }} · {{ community ? `Community road: ${community.label}` : 'Classic' }}
+      </p>
+      <h2 id="result-headline" class="headline">
+        <span class="medal" aria-hidden="true">{{ medal ? MEDAL_ICON[medal] : '✨' }}</span>
+        {{ headline }}
+      </h2>
+      <p class="summary">{{ summary }}</p>
 
-      <dl class="numbers">
-        <div>
-          <dt>Tries</dt>
-          <dd>{{ attempts }}</dd>
-        </div>
-        <div>
-          <dt>Hints</dt>
-          <dd>{{ hints }}</dd>
-        </div>
-        <div>
-          <dt>Time</dt>
-          <dd>{{ seconds === null ? '–' : duration(seconds) }}</dd>
-        </div>
-      </dl>
-
-      <template v-if="standing">
-        <p v-if="!standing.counted" class="note">
-          Practice road. It does not count for your streak or the board.
-        </p>
-        <p v-else class="standing">
-          <span v-if="rankLine">{{ rankLine }}</span>
-          <span v-if="streakLine" class="streak">🔥 {{ streakLine }}</span>
-        </p>
-
-        <TrapMap
-          v-if="standing.trap"
-          :trap="standing.trap"
-          :tiles="board.tiles"
-          :rows="board.rows"
-          :cols="board.cols"
-          :start="board.start"
-          :end="board.end"
-        />
-
-        <ol v-if="rows.length" ref="list" class="board" aria-label="Today's leaderboard">
-          <li
-            v-for="row in rows"
-            :key="row.rank"
-            class="row"
-            :class="{ 'row--me': row.me, 'row--gap': row.gapBefore }"
-          >
-            <span class="rank">{{ row.rank }}</span>
-            <span class="row-medal" aria-hidden="true">{{ row.medal ? MEDAL_ICON[row.medal] : '' }}</span>
-            <span class="who">
-              <span class="name">u/{{ row.name }}</span>
-              <span class="detail">
-                {{ plural(row.attempts, 'try', 'tries') }}<template v-if="row.hints">
-                  · {{ plural(row.hints, 'hint', 'hints') }}</template>
-              </span>
-            </span>
-            <span class="time">{{ duration(row.seconds) }}</span>
-          </li>
-        </ol>
-      </template>
-
-      <section v-if="ballot" class="ballot" aria-labelledby="ballot-title">
-        <h3 id="ballot-title" class="ballot-title">Shape Sunday's road</h3>
-        <p class="fine">
-          <template v-if="!loggedIn">Log in to vote. </template>
-          One vote for {{ sundayLabel }}. You can change it until then.
-        </p>
-        <div class="choices">
-          <button
-            v-for="option in ballot.options"
-            :key="option.id"
-            type="button"
-            class="choice"
-            :class="{ 'choice--mine': ballot.myVote === option.id }"
-            :disabled="!loggedIn || !!voting"
-            :aria-pressed="ballot.myVote === option.id"
-            :style="showTotals ? { '--share': `${share(option.votes)}%` } : undefined"
-            @click="vote(option.id)"
-          >
-            <span class="choice-label">{{ option.label }}</span>
-            <span class="choice-blurb">{{ option.blurb }}</span>
-            <span v-if="showTotals" class="choice-share">{{ share(option.votes) }}%</span>
-          </button>
-        </div>
-        <p v-if="voteFailed" class="fine">Could not save your vote. Try again.</p>
-        <p v-else-if="showTotals" class="fine">{{ plural(ballot.total, 'vote', 'votes') }} so far</p>
-      </section>
+      <p v-if="standing && !standing.counted" class="note">Practice road. It does not count.</p>
+      <p v-else-if="standing && (rankLine || streakLine)" class="standing">
+        <span v-if="rankLine">{{ rankLine }}</span>
+        <span v-if="streakLine" class="streak">🔥 {{ streakLine }}</span>
+      </p>
 
       <button v-if="!loggedIn" type="button" class="action action--primary" @click="showLoginPrompt()">
         Log in to save your streak and rank
       </button>
+      <button
+        v-else
+        type="button"
+        class="action action--primary"
+        :disabled="commentState === 'sending' || commentState === 'done'"
+        @click="shareComment"
+      >
+        {{ COMMENT_LABEL[commentState] }}
+      </button>
 
-      <template v-if="loggedIn">
-        <button
-          type="button"
-          class="action action--primary"
-          :disabled="commentState === 'sending' || commentState === 'done'"
-          @click="shareComment"
-        >
-          {{ COMMENT_LABEL[commentState] }}
-        </button>
-        <p v-if="commentState !== 'done'" class="fine">
-          Posts from your account as a reply to the pinned comment. No route, no spoilers.
-        </p>
-      </template>
+      <div v-if="tabs.length" class="tabbed">
+        <div v-if="tabs.length > 1" class="tabs" role="tablist" aria-label="Today on this road">
+          <button
+            v-for="item in tabs"
+            :id="`tab-${item.id}`"
+            :key="item.id"
+            type="button"
+            role="tab"
+            class="tab"
+            :class="{ 'tab--active': activeTab === item.id }"
+            :aria-selected="activeTab === item.id"
+            :aria-controls="`panel-${item.id}`"
+            @click="tab = item.id"
+          >
+            {{ item.label }}
+          </button>
+        </div>
 
-      <div class="pair">
-        <button type="button" class="action" @click="emit('close')">See the board</button>
-        <button
-          v-if="loggedIn && subreddit"
-          type="button"
-          class="action"
-          :disabled="joinState === 'sending' || joinState === 'done'"
-          @click="join"
-        >
-          {{ joinState === 'done' ? 'Joined ✓' : joinState === 'failed' ? 'Try again' : `Join r/${subreddit}` }}
-        </button>
+        <div :id="`panel-${activeTab}`" class="panel" role="tabpanel" :aria-labelledby="`tab-${activeTab}`">
+          <ol v-if="activeTab === 'board'" ref="list" class="board" aria-label="Today's leaderboard">
+            <li
+              v-for="row in rows"
+              :key="row.rank"
+              class="row"
+              :class="{ 'row--me': row.me, 'row--gap': row.gapBefore }"
+            >
+              <span class="rank">{{ row.rank }}</span>
+              <span class="row-medal" aria-hidden="true">{{ row.medal ? MEDAL_ICON[row.medal] : '' }}</span>
+              <span class="who">
+                <span class="name">u/{{ row.name }}</span>
+                <span class="detail">
+                  {{ plural(row.attempts, 'try', 'tries') }}<template v-if="row.hints">
+                    · {{ plural(row.hints, 'hint', 'hints') }}</template>
+                </span>
+              </span>
+              <span class="time">{{ duration(row.seconds) }}</span>
+            </li>
+          </ol>
+
+          <TrapMap
+            v-else-if="activeTab === 'trap' && standing?.trap"
+            :trap="standing.trap"
+            :tiles="board.tiles"
+            :rows="board.rows"
+            :cols="board.cols"
+            :start="board.start"
+            :end="board.end"
+          />
+
+          <div v-else-if="activeTab === 'vote' && ballot" class="ballot">
+            <p class="ballot-title">Shape Sunday's road, {{ sundayLabel }}</p>
+            <div class="choices">
+              <button
+                v-for="option in ballot.options"
+                :key="option.id"
+                type="button"
+                class="choice"
+                :class="{ 'choice--mine': ballot.myVote === option.id }"
+                :disabled="!loggedIn || !!voting"
+                :aria-pressed="ballot.myVote === option.id"
+                :style="showTotals ? { '--share': `${share(option.votes)}%` } : undefined"
+                @click="vote(option.id)"
+              >
+                <span class="choice-label">{{ option.label }}</span>
+                <span class="choice-blurb">{{ option.blurb }}</span>
+                <span v-if="showTotals" class="choice-share">{{ share(option.votes) }}%</span>
+              </button>
+            </div>
+            <p class="fine">
+              <template v-if="voteFailed">Could not save your vote. Try again.</template>
+              <template v-else-if="!loggedIn">Log in to vote.</template>
+              <template v-else-if="!ballot.myVote">One vote. You can change it until Sunday.</template>
+              <template v-else>{{ plural(ballot.total, 'vote', 'votes') }} so far</template>
+            </p>
+          </div>
+        </div>
       </div>
 
-      <p class="next">Next road in {{ nextRoad }}</p>
+      <button type="button" class="action" @click="emit('close')">See the board</button>
+
+      <p class="next">
+        Next road in {{ nextRoad }}
+        <template v-if="loggedIn && subreddit">
+          ·
+          <button
+            type="button"
+            class="link"
+            :disabled="joinState === 'sending' || joinState === 'done'"
+            @click="join"
+          >
+            {{ joinState === 'done' ? 'Joined ✓' : joinState === 'failed' ? 'Try again' : `Join r/${subreddit}` }}
+          </button>
+        </template>
+      </p>
     </section>
   </div>
 </template>
@@ -329,49 +356,85 @@ const nextRoad = computed(() => {
 }
 
 .medal {
-  margin: 0;
-  font-size: 2.75rem;
-  line-height: 1;
+  margin-right: 4px;
+  font-size: 1.6rem;
+  vertical-align: -0.15em;
 }
 
 .headline {
   margin: 0;
-  font-size: 1.4rem;
+  font-size: 1.35rem;
   color: var(--color-gold-bright);
 }
 
-.numbers {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  width: 100%;
-  margin: 0;
-  border: 1px solid rgb(var(--color-gold-rgb) / 0.3);
-  border-radius: var(--radius-sm);
-  background: var(--gradient-card-metric);
-}
-
-.numbers div {
-  padding: 6px 4px;
-}
-
-.numbers div + div {
-  border-left: 1px solid rgb(var(--color-gold-rgb) / 0.2);
-}
-
-.numbers dt {
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--color-gold-muted);
-}
-
-.numbers dd {
-  margin: 0;
-  font-size: 1.35rem;
-  font-weight: 800;
+.summary {
+  margin: -6px 0 0;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
+  color: var(--color-gold);
 }
+
+.tabbed {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.25);
+  border-radius: var(--radius-full);
+}
+
+.tab {
+  flex: 1;
+  min-height: 32px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-gold-muted);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tab--active {
+  background: rgb(var(--color-gold-rgb) / 0.16);
+  color: var(--color-gold-bright);
+}
+
+/* One height for every tab, so the card does not jump. */
+.panel {
+  height: min(240px, 34vh);
+  overflow-y: auto;
+  display: grid;
+  align-content: start;
+}
+
+.link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-gold);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.link:disabled {
+  cursor: default;
+  text-decoration: none;
+}
+
+
+
+
+
 
 .standing {
   margin: 0;
@@ -396,8 +459,6 @@ const nextRoad = computed(() => {
 .board {
   position: relative;
   width: 100%;
-  max-height: 34vh;
-  overflow-y: auto;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -484,20 +545,7 @@ const nextRoad = computed(() => {
   cursor: default;
 }
 
-.pair {
-  display: flex;
-  gap: 8px;
-  width: 100%;
-}
 
-.pair .action {
-  flex: 1;
-  min-width: 0;
-  padding: 0 10px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 
 .fine {
   margin: -4px 0 0;
@@ -519,7 +567,7 @@ const nextRoad = computed(() => {
 
 .ballot-title {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   color: var(--color-gold-bright);
 }
 

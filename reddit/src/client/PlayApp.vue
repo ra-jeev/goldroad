@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import GameBoard from '#game/app/components/GameBoard.vue';
 import { buildInitialTileStates } from '#game/app/utils/boardUtils';
 import { UI_COPY } from '#game/app/content/uiCopy';
@@ -10,6 +10,7 @@ import type { HintResult } from '#game/shared/types/game';
 import type { Ballot, CommunityPick, Medal, PlayerRun, PublicRoad, Standing } from '../shared/api';
 import { current, isOverTarget, moveTo, replayRoute, startRun, undo, type RunState } from '../shared/run';
 import { ApiError, fetchRoad, postFinish, postHint, postStart } from './api';
+import GameBoardMetrics from '#game/app/components/GameBoardMetrics.vue';
 import ResultCard from './ResultCard.vue';
 import { clearRoute, loadRoute, saveRoute } from './savedRoute';
 
@@ -67,7 +68,25 @@ onMounted(async () => {
   }
 });
 
-onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
+// The board takes the height the header and the footer leave. Measure them,
+// because their text wraps differently on each screen.
+const playEl = ref<HTMLElement | null>(null);
+const headerEl = ref<HTMLElement | null>(null);
+const footerEl = ref<HTMLElement | null>(null);
+const chrome = new ResizeObserver(() => {
+  playEl.value?.style.setProperty('--header-h', `${headerEl.value?.offsetHeight ?? 90}px`);
+  playEl.value?.style.setProperty('--footer-h', `${footerEl.value?.offsetHeight ?? 140}px`);
+});
+watch([headerEl, footerEl], ([header, footer]) => {
+  chrome.disconnect();
+  if (header) chrome.observe(header);
+  if (footer) chrome.observe(footer);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onKeydown);
+  chrome.disconnect();
+});
 
 function resumeOrStart(next: PublicRoad): RunState {
   const saved = loadRoute(next.day, next.mode);
@@ -102,6 +121,8 @@ const hintedTiles = computed(() =>
     : new Set<number>(),
 );
 
+/** Every coin on the board, as the web shows it. */
+const totalCoins = computed(() => road.value?.board.tiles.reduce((sum, value) => sum + value, 0) ?? 0);
 const toGo = computed(() => (road.value && run.value ? road.value.target - run.value.score : 0));
 const overTarget = computed(() =>
   road.value && run.value ? isOverTarget(road.value.mode, road.value.target, run.value) : false,
@@ -123,12 +144,6 @@ const medal = computed<Medal | null>(() => {
 });
 
 /** The gap to the target, in words, so it never relies on colour alone. */
-const gapLabel = computed(() => {
-  if (toGo.value > 0) return `${toGo.value} to go`;
-  if (toGo.value < 0) return `${-toGo.value} over`;
-  return 'On target';
-});
-
 const HINT_COPY: Record<HintResult['kind'], string> = {
   'next-step': UI_COPY.runtime.hintNextStep,
   diverged: UI_COPY.runtime.hintDiverged,
@@ -318,29 +333,21 @@ function onKeydown(event: KeyboardEvent) {
 </script>
 
 <template>
-  <main class="play">
+  <main ref="playEl" class="play">
     <p v-if="error" class="notice" role="alert">Could not load the road. {{ error }}</p>
     <p v-else-if="!road || !run" class="notice">{{ UI_COPY.runtime.loadingGame }}</p>
     <template v-else>
-      <header class="header">
+      <header ref="headerEl" class="header">
         <div class="heading">
           <h1 class="title">GoldRoad <span class="road-no">#{{ road.roadNo }}</span></h1>
           <p v-if="community" class="community">Community road · {{ community.label }}</p>
         </div>
-        <div class="metrics">
-          <div class="metric">
-            <span class="metric-label">Score</span>
-            <span class="metric-value">{{ run.score }}</span>
-          </div>
-          <div class="metric metric--gap" :class="{ 'is-over': toGo < 0, 'is-on': toGo === 0 }">
-            <span class="metric-label">Gap</span>
-            <span class="metric-value metric-value--words">{{ gapLabel }}</span>
-          </div>
-          <div class="metric">
-            <span class="metric-label">Target</span>
-            <span class="metric-value">{{ road.target }}</span>
-          </div>
-        </div>
+        <GameBoardMetrics
+          :score="run.score"
+          :max-score="road.target"
+          :total-coins="totalCoins"
+          :over-target="overTarget"
+        />
       </header>
 
       <section
@@ -366,7 +373,7 @@ function onKeydown(event: KeyboardEvent) {
         />
       </section>
 
-      <footer class="footer">
+      <footer ref="footerEl" class="footer">
         <p
           class="status"
           :class="{ 'status--solved': run.outcome === 'solved', 'status--hint': hintKind && !run.outcome }"
@@ -431,10 +438,16 @@ function onKeydown(event: KeyboardEvent) {
   --tile-gap: 14px;
   --road-thickness: 12px;
   --board-margin: 12px;
+  --board-dot-gap: 0.65rem;
   height: 100dvh;
+  box-sizing: border-box;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  /* Header, board and footer sit as one group with even space around them,
+     not pinned to the top and the bottom of the screen. */
+  justify-content: space-evenly;
+  container-type: size;
   padding: 10px var(--board-margin) max(10px, env(safe-area-inset-bottom));
   background: var(--gradient-bg-main);
   color: var(--color-gold);
@@ -478,67 +491,18 @@ function onKeydown(event: KeyboardEvent) {
   color: var(--color-gold-muted);
 }
 
-.metrics {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  width: min(100%, 420px);
-  border: 1px solid rgb(var(--color-gold-rgb) / 0.3);
-  border-radius: var(--radius-sm);
-  background: var(--gradient-card-metric);
-}
-
-.metric {
-  display: grid;
-  justify-items: center;
-  padding: 6px 4px;
-}
-
-.metric + .metric {
-  border-left: 1px solid rgb(var(--color-gold-rgb) / 0.2);
-}
-
-.metric-label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--color-gold-muted);
-}
-
-.metric-value {
-  font-size: 1.5rem;
-  font-weight: 800;
-  line-height: 1.15;
-  font-variant-numeric: tabular-nums;
-}
-
-.metric-value--words {
-  font-size: 1.05rem;
-  line-height: 1.6;
-  white-space: nowrap;
-}
-
-.metric--gap.is-over .metric-value {
-  color: var(--color-toll-bright);
-}
-
-.metric--gap.is-on .metric-value {
-  color: var(--color-solved);
-}
-
 .board-area {
-  flex: 1;
-  min-height: 0;
+  flex: none;
   display: grid;
   place-items: center;
-  container-type: size;
-  /* Size the tiles from the space this area really has, in both directions,
-     so the whole board always fits without scrolling. */
+  /* Size the tiles from the space the header and the footer leave (their
+     heights are measured), so the whole board always fits without scrolling. */
   --tile-size: clamp(
     26px,
     min(
       (100cqw - (var(--cols) - 1) * var(--tile-gap) - 16px) / var(--cols),
-      (100cqh - (var(--rows) - 1) * var(--tile-gap) - 16px) / var(--rows)
+      (100cqh - var(--header-h, 90px) - var(--footer-h, 140px) - 48px - (var(--rows) - 1) * var(--tile-gap)) /
+        var(--rows)
     ),
     68px
   );
@@ -571,7 +535,7 @@ function onKeydown(event: KeyboardEvent) {
 }
 
 .status--solved {
-  color: var(--color-solved);
+  color: var(--color-gold-bright);
   font-weight: 700;
 }
 
