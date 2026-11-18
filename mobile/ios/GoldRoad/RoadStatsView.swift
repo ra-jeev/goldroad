@@ -277,12 +277,21 @@ struct RoadStatsView: View {
                         Text("\(Int(field.solveRate.rounded()))% of roadgoers reached the finish.")
                             .font(.subheadline)
                         histogram(field.solvedAttempts)
-                        statRow("Hints used by solvers", "\(field.behavior.totalHints)")
+                        Text(field.behavior.totalHints == 0
+                             ? "No hints were used on this road."
+                             : "Solvers used \(field.behavior.totalHints) hints in total.")
+                            .font(.footnote)
                         if let average = field.behavior.averageSolveTimeMs {
-                            statRow("Average solve time", duration(Int((Double(average) / 1000).rounded())))
+                            let fieldTime = duration(Int((Double(average) / 1000).rounded()))
+                            let playerTime = result?.activeSeconds.map(duration)
+                            Text("Field solve time averaged \(fieldTime)."
+                                 + (playerTime.map { " You solved it in \($0)." } ?? ""))
+                                .font(.footnote)
                         }
                         if let fastest = field.behavior.bestSolveTimeMs {
-                            statRow("Fastest solve", duration(Int((Double(fastest) / 1000).rounded())))
+                            let fastestTime = duration(Int((Double(fastest) / 1000).rounded()))
+                            Text("Fastest field solve was \(fastestTime).")
+                                .font(.footnote)
                         }
                     } else {
                         Text("No community results were recorded for this road.").font(.subheadline)
