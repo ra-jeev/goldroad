@@ -2,6 +2,7 @@ import { redis } from '@devvit/web/server';
 import { generatePuzzle } from '#game/server/utils/puzzleGenerator';
 import type { Board } from '#game/shared/types/game';
 import type { PublicRoad, RoadMode } from '../../shared/api';
+import { communityPick, shapeFor } from './community';
 
 /** Public board and target. Safe to send to any client. */
 const roadKey = (day: string, mode: RoadMode) => `road:${day}:${mode}`;
@@ -26,7 +27,11 @@ export async function getOrCreateRoad(day: string, mode: RoadMode): Promise<Publ
   const stored = await redis.get(roadKey(day, mode));
   if (stored) return toPublic(day, roadNo, mode, JSON.parse(stored) as StoredRoad);
 
-  const puzzle = generatePuzzle(mode);
+  // A Sunday road takes the shape the community voted for.
+  const shape = shapeFor(await communityPick(day));
+  const puzzle =
+    generatePuzzle(mode, shape.rows, shape.cols, shape.blockedEdges, undefined, shape.tileRange) ??
+    generatePuzzle(mode);
   if (!puzzle) throw new RoadGenerationError(`No ${mode} road for ${day}`);
 
   const road: StoredRoad = { board: puzzle.board, target: puzzle.maxScore };

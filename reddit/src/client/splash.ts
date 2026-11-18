@@ -14,7 +14,10 @@ if (data) {
   const board = document.getElementById('mini-board');
   if (label) label.textContent = `GoldRoad #${data.roadNo}`;
   if (target) target.textContent = `Target ${data.target}`;
-  if (line) line.textContent = `Walk from the start to the flag. Land exactly on ${data.target}.`;
+  if (line) {
+    const intro = data.community ? `Community road: ${data.community}. ` : '';
+    line.textContent = `${intro}Walk from the start to the flag. Land exactly on ${data.target}.`;
+  }
   if (board) {
     board.style.gridTemplateColumns = `repeat(${data.cols}, auto)`;
     data.tiles.forEach((value, id) => {

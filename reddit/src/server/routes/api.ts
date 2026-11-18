@@ -11,7 +11,9 @@ import type {
   PlayerRun,
   StartResponse,
   Standing,
+  VoteResponse,
 } from '../../shared/api';
+import { castVote, COMMUNITY_OPTIONS, communityPick, getBallot } from '../core/community';
 import { utcDay } from '../core/day';
 import { dayForPost } from '../core/post';
 import { getGoldRoutes, getOrCreateRoad } from '../core/road';
@@ -78,6 +80,8 @@ api.get('/road', async (c) => {
       username: context.username ?? null,
       run,
       standing: await standingFor(day, mode, run),
+      ballot: await getBallot(userId ?? null),
+      community: await communityPick(day),
     });
   } catch (error) {
     return fail(c, error);
@@ -154,6 +158,22 @@ api.post('/comment', async (c) => {
       await saveComment(userId, day, mode, null);
       throw error;
     }
+  } catch (error) {
+    return fail(c, error);
+  }
+});
+
+const VoteBody = z.object({
+  option: z.enum(COMMUNITY_OPTIONS.map((option) => option.id) as [string, ...string[]]),
+});
+
+/** Vote on the shape of the coming Sunday's road. One vote per account. */
+api.post('/vote', async (c) => {
+  try {
+    const { option } = VoteBody.parse(await c.req.json());
+    if (!context.userId) throw new RunError(403, 'Log in to vote');
+    const ballot = await castVote(context.userId, option as (typeof COMMUNITY_OPTIONS)[number]['id']);
+    return c.json<VoteResponse>({ ballot });
   } catch (error) {
     return fail(c, error);
   }

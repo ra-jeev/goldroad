@@ -2,8 +2,8 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { context, showLoginPrompt } from '@devvit/web/client';
 import { calcMedalForAttempt } from '#game/lib/gameTiers';
-import type { Medal, RoadMode, Standing } from '../shared/api';
-import { postComment, postSubscribe } from './api';
+import type { Ballot, CommunityOptionId, CommunityPick, Medal, RoadMode, Standing } from '../shared/api';
+import { postComment, postSubscribe, postVote } from './api';
 import TrapMap from './TrapMap.vue';
 
 const props = defineProps<{
@@ -16,9 +16,43 @@ const props = defineProps<{
   hints: number;
   seconds: number | null;
   standing: Standing | null;
+  ballot: Ballot | null;
+  community: CommunityPick | null;
   loggedIn: boolean;
 }>();
-const emit = defineEmits<{ close: []; commented: [] }>();
+const emit = defineEmits<{ close: []; commented: []; voted: [ballot: Ballot] }>();
+
+// The weekly vote on Sunday's road. Totals show once the player has voted.
+const voting = ref<CommunityOptionId | null>(null);
+const voteFailed = ref(false);
+
+async function vote(option: CommunityOptionId) {
+  if (!props.loggedIn || voting.value || props.ballot?.myVote === option) return;
+  voting.value = option;
+  voteFailed.value = false;
+  try {
+    emit('voted', (await postVote(option)).ballot);
+  } catch (cause) {
+    console.error('vote failed', cause);
+    voteFailed.value = true;
+  } finally {
+    voting.value = null;
+  }
+}
+
+const showTotals = computed(() => !!props.ballot && (!!props.ballot.myVote || !props.loggedIn) && props.ballot.total > 0);
+
+function share(votes: number): number {
+  const total = props.ballot?.total ?? 0;
+  return total ? Math.round((votes / total) * 100) : 0;
+}
+
+const sundayLabel = computed(() => {
+  if (!props.ballot) return '';
+  const date = new Date(`${props.ballot.sunday}T00:00:00Z`);
+  const month = date.toLocaleString('en-GB', { month: 'short', timeZone: 'UTC' });
+  return `Sun ${date.getUTCDate()} ${month}`;
+});
 
 // The two Reddit actions. Each is the player's own tap, never automatic.
 const subreddit = context.subredditName ?? null;
@@ -132,7 +166,7 @@ const nextRoad = computed(() => {
 <template>
   <div class="scrim">
     <section class="card" role="dialog" aria-modal="true" aria-labelledby="result-headline">
-      <p class="eyebrow">GoldRoad #{{ roadNo }} · Classic</p>
+      <p class="eyebrow">GoldRoad #{{ roadNo }} · {{ community ? `Community road: ${community.label}` : 'Classic' }}</p>
       <p class="medal" aria-hidden="true">{{ medal ? MEDAL_ICON[medal] : '✨' }}</p>
       <h2 id="result-headline" class="headline">{{ headline }}</h2>
 
@@ -190,6 +224,33 @@ const nextRoad = computed(() => {
           </li>
         </ol>
       </template>
+
+      <section v-if="ballot" class="ballot" aria-labelledby="ballot-title">
+        <h3 id="ballot-title" class="ballot-title">Shape Sunday's road</h3>
+        <p class="fine">
+          <template v-if="!loggedIn">Log in to vote. </template>
+          One vote for {{ sundayLabel }}. You can change it until then.
+        </p>
+        <div class="choices">
+          <button
+            v-for="option in ballot.options"
+            :key="option.id"
+            type="button"
+            class="choice"
+            :class="{ 'choice--mine': ballot.myVote === option.id }"
+            :disabled="!loggedIn || !!voting"
+            :aria-pressed="ballot.myVote === option.id"
+            :style="showTotals ? { '--share': `${share(option.votes)}%` } : undefined"
+            @click="vote(option.id)"
+          >
+            <span class="choice-label">{{ option.label }}</span>
+            <span class="choice-blurb">{{ option.blurb }}</span>
+            <span v-if="showTotals" class="choice-share">{{ share(option.votes) }}%</span>
+          </button>
+        </div>
+        <p v-if="voteFailed" class="fine">Could not save your vote. Try again.</p>
+        <p v-else-if="showTotals" class="fine">{{ plural(ballot.total, 'vote', 'votes') }} so far</p>
+      </section>
 
       <button v-if="!loggedIn" type="button" class="action action--primary" @click="showLoginPrompt()">
         Log in to save your streak and rank
@@ -448,6 +509,70 @@ const nextRoad = computed(() => {
   border-color: transparent;
   background: var(--gradient-button-primary);
   color: var(--color-text-on-gold);
+}
+
+.ballot {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+}
+
+.ballot-title {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--color-gold-bright);
+}
+
+.choices {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.choice {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: 2px;
+  min-height: 64px;
+  padding: 8px 6px;
+  overflow: hidden;
+  border: 1px solid rgb(var(--color-gold-rgb) / 0.35);
+  border-radius: var(--radius-sm);
+  background: linear-gradient(
+    to top,
+    rgb(var(--color-gold-rgb) / 0.18) var(--share, 0%),
+    rgb(var(--color-gold-rgb) / 0.05) var(--share, 0%)
+  );
+  color: var(--color-gold);
+  font: inherit;
+  cursor: pointer;
+}
+
+.choice:disabled {
+  cursor: default;
+}
+
+.choice--mine {
+  border-color: var(--color-gold-bright);
+  box-shadow: inset 0 0 0 1px var(--color-gold-bright);
+}
+
+.choice-label {
+  font-weight: 800;
+  font-size: 0.88rem;
+}
+
+.choice-blurb {
+  font-size: 0.72rem;
+  line-height: 1.2;
+  color: var(--color-gold-muted);
+}
+
+.choice-share {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-gold-bright);
 }
 
 .next {

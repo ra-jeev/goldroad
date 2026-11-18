@@ -3,6 +3,7 @@ import type { RoadPostData } from '../../shared/api';
 import { ensureResultsThread } from './comments';
 import { shortDayLabel, utcDay } from './day';
 import { flairDailyPost } from './flair';
+import { communityPick } from './community';
 import { getOrCreateRoad } from './road';
 
 /** Day → post id, so the daily job never posts twice. */
@@ -21,6 +22,7 @@ export async function ensureDailyPost(day: string = utcDay()): Promise<DailyPost
   if (existing) return { postId: existing, created: false };
 
   const road = await getOrCreateRoad(day, 'classic');
+  const pick = await communityPick(day);
   const { board } = road;
   const postData: RoadPostData = {
     day,
@@ -31,11 +33,13 @@ export async function ensureDailyPost(day: string = utcDay()): Promise<DailyPost
     tiles: board.tiles,
     start: board.start,
     end: board.end,
+    ...(pick ? { community: pick.label } : {}),
   };
+  const shape = pick ? ` · Community road: ${pick.label}` : '';
 
   const post = await reddit.submitCustomPost({
     subredditName: context.subredditName,
-    title: `GoldRoad #${road.roadNo} · Target ${road.target} · ${shortDayLabel(day)}`,
+    title: `GoldRoad #${road.roadNo}${shape} · Target ${road.target} · ${shortDayLabel(day)}`,
     entry: 'default',
     postData,
     textFallback: {

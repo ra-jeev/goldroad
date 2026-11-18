@@ -25,6 +25,8 @@ export type RoadPostData = {
   tiles: number[];
   start: number;
   end: number;
+  /** The community option this Sunday road was made with. */
+  community?: string;
 };
 
 export type ErrorResponse = { error: string };
@@ -53,6 +55,10 @@ export type RoadResponse = {
   /** Null when the player is logged out: nothing is saved for them. */
   run: PlayerRun | null;
   standing: Standing | null;
+  /** The week's vote for Sunday's road. Every player can see it. */
+  ballot: Ballot;
+  /** Set on a Sunday road that the community shaped. */
+  community: CommunityPick | null;
 };
 
 export type ModeRequest = { mode: RoadMode };
@@ -116,3 +122,19 @@ export type Trap = {
 };
 
 export type CommentResponse = { commentId: string; run: PlayerRun };
+
+export type CommunityOptionId = 'maze' | 'coins' | 'wide';
+
+/** The vote for the coming Sunday's road. */
+export type Ballot = {
+  sunday: string;
+  options: { id: CommunityOptionId; label: string; blurb: string; votes: number }[];
+  total: number;
+  myVote: CommunityOptionId | null;
+};
+
+/** The option that won a Sunday's vote. */
+export type CommunityPick = { id: CommunityOptionId; label: string; votes: number; total: number };
+
+export type VoteRequest = { option: CommunityOptionId };
+export type VoteResponse = { ballot: Ballot };

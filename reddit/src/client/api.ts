@@ -5,6 +5,8 @@ import type {
   RoadMode,
   RoadResponse,
   StartResponse,
+  CommunityOptionId,
+  VoteResponse,
 } from '../shared/api';
 
 export class ApiError extends Error {
@@ -45,3 +47,5 @@ export const postFinish = (mode: RoadMode, path: number[]) =>
 export const postComment = (mode: RoadMode) => request<CommentResponse>('/api/comment', { mode });
 
 export const postSubscribe = () => request<{ subscribed: boolean }>('/api/subscribe', {});
+
+export const postVote = (option: CommunityOptionId) => request<VoteResponse>('/api/vote', { option });

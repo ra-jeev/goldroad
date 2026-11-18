@@ -3,11 +3,12 @@ import { redis } from '@devvit/web/server';
 /**
  * Every key that holds data of one user, so a deleted account can be removed
  * in full. A "key" belongs to the user alone and is deleted. A "member" is a
- * shared leaderboard: only the user's entry is removed from it.
+ * shared leaderboard: only the user's entry is removed from it. A "field" is
+ * a shared hash keyed by user id: only the user's field is removed.
  */
 const indexKey = (userId: string) => `user:${userId}`;
 
-export type IndexKind = 'key' | 'member';
+export type IndexKind = 'key' | 'member' | 'field';
 
 export async function remember(userId: string, key: string, kind: IndexKind = 'key'): Promise<void> {
   await redis.hSet(indexKey(userId), { [key]: kind });
@@ -23,6 +24,8 @@ export async function deleteUserData(userId: string): Promise<void> {
     if (kind === 'member') {
       await redis.zRem(key, [userId]);
       await redis.hDel(namesKey(key), [userId]);
+    } else if (kind === 'field') {
+      await redis.hDel(key, [userId]);
     } else {
       await redis.del(key);
     }

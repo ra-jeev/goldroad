@@ -7,7 +7,7 @@ import { HINTS_PER_ROAD_MODE } from '#game/lib/gameConstants';
 import { calcMedalForAttempt } from '#game/lib/gameTiers';
 import { guideHighlightTiles, hintRevealsNewTile } from '#game/shared/utils/hints';
 import type { HintResult } from '#game/shared/types/game';
-import type { Medal, PlayerRun, PublicRoad, Standing } from '../shared/api';
+import type { Ballot, CommunityPick, Medal, PlayerRun, PublicRoad, Standing } from '../shared/api';
 import { current, isOverTarget, moveTo, replayRoute, startRun, undo, type RunState } from '../shared/run';
 import { ApiError, fetchRoad, postFinish, postHint, postStart } from './api';
 import ResultCard from './ResultCard.vue';
@@ -36,6 +36,9 @@ const saveProblem = ref(false);
 /** Rank and streak from the server, once the road is solved. */
 const standing = ref<Standing | null>(null);
 const showResult = ref(false);
+/** This week's vote, and the vote that shaped today's road on a Sunday. */
+const ballot = ref<Ballot | null>(null);
+const community = ref<CommunityPick | null>(null);
 /** A logged-out solve, kept here so the card can show it. */
 const guestSolved = ref(false);
 
@@ -55,6 +58,8 @@ onMounted(async () => {
     solvedBefore.value = !!response.run?.solved;
     guide.value = response.run?.guidePath ?? [];
     standing.value = response.standing;
+    ballot.value = response.ballot;
+    community.value = response.community;
     showResult.value = !!response.run?.solved;
     run.value = resumeOrStart(response.road);
   } catch (cause) {
@@ -318,7 +323,10 @@ function onKeydown(event: KeyboardEvent) {
     <p v-else-if="!road || !run" class="notice">{{ UI_COPY.runtime.loadingGame }}</p>
     <template v-else>
       <header class="header">
-        <h1 class="title">GoldRoad <span class="road-no">#{{ road.roadNo }}</span></h1>
+        <div class="heading">
+          <h1 class="title">GoldRoad <span class="road-no">#{{ road.roadNo }}</span></h1>
+          <p v-if="community" class="community">Community road · {{ community.label }}</p>
+        </div>
         <div class="metrics">
           <div class="metric">
             <span class="metric-label">Score</span>
@@ -406,8 +414,11 @@ function onKeydown(event: KeyboardEvent) {
         :hints="result.hints"
         :seconds="result.seconds"
         :standing="standing"
+        :ballot="ballot"
+        :community="community"
         :logged-in="loggedIn"
         @close="showResult = false"
+        @voted="ballot = $event"
         @commented="record && (record = { ...record, commented: true })"
       />
     </template>
@@ -438,6 +449,21 @@ function onKeydown(event: KeyboardEvent) {
   display: grid;
   gap: 8px;
   justify-items: center;
+}
+
+.heading {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.community {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-gold-muted);
 }
 
 .title {
