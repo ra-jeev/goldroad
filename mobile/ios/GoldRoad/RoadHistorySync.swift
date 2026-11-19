@@ -50,6 +50,7 @@ enum RoadHistorySync {
         let cloud = NSUbiquitousKeyValueStore.default
         syncHistory(defaults: defaults, cloud: cloud)
         syncCompletion(defaults: defaults, cloud: cloud)
+        RoadWidgetPublisher.refresh(defaults: defaults)
     }
 
     private static func syncHistory(defaults: UserDefaults, cloud: NSUbiquitousKeyValueStore) {

@@ -215,6 +215,32 @@ final class ContractTests: XCTestCase {
         XCTAssertEqual(archive, ["1": ["classic": true, "expedition": true]])
     }
 
+    func testWidgetSnapshotTracksClassicSolveAtRollover() throws {
+        func solve(_ day: Int, _ mode: RoadMode) -> DailyRoadRecord {
+            DailyRoadRecord(gameNo: day, playableAt: "2026-11-19T00:00:00Z", mode: mode,
+                            attempts: 1, solved: true, activeSeconds: 40, hintsUsed: 0)
+        }
+        let cutoff = try XCTUnwrap(ISO8601DateFormatter().date(from: "2026-11-20T00:00:00Z"))
+        let old = [solve(97, .classic), solve(98, .classic), solve(99, .expedition)]
+        let before = RoadWidgetPublisher.snapshot(for: old, currentGameNo: 99,
+                                                 nextRoadAt: cutoff, today: "2026-11-19")
+        XCTAssertEqual(before.streak(at: cutoff.addingTimeInterval(-1)), 2)
+        XCTAssertEqual(before.streak(at: cutoff), 0)
+
+        let solved = RoadWidgetPublisher.snapshot(for: old + [solve(99, .classic)], currentGameNo: 99,
+                                                 nextRoadAt: cutoff, today: "2026-11-19")
+        XCTAssertEqual(solved.streak(at: cutoff.addingTimeInterval(-1)), 3)
+        XCTAssertEqual(solved.streak(at: cutoff), 3)
+        XCTAssertEqual(solved.nextRoadAt, cutoff)
+
+        let suite = "GoldRoadTests.widget.\(UUID().uuidString)"
+        let group = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { group.removePersistentDomain(forName: suite) }
+        XCTAssertEqual(WidgetRoadSnapshot.load(from: group), .empty)
+        group.set(try JSONEncoder().encode(solved), forKey: WidgetRoadSnapshot.storageKey)
+        XCTAssertEqual(WidgetRoadSnapshot.load(from: group), solved)
+    }
+
     private struct Rollover: Decodable {
         struct Road: Decodable { let gameNo: Int; let nextGameAt: String? }
         struct Case: Decodable { let current: Road?; let fetched: Road?; let now: String; let expected: String }

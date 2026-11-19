@@ -28,5 +28,5 @@ this repository. The Reddit column describes the separate `reddit-port` source.
 | App Store setup | n/a | different (local archive, Organizer validation pending) | n/a | n/a |
 | Opt-in daily reminder | no | yes | no | no |
 | iCloud stats sync | n/a | yes | n/a | n/a |
-| Home-screen streak and countdown widget | n/a | no | no | n/a |
+| Home-screen streak and countdown widget | n/a | yes | no | n/a |
 | Native minimum version guard | yes | yes | no | n/a |

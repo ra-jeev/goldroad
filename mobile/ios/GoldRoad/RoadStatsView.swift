@@ -13,6 +13,12 @@ struct DailyRoadRecord: Codable, Identifiable, Equatable {
 
     var id: String { "\(gameNo):\(mode.rawValue)" }
 
+    var statsEntry: RoadStats.Entry {
+        RoadStats.Entry(day: String(playableAt.prefix(10)), gameNo: gameNo,
+                        puzzleType: mode, attempts: attempts, solved: solved,
+                        hintsUsed: hintsUsed, solveTimeMs: activeSeconds.map { $0 * 1000 })
+    }
+
     @MainActor
     static func record(_ run: RoadRun, mode: RoadMode) {
         guard run.path.count > 1 || run.attempt > 1 || run.hintsUsed > 0 else { return }
@@ -82,11 +88,7 @@ struct RoadStatsView: View {
     }
 
     private var entries: [RoadStats.Entry] {
-        (history ?? []).map { record in
-            RoadStats.Entry(day: String(record.playableAt.prefix(10)), gameNo: record.gameNo,
-                            puzzleType: record.mode, attempts: record.attempts, solved: record.solved,
-                            hintsUsed: record.hintsUsed, solveTimeMs: record.activeSeconds.map { $0 * 1000 })
-        }
+        (history ?? []).map(\.statsEntry)
     }
 
     private func summary(for mode: RoadMode) -> RoadStats.Summary {

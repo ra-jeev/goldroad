@@ -6,7 +6,15 @@ Open the daily puzzle from Home. Solve Classic to unlock Expedition. Both runs a
 
 Hints use the configured GoldRoad API. Debug installs as **GoldRoad Staging** with its own save data and calls staging. Release calls production. Override `GOLDROAD_API_BASE_URL` at build time to point at another HTTPS environment. The app bundles the web sound effects from `public/sounds`. Use the speaker button to mute or unmute them.
 
-The app keeps daily history and Past Roads completion on the device. It sends the same anonymous start and exact-solve events as the web app for the live daily puzzle. Practice, archive play, and solves after rollover stay local.
+The app keeps daily history and Past Roads completion on the device and syncs
+them through the current iCloud account when available. It sends the same
+anonymous start and exact-solve events as the web app for the live daily puzzle.
+Practice, archive play, and solves after rollover stay out of web analytics.
+
+After your first daily solve, you can turn on the daily reminder and turn it
+off from Home. Add the **GoldRoad** widget to see your Classic streak and the
+next road countdown. The App Group shares the streak and countdown with the
+widget. Staging and production use separate App Groups and iCloud keys.
 
 ## Verify the rules
 
