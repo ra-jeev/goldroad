@@ -363,7 +363,7 @@ struct RoadStatsView: View {
         loading = true
         failed = false
         do {
-            let url = URL(string: "https://playgoldroad.com/api/stats/overview")!
+            let url = try GoldRoadAPI.url("api/stats/overview")
             let request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 15)
             let (data, response) = try await URLSession.shared.data(for: request)
             guard let response = response as? HTTPURLResponse, (200..<300).contains(response.statusCode) else {

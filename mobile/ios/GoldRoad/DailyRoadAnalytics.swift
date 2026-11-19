@@ -53,7 +53,6 @@ final class DailyRoadAnalytics {
     private let queueKey = "dailyAnalytics.pendingSolves.v1"
     private let defaults: UserDefaults
     private let session: URLSession
-    private let baseURL = URL(string: "https://playgoldroad.com")!
     private let delays: [TimeInterval] = [2, 5, 15, 30, 60, 120]
     private var started: Set<UUID> = []
     private var pending: [Pending]
@@ -133,7 +132,8 @@ final class DailyRoadAnalytics {
     private func post<Payload: Encodable, Response: SessionResponse>(
         _ path: String, _ payload: Payload, response type: Response.Type
     ) async -> DeliveryResult {
-        var request = URLRequest(url: baseURL.appending(path: path), timeoutInterval: 15)
+        guard let url = try? GoldRoadAPI.url(path) else { return .discard }
+        var request = URLRequest(url: url, timeoutInterval: 15)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         guard let body = try? JSONEncoder().encode(payload) else { return .discard }

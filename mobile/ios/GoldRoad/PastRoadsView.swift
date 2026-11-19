@@ -34,10 +34,8 @@ struct ArchiveBoard: Decodable {
 }
 
 private struct ArchiveClient {
-    private let base = URL(string: "https://playgoldroad.com")!
-
     func fetch<Response: Decodable>(_ path: String) async throws -> Response {
-        let request = URLRequest(url: base.appending(path: path),
+        let request = URLRequest(url: try GoldRoadAPI.url(path),
                                  cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 15)
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let response = response as? HTTPURLResponse, (200..<300).contains(response.statusCode) else {

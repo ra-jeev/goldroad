@@ -86,7 +86,6 @@ struct ClassicRoadClient {
         let hint: Hint?
     }
 
-    private let baseURL = URL(string: "https://playgoldroad.com")!
     private let session: URLSession
     let installedVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0.0"
 
@@ -95,7 +94,7 @@ struct ClassicRoadClient {
     }
 
     func fetch() async throws -> RoadDay {
-        let request = URLRequest(url: baseURL.appending(path: "api/games/current"),
+        let request = URLRequest(url: try GoldRoadAPI.url("api/games/current"),
                                  cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 15)
         do {
             let data = try await responseData(for: request)
@@ -114,7 +113,7 @@ struct ClassicRoadClient {
         let payload = HintRequest(playerUUID: player, gameNo: run.road.gameNo, puzzleType: mode.rawValue,
                                   sessionId: run.sessionID, attemptNumber: run.attempt, pathHistory: run.path,
                                   guidePath: run.guidePath)
-        var request = URLRequest(url: baseURL.appending(path: "api/session/hint"), timeoutInterval: 15)
+        var request = URLRequest(url: try GoldRoadAPI.url("api/session/hint"), timeoutInterval: 15)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONEncoder().encode(payload)

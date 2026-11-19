@@ -30,6 +30,7 @@
 		A10000000000000000000001 /* ContractTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000002 /* ContractTests.swift */; };
 		A10000000000000000000003 /* contract in Resources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000004 /* contract */; };
 		6C99C7F93EF34A56BB9EBC3F /* DailyRoadModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43C232379B08415DB6156A24 /* DailyRoadModel.swift */; };
+		A20000000000000000000004 /* GoldRoadAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000003 /* GoldRoadAPI.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -58,6 +59,8 @@
 		A10000000000000000000004 /* contract */ = {isa = PBXFileReference; lastKnownFileType = folder; name = contract; path = ../../contract; sourceTree = SOURCE_ROOT; };
 		A10000000000000000000005 /* GoldRoadTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GoldRoadTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		43C232379B08415DB6156A24 /* DailyRoadModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyRoadModel.swift; sourceTree = "<group>"; };
+		A20000000000000000000003 /* GoldRoadAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoldRoadAPI.swift; sourceTree = "<group>"; };
+		A20000000000000000000005 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -68,6 +71,8 @@
 				CA23179CE0534AA2AE096516 /* Fonts */,
 				A20000000000000000000002 /* constants.json */,
 				056A77F573C242782ADED410 /* ClassicRoad.swift */,
+				A20000000000000000000003 /* GoldRoadAPI.swift */,
+				A20000000000000000000005 /* Info.plist */,
 				3A989F8730EA004A8FC55748 /* ClassicRoadClient.swift */,
 				97E1B26709CF2358A8B397F9 /* ClassicRoadView.swift */,
 				6E58D01CD978BBCAE716621A /* GoldRoadApp.swift */,
@@ -197,6 +202,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				FDC19E9CA58A044A3AFAB05D /* ClassicRoad.swift in Sources */,
+				A20000000000000000000004 /* GoldRoadAPI.swift in Sources */,
 				11B120DA1254606160CC860C /* ClassicRoadClient.swift in Sources */,
 				8CCB3376FF1E9EECE2EE5F07 /* ClassicRoadView.swift in Sources */,
 				0810D420C37F3D8944FC5732 /* GoldRoadApp.swift in Sources */,
@@ -299,6 +305,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = GoldRoad/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = GoldRoad;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -307,6 +314,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1.0;
+				GOLDROAD_API_BASE_URL = "https://playgoldroad.com";
 				PRODUCT_BUNDLE_IDENTIFIER = com.playgoldroad.ios;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = 1;
@@ -321,7 +329,8 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = GoldRoad;
+				INFOPLIST_FILE = GoldRoad/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "GoldRoad Staging";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -329,7 +338,8 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.playgoldroad.ios;
+				GOLDROAD_API_BASE_URL = "https://v2.playgoldroad.com";
+				PRODUCT_BUNDLE_IDENTIFIER = com.playgoldroad.ios.staging;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = 1;
 			};

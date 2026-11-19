@@ -102,8 +102,8 @@ struct ClassicRoadView: View {
             Text("Update the app to play the next road.")
                 .multilineTextAlignment(.center)
             let listing = Bundle.main.object(forInfoDictionaryKey: "GoldRoadAppStoreURL") as? String
-            let url = listing.flatMap(URL.init(string:))
-                ?? URL(string: "https://apps.apple.com/us/iphone/search?term=GoldRoad")!
+            let customURL = listing.flatMap(URL.init(string:)).flatMap { $0.scheme == "https" ? $0 : nil }
+            let url = customURL ?? URL(string: "https://apps.apple.com/us/iphone/search?term=GoldRoad")!
             Link("Open the App Store", destination: url).buttonStyle(.borderedProminent)
         }
     }
