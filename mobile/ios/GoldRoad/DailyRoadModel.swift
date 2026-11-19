@@ -170,6 +170,7 @@ final class DailyRoadModel {
         bankTime(into: &run)
         run.undo()
         saveProgress(run)
+        feedback = BoardFeedback(tile: run.current, kind: .undo)
         resumeClock()
         play(.undo)
     }

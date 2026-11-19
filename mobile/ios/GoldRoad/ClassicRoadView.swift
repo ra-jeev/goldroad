@@ -6,6 +6,7 @@ struct ClassicRoadView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage(RoadTutorialView.seenKey) private var hasSeenTutorial = false
+    @AppStorage(GameConstants.hapticsKey) private var hapticsEnabled = true
     @State private var model = DailyRoadModel()
 
     private var shouldOpenTutorial: Bool { !hasSeenTutorial && model.shouldOfferTutorial }
@@ -129,6 +130,10 @@ struct ClassicRoadView: View {
             Spacer(minLength: 4)
             iconButton(model.muted ? "speaker.slash.fill" : "speaker.wave.2.fill",
                        label: model.muted ? "Unmute sounds" : "Mute sounds", action: model.toggleMute)
+            iconButton(hapticsEnabled ? "waveform" : "waveform.slash",
+                       label: hapticsEnabled ? "Turn haptics off" : "Turn haptics on") {
+                hapticsEnabled.toggle()
+            }
             iconButton("questionmark.circle", label: "How to play") { model.showHelp = true }
         }
         .padding(.horizontal, 12)

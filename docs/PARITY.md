@@ -21,7 +21,7 @@ this repository. The Reddit column describes the separate `reddit-port` source.
 | Animated path, failure, hint nudge, solve, and Reduce Motion | yes | yes | no | different (Reddit board feedback) |
 | Retry and overlay transitions | yes | different (retry appears immediately and native sheets handle transitions) | no | different (Reddit overlays) |
 | Sound toggle | yes | yes | no | no |
-| Haptics and independent toggle | different (browser vibration with sound settings) | no | no | n/a |
+| Haptics and independent toggle | different (browser vibration with sound settings) | yes | no | n/a |
 | One session ID for start, hint, and submit | yes | no | no | different (Reddit run endpoints) |
 | Feedback email | yes | no | no | no |
 | Configurable API environment | yes | no | no | different (Reddit backend) |

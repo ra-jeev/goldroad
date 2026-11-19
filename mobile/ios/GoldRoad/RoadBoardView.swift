@@ -16,8 +16,20 @@ enum RoadTheme {
     }
 }
 
-struct BoardFeedback {
-    enum Kind { case step, denied, failed, solved }
+struct BoardFeedback: Equatable {
+    enum Kind {
+        case step, undo, denied, failed, solved
+
+        var haptic: SensoryFeedback {
+            switch self {
+            case .step: .impact(weight: .light)
+            case .undo: .impact(flexibility: .soft)
+            case .denied: .warning
+            case .failed: .error
+            case .solved: .success
+            }
+        }
+    }
     let id = UUID()
     let tile: Int
     let kind: Kind
@@ -29,6 +41,7 @@ struct RoadBoardView: View {
     let onSelect: (Int) -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @AppStorage(GameConstants.hapticsKey) private var hapticsEnabled = true
     private let gap: CGFloat = 14
 
     var body: some View {
@@ -36,6 +49,7 @@ struct RoadBoardView: View {
         let feedback = self.feedback
         let reduceMotion = self.reduceMotion
         let gap = self.gap
+        let hapticsEnabled = self.hapticsEnabled
         let board = run.road.board
         let legal = Set(run.legalMoves)
         let visited = Set(run.path)
@@ -86,6 +100,9 @@ struct RoadBoardView: View {
         .aspectRatio(CGFloat(board.cols) / CGFloat(board.rows), contentMode: .fit)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Puzzle board")
+        .sensoryFeedback(trigger: feedback) { _, event in
+            hapticsEnabled ? event?.kind.haptic : nil
+        }
     }
 
     private nonisolated static func drawRoads(in context: GraphicsContext, run: RoadRun,

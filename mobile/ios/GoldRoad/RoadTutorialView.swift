@@ -5,6 +5,7 @@ struct RoadTutorialView: View {
 
     let onFinish: () -> Void
     @AppStorage(Self.seenKey) private var hasSeenTutorial = false
+    @AppStorage(GameConstants.hapticsKey) private var hapticsEnabled = true
     @State private var practice = false
     @State private var run = RoadRun(road: Self.practiceRoad)
     @State private var message: String?
@@ -29,6 +30,12 @@ struct RoadTutorialView: View {
                         .font(.custom("Marcellus-Regular", size: 30, relativeTo: .title))
                         .accessibilityAddTraits(.isHeader)
                     Spacer()
+                    Button {
+                        hapticsEnabled.toggle()
+                    } label: {
+                        Image(systemName: hapticsEnabled ? "waveform" : "waveform.slash")
+                    }
+                    .accessibilityLabel(hapticsEnabled ? "Turn haptics off" : "Turn haptics on")
                     Button("Close", action: onFinish)
                         .font(.subheadline.weight(.semibold))
                 }
@@ -70,8 +77,7 @@ struct RoadTutorialView: View {
             RoadBoardView(run: run, feedback: feedback) { tile in
                 guard tile != run.current else { return }
                 if tile == run.previous && run.canUndo {
-                    run.undo()
-                    feedback = nil
+                    undo()
                 } else if !run.legalMoves.contains(tile) {
                     feedback = BoardFeedback(tile: tile, kind: .denied)
                 } else {
@@ -90,7 +96,7 @@ struct RoadTutorialView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .accessibilityAddTraits(.updatesFrequently)
             HStack {
-                Button("Undo") { run.undo(); feedback = nil }
+                Button("Undo", action: undo)
                     .disabled(!run.canUndo)
                 Spacer()
                 Button("Try again") { run.restart(); message = nil; feedback = nil }
@@ -114,6 +120,12 @@ struct RoadTutorialView: View {
                     .font(.subheadline.weight(.semibold))
             }
         }
+    }
+
+    private func undo() {
+        guard run.canUndo else { return }
+        run.undo()
+        feedback = BoardFeedback(tile: run.current, kind: .undo)
     }
 
     private var status: String {

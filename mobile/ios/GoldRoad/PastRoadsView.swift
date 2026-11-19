@@ -259,6 +259,7 @@ private struct ArchivedRoadView: View {
     let day: ArchiveDay
     let onCompletion: () -> Void
     @AppStorage("muted") private var muted = false
+    @AppStorage(GameConstants.hapticsKey) private var hapticsEnabled = true
     @State private var board: ArchiveBoard?
     @State private var classic: RoadRun?
     @State private var expedition: RoadRun?
@@ -309,6 +310,12 @@ private struct ArchivedRoadView: View {
                 Image(systemName: muted ? "speaker.slash.fill" : "speaker.wave.2.fill")
             }
             .accessibilityLabel(muted ? "Unmute sounds" : "Mute sounds")
+            Button {
+                hapticsEnabled.toggle()
+            } label: {
+                Image(systemName: hapticsEnabled ? "waveform" : "waveform.slash")
+            }
+            .accessibilityLabel(hapticsEnabled ? "Turn haptics off" : "Turn haptics on")
         }
         .task(id: reload) { await load() }
         .alert("Start over?", isPresented: $confirmRestart) {
@@ -439,7 +446,11 @@ private struct ArchivedRoadView: View {
 
     private func undo() {
         guard var run, run.canUndo else { return }
-        clearInteraction(); run.undo(); save(run); play(.undo)
+        clearInteraction()
+        run.undo()
+        save(run)
+        feedback = BoardFeedback(tile: run.current, kind: .undo)
+        play(.undo)
     }
 
     private func restart() {
