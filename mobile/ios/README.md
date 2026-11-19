@@ -15,5 +15,5 @@ From the repository root, use the Swift compiler to run the gameplay and save te
 ```sh
 scratch_dir="$(mktemp -d)"
 swiftc mobile/ios/GoldRoad/ClassicRoad.swift mobile/ios/GoldRoad/ClassicRoadClient.swift mobile/ios/Tests/main.swift -o "$scratch_dir/test-road"
-"$scratch_dir/test-road" mobile/fixtures/classic-road.json
+"$scratch_dir/test-road" contract/fixtures/rules.json
 ```
