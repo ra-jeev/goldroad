@@ -1,0 +1,87 @@
+{
+  "single": [
+    {
+      "input": {
+        "gameNo": 12,
+        "puzzleType": "classic",
+        "attempts": 1,
+        "solved": true,
+        "solveTimeMs": null,
+        "hintsUsed": 0
+      },
+      "expected": {
+        "title": "GoldRoad Day #12 · Classic",
+        "text": "GoldRoad Day #12 · Classic\n🟩\n🥇 Gold in 1 try\nWalk today’s road:\nhttps://playgoldroad.com/",
+        "url": "https://playgoldroad.com/"
+      }
+    },
+    {
+      "input": {
+        "gameNo": 12,
+        "puzzleType": "expedition",
+        "attempts": 3,
+        "solved": true,
+        "solveTimeMs": 90500,
+        "hintsUsed": 2
+      },
+      "expected": {
+        "title": "GoldRoad Day #12 · Expedition",
+        "text": "GoldRoad Day #12 · Expedition\n🟫🟫🟩\n🥉 Bronze in 3 tries\nSolve time: 1m 31s\nHints used: 2\nWalk today’s road:\nhttps://playgoldroad.com/",
+        "url": "https://playgoldroad.com/"
+      }
+    },
+    {
+      "input": {
+        "gameNo": 12,
+        "puzzleType": "classic",
+        "attempts": 11,
+        "solved": false,
+        "solveTimeMs": null,
+        "hintsUsed": 0
+      },
+      "expected": {
+        "title": "GoldRoad Day #12 · Classic",
+        "text": "GoldRoad Day #12 · Classic\n🟫🟫🟫🟫🟫🟫🟫🟫 +3\nStill chasing the solve after 11 tries\nWalk today’s road:\nhttps://playgoldroad.com/",
+        "url": "https://playgoldroad.com/"
+      }
+    }
+  ],
+  "day": [
+    {
+      "input": {
+        "gameNo": 12,
+        "classic": {
+          "attempts": 1,
+          "solved": true,
+          "solveTimeMs": 10000
+        },
+        "expedition": {
+          "attempts": 2,
+          "solved": true,
+          "solveTimeMs": 20000
+        }
+      },
+      "expected": {
+        "title": "GoldRoad Day #12 · Full day",
+        "text": "GoldRoad Day #12 · Full day\nClassic: 🟩 🥇 Gold in 1 try · 10s\nExpedition: 🟫🟩 🥈 Silver in 2 tries · 20s\nWalk today’s road:\nhttps://playgoldroad.com/",
+        "url": "https://playgoldroad.com/"
+      }
+    },
+    {
+      "input": {
+        "gameNo": 12,
+        "classic": {
+          "attempts": 4,
+          "solved": true,
+          "solveTimeMs": null
+        },
+        "expedition": null
+      },
+      "expected": {
+        "title": "GoldRoad Day #12 · Full day",
+        "text": "GoldRoad Day #12 · Full day\nClassic: 🟫🟫🟫🟩 😅 Solved in 4 tries\nExpedition: not played\nWalk today’s road:\nhttps://playgoldroad.com/",
+        "url": "https://playgoldroad.com/"
+      }
+    }
+  ]
+}

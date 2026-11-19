@@ -2,8 +2,12 @@ import Foundation
 
 struct Fixture: Decodable {
     struct Scenario: Decodable {
+        struct Hint: Decodable { let guidePath: [Int] }
         let name: String
         let taps: [Int]
+        let road: ClassicRoad?
+        let hintBeforeTap: Int?
+        let hintResult: Hint?
         let path: [Int]
         let score: Int
         let legalMoves: [Int]
@@ -20,8 +24,9 @@ let fixture = try JSONDecoder().decode(Fixture.self, from: Data(contentsOf: fixt
 precondition(fixture.road.board.isPlayable)
 
 for scenario in fixture.cases {
-    var run = RoadRun(road: fixture.road)
-    for tile in scenario.taps {
+    var run = RoadRun(road: scenario.road ?? fixture.road)
+    for (index, tile) in scenario.taps.enumerated() {
+        if scenario.hintBeforeTap == index, let hint = scenario.hintResult { run.applyHint(hint.guidePath) }
         run.select(tile)
     }
     precondition(run.path == scenario.path, "\(scenario.name): path")

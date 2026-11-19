@@ -1,0 +1,61 @@
+{
+  "cases": [
+    {
+      "current": null,
+      "fetched": null,
+      "now": "2026-01-02T00:00:00.000Z",
+      "expected": "waiting"
+    },
+    {
+      "current": null,
+      "fetched": {
+        "gameNo": 1,
+        "nextGameAt": "2026-01-03T00:00:00Z"
+      },
+      "now": "2026-01-02T00:00:00.000Z",
+      "expected": "open"
+    },
+    {
+      "current": null,
+      "fetched": {
+        "gameNo": 1,
+        "nextGameAt": "2026-01-02T00:00:00.000Z"
+      },
+      "now": "2026-01-02T00:00:00.000Z",
+      "expected": "waiting"
+    },
+    {
+      "current": {
+        "gameNo": 1
+      },
+      "fetched": {
+        "gameNo": 1,
+        "nextGameAt": "2026-01-02T00:00:00.000Z"
+      },
+      "now": "2026-01-02T00:00:00.000Z",
+      "expected": "sameDay"
+    },
+    {
+      "current": {
+        "gameNo": 1
+      },
+      "fetched": {
+        "gameNo": 2,
+        "nextGameAt": "2026-01-03T00:00:00Z"
+      },
+      "now": "2026-01-02T00:00:00.000Z",
+      "expected": "ready"
+    },
+    {
+      "current": {
+        "gameNo": 2
+      },
+      "fetched": {
+        "gameNo": 1,
+        "nextGameAt": "2026-01-03T00:00:00Z"
+      },
+      "now": "2026-01-02T00:00:00.000Z",
+      "expected": "waiting"
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "currentGameNo": 2,
+  "yesterday": {
+    "gameNo": 1,
+    "expedition": null,
+    "classic": {
+      "gameNo": 1,
+      "puzzleType": "classic",
+      "plays": 2,
+      "exactSolves": 1,
+      "solveRate": 50,
+      "gold": 1,
+      "silver": 0,
+      "bronze": 0,
+      "solvedAttempts": {
+        "1": 1
+      },
+      "solvedAttemptsExact": {
+        "1": 1
+      },
+      "behavior": {
+        "hintUsers": 1,
+        "totalHints": 1,
+        "hintUseRate": 50,
+        "averageAttemptsBeforeFirstHint": 1,
+        "averageFirstHintMoveIndex": 2,
+        "averageSolveTimeMs": 90000,
+        "bestSolveTimeMs": 90000
+      }
+    }
+  }
+}

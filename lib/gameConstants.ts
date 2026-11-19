@@ -5,6 +5,8 @@
 // Board defaults
 export const DEFAULT_ROWS = 6
 export const DEFAULT_COLS = 6
+export const MIN_BOARD_SIZE = 3
+export const MAX_BOARD_SIZE = 10
 
 /**
  * Band of non-open edges injected per generated puzzle; each board draws a
@@ -57,14 +59,4 @@ export const MEDAL_ATTEMPTS = {
  * full solution reveal.
  */
 export const HINTS_PER_ROAD_MODE = 5
-
-/**
- * Score multiplier penalty when a hint is used.
- * e.g. 0.01 -> final score is reduced by 1 %.
- */
-export const HINT_SCORE_PENALTY: Record<1 | 2 | 3, number> = {
-  1: 0.01,
-  2: 0.03,
-  3: 0.05,
-}
 

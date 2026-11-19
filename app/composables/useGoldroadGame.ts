@@ -3,7 +3,7 @@ import type { CurrentGamesResponse, PuzzleType } from '#shared/types/game';
 import { UI_COPY } from '../content/uiCopy';
 import { getRoadDayKeyFromPlayableAt } from './useGoldroadLocalState';
 import { useNextRoadCountdown } from './useNextRoadCountdown';
-import { isRoadExpired } from './useRoadDayGameplay';
+import { isRoadExpired, roadAvailability } from '../utils/pure/roadAvailability';
 
 const PUBLICATION_CHECK_INTERVAL_MS = 5_000;
 const PUBLICATION_CHECK_LIMIT = 6;
@@ -85,10 +85,8 @@ export async function useGoldroadGame() {
   }
 
   function canOpenRoad(day: CurrentGamesResponse | null) {
-    const next = mainRoad(day);
-    return Boolean(next &&
-      next.gameNo !== gameplay.game.value?.gameNo &&
-      !isRoadExpired(next.nextGameAt, Date.now()));
+    const availability = roadAvailability(gameplay.game.value, mainRoad(day), Date.now());
+    return availability === 'open' || availability === 'ready';
   }
 
   let checkTimer: ReturnType<typeof setTimeout> | undefined;

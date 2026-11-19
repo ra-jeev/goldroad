@@ -1,0 +1,366 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "currentGameNo": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "yesterday": {
+      "type": "object",
+      "properties": {
+        "gameNo": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "classic": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "gameNo": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "puzzleType": {
+                  "type": "string",
+                  "enum": [
+                    "classic",
+                    "expedition"
+                  ]
+                },
+                "plays": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "exactSolves": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "solveRate": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 100
+                },
+                "gold": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "silver": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "bronze": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "solvedAttempts": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "solvedAttemptsExact": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "behavior": {
+                  "type": "object",
+                  "properties": {
+                    "hintUsers": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "totalHints": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "hintUseRate": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 100
+                    },
+                    "averageAttemptsBeforeFirstHint": {
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "averageFirstHintMoveIndex": {
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "averageSolveTimeMs": {
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "bestSolveTimeMs": {
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "hintUsers",
+                    "totalHints",
+                    "hintUseRate",
+                    "averageAttemptsBeforeFirstHint",
+                    "averageFirstHintMoveIndex",
+                    "averageSolveTimeMs",
+                    "bestSolveTimeMs"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "gameNo",
+                "puzzleType",
+                "plays",
+                "exactSolves",
+                "solveRate",
+                "gold",
+                "silver",
+                "bronze",
+                "solvedAttempts",
+                "solvedAttemptsExact",
+                "behavior"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "expedition": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "gameNo": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "puzzleType": {
+                  "type": "string",
+                  "enum": [
+                    "classic",
+                    "expedition"
+                  ]
+                },
+                "plays": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "exactSolves": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "solveRate": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 100
+                },
+                "gold": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "silver": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "bronze": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "solvedAttempts": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "solvedAttemptsExact": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "behavior": {
+                  "type": "object",
+                  "properties": {
+                    "hintUsers": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "totalHints": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "hintUseRate": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 100
+                    },
+                    "averageAttemptsBeforeFirstHint": {
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "averageFirstHintMoveIndex": {
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "averageSolveTimeMs": {
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "bestSolveTimeMs": {
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "hintUsers",
+                    "totalHints",
+                    "hintUseRate",
+                    "averageAttemptsBeforeFirstHint",
+                    "averageFirstHintMoveIndex",
+                    "averageSolveTimeMs",
+                    "bestSolveTimeMs"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "gameNo",
+                "puzzleType",
+                "plays",
+                "exactSolves",
+                "solveRate",
+                "gold",
+                "silver",
+                "bronze",
+                "solvedAttempts",
+                "solvedAttemptsExact",
+                "behavior"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "gameNo",
+        "classic",
+        "expedition"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "currentGameNo",
+    "yesterday"
+  ],
+  "additionalProperties": false
+}

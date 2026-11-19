@@ -2,7 +2,7 @@ import type { Board } from '#shared/types/game';
 import {
   buildEdgeMap,
   getActiveNeighbors,
-  getEdgeType,
+  getMoveScore,
 } from '#shared/utils/puzzleEngine';
 
 export function restoreRoadRoute(board: Board, path: readonly number[]) {
@@ -23,10 +23,7 @@ export function restoreRoadRoute(board: Board, path: readonly number[]) {
   for (const tile of path.slice(1)) {
     if (tile === board.end || !neighbors.includes(tile)) return null;
 
-    const edge = getEdgeType(current, tile, edgeMap);
-    if (edge === 'toll') score -= board.tollValue;
-    if (edge === 'bonus') score += board.bonusValue;
-    score += board.tiles[tile] ?? 0;
+    score += getMoveScore(board, edgeMap, current, tile);
     current = tile;
     visited.add(tile);
     neighbors = getActiveNeighbors(

@@ -1,3 +1,5 @@
+import type { z } from 'zod';
+import { type SessionEndResponseSchema } from '../../../shared/validators/game';
 import type { H3Event } from 'h3';
 import { and, eq, sql } from 'drizzle-orm';
 import { calcMedalForAttempt } from '../../../lib/gameTiers';
@@ -69,7 +71,7 @@ export default defineEventHandler(async (event) => {
     if (!(await checkRateLimit(event, payload.playerUUID))) {
       console.error('[api/session/end] rate limit exceeded', context);
       setResponseStatus(event, 429);
-      return { ok: false, error: 'rate_limited' };
+      return { ok: false, error: 'rate_limited' } satisfies z.output<typeof SessionEndResponseSchema>;
     }
 
     const db = useDb(event);
@@ -179,7 +181,7 @@ export default defineEventHandler(async (event) => {
       medal,
       score: payload.score,
       solved: true as const,
-    };
+    } satisfies z.output<typeof SessionEndResponseSchema>;
   } catch (error) {
     if (!isExpectedHttpError(error)) {
       console.error('[api/session/end] request failed', {

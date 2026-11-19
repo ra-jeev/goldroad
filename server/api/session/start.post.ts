@@ -1,3 +1,5 @@
+import type { z } from 'zod';
+import { type SessionStartResponseSchema } from '../../../shared/validators/game';
 import type { H3Event } from 'h3';
 import { and, eq, sql } from 'drizzle-orm';
 import { games, playerRoadAnalytics } from '../../db/schema';
@@ -51,7 +53,7 @@ export default defineEventHandler(async (event) => {
   if (!(await checkRateLimit(event, payload.playerUUID))) {
     console.error('[api/session/start] rate limit exceeded', context);
     setResponseStatus(event, 429);
-    return { ok: false, error: 'rate_limited' };
+    return { ok: false, error: 'rate_limited' } satisfies z.output<typeof SessionStartResponseSchema>;
   }
 
   const db = useDb(event);
@@ -106,5 +108,5 @@ export default defineEventHandler(async (event) => {
       ),
   ]);
 
-  return { ok: true, gameNo: payload.gameNo };
+  return { ok: true, gameNo: payload.gameNo } satisfies z.output<typeof SessionStartResponseSchema>;
 });

@@ -1,0 +1,54 @@
+{
+  "cases": [
+    {
+      "attempts": 1,
+      "solved": true,
+      "medal": "gold"
+    },
+    {
+      "attempts": 1,
+      "solved": false,
+      "medal": null
+    },
+    {
+      "attempts": 2,
+      "solved": true,
+      "medal": "silver"
+    },
+    {
+      "attempts": 2,
+      "solved": false,
+      "medal": null
+    },
+    {
+      "attempts": 3,
+      "solved": true,
+      "medal": "bronze"
+    },
+    {
+      "attempts": 3,
+      "solved": false,
+      "medal": null
+    },
+    {
+      "attempts": 4,
+      "solved": true,
+      "medal": null
+    },
+    {
+      "attempts": 4,
+      "solved": false,
+      "medal": null
+    },
+    {
+      "attempts": 10,
+      "solved": true,
+      "medal": null
+    },
+    {
+      "attempts": 10,
+      "solved": false,
+      "medal": null
+    }
+  ]
+}

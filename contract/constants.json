@@ -1,0 +1,17 @@
+{
+  "DEFAULT_COLS": 6,
+  "DEFAULT_ROWS": 6,
+  "HINTS_PER_ROAD_MODE": 5,
+  "MAX_BLOCKED_EDGES": 11,
+  "MAX_BOARD_SIZE": 10,
+  "MEDAL_ATTEMPTS": {
+    "GOLD": 1,
+    "SILVER": 2,
+    "BRONZE": 3
+  },
+  "MIN_BLOCKED_EDGES": 8,
+  "MIN_BOARD_SIZE": 3,
+  "TILE_VALUE_MAX": 6,
+  "TILE_VALUE_MIN": 1,
+  "feedbackMailto": "mailto:hello@playgoldroad.com?subject=%5BGoldRoad%5D%20Feedback"
+}

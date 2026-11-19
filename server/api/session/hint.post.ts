@@ -1,3 +1,5 @@
+import type { z } from 'zod';
+import { type HintResponseSchema } from '../../../shared/validators/game';
 import type { H3Event } from 'h3';
 import { and, eq } from 'drizzle-orm';
 import { games } from '../../db/schema';
@@ -100,7 +102,7 @@ export default defineEventHandler(async (event) => {
       return {
         ok: false,
         error: 'rate_limited',
-      };
+      } satisfies z.output<typeof HintResponseSchema>;
     }
 
     const db = useDb(event);
@@ -142,7 +144,7 @@ export default defineEventHandler(async (event) => {
     return {
       ok: true,
       hint,
-    };
+    } satisfies z.output<typeof HintResponseSchema>;
   } catch (error) {
     if (!isExpectedHttpError(error)) {
       console.error('[api/session/hint] request failed', {

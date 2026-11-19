@@ -81,6 +81,25 @@ export function getEdgeType(
   return edgeMap.get(edgeKey(from, to)) ?? 'open';
 }
 
+export function getMoveScore(board: Board, edgeMap: EdgeMap, from: number, to: number): number {
+  const score = board.tiles[to] ?? 0;
+  const edge = getEdgeType(from, to, edgeMap);
+  if (edge === 'toll') return score - board.tollValue;
+  if (edge === 'bonus') return score + board.bonusValue;
+  return score;
+}
+
+export function getRunOutcome(
+  board: Pick<Board, 'end'>,
+  tile: number,
+  score: number,
+  target: number,
+  neighbors: readonly number[],
+): 'inProgress' | 'solved' | 'wrongTotal' | 'deadEnd' {
+  if (tile === board.end) return score === target ? 'solved' : 'wrongTotal';
+  return neighbors.length ? 'inProgress' : 'deadEnd';
+}
+
 /**
  * Whether a player can move from `from` to `to`.
  * Missing edges prevent movement; toll and bonus edges remain traversable.

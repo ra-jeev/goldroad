@@ -1,0 +1,17 @@
+{
+  "count": 1,
+  "games": [
+    {
+      "gameNo": 1,
+      "playableAt": "2026-01-01T00:00:00.000Z",
+      "classic": {
+        "maxScore": 92,
+        "totalCoins": 122
+      },
+      "expedition": {
+        "maxScore": 126,
+        "totalCoins": 135
+      }
+    }
+  ]
+}

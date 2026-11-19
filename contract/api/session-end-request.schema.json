@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "playerUUID": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+    },
+    "gameNo": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991
+    },
+    "puzzleType": {
+      "type": "string",
+      "enum": [
+        "classic",
+        "expedition"
+      ]
+    },
+    "sessionId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+    },
+    "score": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "moves": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 5000
+    },
+    "attemptNumber": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 1000
+    },
+    "hintsUsed": {
+      "default": 0,
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000
+    },
+    "solveTimeMs": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 86400000
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "playerUUID",
+    "gameNo",
+    "puzzleType",
+    "sessionId",
+    "score",
+    "moves",
+    "attemptNumber"
+  ],
+  "additionalProperties": false
+}

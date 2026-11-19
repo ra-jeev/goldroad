@@ -1,3 +1,5 @@
+import type { z } from 'zod';
+import { type PastGamesResponseSchema } from '../../../shared/validators/game';
 import { and, desc, eq, lt, lte } from 'drizzle-orm';
 import { games } from '../../db/schema';
 import { useDb } from '../../db/client';
@@ -94,5 +96,5 @@ export default defineEventHandler(async (event) => {
   return {
     count: gamesList.length,
     games: gamesList,
-  };
+  } satisfies z.output<typeof PastGamesResponseSchema>;
 });

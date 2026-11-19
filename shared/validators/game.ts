@@ -8,6 +8,7 @@
  */
 
 import { z } from 'zod';
+import { MAX_BOARD_SIZE, MIN_BOARD_SIZE, TILE_VALUE_MAX, TILE_VALUE_MIN } from '../../lib/gameConstants';
 
 // ---------------------------------------------------------------------------
 // Primitives & enums
@@ -60,9 +61,9 @@ function isAdjacentEdge(from: number, to: number, cols: number): boolean {
 
 export const BoardSchema = z
   .object({
-    rows: z.number().int().min(3).max(10),
-    cols: z.number().int().min(3).max(10),
-    tiles: z.array(z.number().int().min(1).max(6)),
+    rows: z.number().int().min(MIN_BOARD_SIZE).max(MAX_BOARD_SIZE),
+    cols: z.number().int().min(MIN_BOARD_SIZE).max(MAX_BOARD_SIZE),
+    tiles: z.array(z.number().int().min(TILE_VALUE_MIN).max(TILE_VALUE_MAX)),
     missingEdges: z.array(EdgePairSchema),
     tollEdges: z.array(EdgePairSchema),
     bonusEdges: z.array(EdgePairSchema),
@@ -198,6 +199,8 @@ export const HintResultSchema = z.union([
 // Public game data (sent to client)
 // ---------------------------------------------------------------------------
 
+export const OptimalPathsSchema = z.array(z.array(z.number().int().min(0)));
+
 export const PublicGameSchema = z.object({
   gameNo: z.number().int().positive(),
   puzzleType: PuzzleTypeSchema,
@@ -209,13 +212,32 @@ export const PublicGameSchema = z.object({
   // Present ONLY on archived (non-current) roads, where they power local
   // hint computation so archive play needs no analytics calls (RP0-5).
   // The live road's paths stay server-side per the P0-3 boundary.
-  optimalPaths: z.array(z.array(z.number().int().min(0))).optional(),
+  optimalPaths: OptimalPathsSchema.optional(),
 });
 
 export const CurrentGamesResponseSchema = z.object({
   classic: PublicGameSchema.nullable(),
   expedition: PublicGameSchema.nullable(),
 });
+
+export const ArchiveGameSchema = PublicGameSchema.extend({ optimalPaths: OptimalPathsSchema });
+
+export const ArchiveBoardResponseSchema = z.object({
+  classic: ArchiveGameSchema.nullable(),
+  expedition: ArchiveGameSchema.nullable(),
+});
+
+const ArchiveModeSummarySchema = PublicGameSchema.pick({ maxScore: true, totalCoins: true });
+
+export const PastGamesResponseSchema = z.object({
+  count: z.number().int().nonnegative(),
+  games: z.array(PublicGameSchema.pick({ gameNo: true, playableAt: true }).extend({
+    classic: ArchiveModeSummarySchema.nullable(),
+    expedition: ArchiveModeSummarySchema.nullable(),
+  })),
+});
+
+export const RandomArchiveResponseSchema = PublicGameSchema.pick({ gameNo: true });
 
 export const CommunityBehaviorStatsSchema = z.object({
   hintUsers: z.number().int().min(0),
@@ -323,6 +345,32 @@ export const HintRequestPayloadSchema = z.object({
   // Tiles a previous hint already lit. The next hint continues past them.
   guidePath: z.array(z.number().int().min(0)).max(MAX_PLAUSIBLE_MOVES).optional(),
 });
+
+const RateLimitedResponseSchema = z.object({
+  ok: z.literal(false),
+  error: z.literal('rate_limited'),
+});
+
+export const HintResponseSchema = z.discriminatedUnion('ok', [
+  z.object({ ok: z.literal(true), hint: HintResultSchema }),
+  RateLimitedResponseSchema,
+]);
+
+export const SessionStartResponseSchema = z.discriminatedUnion('ok', [
+  z.object({ ok: z.literal(true), gameNo: z.number().int().positive() }),
+  RateLimitedResponseSchema,
+]);
+
+export const SessionEndResponseSchema = z.discriminatedUnion('ok', [
+  z.object({
+    ok: z.literal(true),
+    gameNo: z.number().int().positive(),
+    medal: MedalSchema.nullable(),
+    score: z.number().int().nonnegative(),
+    solved: z.literal(true),
+  }),
+  RateLimitedResponseSchema,
+]);
 
 // ---------------------------------------------------------------------------
 // Database result types (inferred from validators)

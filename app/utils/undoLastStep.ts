@@ -3,12 +3,12 @@
  * step back, the player must move again before undo is available.
  */
 
-import type { Board } from '#shared/types/game';
+import type { Board } from '../../shared/types/game';
 import {
   buildEdgeMap,
   getActiveNeighbors,
-  getEdgeType,
-} from '#shared/utils/puzzleEngine';
+  getMoveScore,
+} from '../../shared/utils/puzzleEngine';
 
 export type UndoEvent = 'move' | 'undo' | 'reset' | 'end';
 
@@ -96,17 +96,13 @@ export function applyUndoLastStep(
   const previous = state.pathHistory[state.pathHistory.length - 2]!;
   const pathHistory = state.pathHistory.slice(0, -1);
   const edgeMap = buildEdgeMap(board);
-  const edgeType = getEdgeType(previous, last, edgeMap);
-  let modifier = 0;
-  if (edgeType === 'toll') modifier = -board.tollValue;
-  if (edgeType === 'bonus') modifier = board.bonusValue;
 
   const visited = new Set(pathHistory);
   return {
     pathHistory,
     visited,
     currentTileIndex: previous,
-    score: state.score - (board.tiles[last] ?? 0) - modifier,
+    score: state.score - getMoveScore(board, edgeMap, previous, last),
     moves: state.moves - 1,
     activeNeighbors: getActiveNeighbors(
       previous,

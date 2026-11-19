@@ -1,10 +1,9 @@
+import type { z } from 'zod';
+import { type ArchiveBoardResponseSchema, OptimalPathsSchema } from '../../../../shared/validators/game';
 import { and, eq, lte } from 'drizzle-orm';
-import { z } from 'zod';
 import { games } from '../../../db/schema';
 import { useDb } from '../../../db/client';
 import { parsePublicGameRow } from '../../../utils/apiGames';
-
-const OptimalPathsSchema = z.array(z.array(z.number().int().min(0)));
 
 export default defineEventHandler(async (event) => {
   const db = useDb(event);
@@ -50,7 +49,7 @@ export default defineEventHandler(async (event) => {
 
   function serializeMode(
     row: (typeof rows)[number] | undefined,
-  ): Record<string, unknown> | null {
+  ) {
     if (!row) return null;
 
     const parsed = parsePublicGameRow(row);
@@ -80,5 +79,5 @@ export default defineEventHandler(async (event) => {
     expedition: serializeMode(
       rows.find((entry) => entry.puzzleType === 'expedition'),
     ),
-  };
+  } satisfies z.output<typeof ArchiveBoardResponseSchema>;
 });

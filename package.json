@@ -25,6 +25,8 @@
 		"db:bootstrap:production": "tsx scripts/bootstrap-road-pool.ts --database goldroad-v2-production --env production --first-road-days 2",
 		"db:studio": "drizzle-kit studio",
 		"db:seed:local": "pnpm exec tsx scripts/generate-dev-seed.ts && XDG_CONFIG_HOME=.wrangler/xdg-config XDG_CACHE_HOME=.wrangler/xdg-cache wrangler d1 execute DB --local --config wrangler.jsonc --file server/db/seeds/dev_seed.sql",
+		"contract:generate": "tsx scripts/generate-contract.ts",
+		"contract:check": "tsx scripts/generate-contract.ts --check",
 		"test": "vitest run",
 		"test:watch": "vitest",
 		"test:api": "pnpm db:seed:local && API_BASE_URL=http://localhost:3100 pnpm exec tsx scripts/check-api-routes.ts",

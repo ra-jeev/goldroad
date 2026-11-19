@@ -6,8 +6,9 @@ import { restoreRoadRoute } from '../utils/restoreRoadRoute';
 import {
   buildEdgeMap,
   getActiveNeighbors,
-  getEdgeType,
+  getMoveScore,
   getNeighborId,
+  getRunOutcome,
   parseTileIndex,
 } from '#shared/utils/puzzleEngine';
 import { calcMedalForAttempt } from '../../lib/gameTiers';
@@ -48,6 +49,10 @@ import {
 } from './useRoadResultShare';
 import type { SessionEndRequest } from './useSessionApi';
 import { isRetryableDeliveryError } from '../utils/failedSolveDelivery';
+
+import { isRoadExpired } from '../utils/pure/roadAvailability';
+
+export { isRoadExpired } from '../utils/pure/roadAvailability';
 
 export type EntryType = 'live' | 'archive';
 
@@ -138,21 +143,6 @@ export function shouldSubmitSessionEnd(
     endReason === 'solved' &&
     shouldCallSessionApi(entryType, isUntrackedReplay)
   );
-}
-
-/**
- * The midnight contract (RP1-16): once the loaded road's own nextGameAt has
- * passed, the board stays exactly as it is, but retry, hints, mode switching,
- * and server analytics all stop. The open board can still be completed as
- * archive play.
- */
-export function isRoadExpired(
-  nextGameAt: string | null | undefined,
-  nowMs: number,
-): boolean {
-  if (!nextGameAt) return false;
-  const parsed = Date.parse(nextGameAt);
-  return !Number.isNaN(parsed) && nowMs >= parsed;
 }
 
 /**
@@ -1342,19 +1332,12 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
 
     const board = game.value.board;
     const edgeMap = buildEdgeMap(board);
-    const edgeType = getEdgeType(currentTileIndex.value, tileIndex, edgeMap);
-    let edgeCost = 0;
-    if (edgeType === 'toll') {
-      edgeCost = -board.tollValue;
-    } else if (edgeType === 'bonus') {
-      edgeCost = board.bonusValue;
-    }
+    const nextScore = score.value + getMoveScore(board, edgeMap, currentTileIndex.value, tileIndex);
 
     visited.value.add(tileIndex);
     pathHistory.value = [...pathHistory.value, tileIndex];
     currentTileIndex.value = tileIndex;
     tileFocusSignal.value += 1;
-    const nextScore = score.value + (board.tiles[tileIndex] ?? 0) + edgeCost;
     score.value = nextScore;
     moves.value += 1;
     successfulMoveSignal.value += 1;
@@ -1363,7 +1346,12 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
     }
     syncGuideHighlight();
 
-    if (tileIndex === board.end) {
+    const next = tileIndex === board.end ? [] : getActiveNeighbors(
+      tileIndex, board.rows, board.cols, edgeMap, visited.value,
+    );
+    const outcome = getRunOutcome(board, tileIndex, nextScore, game.value.maxScore, next);
+
+    if (outcome === 'solved' || outcome === 'wrongTotal') {
       ended.value = true;
       undoAvailable.value = nextUndoAvailable('move', true);
       const delta = game.value.maxScore - nextScore;
@@ -1382,16 +1370,9 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
       return;
     }
 
-    const next = getActiveNeighbors(
-      tileIndex,
-      board.rows,
-      board.cols,
-      edgeMap,
-      visited.value,
-    );
     activeSet.value = new Set(next);
 
-    if (!next.length) {
+    if (outcome === 'deadEnd') {
       ended.value = true;
       undoAvailable.value = nextUndoAvailable('move', true);
       status.value = isLiveRoadExpired()

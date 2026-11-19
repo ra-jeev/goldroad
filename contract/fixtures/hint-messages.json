@@ -1,0 +1,49 @@
+{
+  "cases": [
+    {
+      "kind": "next-step",
+      "highlightedCount": 0,
+      "message": null
+    },
+    {
+      "kind": "next-step",
+      "highlightedCount": 1,
+      "message": "The highlighted tile is your next move."
+    },
+    {
+      "kind": "next-step",
+      "highlightedCount": 2,
+      "message": "Follow the highlighted path."
+    },
+    {
+      "kind": "diverged",
+      "highlightedCount": 0,
+      "message": "Paths diverged. Try again and follow the highlighted path."
+    },
+    {
+      "kind": "diverged",
+      "highlightedCount": 1,
+      "message": "Paths diverged. Try again and follow the highlighted path."
+    },
+    {
+      "kind": "diverged",
+      "highlightedCount": 2,
+      "message": "Paths diverged. Try again and follow the highlighted path."
+    },
+    {
+      "kind": "already-solved",
+      "highlightedCount": 0,
+      "message": "You already found the best route."
+    },
+    {
+      "kind": "already-solved",
+      "highlightedCount": 1,
+      "message": "You already found the best route."
+    },
+    {
+      "kind": "already-solved",
+      "highlightedCount": 2,
+      "message": "You already found the best route."
+    }
+  ]
+}

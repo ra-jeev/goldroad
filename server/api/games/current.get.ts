@@ -1,3 +1,5 @@
+import type { z } from 'zod';
+import { type CurrentGamesResponseSchema } from '../../../shared/validators/game';
 import { and, eq, lte } from 'drizzle-orm'
 import { games } from '../../db/schema'
 import { useDb } from '../../db/client'
@@ -52,5 +54,5 @@ export default defineEventHandler(async (event) => {
       playableAt: expedition.playableAt,
       nextGameAt: expedition.nextGameAt,
     } : null,
-  }
+  } satisfies z.output<typeof CurrentGamesResponseSchema>;
 })
