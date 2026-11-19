@@ -573,7 +573,10 @@ const rolloverCases = [
 ];
 
 const files = new Map<string, unknown>([
-  ['constants.json', { ...constants, feedbackMailto: UI_COPY.contact.feedbackMailto }],
+  ['constants.json', {
+    ...Object.fromEntries(Object.keys(constants).sort().map(key => [key, constants[key as keyof typeof constants]])),
+    feedbackMailto: UI_COPY.contact.feedbackMailto,
+  }],
   ['fixtures/rules.json', { road: tiny, cases: cases.map(input => ({ ...input, ...(input.hintBeforeTap !== undefined && input.hintOptimalPaths
     ? { hintResult: computeHint(input.hintOptimalPaths, runRoad(input.road ?? tiny, input.taps.slice(0, input.hintBeforeTap)).path) }
     : {}), ...runRoad(input.road ?? tiny, input.taps) })) }],
@@ -611,8 +614,7 @@ function managedFiles(root: string): string[] {
   return ['constants.json', ...list('fixtures'), ...list('api')].sort();
 }
 
-const target = resolve('contract');
-if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href && process.argv.includes('--check')) {
+export function checkContract(target: string) {
   const temp = mkdtempSync(join(tmpdir(), 'goldroad-contract-'));
   try {
     writeFiles(temp);
@@ -621,9 +623,16 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
     const mismatches = [...new Set([...actual, ...expected])].filter(path =>
       !actual.includes(path) || !expected.includes(path) || readFileSync(join(target, path), 'utf8') !== readFileSync(join(temp, path), 'utf8'));
     if (mismatches.length) throw new Error(`Contract differs: ${mismatches.join(', ')}. Run pnpm contract:generate.`);
-    console.log('Contract matches generated output.');
   } finally { rmSync(temp, { recursive: true, force: true }); }
-} else if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
-  writeFiles(target);
-  console.log(`Generated ${files.size} contract files.`);
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+  const target = resolve('contract');
+  if (process.argv.includes('--check')) {
+    checkContract(target);
+    console.log('Contract matches generated output.');
+  } else {
+    writeFiles(target);
+    console.log(`Generated ${files.size} contract files.`);
+  }
 }
