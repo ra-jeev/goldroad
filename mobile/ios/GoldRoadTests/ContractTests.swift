@@ -55,6 +55,31 @@ final class ContractTests: XCTestCase {
         }
     }
 
+    func testArchiveProgressRestoresEachMode() throws {
+        let suite = "GoldRoadTests.archive.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let road: Rules = try fixture("rules")
+        let store = ArchiveProgress(defaults: defaults)
+        var run = RoadRun(road: road.road)
+        run.select(1)
+        run.applyHint([0, 1, 4])
+        run.restart()
+        run.select(1)
+        store.save(run, mode: .expedition)
+        store.selectMode(.expedition, for: run.road.gameNo)
+
+        let reopened = ArchiveProgress(defaults: defaults)
+        let expedition = reopened.restore(road.road, mode: .expedition)
+        XCTAssertEqual(expedition.path, [0, 1])
+        XCTAssertEqual(expedition.attempt, 2)
+        XCTAssertEqual(expedition.hintsUsed, 1)
+        XCTAssertEqual(expedition.guidePath, [0, 1, 4])
+        XCTAssertTrue(expedition.canUndo)
+        XCTAssertEqual(reopened.restore(road.road, mode: .classic).path, [0])
+        XCTAssertEqual(reopened.selectedMode(for: run.road.gameNo), .expedition)
+    }
+
     private struct Hints: Decodable {
         struct Case: Decodable {
             let name: String

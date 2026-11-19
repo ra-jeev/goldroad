@@ -64,6 +64,42 @@ enum ArchiveCompletion {
     }
 }
 
+struct ArchiveProgress {
+    let defaults: UserDefaults
+
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+    }
+
+    func restore(_ road: ClassicRoad, mode: RoadMode) -> RoadRun {
+        guard let data = defaults.data(forKey: key(road.gameNo, mode)),
+              let snapshot = try? JSONDecoder().decode(RoadRun.Snapshot.self, from: data),
+              snapshot.road.gameNo == road.gameNo, snapshot.road.board == road.board,
+              snapshot.road.maxScore == road.maxScore,
+              var run = RoadRun(snapshot: snapshot) else { return RoadRun(road: road) }
+        run.updateSchedule(from: road)
+        return run
+    }
+
+    func save(_ run: RoadRun, mode: RoadMode) {
+        if let data = try? JSONEncoder().encode(run.snapshot) {
+            defaults.set(data, forKey: key(run.road.gameNo, mode))
+        }
+    }
+
+    func selectedMode(for gameNo: Int) -> RoadMode {
+        defaults.string(forKey: "archiveMode.v1.\(gameNo)").flatMap(RoadMode.init(rawValue:)) ?? .classic
+    }
+
+    func selectMode(_ mode: RoadMode, for gameNo: Int) {
+        defaults.set(mode.rawValue, forKey: "archiveMode.v1.\(gameNo)")
+    }
+
+    private func key(_ gameNo: Int, _ mode: RoadMode) -> String {
+        "archiveRun.v1.\(gameNo).\(mode.rawValue)"
+    }
+}
+
 struct PastRoadsView: View {
     @AppStorage(DailyRoadRecord.storageKey) private var historyData = Data()
     @State private var days: [ArchiveDay] = []
@@ -273,6 +309,7 @@ private struct ArchivedRoadView: View {
     @State private var confirmRestart = false
     @State private var completionVersion = 0
     private let client = ArchiveClient()
+    private let progress = ArchiveProgress()
 
     private var run: RoadRun? { mode == .classic ? classic : expedition }
     private var archiveRoad: ArchiveRoad? { mode == .classic ? board?.classic : board?.expedition }
@@ -332,8 +369,7 @@ private struct ArchivedRoadView: View {
                     let available = option == .classic ? board?.classic != nil : board?.expedition != nil
                     let locked = option == .expedition && !expeditionUnlocked
                     Button {
-                        mode = option
-                        clearInteraction()
+                        switchMode(option)
                     } label: {
                         Label(option.title, systemImage: ArchiveCompletion.contains(day.gameNo, option)
                               ? "checkmark.circle.fill" : locked ? "lock.circle" : "circle")
@@ -370,7 +406,7 @@ private struct ArchivedRoadView: View {
                         .disabled(run.hintsUsed >= GameConstants.hintsPerMode || archiveRoad?.optimalPaths.isEmpty != false)
                 } else if run.outcome == .solved {
                     if mode == .classic && board?.expedition != nil {
-                        Button("Play Expedition") { mode = .expedition; clearInteraction() }
+                        Button("Play Expedition") { switchMode(.expedition) }
                     }
                     Button("Play again") { restart() }
                 } else {
@@ -396,13 +432,21 @@ private struct ArchivedRoadView: View {
         do {
             let result: ArchiveBoard = try await client.fetch("api/games/\(day.gameNo)/board")
             guard !Task.isCancelled else { return }
-            let c = result.classic.flatMap { $0.gameNo == day.gameNo && $0.board.isPlayable ? RoadRun(road: $0.road) : nil }
-            let e = result.expedition.flatMap { $0.gameNo == day.gameNo && $0.board.isPlayable ? RoadRun(road: $0.road) : nil }
+            func restore(_ archived: ArchiveRoad?, mode: RoadMode) -> RoadRun? {
+                guard let archived, archived.gameNo == day.gameNo, archived.board.isPlayable else { return nil }
+                return progress.restore(archived.road, mode: mode)
+            }
+            let c = restore(result.classic, mode: .classic)
+            let e = restore(result.expedition, mode: .expedition)
             guard c != nil || e != nil else { throw URLError(.badServerResponse) }
             board = result
             classic = c
             expedition = e
-            mode = c == nil ? .expedition : .classic
+            if c == nil || (e != nil && expeditionUnlocked && progress.selectedMode(for: day.gameNo) == .expedition) {
+                mode = .expedition
+            } else {
+                mode = .classic
+            }
             sound.prepare()
         } catch {
             guard !Task.isCancelled else { return }
@@ -413,6 +457,13 @@ private struct ArchivedRoadView: View {
 
     private func save(_ run: RoadRun) {
         if mode == .classic { classic = run } else { expedition = run }
+        progress.save(run, mode: mode)
+    }
+
+    private func switchMode(_ mode: RoadMode) {
+        self.mode = mode
+        progress.selectMode(mode, for: day.gameNo)
+        clearInteraction()
     }
 
     private func clearInteraction() { feedback = nil; hintMessage = nil }

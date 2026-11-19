@@ -15,7 +15,7 @@ this repository. The Reddit column describes the separate `reddit-port` source.
 | Tutorial and practice road | yes | yes | no | no |
 | Medals and result sharing | yes | yes | no | different (Reddit result and comments) |
 | Past Roads calendar and archive hints | yes | yes | no | no |
-| Save a Past Roads run | yes | no | no | n/a |
+| Save a Past Roads run | yes | yes | no | n/a |
 | Personal stats and streak | yes | yes | no | different (Reddit account stats) |
 | Community comparisons | yes | yes | no | different (Reddit standings) |
 | Animated path, failure, hint nudge, solve, and Reduce Motion | yes | yes | no | different (Reddit board feedback) |
