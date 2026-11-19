@@ -1,7 +1,7 @@
 import Foundation
 
 struct RoadResult {
-    enum Medal: Int {
+    enum Medal: Int, CaseIterable {
         case gold = 1, silver, bronze
 
         static func forAttempt(_ attempts: Int, solved: Bool) -> Self? {

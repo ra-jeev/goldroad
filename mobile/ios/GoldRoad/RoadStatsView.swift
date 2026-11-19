@@ -79,29 +79,24 @@ struct RoadStatsView: View {
         return try? JSONDecoder().decode([DailyRoadRecord].self, from: historyData)
     }
 
-    private var records: [DailyRoadRecord] { (history ?? []).filter { $0.mode == mode } }
-    private var solved: [DailyRoadRecord] { records.filter(\.solved) }
-
-    private var bestStreak: Int {
-        let days = Set((history ?? []).filter { $0.mode == .classic && $0.solved }.map(\.gameNo)).sorted()
-        var best = 0
-        var run = 0
-        var previous: Int?
-        for day in days {
-            run = previous.map { day == $0 + 1 ? run + 1 : 1 } ?? 1
-            best = max(best, run)
-            previous = day
+    private var entries: [RoadStats.Entry] {
+        (history ?? []).map { record in
+            RoadStats.Entry(day: String(record.playableAt.prefix(10)), gameNo: record.gameNo,
+                            puzzleType: record.mode, attempts: record.attempts, solved: record.solved,
+                            hintsUsed: record.hintsUsed, solveTimeMs: record.activeSeconds.map { $0 * 1000 })
         }
-        return best
     }
 
+    private func summary(for mode: RoadMode) -> RoadStats.Summary {
+        let formatter = ISO8601DateFormatter()
+        let today = String(formatter.string(from: Date()).prefix(10))
+        return RoadStats.summary(entries, mode: mode, currentGameNo: overview?.currentGameNo, todayKey: today)
+    }
+
+    private var bestStreak: Int { summary(for: .classic).bestStreak }
     private var currentStreak: Int? {
-        guard let current = overview?.currentGameNo else { return nil }
-        let days = Set((history ?? []).filter { $0.mode == .classic && $0.solved }.map(\.gameNo))
-        var day = days.contains(current) ? current : current - 1
-        var count = 0
-        while days.contains(day) { count += 1; day -= 1 }
-        return count
+        guard overview?.currentGameNo != nil else { return nil }
+        return summary(for: .classic).currentStreak
     }
 
     var body: some View {
@@ -172,19 +167,21 @@ struct RoadStatsView: View {
     private var medalsCard: some View {
         card {
             Text("YOUR MEDALS").font(.caption.bold())
+            let counts = RoadStats.medalCounts(entries)
             HStack {
-                ForEach(1...3, id: \.self) { tries in
-                    let count = (history ?? []).filter { $0.solved && $0.attempts == tries }.count
+                ForEach(RoadResult.Medal.allCases, id: \.self) { medal in
+                    let tries = medal.rawValue
+                    let count = counts[medal]
                     VStack(spacing: 5) {
                         Image(systemName: "medal.fill")
                             .foregroundStyle(tries == 1 ? RoadTheme.gold : tries == 2 ? Color.gray : RoadTheme.toll)
-                        Text(tries == 1 ? "Gold" : tries == 2 ? "Silver" : "Bronze").font(.caption)
+                        Text(medal.name).font(.caption)
                         Text(count == 0 ? "–" : "\(count)").font(.headline)
                         Text("\(tries) \(tries == 1 ? "try" : "tries")").font(.caption2)
                     }
                     .frame(maxWidth: .infinity)
                     .accessibilityElement(children: .ignore)
-                    .accessibilityLabel("\(count) \(tries == 1 ? "gold" : tries == 2 ? "silver" : "bronze") medals")
+                    .accessibilityLabel("\(count) \(medal.name.lowercased()) medals")
                 }
             }
         }
@@ -241,17 +238,17 @@ struct RoadStatsView: View {
             Picker("Road mode", selection: $mode) {
                 ForEach(RoadMode.allCases, id: \.self) { option in Text(option.title).tag(option) }
             }.pickerStyle(.segmented)
-            if records.isEmpty {
+            let stats = summary(for: mode)
+            if stats.sessionsPlayed == 0 {
                 Text("Play a \(mode.title) road and your stats will appear here.")
                     .font(.subheadline).padding(.vertical, 8)
             } else {
-                statRow("Roads played", "\(records.count)")
-                statRow("Completion", "\(Int((Double(solved.count) / Double(records.count) * 100).rounded()))%")
-                statRow("Average tries", solved.isEmpty ? "–" : String(format: "%.1f", Double(solved.reduce(0) { $0 + $1.attempts }) / Double(solved.count)))
-                let times = solved.compactMap(\.activeSeconds)
-                statRow("Average solve time", times.isEmpty ? "–" : duration(Int((Double(times.reduce(0, +)) / Double(times.count)).rounded())))
-                statRow("Best solve time", times.min().map(duration) ?? "–")
-                statRow("Total hints used", "\(records.reduce(0) { $0 + $1.hintsUsed })")
+                statRow("Roads played", "\(stats.sessionsPlayed)")
+                statRow("Completion", "\(stats.solveRate)%")
+                statRow("Average tries", stats.averageSolvedAttempts)
+                statRow("Average solve time", stats.averageSolveTimeMs.map { duration(Int((Double($0) / 1000).rounded())) } ?? "–")
+                statRow("Best solve time", stats.bestSolveTimeMs.map { duration(Int((Double($0) / 1000).rounded())) } ?? "–")
+                statRow("Total hints used", "\(stats.totalHints)")
             }
             Text("Stats are saved on this device.").font(.footnote).foregroundStyle(RoadTheme.bright.opacity(0.75))
         }
@@ -298,10 +295,9 @@ struct RoadStatsView: View {
                     }
                     if let result, result.solved {
                         if field.plays > 0 && field.exactSolves > 0 {
-                            let better = field.solvedAttemptsExact.reduce(0) { total, item in
-                                total + ((Int(item.key) ?? Int.max) <= result.attempts ? item.value : 0)
-                            }
-                            let top = max(1, min(100, Int((Double(better) / Double(field.plays) * 100).rounded())))
+                            let top = RoadStats.topPercent(plays: field.plays,
+                                                            solvedAttemptsExact: field.solvedAttemptsExact,
+                                                            attempts: result.attempts)
                             Text("You finished in \(result.attempts) \(result.attempts == 1 ? "try" : "tries"), in the top \(top)% of the field.")
                                 .font(.footnote)
                         } else {

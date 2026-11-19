@@ -457,28 +457,13 @@ private struct ArchivedRoadView: View {
     }
 
     private func hint() {
-        guard var run, let paths = archiveRoad?.optimalPaths, !paths.isEmpty, run.hintsUsed < GameConstants.hintsPerMode else { return }
-        let guide = run.guidePath
-        let path = run.path
-        let guided = guide.count > 1 && guide.starts(with: path) ? paths.first(where: { $0.starts(with: guide) }) : nil
-        guard let best = guided ?? paths.max(by: { commonPrefix($0, path) < commonPrefix($1, path) }) else { return }
-        let matched = commonPrefix(best, path)
-        let revealed = best.starts(with: guide) ? guide.count : 0
-        let diverged = matched != path.count
-        let end: Int
-        if diverged {
-            end = min(best.count, max(matched + 1, revealed > matched ? revealed + 1 : 0, 2))
-        } else {
-            end = min(best.count, max(matched, revealed) + 1)
-        }
-        let route = Array(best.prefix(end))
+        guard var run, let paths = archiveRoad?.optimalPaths,
+              run.hintsUsed < GameConstants.hintsPerMode,
+              let hint = RoadHints.compute(optimalPaths: paths, pathHistory: run.path,
+                                           revealedGuide: run.guidePath) else { return }
         let oldCount = run.hintsUsed
-        run.applyHint(route)
+        run.applyHint(hint.guidePath)
         if run.hintsUsed > oldCount { save(run) }
-        hintMessage = diverged ? "Paths diverged. Try again and follow the highlighted path." : "Follow the highlighted path."
-    }
-
-    private func commonPrefix(_ a: [Int], _ b: [Int]) -> Int {
-        zip(a, b).prefix { $0.0 == $0.1 }.count
+        hintMessage = hint.message(highlightedCount: max(0, run.visibleGuide.count - 1))
     }
 }
