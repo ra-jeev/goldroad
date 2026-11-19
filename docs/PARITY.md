@@ -25,7 +25,7 @@ this repository. The Reddit column describes the separate `reddit-port` source.
 | One session ID for start, hint, and submit | yes | yes | no | different (Reddit run endpoints) |
 | Feedback email | yes | yes | no | no |
 | Configurable API environment | yes | yes | no | different (Reddit backend) |
-| App Store setup | n/a | no | n/a | n/a |
+| App Store setup | n/a | different (local archive, Organizer validation pending) | n/a | n/a |
 | Opt-in daily reminder | no | no | no | no |
 | iCloud stats sync | n/a | no | n/a | n/a |
 | Home-screen streak and countdown widget | n/a | no | no | n/a |
