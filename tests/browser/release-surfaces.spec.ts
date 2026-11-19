@@ -184,6 +184,7 @@ test('rollover waits for publication and switches only on request', async ({ pag
     checks++;
     if (!published) return route.fulfill({ json: roadDay });
     return route.fulfill({ json: {
+      minClientVersion: roadDay.minClientVersion,
       classic: {
         ...classic,
         gameNo: classic.gameNo + 1,

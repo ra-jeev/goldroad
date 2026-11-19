@@ -12,6 +12,8 @@ final class DailyRoadModel {
     private(set) var loadID = 0
     private(set) var nextDay: ClassicRoadClient.RoadDay?
     private(set) var waitingForRoad = false
+    private(set) var updateRequired = false
+    private var allowedSavedRoad: Int?
     private(set) var hintMessage: String?
     private(set) var hintRequest: UUID?
     private(set) var replay: RoadRun?
@@ -47,9 +49,15 @@ final class DailyRoadModel {
         classic?.outcome == .solved && classic?.road.gameNo == expedition?.road.gameNo
     }
     var shouldOfferTutorial: Bool {
-        guard !isLoading, !roadExpired, let classic,
+        guard !isLoading, !updateRequired, !roadExpired, let classic,
               classic.path.count == 1, classic.attempt == 1, classic.hintsUsed == 0 else { return false }
         return defaults.data(forKey: DailyRoadRecord.storageKey)?.isEmpty != false
+    }
+
+    var showsUpdateScreen: Bool {
+        guard updateRequired else { return false }
+        guard let run, replay == nil, run.outcome != .solved else { return true }
+        return run.road.gameNo != allowedSavedRoad
     }
 
     func refresh() { loadID += 1 }
@@ -76,7 +84,7 @@ final class DailyRoadModel {
     }
 
     func beginReplay() {
-        guard let run, run.outcome == .solved, !roadExpired else { return }
+        guard let run, run.outcome == .solved, !roadExpired, !updateRequired else { return }
         clearInteraction()
         replay = RoadRun(road: run.road)
     }
@@ -87,6 +95,7 @@ final class DailyRoadModel {
     }
 
     func advanceRoad() {
+        guard !updateRequired else { return }
         if let nextDay, nextDay.availability(after: classic?.road, at: Date()) == .ready {
             openRoadDay(nextDay)
         } else {
@@ -126,7 +135,7 @@ final class DailyRoadModel {
         saveProgress(run)
         if countsAsDaily {
             DailyRoadRecord.record(run, mode: mode)
-            DailyRoadAnalytics.shared.startIfNeeded(for: run, mode: mode)
+            if !updateRequired { DailyRoadAnalytics.shared.startIfNeeded(for: run, mode: mode) }
         }
         play(.move)
         if countsAsDaily && run.outcome != .solved { resumeClock() }
@@ -134,10 +143,11 @@ final class DailyRoadModel {
         case .inProgress:
             feedback = BoardFeedback(tile: tile, kind: .step)
         case .solved:
+            if updateRequired { allowedSavedRoad = nil }
             feedback = BoardFeedback(tile: tile, kind: .step)
             ArchiveCompletion.record(run.road.gameNo, mode)
             play(.solve)
-            if countsAsDaily { DailyRoadAnalytics.shared.recordSolve(for: run, mode: mode) }
+            if countsAsDaily && !updateRequired { DailyRoadAnalytics.shared.recordSolve(for: run, mode: mode) }
             resultPresented = countsAsDaily
         case .wrongTotal, .deadEnd:
             feedback = BoardFeedback(tile: tile, kind: .failed)
@@ -199,7 +209,7 @@ final class DailyRoadModel {
     }
 
     func requestHint(for requestedRun: RoadRun) {
-        guard !roadExpired, classic?.road.isExpired(at: Date()) != true,
+        guard !updateRequired, !roadExpired, classic?.road.isExpired(at: Date()) != true,
               hintRequest == nil, requestedRun.hintsUsed < GameConstants.hintsPerMode else { return }
         let id = UUID()
         let mode = self.mode
@@ -252,7 +262,7 @@ final class DailyRoadModel {
         sound.prepare()
         resumeClock()
         await checkForRoad()
-        guard !Task.isCancelled else { return }
+        guard !Task.isCancelled, !updateRequired else { return }
 
         if let cutoff = classic?.road.cutoff, !roadExpired {
             do {
@@ -286,6 +296,19 @@ final class DailyRoadModel {
         do {
             let day = try await client.fetch()
             try Task.checkCancellation()
+            updateRequired = day.requiresUpdate(installed: client.installedVersion)
+            if updateRequired {
+                if let run, replay == nil, run.outcome != .solved,
+                   run.path.count > 1 || run.attempt > 1 || run.hintsUsed > 0 {
+                    allowedSavedRoad = run.road.gameNo
+                }
+                clearInteraction()
+                nextDay = nil
+                waitingForRoad = false
+                notice = nil
+                return
+            }
+            allowedSavedRoad = nil
             now = Date()
             if nextDay?.classic?.isExpired(at: now) == true { nextDay = nil }
             notice = nil

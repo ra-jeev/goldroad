@@ -1,4 +1,5 @@
 import type { z } from 'zod';
+import { MIN_CLIENT_VERSION } from '../../../lib/gameConstants';
 import { type CurrentGamesResponseSchema } from '../../../shared/validators/game';
 import { and, eq, lte } from 'drizzle-orm'
 import { games } from '../../db/schema'
@@ -36,6 +37,7 @@ export default defineEventHandler(async (event) => {
 
   // Return both puzzles (or null if one type is missing)
   return {
+    minClientVersion: MIN_CLIENT_VERSION,
     classic: classic ? {
       gameNo: classic.gameNo,
       puzzleType: classic.puzzleType,

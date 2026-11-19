@@ -399,11 +399,30 @@
           "type": "null"
         }
       ]
+    },
+    "minClientVersion": {
+      "type": "object",
+      "properties": {
+        "ios": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$"
+        },
+        "android": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$"
+        }
+      },
+      "required": [
+        "ios",
+        "android"
+      ],
+      "additionalProperties": false
     }
   },
   "required": [
     "classic",
-    "expedition"
+    "expedition",
+    "minClientVersion"
   ],
   "additionalProperties": false
 }

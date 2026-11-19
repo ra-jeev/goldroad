@@ -191,6 +191,16 @@ final class ContractTests: XCTestCase {
         }
     }
 
+    func testVersionGuardReadsFloorBeforeTheBoard() throws {
+        let invalidBoard = #"{"classic":"new wire shape","minClientVersion":{"ios":"1.10.0","android":"1.0.0"}}"#
+        let envelope = try JSONDecoder().decode(ClassicRoadClient.VersionEnvelope.self, from: Data(invalidBoard.utf8))
+        XCTAssertTrue(envelope.requiresUpdate(installed: "1.9.9"))
+        XCTAssertFalse(envelope.requiresUpdate(installed: "1.10.0"))
+        XCTAssertFalse(envelope.requiresUpdate(installed: "2.0.0"))
+        let legacy = try JSONDecoder().decode(ClassicRoadClient.RoadDay.self, from: Data(#"{"classic":null,"expedition":null}"#.utf8))
+        XCTAssertFalse(legacy.requiresUpdate(installed: "0.1.0"))
+    }
+
     private struct Constants: Decodable {
         struct Medals: Decodable { let GOLD: Int; let SILVER: Int; let BRONZE: Int }
         let HINTS_PER_ROAD_MODE: Int

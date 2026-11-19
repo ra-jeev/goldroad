@@ -11,6 +11,10 @@
   },
   "MIN_BLOCKED_EDGES": 8,
   "MIN_BOARD_SIZE": 3,
+  "MIN_CLIENT_VERSION": {
+    "ios": "0.1.0",
+    "android": "1.0.0"
+  },
   "TILE_VALUE_MAX": 6,
   "TILE_VALUE_MIN": 1,
   "feedbackMailto": "mailto:hello@playgoldroad.com?subject=%5BGoldRoad%5D%20Feedback"

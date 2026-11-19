@@ -1,9 +1,31 @@
 import Foundation
 
 struct ClassicRoadClient {
+    struct VersionEnvelope: Decodable {
+        struct Versions: Decodable {
+            let ios: String
+            let android: String
+        }
+
+        var minClientVersion: Versions?
+
+        func requiresUpdate(installed: String) -> Bool {
+            guard let minimum = minClientVersion?.ios else { return false }
+            let minimumParts = minimum.split(separator: ".").compactMap { Int($0) }
+            let installedParts = installed.split(separator: ".").compactMap { Int($0) }
+            guard minimumParts.count == 3, installedParts.count == 3 else { return false }
+            return installedParts.lexicographicallyPrecedes(minimumParts)
+        }
+    }
+
     struct RoadDay: Decodable {
         let classic: ClassicRoad?
         let expedition: ClassicRoad?
+        var minClientVersion: VersionEnvelope.Versions?
+
+        func requiresUpdate(installed: String) -> Bool {
+            VersionEnvelope(minClientVersion: minClientVersion).requiresUpdate(installed: installed)
+        }
 
         var playableExpedition: ClassicRoad? {
             guard let expedition, expedition.gameNo == classic?.gameNo,
@@ -65,12 +87,19 @@ struct ClassicRoadClient {
     }
 
     private let baseURL = URL(string: "https://playgoldroad.com")!
+    let installedVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0.0"
 
     func fetch() async throws -> RoadDay {
         let request = URLRequest(url: baseURL.appending(path: "api/games/current"),
                                  cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 15)
         do {
-            return try await send(request)
+            let data = try await responseData(for: request)
+            let decoder = JSONDecoder()
+            let version = try decoder.decode(VersionEnvelope.self, from: data)
+            if version.requiresUpdate(installed: installedVersion) {
+                return RoadDay(classic: nil, expedition: nil, minClientVersion: version.minClientVersion)
+            }
+            return try decoder.decode(RoadDay.self, from: data)
         } catch let error as HTTPError where error.status == 404 {
             return RoadDay(classic: nil, expedition: nil)
         }
@@ -84,12 +113,13 @@ struct ClassicRoadClient {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONEncoder().encode(payload)
-        let response: HintResponse = try await send(request)
+        let data = try await responseData(for: request)
+        let response = try JSONDecoder().decode(HintResponse.self, from: data)
         guard response.ok, let hint = response.hint else { throw URLError(.badServerResponse) }
         return hint
     }
 
-    private func send<Response: Decodable>(_ request: URLRequest) async throws -> Response {
+    private func responseData(for request: URLRequest) async throws -> Data {
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let response = response as? HTTPURLResponse else {
             throw URLError(.badServerResponse)
@@ -97,7 +127,7 @@ struct ClassicRoadClient {
         guard (200..<300).contains(response.statusCode) else {
             throw HTTPError(status: response.statusCode)
         }
-        return try JSONDecoder().decode(Response.self, from: data)
+        return data
     }
 
     private struct HTTPError: Error {

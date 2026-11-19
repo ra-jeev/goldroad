@@ -212,5 +212,9 @@
       "start": 26,
       "end": 4
     }
+  },
+  "minClientVersion": {
+    "ios": "0.1.0",
+    "android": "1.0.0"
   }
 }

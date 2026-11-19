@@ -1,5 +1,6 @@
 import type { z } from 'zod';
 import { calcMedalForAttempt } from '../lib/gameTiers';
+import { MIN_CLIENT_VERSION } from '../lib/gameConstants';
 import {
   ArchiveBoardResponseSchema,
   CurrentGamesResponseSchema,
@@ -35,7 +36,8 @@ export function buildAPIContract(classic: ArchivedRoad, expedition: ArchivedRoad
   return {
     'current-games': {
       schema: CurrentGamesResponseSchema,
-      sample: { classic: withoutPaths(classic), expedition: withoutPaths(expedition) },
+      sample: { classic: withoutPaths(classic), expedition: withoutPaths(expedition),
+        minClientVersion: MIN_CLIENT_VERSION },
     },
     'archive-board': {
       schema: ArchiveBoardResponseSchema,

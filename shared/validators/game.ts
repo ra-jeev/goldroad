@@ -215,9 +215,12 @@ export const PublicGameSchema = z.object({
   optimalPaths: OptimalPathsSchema.optional(),
 });
 
+const ClientVersionSchema = z.string().regex(/^\d+\.\d+\.\d+$/);
+
 export const CurrentGamesResponseSchema = z.object({
   classic: PublicGameSchema.nullable(),
   expedition: PublicGameSchema.nullable(),
+  minClientVersion: z.object({ ios: ClientVersionSchema, android: ClientVersionSchema }),
 });
 
 export const ArchiveGameSchema = PublicGameSchema.extend({ optimalPaths: OptimalPathsSchema });
@@ -397,6 +400,7 @@ export type HintResult = z.infer<typeof HintResultSchema>;
 
 export type PublicGame = z.infer<typeof PublicGameSchema>;
 export type CurrentGamesResponse = z.infer<typeof CurrentGamesResponseSchema>;
+export type ArchiveBoardResponse = z.infer<typeof ArchiveBoardResponseSchema>;
 export type CommunityBehaviorStats = z.infer<
   typeof CommunityBehaviorStatsSchema
 >;

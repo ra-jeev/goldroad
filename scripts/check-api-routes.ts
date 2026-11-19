@@ -22,6 +22,7 @@
  */
 
 import {
+  ArchiveBoardResponseSchema,
   CurrentGamesResponseSchema,
   HintResultSchema,
   StatsOverviewSchema,
@@ -232,7 +233,7 @@ async function checkGameBoard(gameNo: number) {
   expectStatus(`GET /api/games/${gameNo}/board`, status, 200, text);
   parseOrThrow(
     `GET /api/games/${gameNo}/board`,
-    CurrentGamesResponseSchema,
+    ArchiveBoardResponseSchema,
     body,
   );
   logOk(`returns a schema-valid board payload for game ${gameNo}`);

@@ -16,7 +16,9 @@ struct ClassicRoadView: View {
             GeometryReader { geometry in
                 ScrollView {
                     VStack(spacing: 14) {
-                        if let run = model.run {
+                        if model.showsUpdateScreen {
+                            updateScreen
+                        } else if let run = model.run {
                             game(run)
                         } else if model.isLoading {
                             ProgressView("Loading the road…")
@@ -67,7 +69,8 @@ struct ClassicRoadView: View {
                     classicResult: model.mode == .expedition ? model.classic.flatMap {
                         $0.outcome == .solved ? model.result(for: $0, mode: .classic) : nil
                     } : nil,
-                    onContinueToExpedition: model.mode == .classic && model.expeditionUnlocked && !model.roadExpired
+                    onContinueToExpedition: model.mode == .classic && model.expeditionUnlocked
+                        && !model.roadExpired && !model.updateRequired
                         ? { model.resultPresented = false; model.switchMode(.expedition) } : nil,
                     onDismiss: { model.resultPresented = false }
                 )
@@ -81,6 +84,18 @@ struct ClassicRoadView: View {
         }
         .onChange(of: model.roadExpired) { _, expired in
             if expired { model.onRoadExpired() }
+        }
+    }
+
+    private var updateScreen: some View {
+        VStack(spacing: 12) {
+            Text("Update GoldRoad").font(.title2).accessibilityAddTraits(.isHeader)
+            Text("Update the app to play the next road.")
+                .multilineTextAlignment(.center)
+            let listing = Bundle.main.object(forInfoDictionaryKey: "GoldRoadAppStoreURL") as? String
+            let url = listing.flatMap(URL.init(string:))
+                ?? URL(string: "https://apps.apple.com/us/iphone/search?term=GoldRoad")!
+            Link("Open the App Store", destination: url).buttonStyle(.borderedProminent)
         }
     }
 
@@ -146,7 +161,7 @@ struct ClassicRoadView: View {
                 .accessibilityIdentifier("road-status")
             actions(run)
             replayAction(run)
-            if model.roadExpired { newRoadButton }
+            if model.roadExpired && !model.updateRequired { newRoadButton }
             if model.replay == nil, run.outcome == .solved, !model.roadExpired,
                let cutoff = model.classic?.road.cutoff {
                 TimelineView(.periodic(from: .now, by: 1)) { context in
@@ -187,7 +202,7 @@ struct ClassicRoadView: View {
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(RoadTheme.gold.opacity(locked ? 0.48 : active ? 1 : 0.72))
-                .disabled(locked || model.roadExpired)
+                .disabled(locked || model.roadExpired || model.updateRequired)
                 .accessibilityAddTraits(active ? .isSelected : [])
                 .accessibilityHint(locked ? "Solve Classic to unlock Expedition." : solved ? "Solved" : "")
             }
@@ -226,7 +241,7 @@ struct ClassicRoadView: View {
                 if run.path.count > 1 && !model.roadExpired {
                     iconButton("arrow.counterclockwise", label: "Try again") { model.confirmRestart = true }
                 }
-                if !model.roadExpired && model.replay == nil {
+                if !model.roadExpired && !model.updateRequired && model.replay == nil {
                     Button {
                         model.requestHint(for: run)
                     } label: {

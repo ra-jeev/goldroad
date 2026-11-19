@@ -55,6 +55,7 @@ import { isRoadExpired } from '../utils/pure/roadAvailability';
 export { isRoadExpired } from '../utils/pure/roadAvailability';
 
 export type EntryType = 'live' | 'archive';
+type RoadDayGames = Pick<CurrentGamesResponse, 'classic' | 'expedition'>;
 
 export type CelebrationTier = 'gold' | 'medal' | 'relief';
 
@@ -217,7 +218,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
   const localProgress = useLocalGameProgress();
   const resultShare = useRoadResultShare();
 
-  const availableGames = ref<CurrentGamesResponse>({
+  const availableGames = ref<RoadDayGames>({
     classic: null,
     expedition: null,
   });
@@ -746,7 +747,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
   }
 
   function getPreferredMode(
-    roadDay: CurrentGamesResponse,
+    roadDay: RoadDayGames,
     preferredMode: PuzzleType | null,
   ): PuzzleType | null {
     if (
@@ -763,7 +764,7 @@ export function useRoadDayGameplay(options: { entryType: EntryType }) {
   }
 
   function applyRoadDay(
-    roadDay: CurrentGamesResponse,
+    roadDay: RoadDayGames,
     options: ApplyRoadDayOptions = {},
   ) {
     availableGames.value = roadDay;

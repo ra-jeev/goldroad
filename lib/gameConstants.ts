@@ -8,6 +8,9 @@ export const DEFAULT_COLS = 6
 export const MIN_BOARD_SIZE = 3
 export const MAX_BOARD_SIZE = 10
 
+/** Oldest native builds supported by the current games API. */
+export const MIN_CLIENT_VERSION = { ios: '0.1.0', android: '1.0.0' } as const
+
 /**
  * Band of non-open edges injected per generated puzzle; each board draws a
  * count from it at generation time so days do not all feel identical.

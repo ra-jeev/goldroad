@@ -1,4 +1,5 @@
 import type {
+  ArchiveBoardResponse,
   CurrentGamesResponse,
 } from '#shared/types/game';
 
@@ -37,7 +38,7 @@ export function useGamesApi() {
   }
 
   function getGameBoard(gameNo: number) {
-    return api.get<CurrentGamesResponse>(`/api/games/${gameNo}/board`);
+    return api.get<ArchiveBoardResponse>(`/api/games/${gameNo}/board`);
   }
 
   return {

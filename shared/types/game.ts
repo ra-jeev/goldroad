@@ -21,6 +21,7 @@ export type {
   HintResult,
   PublicGame,
   CurrentGamesResponse,
+  ArchiveBoardResponse,
   CommunityBehaviorStats,
   CommunityRoadStats,
   StatsRoadDay,
