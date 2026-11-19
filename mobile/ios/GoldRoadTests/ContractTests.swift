@@ -193,6 +193,28 @@ final class ContractTests: XCTestCase {
         }
     }
 
+    func testICloudMergeKeepsSolvesAndFewerTriesByMode() {
+        func record(_ day: Int, mode: RoadMode, tries: Int, solved: Bool) -> DailyRoadRecord {
+            DailyRoadRecord(gameNo: day, playableAt: "2026-11-01T00:00:00Z", mode: mode,
+                            attempts: tries, solved: solved, activeSeconds: solved ? 30 : nil, hintsUsed: 0)
+        }
+        let unfinished = record(1, mode: .classic, tries: 1, solved: false)
+        let classic = record(1, mode: .classic, tries: 3, solved: true)
+        let expedition = record(1, mode: .expedition, tries: 1, solved: true)
+        let slowerExpedition = record(1, mode: .expedition, tries: 2, solved: true)
+        let later = record(2, mode: .classic, tries: 1, solved: true)
+        let local = [unfinished, expedition, later]
+        let remote = [classic, slowerExpedition]
+        let merged = RoadHistorySync.mergeHistory(local, remote)
+        XCTAssertEqual(merged, [classic, expedition, later])
+        XCTAssertEqual(merged, RoadHistorySync.mergeHistory(remote, local))
+        XCTAssertEqual(merged, RoadHistorySync.mergeHistory(merged, remote))
+
+        let archive = RoadHistorySync.mergeCompletion(["1": ["classic": true]],
+                                                       ["1": ["classic": false, "expedition": true]])
+        XCTAssertEqual(archive, ["1": ["classic": true, "expedition": true]])
+    }
+
     private struct Rollover: Decodable {
         struct Road: Decodable { let gameNo: Int; let nextGameAt: String? }
         struct Case: Decodable { let current: Road?; let fetched: Road?; let now: String; let expected: String }

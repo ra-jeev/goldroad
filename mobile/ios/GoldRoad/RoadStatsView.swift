@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct DailyRoadRecord: Codable, Identifiable {
+struct DailyRoadRecord: Codable, Identifiable, Equatable {
     static let storageKey = "dailyHistory.v1"
 
     let gameNo: Int
@@ -13,6 +13,7 @@ struct DailyRoadRecord: Codable, Identifiable {
 
     var id: String { "\(gameNo):\(mode.rawValue)" }
 
+    @MainActor
     static func record(_ run: RoadRun, mode: RoadMode) {
         guard run.path.count > 1 || run.attempt > 1 || run.hintsUsed > 0 else { return }
         let defaults = UserDefaults.standard
@@ -28,13 +29,14 @@ struct DailyRoadRecord: Codable, Identifiable {
                           activeSeconds: solved ? run.activeTime.map { Int($0.rounded()) } : nil,
                           hintsUsed: run.hintsUsed)
         if let index = history.firstIndex(where: { $0.id == record.id }) {
-            guard !history[index].solved else { return }
+            guard !history[index].solved, history[index] != record else { return }
             history[index] = record
         } else {
             history.append(record)
         }
         if let data = try? JSONEncoder().encode(history) {
             defaults.set(data, forKey: storageKey)
+            RoadHistorySync.sync()
         }
     }
 }
@@ -250,7 +252,8 @@ struct RoadStatsView: View {
                 statRow("Best solve time", stats.bestSolveTimeMs.map { duration(Int((Double($0) / 1000).rounded())) } ?? "–")
                 statRow("Total hints used", "\(stats.totalHints)")
             }
-            Text("Stats are saved on this device.").font(.footnote).foregroundStyle(RoadTheme.bright.opacity(0.75))
+            Text("Stats are saved on this device and sync with iCloud when available.")
+                .font(.footnote).foregroundStyle(RoadTheme.bright.opacity(0.75))
         }
     }
 

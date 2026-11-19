@@ -53,12 +53,15 @@ enum ArchiveCompletion {
         return all[String(gameNo)]?[mode.rawValue] == true
     }
 
+    @MainActor
     static func record(_ gameNo: Int, _ mode: RoadMode) {
         var all = UserDefaults.standard.dictionary(forKey: key) as? [String: [String: Bool]] ?? [:]
         var day = all[String(gameNo)] ?? [:]
+        guard day[mode.rawValue] != true else { return }
         day[mode.rawValue] = true
         all[String(gameNo)] = day
         UserDefaults.standard.set(all, forKey: key)
+        RoadHistorySync.sync()
     }
 }
 
@@ -154,6 +157,9 @@ struct PastRoadsView: View {
         .toolbar(.visible, for: .navigationBar)
         .navigationDestination(item: $randomDay) { day in
             ArchivedRoadView(day: day) { completionVersion += 1 }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: RoadHistorySync.archiveMarksChanged)) { _ in
+            completionVersion += 1
         }
         .task(id: reload) {
             loading = true

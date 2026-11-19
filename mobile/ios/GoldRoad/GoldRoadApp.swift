@@ -17,8 +17,18 @@ struct GoldRoadApp: App {
         WindowGroup {
             GoldRoadHomeView()
                 .preferredColorScheme(.dark)
+                .task {
+                    for await _ in NotificationCenter.default.notifications(
+                        named: NSUbiquitousKeyValueStore.didChangeExternallyNotification
+                    ) {
+                        RoadHistorySync.sync()
+                    }
+                }
                 .task(id: scenePhase) {
-                    if scenePhase == .active { DailyRoadAnalytics.shared.flush() }
+                    if scenePhase == .active {
+                        DailyRoadAnalytics.shared.flush()
+                        RoadHistorySync.refresh()
+                    }
                 }
         }
     }
