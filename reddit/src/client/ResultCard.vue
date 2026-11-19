@@ -137,12 +137,15 @@ const summary = computed(() =>
     .join(' · '),
 );
 
+// The trap map is off until there are enough players to make it useful.
+const SHOW_TRAP = false;
+
 // Board, trap and vote share one panel. Only one shows at a time.
 type Tab = 'board' | 'trap' | 'vote';
 const tabs = computed(() => {
   const list: { id: Tab; label: string }[] = [];
   if (props.standing?.counted && props.standing.rows.length) list.push({ id: 'board', label: 'Board' });
-  if (props.standing?.trap) list.push({ id: 'trap', label: 'Trap' });
+  if (SHOW_TRAP && props.standing?.trap) list.push({ id: 'trap', label: 'Trap' });
   if (props.ballot) list.push({ id: 'vote', label: 'Vote' });
   return list;
 });
@@ -171,6 +174,13 @@ watch(
   { immediate: true },
 );
 
+// Escape closes the card, the same as the close button.
+function onKey(event: KeyboardEvent) {
+  if (event.key === 'Escape') emit('close');
+}
+onMounted(() => window.addEventListener('keydown', onKey));
+onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
+
 // The next road comes at 00:00 UTC.
 const now = ref(Date.now());
 let timer: ReturnType<typeof setInterval> | undefined;
@@ -189,6 +199,7 @@ const nextRoad = computed(() => {
 <template>
   <div class="scrim">
     <section class="card" role="dialog" aria-modal="true" aria-labelledby="result-headline">
+      <button type="button" class="close" aria-label="Close and see the board" @click="emit('close')">✕</button>
       <p class="eyebrow">
         GoldRoad #{{ roadNo }} · {{ community ? `Community road: ${community.label}` : 'Classic' }}
       </p>
@@ -280,8 +291,10 @@ const nextRoad = computed(() => {
                 :style="showTotals ? { '--share': `${share(option.votes)}%` } : undefined"
                 @click="vote(option.id)"
               >
-                <span class="choice-label">{{ option.label }}</span>
-                <span class="choice-blurb">{{ option.blurb }}</span>
+                <span class="choice-text">
+                  <span class="choice-label">{{ option.label }}</span>
+                  <span class="choice-blurb">{{ option.blurb }}</span>
+                </span>
                 <span v-if="showTotals" class="choice-share">{{ share(option.votes) }}%</span>
               </button>
             </div>
@@ -295,22 +308,19 @@ const nextRoad = computed(() => {
         </div>
       </div>
 
-      <button type="button" class="action" @click="emit('close')">See the board</button>
-
-      <p class="next">
-        Next road in {{ nextRoad }}
-        <template v-if="loggedIn && subreddit">
-          ·
-          <button
-            type="button"
-            class="link"
-            :disabled="joinState === 'sending' || joinState === 'done'"
-            @click="join"
-          >
-            {{ joinState === 'done' ? 'Joined ✓' : joinState === 'failed' ? 'Try again' : `Join r/${subreddit}` }}
-          </button>
-        </template>
-      </p>
+      <div class="next">
+        <p class="next-label">Next road in</p>
+        <p class="next-time">{{ nextRoad }}</p>
+        <button
+          v-if="loggedIn && subreddit"
+          type="button"
+          class="link"
+          :disabled="joinState === 'sending' || joinState === 'done'"
+          @click="join"
+        >
+          {{ joinState === 'done' ? 'Joined ✓' : joinState === 'failed' ? 'Try again' : `Join r/${subreddit}` }}
+        </button>
+      </div>
     </section>
   </div>
 </template>
@@ -330,6 +340,7 @@ const nextRoad = computed(() => {
 }
 
 .card {
+  position: relative;
   width: min(100%, 420px);
   min-width: 0;
   box-sizing: border-box;
@@ -337,7 +348,7 @@ const nextRoad = computed(() => {
   grid-template-columns: minmax(0, 1fr);
   gap: 10px;
   justify-items: center;
-  padding: 18px 16px 14px;
+  padding: 18px 16px 16px;
   border: 1px solid rgb(var(--color-gold-rgb) / 0.4);
   border-radius: var(--radius-lg, 16px);
   background: var(--gradient-bg-main);
@@ -346,8 +357,33 @@ const nextRoad = computed(() => {
   box-shadow: 0 -8px 32px rgb(0 0 0 / 0.5);
 }
 
+.close {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-gold-muted);
+  font: inherit;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.close:hover,
+.close:focus-visible {
+  background: rgb(var(--color-gold-rgb) / 0.12);
+  color: var(--color-gold-bright);
+}
+
 .eyebrow {
   margin: 0;
+  padding: 0 36px;
   font-size: 0.8rem;
   font-weight: 600;
   letter-spacing: 0.12em;
@@ -431,18 +467,15 @@ const nextRoad = computed(() => {
   text-decoration: none;
 }
 
-
-
-
-
-
 .standing {
   margin: 0;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
+  align-items: center;
   gap: 4px 14px;
   font-weight: 700;
+  line-height: 1.4;
   color: var(--color-gold-bright);
 }
 
@@ -545,8 +578,6 @@ const nextRoad = computed(() => {
   cursor: default;
 }
 
-
-
 .fine {
   margin: -4px 0 0;
   font-size: 0.75rem;
@@ -573,22 +604,22 @@ const nextRoad = computed(() => {
 
 .choices {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
 }
 
 .choice {
   position: relative;
-  display: grid;
-  align-content: start;
-  gap: 2px;
-  min-height: 64px;
-  padding: 8px 6px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 8px 12px;
   overflow: hidden;
+  text-align: left;
   border: 1px solid rgb(var(--color-gold-rgb) / 0.35);
   border-radius: var(--radius-sm);
   background: linear-gradient(
-    to top,
+    to right,
     rgb(var(--color-gold-rgb) / 0.18) var(--share, 0%),
     rgb(var(--color-gold-rgb) / 0.05) var(--share, 0%)
   );
@@ -604,6 +635,13 @@ const nextRoad = computed(() => {
 .choice--mine {
   border-color: var(--color-gold-bright);
   box-shadow: inset 0 0 0 1px var(--color-gold-bright);
+}
+
+.choice-text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: 1px;
 }
 
 .choice-label {
@@ -624,8 +662,27 @@ const nextRoad = computed(() => {
 }
 
 .next {
-  margin: 0;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
   font-size: 0.85rem;
   color: var(--color-gold-muted);
+}
+
+.next-label {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.next-time {
+  margin: 0 0 4px;
+  font-size: 1.9rem;
+  font-weight: 800;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-gold-bright);
 }
 </style>
