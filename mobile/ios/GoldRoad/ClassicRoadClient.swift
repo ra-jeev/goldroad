@@ -87,7 +87,12 @@ struct ClassicRoadClient {
     }
 
     private let baseURL = URL(string: "https://playgoldroad.com")!
+    private let session: URLSession
     let installedVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0.0"
+
+    init(session: URLSession = .shared) {
+        self.session = session
+    }
 
     func fetch() async throws -> RoadDay {
         let request = URLRequest(url: baseURL.appending(path: "api/games/current"),
@@ -105,9 +110,9 @@ struct ClassicRoadClient {
         }
     }
 
-    func hint(for run: RoadRun, mode: RoadMode, player: UUID, session: UUID) async throws -> Hint {
+    func hint(for run: RoadRun, mode: RoadMode, player: UUID) async throws -> Hint {
         let payload = HintRequest(playerUUID: player, gameNo: run.road.gameNo, puzzleType: mode.rawValue,
-                                  sessionId: session, attemptNumber: run.attempt, pathHistory: run.path,
+                                  sessionId: run.sessionID, attemptNumber: run.attempt, pathHistory: run.path,
                                   guidePath: run.guidePath)
         var request = URLRequest(url: baseURL.appending(path: "api/session/hint"), timeoutInterval: 15)
         request.httpMethod = "POST"
@@ -120,7 +125,7 @@ struct ClassicRoadClient {
     }
 
     private func responseData(for request: URLRequest) async throws -> Data {
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await session.data(for: request)
         guard let response = response as? HTTPURLResponse else {
             throw URLError(.badServerResponse)
         }

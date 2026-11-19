@@ -265,3 +265,122 @@ final class ContractTests: XCTestCase {
         try decode(DailyRoadAnalytics.EndResponse.self, "session-end-response")
     }
 }
+
+private final class SessionRequestRecorder: @unchecked Sendable {
+    private let lock = NSLock()
+    private var storage: [String: Data] = [:]
+    let received: XCTestExpectation
+
+    init(received: XCTestExpectation) { self.received = received }
+
+    func record(_ request: URLRequest) {
+        let body = request.httpBody ?? request.httpBodyStream.flatMap(readBody)
+        lock.lock()
+        storage[request.url?.path ?? ""] = body
+        lock.unlock()
+        received.fulfill()
+    }
+
+    private func readBody(_ stream: InputStream) -> Data? {
+        stream.open()
+        defer { stream.close() }
+        var data = Data()
+        var buffer = [UInt8](repeating: 0, count: 4096)
+        while true {
+            let count = stream.read(&buffer, maxLength: buffer.count)
+            if count < 0 { return nil }
+            if count == 0 { return data }
+            data.append(contentsOf: buffer.prefix(count))
+        }
+    }
+
+    func body(for path: String) -> Data? {
+        lock.lock()
+        defer { lock.unlock() }
+        return storage[path]
+    }
+}
+
+private final class SessionURLProtocol: URLProtocol {
+    static var recorder: SessionRequestRecorder?
+
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+
+    override func startLoading() {
+        Self.recorder?.record(request)
+        let response: String
+        switch request.url?.path {
+        case "/api/session/start": response = #"{"ok":true,"gameNo":1}"#
+        case "/api/session/hint": response = #"{"ok":true,"hint":{"kind":"next-step","nextTileIndex":4,"guidePath":[0,1,4]}}"#
+        case "/api/session/end": response = #"{"ok":true,"gameNo":1,"score":17,"solved":true,"medal":"silver"}"#
+        default:
+            client?.urlProtocol(self, didFailWithError: URLError(.badURL))
+            return
+        }
+        let http = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+        client?.urlProtocol(self, didReceive: http, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: Data(response.utf8))
+        client?.urlProtocolDidFinishLoading(self)
+    }
+
+    override func stopLoading() {}
+}
+
+extension ContractTests {
+    @MainActor
+    func testSessionIdentitySurvivesLegacyMigrationAndRetry() async throws {
+        let received = expectation(description: "Start, hint, and solve requests")
+        received.expectedFulfillmentCount = 3
+        let recorder = SessionRequestRecorder(received: received)
+        SessionURLProtocol.recorder = recorder
+        defer { SessionURLProtocol.recorder = nil }
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [SessionURLProtocol.self]
+        let session = URLSession(configuration: configuration)
+        defer { session.invalidateAndCancel() }
+        let suite = "GoldRoadTests.sessions.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let analytics = DailyRoadAnalytics(defaults: defaults, session: session)
+        let client = ClassicRoadClient(session: session)
+        let board = Board(rows: 3, cols: 3, tiles: [2, 3, 1, 1, 4, 2, 1, 1, 5],
+                          missingEdges: [.init(from: 0, to: 3), .init(from: 2, to: 5)],
+                          tollEdges: [.init(from: 0, to: 1)], bonusEdges: [.init(from: 1, to: 4)],
+                          tollValue: 2, bonusValue: 3, start: 0, end: 8)
+        let cutoff = ISO8601DateFormatter().string(from: Date().addingTimeInterval(3600))
+        let road = ClassicRoad(gameNo: 1, maxScore: 17, playableAt: "2026-01-01T00:00:00Z",
+                               board: board, nextGameAt: cutoff)
+        var run = RoadRun(road: road)
+        run.select(1)
+
+        // Removing the new field reproduces a snapshot written before session IDs were stored.
+        let saved = try JSONEncoder().encode(run.snapshot)
+        var legacy = try XCTUnwrap(JSONSerialization.jsonObject(with: saved) as? [String: Any])
+        legacy.removeValue(forKey: "sessionID")
+        let oldData = try JSONSerialization.data(withJSONObject: legacy)
+        let oldSnapshot = try JSONDecoder().decode(RoadRun.Snapshot.self, from: oldData)
+        run = try XCTUnwrap(RoadRun(snapshot: oldSnapshot))
+        let sessionID = run.sessionID
+        let migrated = try JSONDecoder().decode(RoadRun.Snapshot.self, from: JSONEncoder().encode(run.snapshot))
+        run = try XCTUnwrap(RoadRun(snapshot: migrated))
+        XCTAssertEqual(run.sessionID, sessionID)
+
+        analytics.startIfNeeded(for: run, mode: .classic)
+        let hint = try await client.hint(for: run, mode: .classic, player: UUID())
+        run.applyHint(hint.guidePath)
+        run.restart()
+        XCTAssertEqual(run.sessionID, sessionID)
+        for tile in [1, 4, 5, 8] { run.select(tile) }
+        XCTAssertEqual(run.outcome, .solved)
+        analytics.recordSolve(for: run, mode: .classic)
+        await fulfillment(of: [received], timeout: 5)
+
+        for path in ["/api/session/start", "/api/session/hint", "/api/session/end"] {
+            let body = try XCTUnwrap(recorder.body(for: path), path)
+            let payload = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any], path)
+            let sent = try XCTUnwrap(payload["sessionId"] as? String, path)
+            XCTAssertEqual(UUID(uuidString: sent), sessionID, path)
+        }
+    }
+}

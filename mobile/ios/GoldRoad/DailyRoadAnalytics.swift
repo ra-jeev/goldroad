@@ -55,8 +55,7 @@ final class DailyRoadAnalytics {
     private let session: URLSession
     private let baseURL = URL(string: "https://playgoldroad.com")!
     private let delays: [TimeInterval] = [2, 5, 15, 30, 60, 120]
-    private var started: Set<String> = []
-    private var sessionIDs: [String: String] = [:]
+    private var started: Set<UUID> = []
     private var pending: [Pending]
     private var inFlight = false
     private var timer: Task<Void, Never>?
@@ -77,10 +76,9 @@ final class DailyRoadAnalytics {
     /// Call after a valid move off the start tile. Start failures are not queued.
     func startIfNeeded(for run: RoadRun, mode: RoadMode) {
         guard run.path.count > 1, isCurrent(run) else { return }
-        let key = roadKey(run, mode)
-        guard started.insert(key).inserted else { return }
+        guard started.insert(run.sessionID).inserted else { return }
         let payload = Start(playerUUID: playerUUID(), gameNo: run.road.gameNo,
-                            puzzleType: mode.rawValue, sessionId: sessionID(for: key))
+                            puzzleType: mode.rawValue, sessionId: run.sessionID.uuidString)
         Task { _ = await post("api/session/start", payload, response: StartResponse.self) }
     }
 
@@ -88,10 +86,9 @@ final class DailyRoadAnalytics {
     func recordSolve(for run: RoadRun, mode: RoadMode) {
         guard run.outcome == .solved, run.score == run.road.maxScore,
               let cutoff = run.road.cutoff, cutoff > Date() else { return }
-        let key = roadKey(run, mode)
         let elapsed = run.activeTime.map { Int((min(max($0, 0), 86_400) * 1000).rounded()) }
         let payload = Solve(playerUUID: playerUUID(), gameNo: run.road.gameNo,
-                            puzzleType: mode.rawValue, sessionId: sessionID(for: key),
+                            puzzleType: mode.rawValue, sessionId: run.sessionID.uuidString,
                             score: run.score, moves: run.path.count,
                             attemptNumber: run.attempt, hintsUsed: run.hintsUsed, solveTimeMs: elapsed)
         let item = Pending(payload: payload, cutoff: cutoff, backoffIndex: 0, nextAttempt: Date())
@@ -107,10 +104,6 @@ final class DailyRoadAnalytics {
         Task { await deliver(force: true) }
     }
 
-    private func roadKey(_ run: RoadRun, _ mode: RoadMode) -> String {
-        "\(run.road.gameNo):\(mode.rawValue)"
-    }
-
     private func isCurrent(_ run: RoadRun) -> Bool {
         guard let cutoff = run.road.cutoff else { return false }
         return cutoff > Date()
@@ -122,13 +115,6 @@ final class DailyRoadAnalytics {
         }
         let id = UUID().uuidString
         defaults.set(id, forKey: "playerUUID")
-        return id
-    }
-
-    private func sessionID(for key: String) -> String {
-        if let existing = sessionIDs[key] { return existing }
-        let id = UUID().uuidString
-        sessionIDs[key] = id
         return id
     }
 

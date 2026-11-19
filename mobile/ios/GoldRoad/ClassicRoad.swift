@@ -88,6 +88,7 @@ struct RoadRun: Equatable {
     }
 
     private(set) var road: ClassicRoad
+    let sessionID: UUID
     private(set) var path: [Int]
     private(set) var undoAvailable = false
     private(set) var attempt = 1
@@ -96,7 +97,12 @@ struct RoadRun: Equatable {
     private(set) var activeTime: TimeInterval?
 
     init(road: ClassicRoad) {
+        self.init(road: road, sessionID: UUID())
+    }
+
+    private init(road: ClassicRoad, sessionID: UUID) {
         self.road = road
+        self.sessionID = sessionID
         path = [road.board.start]
     }
 
@@ -183,17 +189,19 @@ struct RoadRun: Equatable {
         var hintsUsed: Int?
         var guidePath: [Int]?
         var activeTime: TimeInterval?
+        var sessionID: UUID?
     }
 
     var snapshot: Snapshot {
         Snapshot(road: road, path: path, undoAvailable: undoAvailable,
-                 attempt: attempt, hintsUsed: hintsUsed, guidePath: guidePath, activeTime: activeTime)
+                 attempt: attempt, hintsUsed: hintsUsed, guidePath: guidePath,
+                 activeTime: activeTime, sessionID: sessionID)
     }
 
     init?(snapshot: Snapshot) {
         let road = snapshot.road
         guard road.board.isPlayable, snapshot.path.first == road.board.start else { return nil }
-        self.init(road: road)
+        self.init(road: road, sessionID: snapshot.sessionID ?? UUID())
         for tile in snapshot.path.dropFirst() {
             guard legalMoves.contains(tile) else { return nil }
             select(tile)

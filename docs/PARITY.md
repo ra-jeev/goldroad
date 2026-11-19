@@ -22,7 +22,7 @@ this repository. The Reddit column describes the separate `reddit-port` source.
 | Retry and overlay transitions | yes | different (retry appears immediately and native sheets handle transitions) | no | different (Reddit overlays) |
 | Sound toggle | yes | yes | no | no |
 | Haptics and independent toggle | different (browser vibration with sound settings) | yes | no | n/a |
-| One session ID for start, hint, and submit | yes | no | no | different (Reddit run endpoints) |
+| One session ID for start, hint, and submit | yes | yes | no | different (Reddit run endpoints) |
 | Feedback email | yes | no | no | no |
 | Configurable API environment | yes | no | no | different (Reddit backend) |
 | App Store setup | n/a | no | n/a | n/a |

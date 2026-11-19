@@ -243,7 +243,7 @@ final class DailyRoadModel {
         Task {
             defer { if hintRequest == id { hintRequest = nil } }
             do {
-                let hint = try await client.hint(for: requestedRun, mode: mode, player: player, session: id)
+                let hint = try await client.hint(for: requestedRun, mode: mode, player: player)
                 guard hintRequest == id, !roadExpired, var run, run == requestedRun,
                       !run.road.isExpired(at: Date()) else { return }
                 run.applyHint(hint.guidePath)
@@ -261,27 +261,25 @@ final class DailyRoadModel {
         switch mode {
         case .classic:
             classic = run
-            defaults.set(data, forKey: "classicRun.v1")
         case .expedition:
             expedition = run
-            defaults.set(data, forKey: "expeditionRun.v1")
         }
+        defaults.set(data, forKey: snapshotKey(mode))
     }
 
     private func saveProgress(_ run: RoadRun) {
         if replay != nil { replay = run } else { save(run, for: mode) }
     }
 
-    private func restore(_ data: Data) -> RoadRun? {
-        guard let snapshot = try? JSONDecoder().decode(RoadRun.Snapshot.self, from: data) else { return nil }
-        return RoadRun(snapshot: snapshot)
+    private func snapshotKey(_ mode: RoadMode) -> String {
+        mode == .classic ? "classicRun.v1" : "expeditionRun.v1"
     }
 
     func loadRoad(isActive: Bool) async {
         self.isActive = isActive
         guard isActive else { return }
-        if classic == nil { classic = restore(defaults.data(forKey: "classicRun.v1") ?? Data(), mode: .classic) }
-        if expedition == nil { expedition = restore(defaults.data(forKey: "expeditionRun.v1") ?? Data(), mode: .expedition) }
+        if classic == nil { classic = restore(mode: .classic) }
+        if expedition == nil { expedition = restore(mode: .expedition) }
         if !expeditionUnlocked { switchMode(.classic) }
         sound.prepare()
         resumeClock()
@@ -303,9 +301,15 @@ final class DailyRoadModel {
         }
     }
 
-    private func restore(_ data: Data, mode: RoadMode) -> RoadRun? {
-        let restored = restore(data)
-        if let restored, restored.outcome == .solved {
+    private func restore(mode: RoadMode) -> RoadRun? {
+        let key = snapshotKey(mode)
+        guard let data = defaults.data(forKey: key),
+              let snapshot = try? JSONDecoder().decode(RoadRun.Snapshot.self, from: data),
+              let restored = RoadRun(snapshot: snapshot) else { return nil }
+        if snapshot.sessionID == nil, let migrated = try? JSONEncoder().encode(restored.snapshot) {
+            defaults.set(migrated, forKey: key)
+        }
+        if restored.outcome == .solved {
             ArchiveCompletion.record(restored.road.gameNo, mode)
         }
         return restored
