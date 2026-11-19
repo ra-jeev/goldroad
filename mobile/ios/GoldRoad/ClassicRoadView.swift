@@ -4,6 +4,7 @@ struct ClassicRoadView: View {
     var onBack: (() -> Void)? = nil
 
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage(RoadTutorialView.seenKey) private var hasSeenTutorial = false
     @State private var model = DailyRoadModel()
 
@@ -56,6 +57,13 @@ struct ClassicRoadView: View {
         .foregroundStyle(RoadTheme.gold)
         .tint(RoadTheme.gold)
         .task(id: model.loadID) { await model.loadRoad(isActive: scenePhase == .active) }
+        .task(id: model.feedback?.id) {
+            guard model.feedback?.kind == .solved else { return }
+            if !reduceMotion {
+                do { try await Task.sleep(for: .milliseconds(450)) } catch { return }
+            }
+            model.presentPendingResult()
+        }
         .onChange(of: scenePhase) { _, phase in model.setActive(phase == .active) }
         .onDisappear { model.onDisappear() }
         .sheet(isPresented: $model.showHelp) { RoadTutorialView(onFinish: { model.showHelp = false }) }
@@ -233,6 +241,18 @@ struct ClassicRoadView: View {
     }
 
     private func actions(_ run: RoadRun) -> some View {
+        KeyframeAnimator(initialValue: 0.0, trigger: model.hintNudgeSignal) { light in
+            actionButtons(run, hintLight: reduceMotion ? 0 : light)
+        } keyframes: { _ in
+            LinearKeyframe(1, duration: 0.12)
+            LinearKeyframe(0, duration: 0.14)
+            LinearKeyframe(0, duration: 0.08)
+            LinearKeyframe(1, duration: 0.12)
+            LinearKeyframe(0, duration: 0.24)
+        }
+    }
+
+    private func actionButtons(_ run: RoadRun, hintLight: Double) -> some View {
         HStack(spacing: 15) {
             if run.outcome == .inProgress {
                 if run.canUndo {
@@ -245,10 +265,15 @@ struct ClassicRoadView: View {
                     Button {
                         model.requestHint(for: run)
                     } label: {
-                        Label(model.hintRequest != nil ? "Loading hint…" : "Hint · \(GameConstants.hintsPerMode - run.hintsUsed)",
-                              systemImage: "lightbulb.fill")
-                            .padding(.horizontal, 14)
-                            .frame(minHeight: 42)
+                        Label {
+                            Text(model.hintRequest != nil ? "Loading hint…" : "Hint · \(GameConstants.hintsPerMode - run.hintsUsed)")
+                        } icon: {
+                            Image(systemName: "lightbulb.fill")
+                                .scaleEffect(1 + hintLight * 0.18)
+                                .shadow(color: RoadTheme.gold.opacity(hintLight), radius: 6)
+                        }
+                        .padding(.horizontal, 14)
+                        .frame(minHeight: 42)
                     }
                     .buttonStyle(.plain)
                     .background(RoadTheme.gold.opacity(0.09), in: Capsule())

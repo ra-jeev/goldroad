@@ -18,7 +18,8 @@ this repository. The Reddit column describes the separate `reddit-port` source.
 | Save a Past Roads run | yes | no | no | n/a |
 | Personal stats and streak | yes | yes | no | different (Reddit account stats) |
 | Community comparisons | yes | yes | no | different (Reddit standings) |
-| Animated path, failure, hint nudge, solve, and Reduce Motion | yes | different (tile feedback only) | no | different (Reddit board feedback) |
+| Animated path, failure, hint nudge, solve, and Reduce Motion | yes | yes | no | different (Reddit board feedback) |
+| Retry and overlay transitions | yes | different (retry appears immediately and native sheets handle transitions) | no | different (Reddit overlays) |
 | Sound toggle | yes | yes | no | no |
 | Haptics and independent toggle | different (browser vibration with sound settings) | no | no | n/a |
 | One session ID for start, hint, and submit | yes | no | no | different (Reddit run endpoints) |

@@ -17,7 +17,7 @@ enum RoadTheme {
 }
 
 struct BoardFeedback {
-    enum Kind { case step, denied, failed }
+    enum Kind { case step, denied, failed, solved }
     let id = UUID()
     let tile: Int
     let kind: Kind
@@ -32,6 +32,10 @@ struct RoadBoardView: View {
     private let gap: CGFloat = 14
 
     var body: some View {
+        let run = self.run
+        let feedback = self.feedback
+        let reduceMotion = self.reduceMotion
+        let gap = self.gap
         let board = run.road.board
         let legal = Set(run.legalMoves)
         let visited = Set(run.path)
@@ -43,11 +47,20 @@ struct RoadBoardView: View {
             )
 
             ZStack {
-                Canvas { context, _ in
-                    drawRoads(in: context, size: size, legal: legal, visited: visited)
-                }
-                .accessibilityHidden(true)
-                .allowsHitTesting(false)
+                Color.clear
+                    .keyframeAnimator(initialValue: 1.0, trigger: feedback?.id) { _, progress in
+                        Canvas { context, _ in
+                            let animatingWalk = !reduceMotion && feedback?.tile == run.current
+                                && (feedback?.kind == .step || feedback?.kind == .solved)
+                            Self.drawRoads(in: context, run: run, size: size, gap: gap,
+                                           legal: legal, visited: visited, walkProgress: animatingWalk ? progress : 1)
+                        }
+                    } keyframes: { _ in
+                        MoveKeyframe(0)
+                        CubicKeyframe(1, duration: 0.24)
+                    }
+                    .accessibilityHidden(true)
+                    .allowsHitTesting(false)
 
                 VStack(spacing: gap) {
                     ForEach(0..<board.rows, id: \.self) { row in
@@ -61,16 +74,29 @@ struct RoadBoardView: View {
                     }
                 }
             }
+            .keyframeAnimator(initialValue: 0.0, trigger: feedback?.id) { content, progress in
+                let pulse = feedback?.kind == .solved && !reduceMotion ? sin(progress * .pi) : 0
+                content.scaleEffect(1 + pulse * 0.025)
+                    .shadow(color: RoadTheme.gold.opacity(pulse * 0.4), radius: pulse * 12)
+            } keyframes: { _ in
+                MoveKeyframe(0)
+                LinearKeyframe(1, duration: 0.45)
+            }
         }
         .aspectRatio(CGFloat(board.cols) / CGFloat(board.rows), contentMode: .fit)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Puzzle board")
     }
 
-    private func drawRoads(in context: GraphicsContext, size: CGSize, legal: Set<Int>, visited: Set<Int>) {
+    private nonisolated static func drawRoads(in context: GraphicsContext, run: RoadRun,
+                                              size: CGSize, gap: CGFloat, legal: Set<Int>,
+                                              visited: Set<Int>, walkProgress: Double) {
         let board = run.road.board
         let walked = edges(in: run.path)
         let guide = edges(in: run.visibleGuide)
+        let latestEdge = run.path.count > 1
+            ? Board.Edge(from: min(run.path[run.path.count - 2], run.current),
+                         to: max(run.path[run.path.count - 2], run.current)) : nil
 
         for from in board.tiles.indices {
             for to in board.neighbors(of: from) where to > from {
@@ -97,6 +123,16 @@ struct RoadBoardView: View {
                 }
 
                 var roadContext = context
+                if key == latestEdge, walked[key] != nil, walkProgress < 1, let direction {
+                    let progress = CGFloat(max(0, min(1, walkProgress)))
+                    let start = direction ? 0 : length * (1 - progress)
+                    let clip = horizontal
+                        ? CGRect(x: center.x + radius + start, y: center.y - 12,
+                                 width: length * progress, height: 24)
+                        : CGRect(x: center.x - 12, y: center.y + radius + start,
+                                 width: 24, height: length * progress)
+                    roadContext.clip(to: Path(clip))
+                }
                 if active || guide[key] != nil {
                     roadContext.addFilter(.shadow(color: color.opacity(0.65), radius: 4))
                 }
@@ -120,7 +156,7 @@ struct RoadBoardView: View {
                             path.addLine(to: point(middle - sign * 3.1175, 3.6))
                             path.closeSubpath()
                         }
-                        context.fill(arrow, with: .color(color))
+                        roadContext.fill(arrow, with: .color(color))
                     } else {
                         let tip = direction ? length : 0
                         let tail = direction ? tip - 4.5 : tip + 4.5
@@ -129,7 +165,7 @@ struct RoadBoardView: View {
                             path.addLine(to: point(tip, 0))
                             path.addLine(to: point(tail, 4))
                         }
-                        context.stroke(arrow, with: .color(color),
+                        roadContext.stroke(arrow, with: .color(color),
                                        style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
                     }
                 }
@@ -137,7 +173,7 @@ struct RoadBoardView: View {
         }
     }
 
-    private func edges(in path: [Int]) -> [Board.Edge: Bool] {
+    private nonisolated static func edges(in path: [Int]) -> [Board.Edge: Bool] {
         zip(path, path.dropFirst()).reduce(into: [:]) { edges, pair in
             edges[Board.Edge(from: min(pair.0, pair.1), to: max(pair.0, pair.1))] = pair.0 < pair.1
         }
@@ -166,9 +202,21 @@ struct RoadBoardView: View {
                         startPoint: .topLeading, endPoint: .bottomTrailing
                     ))
                     .shadow(color: .black.opacity(0.45), radius: 2, y: 2)
-                    .shadow(color: glow.opacity(active || visited || guided ? 0.68 : 0), radius: visited ? 7 : 6)
+                    .shadow(color: glow.opacity(!guided && (active || visited) ? 0.68 : 0), radius: visited ? 7 : 6)
 
                 Circle().strokeBorder(border, lineWidth: 2.7)
+                    .keyframeAnimator(initialValue: 1.0, trigger: guided) { content, brightness in
+                        let value = guided && !reduceMotion ? brightness : 1
+                        content.opacity(value)
+                            .shadow(color: RoadTheme.hint.opacity(guided ? value * 0.8 : 0), radius: 5)
+                    } keyframes: { _ in
+                        MoveKeyframe(1)
+                        LinearKeyframe(1, duration: 0.13)
+                        LinearKeyframe(0.4, duration: 0.12)
+                        LinearKeyframe(0.4, duration: 0.07)
+                        LinearKeyframe(1, duration: 0.17)
+                        LinearKeyframe(0.8, duration: 0.21)
+                    }
                 Circle().inset(by: 3).strokeBorder(
                     LinearGradient(colors: [.white.opacity(visited ? 0.4 : 0.14), .clear, .black.opacity(0.5)],
                                    startPoint: .topLeading, endPoint: .bottomTrailing),
@@ -202,7 +250,7 @@ struct RoadBoardView: View {
                 let pulse = sin(progress * .pi)
                 content
                     .scaleEffect(kind == .step ? 1 + pulse * 0.07 : kind == .denied ? 1 - pulse * 0.10 : 1)
-                    .offset(x: kind == .failed ? sin(progress * 2 * .pi) * 3 : 0)
+                    .offset(x: kind == .failed ? sin(progress * 4 * .pi) * 4 : 0)
                     .overlay {
                         Circle().strokeBorder(RoadTheme.toll.opacity(kind == .denied ? pulse : 0), lineWidth: 3)
                     }

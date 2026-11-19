@@ -426,7 +426,7 @@ private struct ArchivedRoadView: View {
         switch run.outcome {
         case .inProgress: feedback = BoardFeedback(tile: tile, kind: .step)
         case .solved:
-            feedback = BoardFeedback(tile: tile, kind: .step)
+            feedback = BoardFeedback(tile: tile, kind: .solved)
             ArchiveCompletion.record(day.gameNo, mode)
             completionVersion += 1
             onCompletion()

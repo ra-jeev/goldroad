@@ -16,6 +16,9 @@ final class DailyRoadModel {
     private var allowedSavedRoad: Int?
     private(set) var hintMessage: String?
     private(set) var hintRequest: UUID?
+    private(set) var hintNudgeSignal = 0
+    private var hintNudgeLevels: [RoadMode: Int] = [:]
+    private var resultPending = false
     private(set) var replay: RoadRun?
     private(set) var muted: Bool
     private(set) var mode: RoadMode {
@@ -144,15 +147,21 @@ final class DailyRoadModel {
             feedback = BoardFeedback(tile: tile, kind: .step)
         case .solved:
             if updateRequired { allowedSavedRoad = nil }
-            feedback = BoardFeedback(tile: tile, kind: .step)
+            feedback = BoardFeedback(tile: tile, kind: .solved)
             ArchiveCompletion.record(run.road.gameNo, mode)
             play(.solve)
             if countsAsDaily && !updateRequired { DailyRoadAnalytics.shared.recordSolve(for: run, mode: mode) }
-            resultPresented = countsAsDaily
+            resultPending = countsAsDaily
         case .wrongTotal, .deadEnd:
             feedback = BoardFeedback(tile: tile, kind: .failed)
             play(.deadEnd)
         }
+    }
+
+    func presentPendingResult() {
+        guard resultPending else { return }
+        resultPending = false
+        resultPresented = true
     }
 
     func undo() {
@@ -171,7 +180,20 @@ final class DailyRoadModel {
         bankTime(into: &run)
         run.restart()
         saveProgress(run)
-        if replay == nil { DailyRoadRecord.record(run, mode: mode) }
+        if replay == nil {
+            DailyRoadRecord.record(run, mode: mode)
+            nudgeHintIfStuck(run)
+        }
+    }
+
+    private func nudgeHintIfStuck(_ run: RoadRun) {
+        guard !updateRequired, run.hintsUsed == 0 else { return }
+        let level = hintNudgeLevels[mode, default: 0]
+        let first = level == 0 && run.attempt >= 3
+        let second = level == 1 && (run.attempt >= 6 || (run.activeTime ?? 0) >= 300)
+        guard first || second else { return }
+        hintNudgeLevels[mode] = level + 1
+        hintNudgeSignal += 1
     }
 
     private func play(_ effect: RoadSound.Effect) {
@@ -206,6 +228,7 @@ final class DailyRoadModel {
         feedback = nil
         hintMessage = nil
         hintRequest = nil
+        resultPending = false
     }
 
     func requestHint(for requestedRun: RoadRun) {
@@ -364,6 +387,7 @@ final class DailyRoadModel {
         clearInteraction()
         replay = nil
         nextDay = nil
+        hintNudgeLevels.removeAll()
         waitingForRoad = false
         notice = nil
         mode = .classic

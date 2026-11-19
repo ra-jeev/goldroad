@@ -8,6 +8,7 @@ struct RoadTutorialView: View {
     @State private var practice = false
     @State private var run = RoadRun(road: Self.practiceRoad)
     @State private var message: String?
+    @State private var feedback: BoardFeedback?
 
     private static let route = [11, 6, 7, 2, 1, 0, 5, 10, 15, 20, 21, 16, 17, 12, 13, 18, 23, 24, 19, 14, 9, 8, 3]
     private static let practiceRoad = ClassicRoad(
@@ -66,8 +67,21 @@ struct RoadTutorialView: View {
             }
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(RoadTheme.color(0xFFE4A0))
-            RoadBoardView(run: run) { tile in
-                run.select(tile)
+            RoadBoardView(run: run, feedback: feedback) { tile in
+                guard tile != run.current else { return }
+                if tile == run.previous && run.canUndo {
+                    run.undo()
+                    feedback = nil
+                } else if !run.legalMoves.contains(tile) {
+                    feedback = BoardFeedback(tile: tile, kind: .denied)
+                } else {
+                    run.select(tile)
+                    switch run.outcome {
+                    case .inProgress: feedback = BoardFeedback(tile: tile, kind: .step)
+                    case .solved: feedback = BoardFeedback(tile: tile, kind: .solved)
+                    case .wrongTotal, .deadEnd: feedback = BoardFeedback(tile: tile, kind: .failed)
+                    }
+                }
                 message = nil
             }
             Text(message ?? status)
@@ -76,10 +90,10 @@ struct RoadTutorialView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .accessibilityAddTraits(.updatesFrequently)
             HStack {
-                Button("Undo") { run.undo() }
+                Button("Undo") { run.undo(); feedback = nil }
                     .disabled(!run.canUndo)
                 Spacer()
-                Button("Try again") { run.restart(); message = nil }
+                Button("Try again") { run.restart(); message = nil; feedback = nil }
                 Spacer()
                 Button("Hint") {
                     if Self.route.starts(with: run.path) {
