@@ -234,6 +234,7 @@ final class ContractTests: XCTestCase {
         let TILE_VALUE_MIN: Int
         let TILE_VALUE_MAX: Int
         let MEDAL_ATTEMPTS: Medals
+        let feedbackMailto: String
     }
 
     func testConstants() throws {
@@ -243,6 +244,7 @@ final class ContractTests: XCTestCase {
         XCTAssertEqual(GameConstants.maxBoardSize, values.MAX_BOARD_SIZE)
         XCTAssertEqual(GameConstants.tileValueMin, values.TILE_VALUE_MIN)
         XCTAssertEqual(GameConstants.tileValueMax, values.TILE_VALUE_MAX)
+        XCTAssertEqual(GameConstants.feedbackURL?.absoluteString, values.feedbackMailto)
         XCTAssertEqual(RoadResult.Medal.forAttempt(values.MEDAL_ATTEMPTS.GOLD, solved: true)?.name.lowercased(), "gold")
         XCTAssertEqual(RoadResult.Medal.forAttempt(values.MEDAL_ATTEMPTS.SILVER, solved: true)?.name.lowercased(), "silver")
         XCTAssertEqual(RoadResult.Medal.forAttempt(values.MEDAL_ATTEMPTS.BRONZE, solved: true)?.name.lowercased(), "bronze")

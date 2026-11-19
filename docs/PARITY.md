@@ -23,7 +23,7 @@ this repository. The Reddit column describes the separate `reddit-port` source.
 | Sound toggle | yes | yes | no | no |
 | Haptics and independent toggle | different (browser vibration with sound settings) | yes | no | n/a |
 | One session ID for start, hint, and submit | yes | yes | no | different (Reddit run endpoints) |
-| Feedback email | yes | no | no | no |
+| Feedback email | yes | yes | no | no |
 | Configurable API environment | yes | no | no | different (Reddit backend) |
 | App Store setup | n/a | no | n/a | n/a |
 | Opt-in daily reminder | no | no | no | no |

@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A20000000000000000000001 /* constants.json in Resources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000002 /* constants.json */; };
 		CA23179CE0534AA2AE096521 /* GoldRoadHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA23179CE0534AA2AE096520 /* GoldRoadHomeView.swift */; };
 		CA23179CE0534AA2AE096511 /* RoadSound.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA23179CE0534AA2AE096512 /* RoadSound.swift */; };
 		CA23179CE0534AA2AE096513 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CA23179CE0534AA2AE096514 /* Assets.xcassets */; };
@@ -32,6 +33,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		A20000000000000000000002 /* constants.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = constants.json; path = ../../contract/constants.json; sourceTree = SOURCE_ROOT; };
 		CA23179CE0534AA2AE096520 /* GoldRoadHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoldRoadHomeView.swift; sourceTree = "<group>"; };
 		CA23179CE0534AA2AE096512 /* RoadSound.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoadSound.swift; sourceTree = "<group>"; };
 		CA23179CE0534AA2AE096514 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -64,6 +66,7 @@
 			children = (
 				CA23179CE0534AA2AE096514 /* Assets.xcassets */,
 				CA23179CE0534AA2AE096516 /* Fonts */,
+				A20000000000000000000002 /* constants.json */,
 				056A77F573C242782ADED410 /* ClassicRoad.swift */,
 				3A989F8730EA004A8FC55748 /* ClassicRoadClient.swift */,
 				97E1B26709CF2358A8B397F9 /* ClassicRoadView.swift */,
@@ -181,6 +184,7 @@
 				CA23179CE0534AA2AE096513 /* Assets.xcassets in Resources */,
 				CA23179CE0534AA2AE096515 /* Fonts in Resources */,
 				CA23179CE0534AA2AE096517 /* sounds in Resources */,
+				A20000000000000000000001 /* constants.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

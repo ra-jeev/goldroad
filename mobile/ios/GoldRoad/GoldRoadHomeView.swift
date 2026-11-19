@@ -39,6 +39,13 @@ struct GoldRoadHomeView: View {
                     }
                     .buttonStyle(.plain)
                     .padding(.top, 10)
+                    if let feedbackURL = GameConstants.feedbackURL {
+                        Link(destination: feedbackURL) {
+                            destinationLabel("Send feedback", icon: "envelope", actionIcon: "arrow.up.right")
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.top, 10)
+                    }
                 }
                 .frame(maxWidth: 460, alignment: .leading)
                 .padding(.horizontal, 24)
