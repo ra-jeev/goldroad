@@ -226,6 +226,24 @@ final class ContractTests: XCTestCase {
         XCTAssertFalse(legacy.requiresUpdate(installed: "0.1.0"))
     }
 
+    @MainActor
+    func testReminderSchedulesFromServerCutoffInUTC() throws {
+        let iso = ISO8601DateFormatter()
+        let now = try XCTUnwrap(iso.date(from: "2026-11-19T14:00:00Z"))
+        let tomorrow = try XCTUnwrap(iso.date(from: "2026-11-20T00:00:00Z"))
+        let regular = try XCTUnwrap(RoadReminder.schedule(for: tomorrow, now: now))
+        XCTAssertTrue(regular.repeats)
+        XCTAssertEqual(regular.components.hour, 0)
+        XCTAssertEqual(regular.components.timeZone?.secondsFromGMT(), 0)
+        XCTAssertNil(regular.components.day)
+
+        let extended = try XCTUnwrap(iso.date(from: "2026-11-22T00:00:00Z"))
+        let oneShot = try XCTUnwrap(RoadReminder.schedule(for: extended, now: now))
+        XCTAssertFalse(oneShot.repeats)
+        XCTAssertEqual(oneShot.components.day, 22)
+        XCTAssertNil(RoadReminder.schedule(for: now, now: now))
+    }
+
     private struct Constants: Decodable {
         struct Medals: Decodable { let GOLD: Int; let SILVER: Int; let BRONZE: Int }
         let HINTS_PER_ROAD_MODE: Int

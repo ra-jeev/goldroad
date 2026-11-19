@@ -337,6 +337,7 @@ final class DailyRoadModel {
                 return
             }
             allowedSavedRoad = nil
+            RoadReminder.shared.rememberCutoff(day.classic?.cutoff ?? day.expedition?.cutoff)
             now = Date()
             if nextDay?.classic?.isExpired(at: now) == true { nextDay = nil }
             notice = nil

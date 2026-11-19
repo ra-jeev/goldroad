@@ -32,6 +32,7 @@
 		6C99C7F93EF34A56BB9EBC3F /* DailyRoadModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43C232379B08415DB6156A24 /* DailyRoadModel.swift */; };
 		A20000000000000000000004 /* GoldRoadAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000003 /* GoldRoadAPI.swift */; };
 		A20000000000000000000007 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000006 /* PrivacyInfo.xcprivacy */; };
+		A20000000000000000000009 /* RoadReminder.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000008 /* RoadReminder.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -63,6 +64,7 @@
 		A20000000000000000000003 /* GoldRoadAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoldRoadAPI.swift; sourceTree = "<group>"; };
 		A20000000000000000000005 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A20000000000000000000006 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		A20000000000000000000008 /* RoadReminder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoadReminder.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -75,6 +77,7 @@
 				056A77F573C242782ADED410 /* ClassicRoad.swift */,
 				A20000000000000000000003 /* GoldRoadAPI.swift */,
 				A20000000000000000000005 /* Info.plist */,
+				A20000000000000000000008 /* RoadReminder.swift */,
 				A20000000000000000000006 /* PrivacyInfo.xcprivacy */,
 				3A989F8730EA004A8FC55748 /* ClassicRoadClient.swift */,
 				97E1B26709CF2358A8B397F9 /* ClassicRoadView.swift */,
@@ -207,6 +210,7 @@
 			files = (
 				FDC19E9CA58A044A3AFAB05D /* ClassicRoad.swift in Sources */,
 				A20000000000000000000004 /* GoldRoadAPI.swift in Sources */,
+				A20000000000000000000009 /* RoadReminder.swift in Sources */,
 				11B120DA1254606160CC860C /* ClassicRoadClient.swift in Sources */,
 				8CCB3376FF1E9EECE2EE5F07 /* ClassicRoadView.swift in Sources */,
 				0810D420C37F3D8944FC5732 /* GoldRoadApp.swift in Sources */,

@@ -26,7 +26,7 @@ this repository. The Reddit column describes the separate `reddit-port` source.
 | Feedback email | yes | yes | no | no |
 | Configurable API environment | yes | yes | no | different (Reddit backend) |
 | App Store setup | n/a | different (local archive, Organizer validation pending) | n/a | n/a |
-| Opt-in daily reminder | no | no | no | no |
+| Opt-in daily reminder | no | yes | no | no |
 | iCloud stats sync | n/a | no | n/a | n/a |
 | Home-screen streak and countdown widget | n/a | no | no | n/a |
 | Native minimum version guard | yes | yes | no | n/a |

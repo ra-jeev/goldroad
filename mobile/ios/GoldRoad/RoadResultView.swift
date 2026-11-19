@@ -5,6 +5,7 @@ struct RoadResultView: View {
     var classicResult: RoadResult? = nil
     var onContinueToExpedition: (() -> Void)? = nil
     let onDismiss: () -> Void
+    @State private var reminder = RoadReminder.shared
 
     var body: some View {
         ScrollView {
@@ -34,6 +35,17 @@ struct RoadResultView: View {
                         .frame(maxWidth: .infinity, minHeight: 50)
                 }
                 .buttonStyle(ResultPrimaryButtonStyle())
+
+                if !reminder.enabled {
+                    Button("Remind me when the next road opens") {
+                        Task { await reminder.setEnabled(true) }
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(reminder.changing)
+                }
+                if let message = reminder.message {
+                    Text(message).font(.footnote)
+                }
 
                 if let onContinueToExpedition {
                     Button("Play Expedition", action: onContinueToExpedition)

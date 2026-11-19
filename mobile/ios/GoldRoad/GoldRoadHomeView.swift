@@ -4,6 +4,12 @@ struct GoldRoadHomeView: View {
     @State private var showingRoad = false
     @State private var showingStats = false
     @State private var showingTutorial = false
+    @State private var reminder = RoadReminder.shared
+    @AppStorage(DailyRoadRecord.storageKey) private var historyData = Data()
+
+    private var hasDailySolve: Bool {
+        (try? JSONDecoder().decode([DailyRoadRecord].self, from: historyData))?.contains(where: \.solved) == true
+    }
 
     var body: some View {
         NavigationStack {
@@ -46,6 +52,9 @@ struct GoldRoadHomeView: View {
                         .buttonStyle(.plain)
                         .padding(.top, 10)
                     }
+                    if hasDailySolve || reminder.enabled {
+                        reminderSettings
+                    }
                 }
                 .frame(maxWidth: 460, alignment: .leading)
                 .padding(.horizontal, 24)
@@ -68,6 +77,22 @@ struct GoldRoadHomeView: View {
             }
         }
         .tint(RoadTheme.gold)
+    }
+
+    private var reminderSettings: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Toggle("Daily reminder", isOn: Binding(get: { reminder.enabled }, set: { enabled in
+                Task { await reminder.setEnabled(enabled) }
+            }))
+            .disabled(reminder.changing)
+            if let message = reminder.message {
+                Text(message).font(.footnote)
+            }
+        }
+        .foregroundStyle(RoadTheme.gold)
+        .padding(16)
+        .background(RoadTheme.gold.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
+        .padding(.top, 10)
     }
 
     private func destinationLabel(_ title: String, icon: String, actionIcon: String) -> some View {
