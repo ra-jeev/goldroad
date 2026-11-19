@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import GameBoard from '#game/app/components/GameBoard.vue';
 import { buildInitialTileStates } from '#game/app/utils/boardUtils';
 import { UI_COPY } from '#game/app/content/uiCopy';
@@ -63,6 +63,7 @@ onMounted(async () => {
     community.value = response.community;
     showResult.value = !!response.run?.solved;
     run.value = resumeOrStart(response.road);
+    focusPlay();
   } catch (cause) {
     error.value = cause instanceof Error ? cause.message : String(cause);
   }
@@ -87,6 +88,17 @@ onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeydown);
   chrome.disconnect();
 });
+
+/**
+ * The Play tap happens in the feed, so this frame opens without keyboard
+ * focus and the arrow keys do nothing until a click. Take focus here. It goes
+ * to the screen, not a tile, so no focus ring shows before the first move.
+ */
+async function focusPlay() {
+  await nextTick();
+  window.focus();
+  playEl.value?.focus({ preventScroll: true });
+}
 
 function resumeOrStart(next: PublicRoad): RunState {
   const saved = loadRoute(next.day, next.mode);
@@ -135,7 +147,15 @@ const hintsLeft = computed(() =>
   loggedIn.value ? record.value?.hintsLeft ?? 0 : HINTS_PER_ROAD_MODE - guestHints.value,
 );
 
-const tryLabel = computed(() => (solvedBefore.value ? 'Practice' : `Try ${tryNumber.value}`));
+/**
+ * The line under the controls. Before a solve it counts tries. After it, the
+ * status line already says the try, so only a replay is named here.
+ */
+const tryLabel = computed(() => {
+  if (solvedBefore.value) return 'Practice';
+  if (hasResult.value) return null;
+  return `Try ${tryNumber.value}`;
+});
 
 const medal = computed<Medal | null>(() => {
   if (loggedIn.value) return record.value?.medal ?? null;
@@ -333,7 +353,7 @@ function onKeydown(event: KeyboardEvent) {
 </script>
 
 <template>
-  <main ref="playEl" class="play">
+  <main ref="playEl" class="play" tabindex="-1">
     <p v-if="error" class="notice" role="alert">Could not load the road. {{ error }}</p>
     <p v-else-if="!road || !run" class="notice">{{ UI_COPY.runtime.loadingGame }}</p>
     <template v-else>
@@ -399,13 +419,13 @@ function onKeydown(event: KeyboardEvent) {
             :disabled="(run.path.length === 1 && !ended) || finishing"
             @click="tryAgain"
           >
-            Try again
+            {{ hasResult ? 'Replay' : 'Try again' }}
           </button>
         </div>
         <p class="try">
           {{ tryLabel }}
           <template v-if="hasResult">
-            · <button type="button" class="link" @click="showResult = true">Your result</button>
+            <template v-if="tryLabel">·</template> <button type="button" class="link" @click="showResult = true">Your result</button>
           </template>
         </p>
       </footer>
@@ -424,7 +444,7 @@ function onKeydown(event: KeyboardEvent) {
         :ballot="ballot"
         :community="community"
         :logged-in="loggedIn"
-        @close="showResult = false"
+        @close="showResult = false; focusPlay()"
         @voted="ballot = $event"
         @commented="record && (record = { ...record, commented: true })"
       />
@@ -433,6 +453,10 @@ function onKeydown(event: KeyboardEvent) {
 </template>
 
 <style scoped>
+.play:focus {
+  outline: none;
+}
+
 .play {
   /* Fixed board furniture, as on the website. Tiles take what is left. */
   --tile-gap: 14px;

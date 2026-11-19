@@ -144,7 +144,7 @@ const SHOW_TRAP = false;
 type Tab = 'board' | 'trap' | 'vote';
 const tabs = computed(() => {
   const list: { id: Tab; label: string }[] = [];
-  if (props.standing?.counted && props.standing.rows.length) list.push({ id: 'board', label: 'Board' });
+  if (props.standing?.counted && props.standing.rows.length) list.push({ id: 'board', label: 'Leaderboard' });
   if (SHOW_TRAP && props.standing?.trap) list.push({ id: 'trap', label: 'Trap' });
   if (props.ballot) list.push({ id: 'vote', label: 'Vote' });
   return list;
