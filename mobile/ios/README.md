@@ -10,10 +10,14 @@ The app keeps daily history and Past Roads completion on the device. It sends th
 
 ## Verify the rules
 
+Run the shared **GoldRoad** scheme’s test action in Xcode for the full
+contract suite. The `GoldRoadTests` target reads the repository’s `contract/`
+folder as test resources.
+
 From the repository root, use the Swift compiler to run the gameplay and save tests without a simulator.
 
 ```sh
 scratch_dir="$(mktemp -d)"
-swiftc mobile/ios/GoldRoad/ClassicRoad.swift mobile/ios/GoldRoad/ClassicRoadClient.swift mobile/ios/Tests/main.swift -o "$scratch_dir/test-road"
+swiftc mobile/ios/GoldRoad/GameConstants.swift mobile/ios/GoldRoad/ClassicRoad.swift mobile/ios/GoldRoad/ClassicRoadClient.swift mobile/ios/Tests/main.swift -o "$scratch_dir/test-road"
 "$scratch_dir/test-road" contract/fixtures/rules.json
 ```

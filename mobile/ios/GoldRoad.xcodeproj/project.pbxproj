@@ -22,6 +22,12 @@
 		12C95E0BB6F44D2D9A886DAC /* RoadStatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CC8D76AC4004B18A83D7300 /* RoadStatsView.swift */; };
 		851BEC10EB3F433FA354BF5B /* RoadTutorialView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA5061A6F12D4FE89D5E9281 /* RoadTutorialView.swift */; };
 		72EF05C05A9A4E60BE7FF3D7 /* DailyRoadAnalytics.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3E17BA554204A1093E6A501 /* DailyRoadAnalytics.swift */; };
+		B0000000000000000000001 /* GameConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000001 /* GameConstants.swift */; };
+		B0000000000000000000002 /* RoadHints.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000002 /* RoadHints.swift */; };
+		B0000000000000000000003 /* RoadShare.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000003 /* RoadShare.swift */; };
+		B0000000000000000000004 /* RoadStats.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000004 /* RoadStats.swift */; };
+		A10000000000000000000001 /* ContractTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000002 /* ContractTests.swift */; };
+		A10000000000000000000003 /* contract in Resources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000004 /* contract */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -41,6 +47,13 @@
 		8CC8D76AC4004B18A83D7300 /* RoadStatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoadStatsView.swift; sourceTree = "<group>"; };
 		DA5061A6F12D4FE89D5E9281 /* RoadTutorialView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoadTutorialView.swift; sourceTree = "<group>"; };
 		C3E17BA554204A1093E6A501 /* DailyRoadAnalytics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyRoadAnalytics.swift; sourceTree = "<group>"; };
+		F0000000000000000000001 /* GameConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameConstants.swift; sourceTree = "<group>"; };
+		F0000000000000000000002 /* RoadHints.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoadHints.swift; sourceTree = "<group>"; };
+		F0000000000000000000003 /* RoadShare.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoadShare.swift; sourceTree = "<group>"; };
+		F0000000000000000000004 /* RoadStats.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoadStats.swift; sourceTree = "<group>"; };
+		A10000000000000000000002 /* ContractTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContractTests.swift; sourceTree = "<group>"; };
+		A10000000000000000000004 /* contract */ = {isa = PBXFileReference; lastKnownFileType = folder; name = contract; path = ../../contract; sourceTree = SOURCE_ROOT; };
+		A10000000000000000000005 /* GoldRoadTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GoldRoadTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -60,6 +73,10 @@
 				8CC8D76AC4004B18A83D7300 /* RoadStatsView.swift */,
 				8DEC0384A4A345978C981AA3 /* PastRoadsView.swift */,
 				CE9463F3280647D8B8803DB0 /* RoadResultView.swift */,
+				F0000000000000000000001 /* GameConstants.swift */,
+				F0000000000000000000002 /* RoadHints.swift */,
+				F0000000000000000000003 /* RoadShare.swift */,
+				F0000000000000000000004 /* RoadStats.swift */,
 				CA23179CE0534AA2AE096512 /* RoadSound.swift */,
 				CA23179CE0534AA2AE096518 /* sounds */,
 			);
@@ -70,6 +87,7 @@
 			isa = PBXGroup;
 			children = (
 				6CBF7959DA123845435570FF /* GoldRoad.app */,
+				A10000000000000000000005 /* GoldRoadTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -78,8 +96,15 @@
 			isa = PBXGroup;
 			children = (
 				592F82A0EDA5BDD9C33E8761 /* GoldRoad */,
+				A10000000000000000000006 /* GoldRoadTests */,
 				C2799A652AA16801D1528838 /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		A10000000000000000000006 /* GoldRoadTests */ = {
+			isa = PBXGroup;
+			children = (A10000000000000000000002 /* ContractTests.swift */, A10000000000000000000004 /* contract */,);
+			path = GoldRoadTests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -102,6 +127,17 @@
 			productName = GoldRoad;
 			productReference = 6CBF7959DA123845435570FF /* GoldRoad.app */;
 			productType = "com.apple.product-type.application";
+		};
+		A10000000000000000000007 /* GoldRoadTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A10000000000000000000008 /* Build configuration list for GoldRoadTests */;
+			buildPhases = (A10000000000000000000009 /* Sources */, A1000000000000000000000A /* Resources */,);
+			buildRules = ();
+			dependencies = (A1000000000000000000000B /* PBXTargetDependency */,);
+			name = GoldRoadTests;
+			productName = GoldRoadTests;
+			productReference = A10000000000000000000005 /* GoldRoadTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
 		};
 /* End PBXNativeTarget section */
 
@@ -129,6 +165,7 @@
 			projectRoot = "";
 			targets = (
 				B148460CF5F29D39217DA99B /* GoldRoad */,
+				A10000000000000000000007 /* GoldRoadTests */,
 			);
 		};
 /* End PBXProject section */
@@ -144,6 +181,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A1000000000000000000000A /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (A10000000000000000000003 /* contract in Resources */,); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -162,11 +200,24 @@
 				12C95E0BB6F44D2D9A886DAC /* RoadStatsView.swift in Sources */,
 				CDA3594266EA42B798D7F0A7 /* PastRoadsView.swift in Sources */,
 				C4DBC16CB513429CA86536C0 /* RoadResultView.swift in Sources */,
+				B0000000000000000000001 /* GameConstants.swift in Sources */,
+				B0000000000000000000002 /* RoadHints.swift in Sources */,
+				B0000000000000000000003 /* RoadShare.swift in Sources */,
+				B0000000000000000000004 /* RoadStats.swift in Sources */,
 				CA23179CE0534AA2AE096511 /* RoadSound.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A10000000000000000000009 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A10000000000000000000001 /* ContractTests.swift in Sources */,); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXContainerItemProxy section */
+		A1000000000000000000000C /* PBXContainerItemProxy */ = {isa = PBXContainerItemProxy; containerPortal = 89F7E103DBDC835AD7E93D77 /* Project object */; proxyType = 1; remoteGlobalIDString = B148460CF5F29D39217DA99B; remoteInfo = GoldRoad; };
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXTargetDependency section */
+		A1000000000000000000000B /* PBXTargetDependency */ = {isa = PBXTargetDependency; target = B148460CF5F29D39217DA99B /* GoldRoad */; targetProxy = A1000000000000000000000C /* PBXContainerItemProxy */; };
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		0530DD6FB8542113EDD29024 /* Debug */ = {
@@ -332,6 +383,8 @@
 			};
 			name = Release;
 		};
+		A1000000000000000000000D /* Debug */ = {isa = XCBuildConfiguration; buildSettings = { BUNDLE_LOADER = "$(TEST_HOST)"; GENERATE_INFOPLIST_FILE = YES; PRODUCT_BUNDLE_IDENTIFIER = com.playgoldroad.ios.tests; PRODUCT_NAME = "$(TARGET_NAME)"; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = 1; TEST_HOST = "$(BUILT_PRODUCTS_DIR)/GoldRoad.app/GoldRoad"; }; name = Debug; };
+		A1000000000000000000000E /* Release */ = {isa = XCBuildConfiguration; buildSettings = { BUNDLE_LOADER = "$(TEST_HOST)"; GENERATE_INFOPLIST_FILE = YES; PRODUCT_BUNDLE_IDENTIFIER = com.playgoldroad.ios.tests; PRODUCT_NAME = "$(TARGET_NAME)"; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = 1; TEST_HOST = "$(BUILT_PRODUCTS_DIR)/GoldRoad.app/GoldRoad"; }; name = Release; };
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -353,6 +406,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
+		A10000000000000000000008 /* Build configuration list for GoldRoadTests */ = {isa = XCConfigurationList; buildConfigurations = (A1000000000000000000000D /* Debug */, A1000000000000000000000E /* Release */,); defaultConfigurationIsVisible = 0; defaultConfigurationName = Debug; };
 /* End XCConfigurationList section */
 	};
 	rootObject = 89F7E103DBDC835AD7E93D77 /* Project object */;

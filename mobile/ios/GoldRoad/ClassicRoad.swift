@@ -49,9 +49,9 @@ struct Board: Codable, Equatable {
     let end: Int
 
     var isPlayable: Bool {
-        (3...10).contains(rows) && (3...10).contains(cols)
+        (GameConstants.minBoardSize...GameConstants.maxBoardSize).contains(rows) && (GameConstants.minBoardSize...GameConstants.maxBoardSize).contains(cols)
             && tiles.count == rows * cols
-            && tiles.allSatisfy { (1...6).contains($0) }
+            && tiles.allSatisfy { (GameConstants.tileValueMin...GameConstants.tileValueMax).contains($0) }
             && tiles.indices.contains(start) && tiles.indices.contains(end) && start != end
             && tollValue > 0 && tollValue <= Int.max / 100 - 6
             && bonusValue > 0 && bonusValue <= Int.max / 100 - 6
@@ -143,7 +143,7 @@ struct RoadRun: Equatable {
     }
 
     mutating func applyHint(_ route: [Int]) {
-        guard hintsUsed < 5, !guidePath.starts(with: route),
+        guard hintsUsed < GameConstants.hintsPerMode, !guidePath.starts(with: route),
               route.first == road.board.start,
               Set(route).count == route.count,
               route.allSatisfy(road.board.tiles.indices.contains),
@@ -200,7 +200,7 @@ struct RoadRun: Equatable {
         }
         undoAvailable = undoAvailable && snapshot.undoAvailable
         attempt = min(max(1, snapshot.attempt ?? 1), 1000)
-        hintsUsed = min(max(0, snapshot.hintsUsed ?? 0), 5)
+        hintsUsed = min(max(0, snapshot.hintsUsed ?? 0), GameConstants.hintsPerMode)
         guidePath = snapshot.guidePath ?? []
         if let activeTime = snapshot.activeTime { addActiveTime(activeTime) }
     }

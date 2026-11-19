@@ -24,7 +24,7 @@ struct ClassicRoadClient {
         }
     }
 
-    struct Hint: Decodable {
+    struct Hint: Decodable, Equatable {
         enum Kind: String, Decodable {
             case nextStep = "next-step"
             case diverged
@@ -33,6 +33,9 @@ struct ClassicRoadClient {
 
         let kind: Kind
         let guidePath: [Int]
+        var nextTileIndex: Int?
+        var divergenceTileIndex: Int?
+        var correctTileIndex: Int?
 
         func message(highlightedCount: Int) -> String? {
             switch kind {
@@ -46,7 +49,7 @@ struct ClassicRoadClient {
         }
     }
 
-    private struct HintRequest: Encodable {
+    struct HintRequest: Codable {
         let playerUUID: UUID
         let gameNo: Int
         let puzzleType: String
@@ -56,7 +59,7 @@ struct ClassicRoadClient {
         let guidePath: [Int]
     }
 
-    private struct HintResponse: Decodable {
+    struct HintResponse: Decodable {
         let ok: Bool
         let hint: Hint?
     }

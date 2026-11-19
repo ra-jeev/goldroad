@@ -39,6 +39,9 @@
          </BuildableReference>
       </MacroExpansion>
       <Testables>
+         <TestableReference skipped = "NO">
+            <BuildableReference BuildableIdentifier = "primary" BlueprintIdentifier = "A10000000000000000000007" BuildableName = "GoldRoadTests.xctest" BlueprintName = "GoldRoadTests" ReferencedContainer = "container:GoldRoad.xcodeproj"/>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

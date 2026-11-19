@@ -39,13 +39,13 @@ struct DailyRoadRecord: Codable, Identifiable {
     }
 }
 
-private struct StatsOverview: Decodable {
+struct StatsOverview: Decodable {
     struct Day: Decodable {
         struct Community: Decodable {
             struct Behavior: Decodable {
                 let totalHints: Int
-                let averageSolveTimeMs: Int?
-                let bestSolveTimeMs: Int?
+                let averageSolveTimeMs: Double?
+                let bestSolveTimeMs: Double?
             }
 
             let plays: Int

@@ -1,20 +1,20 @@
 import SwiftUI
 
-private struct ArchiveDay: Decodable, Identifiable, Hashable {
+struct ArchiveDay: Decodable, Identifiable, Hashable {
     let gameNo: Int
     let playableAt: String
     var id: Int { gameNo }
 }
 
-private struct RandomArchiveResponse: Decodable {
+struct RandomArchiveResponse: Decodable {
     let gameNo: Int
 }
 
-private struct ArchiveResponse: Decodable {
+struct ArchiveResponse: Decodable {
     let games: [ArchiveDay]
 }
 
-private struct ArchiveRoad: Decodable {
+struct ArchiveRoad: Decodable {
     let gameNo: Int
     let maxScore: Int
     let playableAt: String
@@ -28,7 +28,7 @@ private struct ArchiveRoad: Decodable {
     }
 }
 
-private struct ArchiveBoard: Decodable {
+struct ArchiveBoard: Decodable {
     let classic: ArchiveRoad?
     let expedition: ArchiveRoad?
 }
@@ -359,8 +359,8 @@ private struct ArchivedRoadView: View {
                 if run.outcome == .inProgress {
                     if run.canUndo { Button("Undo", systemImage: "arrow.uturn.backward") { undo() } }
                     if run.path.count > 1 { Button("Try again", systemImage: "arrow.counterclockwise") { confirmRestart = true } }
-                    Button("Hint · \(5 - run.hintsUsed)", systemImage: "lightbulb.fill") { hint() }
-                        .disabled(run.hintsUsed >= 5 || archiveRoad?.optimalPaths.isEmpty != false)
+                    Button("Hint · \(GameConstants.hintsPerMode - run.hintsUsed)", systemImage: "lightbulb.fill") { hint() }
+                        .disabled(run.hintsUsed >= GameConstants.hintsPerMode || archiveRoad?.optimalPaths.isEmpty != false)
                 } else if run.outcome == .solved {
                     if mode == .classic && board?.expedition != nil {
                         Button("Play Expedition") { mode = .expedition; clearInteraction() }
@@ -457,7 +457,7 @@ private struct ArchivedRoadView: View {
     }
 
     private func hint() {
-        guard var run, let paths = archiveRoad?.optimalPaths, !paths.isEmpty, run.hintsUsed < 5 else { return }
+        guard var run, let paths = archiveRoad?.optimalPaths, !paths.isEmpty, run.hintsUsed < GameConstants.hintsPerMode else { return }
         let guide = run.guidePath
         let path = run.path
         let guided = guide.count > 1 && guide.starts(with: path) ? paths.first(where: { $0.starts(with: guide) }) : nil

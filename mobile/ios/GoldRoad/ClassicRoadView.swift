@@ -281,7 +281,7 @@ struct ClassicRoadView: View {
                     Button {
                         requestHint(for: run)
                     } label: {
-                        Label(hintRequest != nil ? "Loading hint…" : "Hint · \(5 - run.hintsUsed)",
+                        Label(hintRequest != nil ? "Loading hint…" : "Hint · \(GameConstants.hintsPerMode - run.hintsUsed)",
                               systemImage: "lightbulb.fill")
                             .padding(.horizontal, 14)
                             .frame(minHeight: 42)
@@ -289,9 +289,9 @@ struct ClassicRoadView: View {
                     .buttonStyle(.plain)
                     .background(RoadTheme.gold.opacity(0.09), in: Capsule())
                     .overlay(Capsule().strokeBorder(RoadTheme.gold.opacity(0.24), lineWidth: 1))
-                    .opacity(hintRequest != nil || run.hintsUsed >= 5 ? 0.55 : 1)
-                    .disabled(hintRequest != nil || run.hintsUsed >= 5)
-                    .accessibilityHint("\(5 - run.hintsUsed) hints left")
+                    .opacity(hintRequest != nil || run.hintsUsed >= GameConstants.hintsPerMode ? 0.55 : 1)
+                    .disabled(hintRequest != nil || run.hintsUsed >= GameConstants.hintsPerMode)
+                    .accessibilityHint("\(GameConstants.hintsPerMode - run.hintsUsed) hints left")
                 }
             } else if run.outcome == .solved {
                 if !roadExpired && replay == nil {
@@ -476,7 +476,7 @@ struct ClassicRoadView: View {
 
     private func requestHint(for requestedRun: RoadRun) {
         guard !roadExpired, classic?.road.isExpired(at: Date()) != true,
-              hintRequest == nil, requestedRun.hintsUsed < 5 else { return }
+              hintRequest == nil, requestedRun.hintsUsed < GameConstants.hintsPerMode else { return }
         let id = UUID()
         let mode = self.mode
         let player = UUID(uuidString: playerUUID) ?? UUID()

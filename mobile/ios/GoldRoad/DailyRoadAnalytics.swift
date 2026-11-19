@@ -1,18 +1,22 @@
 import Foundation
 
+private protocol SessionResponse: Decodable {
+    var ok: Bool { get }
+}
+
 /// Analytics for the live daily road only. Archive and tutorial callers must not use it.
 @MainActor
 final class DailyRoadAnalytics {
     static let shared = DailyRoadAnalytics()
 
-    private struct Start: Codable {
+    struct Start: Codable {
         let playerUUID: String
         let gameNo: Int
         let puzzleType: String
         let sessionId: String
     }
 
-    private struct Solve: Codable {
+    struct Solve: Codable {
         let playerUUID: String
         let gameNo: Int
         let puzzleType: String
@@ -33,7 +37,19 @@ final class DailyRoadAnalytics {
         var key: String { "\(payload.playerUUID):\(payload.gameNo):\(payload.puzzleType)" }
     }
 
-    private struct APIResponse: Decodable { let ok: Bool }
+    struct StartResponse: SessionResponse {
+        let ok: Bool
+        let gameNo: Int
+    }
+
+    struct EndResponse: SessionResponse {
+        let ok: Bool
+        let gameNo: Int
+        let medal: String?
+        let score: Int
+        let solved: Bool
+    }
+
     private let queueKey = "dailyAnalytics.pendingSolves.v1"
     private let defaults: UserDefaults
     private let session: URLSession
@@ -65,7 +81,7 @@ final class DailyRoadAnalytics {
         guard started.insert(key).inserted else { return }
         let payload = Start(playerUUID: playerUUID(), gameNo: run.road.gameNo,
                             puzzleType: mode.rawValue, sessionId: sessionID(for: key))
-        Task { _ = await post("api/session/start", payload) }
+        Task { _ = await post("api/session/start", payload, response: StartResponse.self) }
     }
 
     /// Call after finalizing the active time on an exact daily solve.
@@ -128,7 +144,9 @@ final class DailyRoadAnalytics {
 
     private enum DeliveryResult { case success, retry, discard }
 
-    private func post<Payload: Encodable>(_ path: String, _ payload: Payload) async -> DeliveryResult {
+    private func post<Payload: Encodable, Response: SessionResponse>(
+        _ path: String, _ payload: Payload, response type: Response.Type
+    ) async -> DeliveryResult {
         var request = URLRequest(url: baseURL.appending(path: path), timeoutInterval: 15)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -139,7 +157,7 @@ final class DailyRoadAnalytics {
             guard let response = response as? HTTPURLResponse else { return .retry }
             if response.statusCode == 429 || response.statusCode >= 500 { return .retry }
             guard (200..<300).contains(response.statusCode) else { return .discard }
-            guard let result = try? JSONDecoder().decode(APIResponse.self, from: data), result.ok else { return .retry }
+            guard let result = try? JSONDecoder().decode(type, from: data), result.ok else { return .retry }
             return .success
         } catch {
             return .retry
@@ -156,7 +174,7 @@ final class DailyRoadAnalytics {
         while let index = pending.firstIndex(where: { force || ($0.nextAttempt.map { $0 <= Date() } ?? false) }) {
             let item = pending[index]
             guard item.cutoff > Date() else { discardExpired(); continue }
-            let result = await post("api/session/end", item.payload)
+            let result = await post("api/session/end", item.payload, response: EndResponse.self)
             guard let current = pending.firstIndex(where: { $0.key == item.key }) else { continue }
             switch result {
             case .success, .discard:

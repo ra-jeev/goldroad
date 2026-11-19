@@ -90,7 +90,7 @@ struct RoadTutorialView: View {
                         run.applyHint(Self.route)
                     }
                 }
-                .disabled(run.outcome != .inProgress || run.hintsUsed >= 5)
+                .disabled(run.outcome != .inProgress || run.hintsUsed >= GameConstants.hintsPerMode)
             }
             .font(.subheadline.weight(.semibold))
             if run.outcome == .solved {
