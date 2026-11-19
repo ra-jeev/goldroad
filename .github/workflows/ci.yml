@@ -1,0 +1,60 @@
+name: GoldRoad CI
+
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    outputs:
+      ios_changed: ${{ steps.changes.outputs.ios_changed }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check iOS input paths
+        id: changes
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          if [[ -z "$BASE_SHA" || "$BASE_SHA" =~ ^0+$ ]]; then
+            BASE_SHA="origin/$DEFAULT_BRANCH"
+          fi
+          if ! git rev-parse --verify "$BASE_SHA^{commit}" >/dev/null 2>&1 ||
+             ! git diff --quiet "$BASE_SHA" HEAD -- contract/ shared/ lib/ mobile/ios/; then
+            echo 'ios_changed=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'ios_changed=false' >> "$GITHUB_OUTPUT"
+          fi
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm contract:check
+
+  ios:
+    needs: web
+    if: ${{ !cancelled() && needs.web.outputs.ios_changed == 'true' }}
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Run iOS contract tests
+        run: |
+          set -o pipefail
+          device=$(xcrun simctl list devices available -j | jq -er '
+            [.devices | to_entries | reverse[] | .value[] | select(.name | startswith("iPhone"))]
+            | ((map(select(.name == "iPhone 16")) | first) // first).udid
+          ')
+          xcodebuild test -project mobile/ios/GoldRoad.xcodeproj -scheme GoldRoad \
+            -destination "platform=iOS Simulator,id=$device" \
+            -parallel-testing-enabled NO CODE_SIGNING_ALLOWED=NO
