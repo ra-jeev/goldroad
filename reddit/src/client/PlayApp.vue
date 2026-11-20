@@ -334,7 +334,13 @@ function resumeOrStart(next: PublicRoad): RunState {
   // The server writes only what is missing. The route goes when that works.
   if (saved && resumed?.outcome === 'solved' && solvedBefore.value && loggedIn.value) {
     postFinish(next.mode, saved.path)
-      .then(() => clearRoute(next.day, next.mode))
+      .then((result) => {
+        clearRoute(next.day, next.mode);
+        // Show the repaired rank and streak, if this road is still on the board.
+        if (road.value?.day !== next.day || road.value.mode !== next.mode) return;
+        if (result.run) record.value = result.run;
+        if (result.standing) standing.value = result.standing;
+      })
       .catch((cause) => console.error('solve repair failed', cause));
     return startRun(next.board);
   }
