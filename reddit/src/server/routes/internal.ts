@@ -21,11 +21,13 @@ internal.post('/scheduler/daily-road', async (c) => {
  */
 internal.post('/scheduler/next-road', async (c) => {
   const day = nextDay(utcDay());
-  try {
-    await prepareRoad(day, 'classic');
-    console.log(`next-road: ready for ${day}`);
-  } catch (error) {
-    console.error(`next-road: could not make ${day}: ${error}`);
+  for (const mode of ['classic', 'expedition'] as const) {
+    try {
+      await prepareRoad(day, mode);
+      console.log(`next-road: ${mode} ready for ${day}`);
+    } catch (error) {
+      console.error(`next-road: could not make ${mode} for ${day}: ${error}`);
+    }
   }
   return c.json<TaskResponse>({}, 200);
 });

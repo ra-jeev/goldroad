@@ -19,8 +19,10 @@ const props = defineProps<{
   ballot: Ballot | null;
   community: CommunityPick | null;
   loggedIn: boolean;
+  /** Classic is solved and Expedition is not: offer it. */
+  expeditionOpen?: boolean;
 }>();
-const emit = defineEmits<{ close: []; commented: []; voted: [ballot: Ballot] }>();
+const emit = defineEmits<{ close: []; commented: []; voted: [ballot: Ballot]; expedition: [] }>();
 
 // The weekly vote on Sunday's road. Totals show once the player has voted.
 const voting = ref<CommunityOptionId | null>(null);
@@ -201,7 +203,8 @@ const nextRoad = computed(() => {
     <section class="card" role="dialog" aria-modal="true" aria-labelledby="result-headline">
       <button type="button" class="close" aria-label="Close and see the board" @click="emit('close')">✕</button>
       <p class="eyebrow">
-        GoldRoad #{{ roadNo }} · {{ community ? `Community road: ${community.label}` : 'Classic' }}
+        GoldRoad #{{ roadNo }} · {{ mode === 'classic' ? 'Classic' : 'Expedition' }}<template v-if="community">
+          · {{ community.label }}</template>
       </p>
       <h2 id="result-headline" class="headline">
         <span class="medal" aria-hidden="true">{{ medal ? MEDAL_ICON[medal] : '✨' }}</span>
@@ -226,6 +229,10 @@ const nextRoad = computed(() => {
         @click="shareComment"
       >
         {{ COMMENT_LABEL[commentState] }}
+      </button>
+
+      <button v-if="expeditionOpen" type="button" class="action" @click="emit('expedition')">
+        Play Expedition: toll and bonus lanes
       </button>
 
       <div v-if="tabs.length" class="tabbed">

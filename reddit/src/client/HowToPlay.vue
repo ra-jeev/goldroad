@@ -2,16 +2,21 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 import TutorialMiniBoard from '#game/app/components/TutorialMiniBoard.vue';
 import { TUTORIAL_LESSONS } from '#game/app/content/tutorialContent';
+import type { RoadMode } from '../shared/api';
 
+const props = defineProps<{ mode: RoadMode }>();
 const emit = defineEmits<{ close: [] }>();
 
 // The website's own lessons. Classic has no toll or bonus lanes, so those two
-// are left out. The keyboard lesson shows only where there is a keyboard.
+// are left out of it. Expedition adds them first, then the rest. The keyboard
+// lesson shows only where there is a keyboard.
+const LANE_LESSONS = ['toll-road', 'bonus-road'];
 const hasKeyboard = typeof matchMedia === 'function' && matchMedia('(hover: hover) and (pointer: fine)').matches;
-const lessons = TUTORIAL_LESSONS.filter(
-  (lesson) =>
-    lesson.id !== 'toll-road' && lesson.id !== 'bonus-road' && (hasKeyboard || lesson.id !== 'keyboard'),
+const basics = TUTORIAL_LESSONS.filter(
+  (lesson) => !LANE_LESSONS.includes(lesson.id) && (hasKeyboard || lesson.id !== 'keyboard'),
 );
+const lanes = TUTORIAL_LESSONS.filter((lesson) => LANE_LESSONS.includes(lesson.id));
+const lessons = props.mode === 'expedition' ? [...lanes, ...basics] : basics;
 
 const start = ref<HTMLButtonElement | null>(null);
 
@@ -29,8 +34,8 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
   <div class="scrim">
     <section class="sheet" role="dialog" aria-modal="true" aria-labelledby="how-title">
       <button type="button" class="close" aria-label="Close" @click="emit('close')">✕</button>
-      <p class="eyebrow">How to play</p>
-      <h2 id="how-title" class="title">Walk the road</h2>
+      <p class="eyebrow">How to play{{ mode === 'expedition' ? ' · Expedition' : '' }}</p>
+      <h2 id="how-title" class="title">{{ mode === 'expedition' ? 'Tolls and bonuses' : 'Walk the road' }}</h2>
 
       <div class="lessons">
         <article v-for="lesson in lessons" :key="lesson.id" class="lesson">

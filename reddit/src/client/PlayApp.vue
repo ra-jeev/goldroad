@@ -9,13 +9,15 @@ import { HINTS_PER_ROAD_MODE } from '#game/lib/gameConstants';
 import { calcMedalForAttempt } from '#game/lib/gameTiers';
 import { guideHighlightTiles, hintRevealsNewTile } from '#game/shared/utils/hints';
 import type { HintResult } from '#game/shared/types/game';
-import type { Ballot, CommunityPick, Medal, PlayerRun, PublicRoad, Standing } from '../shared/api';
+import type { Ballot, CommunityPick, Medal, PlayerRun, PublicRoad, RoadMode, Standing } from '../shared/api';
 import { current, isOverTarget, moveTo, replayRoute, startRun, undo, type RunState } from '../shared/run';
 import { ApiError, fetchRoad, postFinish, postHint, postStart } from './api';
-import GameBoardMetrics from '#game/app/components/GameBoardMetrics.vue';
+import GameBoardHeader from '#game/app/components/GameBoardHeader.vue';
 import ResultCard from './ResultCard.vue';
 import { clearRoute, loadRoute, saveRoute } from './savedRoute';
 
+/** Classic, or Expedition once Classic is solved, as on the website. */
+const mode = ref<RoadMode>('classic');
 const road = ref<PublicRoad | null>(null);
 const error = ref<string | null>(null);
 const run = ref<RunState | null>(null);
@@ -50,14 +52,16 @@ const failSignal = ref(0);
 const deniedSignal = ref(0);
 const deniedTile = ref<number | null>(null);
 const focusSignal = ref(0);
+const scorePulse = ref<{ type: 'toll' | 'bonus'; key: number } | null>(null);
 
 // The guide opens by itself once per device, on a first visit to an unsolved
 // road. The ? button opens it again.
-const GUIDE_KEY = 'goldroad:guide-seen';
+// Expedition has its own short guide for toll and bonus lanes.
+const guideKey = (forMode: RoadMode) => (forMode === 'classic' ? 'goldroad:guide-seen' : `goldroad:guide-seen:${forMode}`);
 const showGuide = ref(false);
 function guideSeen(): boolean {
   try {
-    return localStorage.getItem(GUIDE_KEY) === '1';
+    return localStorage.getItem(guideKey(mode.value)) === '1';
   } catch {
     return true;
   }
@@ -65,7 +69,7 @@ function guideSeen(): boolean {
 function closeGuide() {
   showGuide.value = false;
   try {
-    localStorage.setItem(GUIDE_KEY, '1');
+    localStorage.setItem(guideKey(mode.value), '1');
   } catch {
     // Storage can be blocked. The guide then shows again next visit.
   }
@@ -75,8 +79,14 @@ function closeGuide() {
 onMounted(async () => {
   window.addEventListener('keydown', onKeydown);
   preloadSounds();
+  await load('classic');
+  showResult.value = hasResult.value;
+  showGuide.value = !!road.value && !showResult.value && !guideSeen();
+});
+
+async function load(next: RoadMode) {
   try {
-    const response = await fetchRoad('classic');
+    const response = await fetchRoad(next);
     road.value = response.road;
     record.value = response.run;
     loggedIn.value = response.run !== null;
@@ -85,14 +95,99 @@ onMounted(async () => {
     standing.value = response.standing;
     ballot.value = response.ballot;
     community.value = response.community;
-    showResult.value = !!response.run?.solved;
+    guestAttempts.value = 0;
+    guestHints.value = 0;
+    guestSolved.value = false;
+    tryStarted.value = false;
     run.value = resumeOrStart(response.road);
-    showGuide.value = !showResult.value && !guideSeen();
     focusPlay();
   } catch (cause) {
     error.value = cause instanceof Error ? cause.message : String(cause);
   }
-});
+}
+
+/** One mode's play state, kept while the other mode is on the board. */
+type ModeState = {
+  road: PublicRoad;
+  record: PlayerRun | null;
+  run: RunState;
+  tryStarted: boolean;
+  solvedBefore: boolean;
+  guide: number[];
+  standing: Standing | null;
+  guestAttempts: number;
+  guestHints: number;
+  guestSolved: boolean;
+};
+const kept: Partial<Record<RoadMode, ModeState>> = {};
+
+function keep(): ModeState | null {
+  if (!road.value || !run.value) return null;
+  return {
+    road: road.value,
+    record: record.value,
+    run: run.value,
+    tryStarted: tryStarted.value,
+    solvedBefore: solvedBefore.value,
+    guide: guide.value,
+    standing: standing.value,
+    guestAttempts: guestAttempts.value,
+    guestHints: guestHints.value,
+    guestSolved: guestSolved.value,
+  };
+}
+
+/** Solved state and medal of a mode, on the board or kept. */
+function modeResult(forMode: RoadMode): { solved: boolean; medal: Medal | null } {
+  if (forMode === mode.value) return { solved: hasResult.value, medal: medal.value };
+  const state = kept[forMode];
+  if (!state) return { solved: false, medal: null };
+  if (state.record) return { solved: state.record.solved, medal: state.record.medal ?? null };
+  return { solved: state.guestSolved, medal: state.guestSolved ? calcMedalForAttempt(state.guestAttempts, true) : null };
+}
+const classicResult = computed(() => modeResult('classic'));
+const expeditionResult = computed(() => modeResult('expedition'));
+
+async function selectMode(next: RoadMode) {
+  if (next === mode.value || finishing.value || switching.value) return;
+  if (next === 'expedition' && !classicResult.value.solved) return;
+  const current = keep();
+  if (current) kept[mode.value] = current;
+  showResult.value = false;
+  hintKind.value = null;
+  saveProblem.value = false;
+  mode.value = next;
+  const restore = kept[next];
+  if (restore) {
+    road.value = restore.road;
+    record.value = restore.record;
+    run.value = restore.run;
+    tryStarted.value = restore.tryStarted;
+    solvedBefore.value = restore.solvedBefore;
+    guide.value = restore.guide;
+    standing.value = restore.standing;
+    guestAttempts.value = restore.guestAttempts;
+    guestHints.value = restore.guestHints;
+    guestSolved.value = restore.guestSolved;
+    focusPlay();
+  } else {
+    switching.value = true;
+    await load(next);
+    switching.value = false;
+  }
+  showGuide.value = !hasResult.value && !guideSeen();
+}
+const switching = ref(false);
+
+/** From the Classic result card: open Expedition. */
+function playExpedition() {
+  showResult.value = false;
+  void selectMode('expedition');
+}
+
+function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
+  scorePulse.value = { type: payload.type, key: (scorePulse.value?.key ?? 0) + 1 };
+}
 
 // The board takes the height the header and the footer leave. Measure them,
 // because their text wraps differently on each screen.
@@ -254,8 +349,10 @@ async function countTry() {
     if (!solvedBefore.value) guestAttempts.value += 1;
     return;
   }
+  const forMode = road.value.mode;
   try {
-    record.value = (await postStart(road.value.mode)).run;
+    const started = (await postStart(forMode)).run;
+    if (mode.value === forMode) record.value = started;
   } catch (cause) {
     console.error('start failed', cause);
     saveProblem.value = true;
@@ -264,11 +361,11 @@ async function countTry() {
 
 async function finish() {
   if (!road.value || !run.value) return;
-  const { mode, day } = road.value;
-  clearRoute(day, mode);
+  const { mode: forMode, day } = road.value;
+  clearRoute(day, forMode);
   finishing.value = true;
   try {
-    const result = await postFinish(mode, run.value.path);
+    const result = await postFinish(forMode, run.value.path);
     if (result.run) record.value = result.run;
     if (result.outcome === 'solved' && !solvedBefore.value) {
       standing.value = result.standing;
@@ -335,7 +432,7 @@ async function askHint() {
   try {
     const response = await postHint(road.value.mode, path, guide.value);
     // The player may have moved while the hint was on its way.
-    if (!run.value || run.value.path.length !== path.length) return;
+    if (!run.value || run.value.path.length !== path.length || road.value?.mode !== mode.value) return;
     if (response.run) {
       record.value = response.run;
       guide.value = response.run.guidePath;
@@ -423,11 +520,21 @@ function onKeydown(event: KeyboardEvent) {
           <h1 class="title">GoldRoad <span class="road-no">#{{ road.roadNo }}</span></h1>
           <p v-if="community" class="community">Community road · {{ community.label }}</p>
         </div>
-        <GameBoardMetrics
+        <GameBoardHeader
+          :selected-mode="mode"
+          has-expedition
+          :is-expedition-unlocked="classicResult.solved"
+          :classic-solved="classicResult.solved"
+          :classic-medal="classicResult.medal"
+          :expedition-solved="expeditionResult.solved"
+          :expedition-medal="expeditionResult.medal"
           :score="run.score"
           :max-score="road.target"
           :total-coins="totalCoins"
+          :pulse="scorePulse"
           :over-target="overTarget"
+          :mode-switch-locked="finishing || switching"
+          @select-mode="selectMode"
         />
       </header>
 
@@ -451,6 +558,7 @@ function onKeydown(event: KeyboardEvent) {
           :denied-tile-index="deniedTile"
           :focus-signal="focusSignal"
           @select="select"
+          @scoring-move="onScoringMove"
         />
       </section>
 
@@ -506,11 +614,13 @@ function onKeydown(event: KeyboardEvent) {
         :community="community"
         :logged-in="loggedIn"
         @close="showResult = false; focusPlay()"
+        :expedition-open="mode === 'classic' && !expeditionResult.solved"
+        @expedition="playExpedition"
         @voted="ballot = $event"
         @commented="record && (record = { ...record, commented: true })"
       />
 
-      <HowToPlay v-if="showGuide" @close="closeGuide" />
+      <HowToPlay v-if="showGuide" :mode="mode" @close="closeGuide" />
     </template>
   </main>
 </template>
