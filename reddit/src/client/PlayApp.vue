@@ -2,6 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import GameBoard from '#game/app/components/GameBoard.vue';
 import { muted, playSound, preloadSounds } from './sounds';
+import HowToPlay from './HowToPlay.vue';
 import { buildInitialTileStates } from '#game/app/utils/boardUtils';
 import { UI_COPY } from '#game/app/content/uiCopy';
 import { HINTS_PER_ROAD_MODE } from '#game/lib/gameConstants';
@@ -50,6 +51,27 @@ const deniedSignal = ref(0);
 const deniedTile = ref<number | null>(null);
 const focusSignal = ref(0);
 
+// The guide opens by itself once per device, on a first visit to an unsolved
+// road. The ? button opens it again.
+const GUIDE_KEY = 'goldroad:guide-seen';
+const showGuide = ref(false);
+function guideSeen(): boolean {
+  try {
+    return localStorage.getItem(GUIDE_KEY) === '1';
+  } catch {
+    return true;
+  }
+}
+function closeGuide() {
+  showGuide.value = false;
+  try {
+    localStorage.setItem(GUIDE_KEY, '1');
+  } catch {
+    // Storage can be blocked. The guide then shows again next visit.
+  }
+  void focusPlay();
+}
+
 onMounted(async () => {
   window.addEventListener('keydown', onKeydown);
   preloadSounds();
@@ -65,6 +87,7 @@ onMounted(async () => {
     community.value = response.community;
     showResult.value = !!response.run?.solved;
     run.value = resumeOrStart(response.road);
+    showGuide.value = !showResult.value && !guideSeen();
     focusPlay();
   } catch (cause) {
     error.value = cause instanceof Error ? cause.message : String(cause);
@@ -341,6 +364,8 @@ const ARROWS: Record<string, [number, number]> = {
 
 function onKeydown(event: KeyboardEvent) {
   if (!road.value || !run.value || event.metaKey || event.ctrlKey || event.altKey) return;
+  // A sheet is open over the board. Keys belong to it.
+  if (showGuide.value || (showResult.value && hasResult.value)) return;
   if (event.key === 'Backspace') {
     event.preventDefault();
     takeBack();
@@ -363,9 +388,10 @@ function onKeydown(event: KeyboardEvent) {
     <p v-if="error" class="notice" role="alert">Could not load the road. {{ error }}</p>
     <p v-else-if="!road || !run" class="notice">{{ UI_COPY.runtime.loadingGame }}</p>
     <template v-else>
+      <button type="button" class="corner corner--left" aria-label="How to play" @click="showGuide = true">?</button>
       <button
         type="button"
-        class="mute"
+        class="corner mute"
         :aria-label="muted ? 'Unmute sounds' : 'Mute sounds'"
         :aria-pressed="muted"
         @click="muted = !muted"
@@ -483,6 +509,8 @@ function onKeydown(event: KeyboardEvent) {
         @voted="ballot = $event"
         @commented="record && (record = { ...record, commented: true })"
       />
+
+      <HowToPlay v-if="showGuide" @close="closeGuide" />
     </template>
   </main>
 </template>
@@ -518,7 +546,7 @@ function onKeydown(event: KeyboardEvent) {
   color: var(--color-gold-muted);
 }
 
-.mute {
+.corner {
   position: absolute;
   top: 6px;
   right: 6px;
@@ -535,8 +563,17 @@ function onKeydown(event: KeyboardEvent) {
   cursor: pointer;
 }
 
-.mute:hover,
-.mute:focus-visible {
+.corner--left {
+  left: 6px;
+  right: auto;
+  padding: 0;
+  font: inherit;
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+
+.corner:hover,
+.corner:focus-visible {
   background: rgb(var(--color-gold-rgb) / 0.12);
   color: var(--color-gold-bright);
 }
