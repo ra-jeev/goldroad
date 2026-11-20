@@ -329,6 +329,15 @@ function resumeOrStart(next: PublicRoad): RunState {
     tryStarted.value = saved.started;
     return resumed;
   }
+  // The server has the solve, but its rank or streak may not be written: a
+  // Save that failed after the solve was stored. Send it once more, quietly.
+  // The server writes only what is missing. The route goes when that works.
+  if (saved && resumed?.outcome === 'solved' && solvedBefore.value && loggedIn.value) {
+    postFinish(next.mode, saved.path)
+      .then(() => clearRoute(next.day, next.mode))
+      .catch((cause) => console.error('solve repair failed', cause));
+    return startRun(next.board);
+  }
   clearRoute(next.day, next.mode);
   return startRun(next.board);
 }
