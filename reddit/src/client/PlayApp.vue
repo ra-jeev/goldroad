@@ -13,7 +13,6 @@ import type { Ballot, CommunityPick, Medal, PlayerRun, PublicRoad, ReminderState
 import { current, isOverTarget, moveTo, replayRoute, startRun, undo, type RunState } from '../shared/run';
 import { ApiError, fetchRoad, postFinish, postHint, postReminder, postStart } from './api';
 import { showForm, showToast } from '@devvit/web/client';
-import { localTimeOfUtc } from './localTime';
 import GameBoardHeader from '#game/app/components/GameBoardHeader.vue';
 import ResultCard from './ResultCard.vue';
 import { clearRoute, loadRoute, saveRoute } from './savedRoute';
@@ -59,8 +58,20 @@ const reminder = ref<ReminderState | null>(null);
 const reminderBusy = ref(false);
 
 /** Reminders go out at 20:00 UTC, four hours before the road changes. */
-const reminderTime = localTimeOfUtc(20);
-const REMINDER_TOAST_ON = `Reminders on. If your streak is at risk, you get one at ${reminderTime}.`;
+/** The reminder comes at 7 PM in the player's own time zone. */
+const localOffset = () => -new Date().getTimezoneOffset();
+const REMINDER_TOAST_ON = 'Reminders on. If your streak is at risk, you get one at 7 PM.';
+
+/** Keep the reminder at 7 PM local after a summer-time change or travel. */
+async function syncReminderOffset() {
+  const state = reminder.value;
+  if (!state?.on || state.offset === localOffset()) return;
+  try {
+    reminder.value = (await postReminder({ offset: localOffset() })).reminder;
+  } catch (cause) {
+    console.error('reminder time update failed', cause);
+  }
+}
 
 /**
  * Asked once, in Reddit's own dialog, when the player closes the card after a
@@ -74,13 +85,13 @@ async function offerReminder() {
   try {
     const answer = await showForm({
       title: 'Keep your road going?',
-      description: `Your streak is ${streak} ${streak === 1 ? 'day' : 'days'}. If you have not walked the day's road by ${reminderTime} (your time), Reddit sends you one reminder. Turn it off at any time with the bell.`,
+      description: `Your streak is ${streak} ${streak === 1 ? 'day' : 'days'}. If you have not walked the day's road by 7 PM, Reddit sends you one reminder. Turn it off at any time with the bell.`,
       acceptLabel: 'Remind me',
       cancelLabel: 'No thanks',
       fields: [],
     });
     if (answer.action === 'SUBMITTED') {
-      reminder.value = (await postReminder({ on: true })).reminder;
+      reminder.value = (await postReminder({ on: true, offset: localOffset() })).reminder;
       showToast(REMINDER_TOAST_ON);
     } else {
       reminder.value = (await postReminder({ asked: true })).reminder;
@@ -96,7 +107,7 @@ async function toggleReminder() {
   reminderBusy.value = true;
   const on = !reminder.value.on;
   try {
-    reminder.value = (await postReminder({ on })).reminder;
+    reminder.value = (await postReminder(on ? { on, offset: localOffset() } : { on })).reminder;
     showToast(on ? REMINDER_TOAST_ON : 'Reminders off.');
   } catch (cause) {
     console.error('reminder toggle failed', cause);
@@ -156,6 +167,7 @@ async function load(next: RoadMode) {
     ballot.value = response.ballot;
     community.value = response.community;
     reminder.value = response.reminder;
+    void syncReminderOffset();
     otherResult.value = response.other
       ? { mode: next === 'classic' ? 'expedition' : 'classic', ...response.other }
       : null;

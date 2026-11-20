@@ -5,6 +5,9 @@ import { ensurePostFlairs } from '../core/flair';
 import { ensureDailyPost } from '../core/post';
 import { fillRoadBuffer } from '../core/roadBuffer';
 import { sendStreakReminders } from '../core/reminders';
+import { dayPostId } from '../core/post';
+import { utcDay } from '../core/day';
+import { notifications } from '@devvit/web/server';
 import { COMMUNITY_OPTIONS } from '../core/community';
 import { createTestRoadPost } from '../core/testRoad';
 import type { CommunityOptionId } from '../../shared/api';
@@ -44,11 +47,17 @@ internal.post('/scheduler/next-road', async (c) => {
   return c.json<TaskResponse>({}, 200);
 });
 
-/** 20:00 UTC every day (devvit.json): four hours before the road changes. */
+/**
+ * Every 30 minutes, at :05 and :35 (devvit.json): players for whom it is now
+ * 7 PM. Five minutes late, so the 00:00 daily post exists when the 00:00 slot
+ * runs.
+ */
 internal.post('/scheduler/streak-reminder', async (c) => {
   try {
     const run = await sendStreakReminders();
-    console.log(`streak-reminder: sent ${run.sent}, failed ${run.failed}${run.skipped ? `, skipped: ${run.skipped}` : ''}`);
+    if (run.sent || run.failed || run.skipped) {
+      console.log(`streak-reminder ${run.slot}: sent ${run.sent}, failed ${run.failed}${run.skipped ? `, skipped: ${run.skipped}` : ''}`);
+    }
   } catch (error) {
     console.error(`streak-reminder failed: ${error}`);
   }
@@ -106,6 +115,32 @@ internal.post('/form/test-road', async (c) => {
   } catch (error) {
     console.error(`test-road failed: ${error}`);
     return c.json<UiResponse>({ showToast: 'Could not post the test road.' }, 400);
+  }
+});
+
+/**
+ * Moderator menu, dev subreddit only: ask Reddit to show the app's game badge,
+ * linking to today's post, so we can see what Reddit draws.
+ */
+internal.post('/menu/test-badge', async (c) => {
+  if (context.subredditName !== TEST_SUBREDDIT) {
+    return c.json<UiResponse>({ showToast: `The badge test works only in r/${TEST_SUBREDDIT}.` });
+  }
+  try {
+    const postId = await dayPostId(utcDay());
+    if (!postId) return c.json<UiResponse>({ showToast: 'There is no post for today yet.' });
+    const result = await notifications.requestShowGameBadge({ post: postId as `t3_${string}` });
+    const status = await notifications.getGameBadgeStatus();
+    console.log(`test-badge: ${JSON.stringify(result)} status ${JSON.stringify(status)}`);
+    const until = status.expiresAt ? ` until ${new Date(status.expiresAt).toISOString().slice(11, 16)} UTC` : '';
+    return c.json<UiResponse>({
+      showToast: result.success
+        ? `Badge requested${status.hasActiveBadge ? `, active${until}` : ', but not active yet'}.`
+        : `Badge refused: ${result.message ?? 'no reason given'}`,
+    });
+  } catch (error) {
+    console.error(`test-badge failed: ${error}`);
+    return c.json<UiResponse>({ showToast: `Badge failed: ${String(error).slice(0, 120)}` });
   }
 });
 

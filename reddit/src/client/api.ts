@@ -6,6 +6,7 @@ import type {
   RoadResponse,
   StartResponse,
   CommunityOptionId,
+  ReminderRequest,
   ReminderResponse,
   VoteResponse,
 } from '../shared/api';
@@ -51,5 +52,5 @@ export const postSubscribe = () => request<{ subscribed: boolean }>('/api/subscr
 
 export const postVote = (option: CommunityOptionId) => request<VoteResponse>('/api/vote', { option });
 
-export const postReminder = (body: { on: boolean } | { asked: true }) =>
+export const postReminder = (body: ReminderRequest) =>
   request<ReminderResponse>('/api/reminder', body);

@@ -66,8 +66,13 @@ export type RoadResponse = {
 };
 
 /** Whether the player gets streak reminders, and whether the app asked yet. */
-export type ReminderState = { on: boolean; asked: boolean };
-export type ReminderRequest = { on: boolean };
+export type ReminderState = {
+  on: boolean;
+  asked: boolean;
+  /** The UTC offset in minutes the reminder time is set for. Null when off. */
+  offset: number | null;
+};
+export type ReminderRequest = { on: boolean; offset?: number } | { asked: true } | { offset: number };
 export type ReminderResponse = { reminder: ReminderState };
 
 export type ModeRequest = { mode: RoadMode };
