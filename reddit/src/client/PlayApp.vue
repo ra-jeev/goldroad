@@ -13,6 +13,7 @@ import type { Ballot, CommunityPick, Medal, PlayerRun, PublicRoad, ReminderState
 import { current, isOverTarget, moveTo, replayRoute, startRun, undo, type RunState } from '../shared/run';
 import { ApiError, fetchRoad, postFinish, postHint, postReminder, postStart } from './api';
 import { showForm, showToast } from '@devvit/web/client';
+import { localTimeOfUtc } from './localTime';
 import GameBoardHeader from '#game/app/components/GameBoardHeader.vue';
 import ResultCard from './ResultCard.vue';
 import { clearRoute, loadRoute, saveRoute } from './savedRoute';
@@ -57,7 +58,9 @@ const focusSignal = ref(0);
 const reminder = ref<ReminderState | null>(null);
 const reminderBusy = ref(false);
 
-const REMINDER_TOAST_ON = 'Reminders on. If your streak is at risk, you get one at 20:00 UTC.';
+/** Reminders go out at 20:00 UTC, four hours before the road changes. */
+const reminderTime = localTimeOfUtc(20);
+const REMINDER_TOAST_ON = `Reminders on. If your streak is at risk, you get one at ${reminderTime}.`;
 
 /**
  * Asked once, in Reddit's own dialog, when the player closes the card after a
@@ -71,7 +74,7 @@ async function offerReminder() {
   try {
     const answer = await showForm({
       title: 'Keep your road going?',
-      description: `Your streak is ${streak} ${streak === 1 ? 'day' : 'days'}. If you have not walked the day's road by 20:00 UTC, Reddit sends you one reminder. Turn it off at any time with the bell.`,
+      description: `Your streak is ${streak} ${streak === 1 ? 'day' : 'days'}. If you have not walked the day's road by ${reminderTime} (your time), Reddit sends you one reminder. Turn it off at any time with the bell.`,
       acceptLabel: 'Remind me',
       cancelLabel: 'No thanks',
       fields: [],

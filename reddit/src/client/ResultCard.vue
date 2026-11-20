@@ -5,6 +5,7 @@ import { calcMedalForAttempt } from '#game/lib/gameTiers';
 import type { Ballot, CommunityOptionId, CommunityPick, Medal, RoadMode, Standing } from '../shared/api';
 import { postComment, postSubscribe, postVote } from './api';
 import TrapMap from './TrapMap.vue';
+import { localDayTime } from './localTime';
 
 const props = defineProps<{
   roadNo: number;
@@ -48,6 +49,11 @@ function share(votes: number): number {
   const total = props.ballot?.total ?? 0;
   return total ? Math.round((votes / total) * 100) : 0;
 }
+
+// The vote closes when Sunday's road is made: 23:30 UTC on Saturday.
+const voteCloses = computed(() =>
+  props.ballot ? localDayTime(Date.parse(`${props.ballot.sunday}T00:00:00Z`) - 30 * 60 * 1000) : '',
+);
 
 const sundayLabel = computed(() => {
   if (!props.ballot) return '';
@@ -308,7 +314,7 @@ const nextRoad = computed(() => {
             <p class="fine">
               <template v-if="voteFailed">Could not save your vote. Try again.</template>
               <template v-else-if="!loggedIn">Log in to vote.</template>
-              <template v-else-if="!ballot.myVote">One vote. You can change it until Sunday.</template>
+              <template v-else-if="!ballot.myVote">One vote. You can change it until {{ voteCloses }}.</template>
               <template v-else>{{ plural(ballot.total, 'vote', 'votes') }} so far</template>
             </p>
           </div>

@@ -63,7 +63,8 @@ export async function sendStreakReminders(today: string = utcDay()): Promise<Rem
   for (let i = 0; i < recipients.length; i += BATCH) {
     const response = await notifications.enqueue({
       title: '🔥 Keep your road going',
-      body: 'Your {{streak}}-day road ends at midnight UTC. Walk today’s GoldRoad to keep it.',
+      // Sent at 20:00 UTC, so this is right in every time zone.
+      body: 'Your {{streak}}-day road ends in 4 hours. Walk today’s GoldRoad to keep it.',
       recipients: recipients.slice(i, i + BATCH),
     });
     run.sent += response.successCount;
