@@ -39,6 +39,8 @@ const hintKind = ref<HintResult['kind'] | null>(null);
 const hinting = ref(false);
 const finishing = ref(false);
 const saveProblem = ref(false);
+/** A solve the server has not confirmed. Its route stays saved for a retry. */
+const unsavedSolve = ref(false);
 /** Rank and streak from the server, once the road is solved. */
 const standing = ref<Standing | null>(null);
 const showResult = ref(false);
@@ -175,7 +177,10 @@ async function load(next: RoadMode) {
     guestHints.value = 0;
     guestSolved.value = false;
     tryStarted.value = false;
+    unsavedSolve.value = false;
     run.value = resumeOrStart(response.road);
+    // A solve that did not reach the server before a reload: send it now.
+    if (run.value.outcome === 'solved') void finish();
     focusPlay();
   } catch (cause) {
     error.value = cause instanceof Error ? cause.message : String(cause);
@@ -230,7 +235,7 @@ const classicResult = computed(() => modeResult('classic'));
 const expeditionResult = computed(() => modeResult('expedition'));
 
 async function selectMode(next: RoadMode) {
-  if (next === mode.value || finishing.value || switching.value) return;
+  if (next === mode.value || finishing.value || switching.value || unsavedSolve.value) return;
   if (next === 'expedition' && !classicResult.value.solved) return;
   const current = keep();
   if (current) kept[mode.value] = current;
@@ -320,7 +325,7 @@ async function focusPlay() {
 function resumeOrStart(next: PublicRoad): RunState {
   const saved = loadRoute(next.day, next.mode);
   const resumed = saved ? replayRoute(next.board, next.target, saved.path) : null;
-  if (saved && resumed && !resumed.outcome) {
+  if (saved && resumed && (!resumed.outcome || (resumed.outcome === 'solved' && !solvedBefore.value))) {
     tryStarted.value = saved.started;
     return resumed;
   }
@@ -394,6 +399,7 @@ const status = computed(() => {
     case 'solved': {
       if (solvedBefore.value) return UI_COPY.runtime.solvedAgain;
       if (finishing.value) return 'Solved. Checking…';
+      if (unsavedSolve.value) return 'Solved, but not saved. Check the connection, then tap Save.';
       const tries = loggedIn.value ? record.value?.solvedAttempt ?? tryNumber.value : guestAttempts.value;
       const name = medal.value ? `${medal.value[0]!.toUpperCase()}${medal.value.slice(1)}` : 'Solved';
       return `${name} on try ${tries}.`;
@@ -431,7 +437,9 @@ const result = computed(() =>
 
 /** Walking again is the next thing to do: the walk ended or cannot land. */
 const walkAgainFirst = computed(() => ended.value || overTarget.value);
-const walkAgainLabel = computed(() => (hasResult.value ? 'Replay' : 'Try again'));
+const walkAgainLabel = computed(() =>
+  unsavedSolve.value ? 'Save' : hasResult.value ? 'Replay' : 'Try again',
+);
 
 const canUndo = computed(() => !!run.value?.undoAvailable && !run.value.outcome);
 const ended = computed(() => !!run.value?.outcome);
@@ -461,12 +469,18 @@ async function countTry() {
 }
 
 async function finish() {
-  if (!road.value || !run.value) return;
+  if (!road.value || !run.value || finishing.value) return;
   const { mode: forMode, day } = road.value;
-  clearRoute(day, forMode);
+  const solved = run.value.outcome === 'solved' && !solvedBefore.value;
+  // Keep a solve until the server confirms it, so a lost request can be sent
+  // again, also after a reload. Other ends of a walk count nothing new.
+  if (solved) persist();
+  else clearRoute(day, forMode);
   finishing.value = true;
   try {
     const result = await postFinish(forMode, run.value.path);
+    clearRoute(day, forMode);
+    unsavedSolve.value = false;
     if (result.run) record.value = result.run;
     if (result.outcome === 'solved' && !solvedBefore.value) {
       standing.value = result.standing;
@@ -475,7 +489,8 @@ async function finish() {
     }
   } catch (cause) {
     console.error('finish failed', cause);
-    saveProblem.value = true;
+    if (solved) unsavedSolve.value = true;
+    else saveProblem.value = true;
   } finally {
     finishing.value = false;
   }
@@ -522,6 +537,7 @@ function tryAgain() {
   tryStarted.value = false;
   hintKind.value = null;
   saveProblem.value = false;
+  unsavedSolve.value = false;
   clearRoute(road.value.day, road.value.mode);
   focusSignal.value += 1;
 }
@@ -658,7 +674,7 @@ function onKeydown(event: KeyboardEvent) {
           :total-coins="totalCoins"
           :pulse="scorePulse"
           :over-target="overTarget"
-          :mode-switch-locked="finishing || switching"
+          :mode-switch-locked="finishing || switching || unsavedSolve"
           @select-mode="selectMode"
         />
       </header>
@@ -720,7 +736,7 @@ function onKeydown(event: KeyboardEvent) {
             :disabled="(run.path.length === 1 && !ended) || finishing"
             :aria-label="walkAgainLabel"
             :title="walkAgainLabel"
-            @click="tryAgain"
+            @click="unsavedSolve ? finish() : tryAgain()"
           >
             <span v-if="walkAgainFirst">{{ walkAgainLabel }}</span>
             <svg v-else viewBox="0 0 24 24" aria-hidden="true">
