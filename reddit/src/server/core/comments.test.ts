@@ -1,4 +1,4 @@
-import { reddit } from '@devvit/web/server';
+import { reddit, redis } from '@devvit/web/server';
 import { createDevvitTest } from '@devvit/test/server/vitest';
 import { afterEach, expect, vi } from 'vitest';
 import type { PlayerRun } from '../../shared/api';
@@ -49,6 +49,17 @@ test('no result goes under a results comment that is not pinned', async () => {
   await expect(pinnedResultsThread('t3_post')).rejects.toThrow('Try again in a moment');
 
   distinguish.mockResolvedValue(undefined);
+  expect(await pinnedResultsThread('t3_post')).toBe('t1_thread');
+});
+
+test('a share before the pin is confirmed does not go under the comment', async () => {
+  // The daily job stored the comment id, but its pin has not been confirmed.
+  await redis.set('thread:t3_post', 't1_thread');
+  const { comment, distinguish } = fakeComment('t1_thread');
+  distinguish.mockRejectedValueOnce(new Error('not yet'));
+  vi.spyOn(reddit, 'getCommentById').mockResolvedValue(comment as never);
+
+  await expect(pinnedResultsThread('t3_post')).rejects.toThrow('Try again in a moment');
   expect(await pinnedResultsThread('t3_post')).toBe('t1_thread');
 });
 

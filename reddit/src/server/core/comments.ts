@@ -4,8 +4,8 @@ import type { Medal, PlayerRun, RoadMode } from '../../shared/api';
 /** Post id → the pinned comment that collects results. */
 const threadKey = (postId: string) => `thread:${postId}`;
 
-/** Set while the results comment is not pinned, so a later call pins it. */
-const unpinnedKey = (postId: string) => `thread:${postId}:unpinned`;
+/** Set only once Reddit confirms the pin. Until then, a call pins it again. */
+const pinnedKey = (postId: string) => `thread:${postId}:pinned`;
 
 const PENDING = 'pending';
 
@@ -29,7 +29,7 @@ export class ThreadNotPinnedError extends ThreadBusyError {
  */
 export async function pinnedResultsThread(postId: string): Promise<string> {
   const id = await ensureResultsThread(postId);
-  if (await redis.get(unpinnedKey(postId))) throw new ThreadNotPinnedError();
+  if (!(await redis.get(pinnedKey(postId)))) throw new ThreadNotPinnedError();
   return id;
 }
 
@@ -45,7 +45,7 @@ export async function ensureResultsThread(postId: string): Promise<string> {
   const key = threadKey(postId);
   const existing = await redis.get(key);
   if (existing && existing !== PENDING) {
-    if (await redis.get(unpinnedKey(postId))) await retryPin(postId, existing);
+    if (!(await redis.get(pinnedKey(postId)))) await retryPin(postId, existing);
     return existing;
   }
   // Only one caller creates the comment. The claim ends by itself if that
@@ -57,10 +57,10 @@ export async function ensureResultsThread(postId: string): Promise<string> {
     await redis.set(key, comment.id);
     try {
       await comment.distinguish(true);
+      await redis.set(pinnedKey(postId), '1');
     } catch (error) {
       // The comment still works as the thread. The next result shared pins it.
       console.error(`could not pin the results comment: ${error}`);
-      await redis.set(unpinnedKey(postId), '1');
     }
     return comment.id;
   } catch (error) {
@@ -73,7 +73,7 @@ async function retryPin(postId: string, commentId: string): Promise<void> {
   try {
     const comment = await reddit.getCommentById(commentId as `t1_${string}`);
     await comment.distinguish(true);
-    await redis.del(unpinnedKey(postId));
+    await redis.set(pinnedKey(postId), '1');
   } catch (error) {
     console.error(`could not pin the results comment: ${error}`);
   }
