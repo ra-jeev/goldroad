@@ -794,6 +794,12 @@ function onKeydown(event: KeyboardEvent) {
   line-height: 1;
 }
 
+/* The website fades these words to 72%, which reads thin in a small frame. */
+.board-area :deep(.info-label) {
+  opacity: 1;
+  font-weight: 500;
+}
+
 .board-area :deep(.info-value) {
   font-size: 1.15rem;
   line-height: 1;
