@@ -57,6 +57,15 @@ async function extendStreak(userId: string, day: string): Promise<{ streak: numb
   return { streak, best };
 }
 
+/**
+ * The streak that ends tonight unless today's Classic road is solved: alive
+ * through yesterday, not yet extended today. Zero when nothing is at risk.
+ */
+export async function streakAtRisk(userId: string, today: string): Promise<number> {
+  const stats = await redis.hGetAll(statsKey(userId));
+  return stats.lastDay === previousDay(today) ? Number(stats.streak ?? 0) : 0;
+}
+
 /** The streak as it is today: it breaks when a whole day goes by. */
 async function readStreak(userId: string, today: string) {
   const stats = await redis.hGetAll(statsKey(userId));

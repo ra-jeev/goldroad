@@ -4,6 +4,7 @@ import { Hono } from 'hono';
 import { ensurePostFlairs } from '../core/flair';
 import { ensureDailyPost } from '../core/post';
 import { fillRoadBuffer } from '../core/roadBuffer';
+import { sendStreakReminders } from '../core/reminders';
 import { COMMUNITY_OPTIONS } from '../core/community';
 import { createTestRoadPost } from '../core/testRoad';
 import type { CommunityOptionId } from '../../shared/api';
@@ -40,6 +41,17 @@ async function logBuffer(job: string) {
  */
 internal.post('/scheduler/next-road', async (c) => {
   await logBuffer('next-road');
+  return c.json<TaskResponse>({}, 200);
+});
+
+/** 20:00 UTC every day (devvit.json): four hours before the road changes. */
+internal.post('/scheduler/streak-reminder', async (c) => {
+  try {
+    const run = await sendStreakReminders();
+    console.log(`streak-reminder: sent ${run.sent}, failed ${run.failed}${run.skipped ? `, skipped: ${run.skipped}` : ''}`);
+  } catch (error) {
+    console.error(`streak-reminder failed: ${error}`);
+  }
   return c.json<TaskResponse>({}, 200);
 });
 

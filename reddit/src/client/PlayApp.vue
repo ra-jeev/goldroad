@@ -9,9 +9,10 @@ import { HINTS_PER_ROAD_MODE } from '#game/lib/gameConstants';
 import { calcMedalForAttempt } from '#game/lib/gameTiers';
 import { guideHighlightTiles, hintRevealsNewTile } from '#game/shared/utils/hints';
 import type { HintResult } from '#game/shared/types/game';
-import type { Ballot, CommunityPick, Medal, PlayerRun, PublicRoad, RoadMode, Standing } from '../shared/api';
+import type { Ballot, CommunityPick, Medal, PlayerRun, PublicRoad, ReminderState, RoadMode, Standing } from '../shared/api';
 import { current, isOverTarget, moveTo, replayRoute, startRun, undo, type RunState } from '../shared/run';
-import { ApiError, fetchRoad, postFinish, postHint, postStart } from './api';
+import { ApiError, fetchRoad, postFinish, postHint, postReminder, postStart } from './api';
+import { showForm, showToast } from '@devvit/web/client';
 import GameBoardHeader from '#game/app/components/GameBoardHeader.vue';
 import ResultCard from './ResultCard.vue';
 import { clearRoute, loadRoute, saveRoute } from './savedRoute';
@@ -52,6 +53,62 @@ const failSignal = ref(0);
 const deniedSignal = ref(0);
 const deniedTile = ref<number | null>(null);
 const focusSignal = ref(0);
+/** Streak reminders. Null for a logged-out player. */
+const reminder = ref<ReminderState | null>(null);
+const reminderBusy = ref(false);
+
+const REMINDER_TOAST_ON = 'Reminders on. If your streak is at risk, you get one at 20:00 UTC.';
+
+/**
+ * Asked once, in Reddit's own dialog, when the player closes the card after a
+ * counted Classic solve that started or kept a streak.
+ */
+async function offerReminder() {
+  const state = reminder.value;
+  const streak = standing.value?.streak ?? 0;
+  if (!state || state.asked || state.on || mode.value !== 'classic' || !standing.value?.counted || streak < 1) return;
+  reminder.value = { ...state, asked: true };
+  try {
+    const answer = await showForm({
+      title: 'Keep your road going?',
+      description: `Your streak is ${streak} ${streak === 1 ? 'day' : 'days'}. If you have not walked the day's road by 20:00 UTC, Reddit sends you one reminder. Turn it off at any time with the bell.`,
+      acceptLabel: 'Remind me',
+      cancelLabel: 'No thanks',
+      fields: [],
+    });
+    if (answer.action === 'SUBMITTED') {
+      reminder.value = (await postReminder({ on: true })).reminder;
+      showToast(REMINDER_TOAST_ON);
+    } else {
+      reminder.value = (await postReminder({ asked: true })).reminder;
+    }
+  } catch (cause) {
+    console.error('reminder question failed', cause);
+  }
+}
+
+/** The bell: turn reminders on or off. */
+async function toggleReminder() {
+  if (!reminder.value || reminderBusy.value) return;
+  reminderBusy.value = true;
+  const on = !reminder.value.on;
+  try {
+    reminder.value = (await postReminder({ on })).reminder;
+    showToast(on ? REMINDER_TOAST_ON : 'Reminders off.');
+  } catch (cause) {
+    console.error('reminder toggle failed', cause);
+    showToast('Could not change reminders. Try again.');
+  } finally {
+    reminderBusy.value = false;
+  }
+}
+
+function closeResult() {
+  showResult.value = false;
+  void focusPlay();
+  void offerReminder();
+}
+
 const scorePulse = ref<{ type: 'toll' | 'bonus'; key: number } | null>(null);
 
 // The guide opens by itself once per device, on a first visit to an unsolved
@@ -95,6 +152,7 @@ async function load(next: RoadMode) {
     standing.value = response.standing;
     ballot.value = response.ballot;
     community.value = response.community;
+    reminder.value = response.reminder;
     otherResult.value = response.other
       ? { mode: next === 'classic' ? 'expedition' : 'classic', ...response.other }
       : null;
@@ -516,6 +574,29 @@ function onKeydown(event: KeyboardEvent) {
       <div class="topbar">
       <button type="button" class="corner corner--left" aria-label="How to play" @click="showGuide = true">?</button>
       <h1 class="title">GoldRoad <span class="road-no">#{{ road.roadNo }}</span></h1>
+      <div class="corner-group">
+      <button
+        v-if="reminder"
+        type="button"
+        class="corner bell"
+        :aria-label="reminder.on ? 'Streak reminders on. Turn off' : 'Streak reminders off. Turn on'"
+        :aria-pressed="reminder.on"
+        :title="reminder.on ? 'Streak reminders on' : 'Streak reminders off'"
+        :disabled="reminderBusy"
+        @click="toggleReminder"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15L6 16ZM10 20.5a2 2 0 0 0 4 0"
+            :fill="reminder.on ? 'currentColor' : 'none'"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+          />
+          <path v-if="!reminder.on" d="M4 4l16 16" stroke="currentColor" stroke-linecap="round" stroke-width="2" />
+        </svg>
+      </button>
       <button
         type="button"
         class="corner mute"
@@ -544,6 +625,7 @@ function onKeydown(event: KeyboardEvent) {
           <path v-else d="m17 9 4 4m0-4-4 4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2.4" />
         </svg>
       </button>
+      </div>
       </div>
 
       <header ref="headerEl" class="header">
@@ -665,7 +747,7 @@ function onKeydown(event: KeyboardEvent) {
         :ballot="ballot"
         :community="community"
         :logged-in="loggedIn"
-        @close="showResult = false; focusPlay()"
+        @close="closeResult"
         :expedition-open="mode === 'classic' && !expeditionResult.solved"
         @expedition="playExpedition"
         @voted="ballot = $event"
@@ -717,7 +799,7 @@ function onKeydown(event: KeyboardEvent) {
   right: 0;
   z-index: 2;
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr) 40px;
+  grid-template-columns: 84px minmax(0, 1fr) 84px;
   align-items: center;
   height: var(--topbar-h);
   padding: 0 6px;
@@ -749,6 +831,17 @@ function onKeydown(event: KeyboardEvent) {
   color: var(--color-gold-bright);
 }
 
+.corner-group {
+  display: flex;
+  justify-content: end;
+  gap: 4px;
+}
+
+.bell {
+  padding: 10px;
+}
+
+.bell svg,
 .mute svg {
   width: 100%;
   height: 100%;

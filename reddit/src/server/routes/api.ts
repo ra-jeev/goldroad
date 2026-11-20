@@ -9,6 +9,7 @@ import type {
   RoadMode,
   RoadResponse,
   PlayerRun,
+  ReminderResponse,
   StartResponse,
   Standing,
   VoteResponse,
@@ -32,6 +33,7 @@ import {
 } from '../core/runs';
 import { getTrap } from '../core/trap';
 import { getStanding } from '../core/standing';
+import { getReminderState, markAsked, setReminder } from '../core/reminders';
 
 export const api = new Hono();
 
@@ -88,6 +90,7 @@ api.get('/road', async (c) => {
       ballot: await getBallot(userId ?? null),
       community: await communityPick(day),
       other: userId ? await otherResult(userId, day, mode) : null,
+      reminder: userId ? await getReminderState(userId) : null,
     });
   } catch (error) {
     return fail(c, error);
@@ -180,6 +183,23 @@ api.post('/vote', async (c) => {
     if (!context.userId) throw new RunError(403, 'Log in to vote');
     const ballot = await castVote(context.userId, option as (typeof COMMUNITY_OPTIONS)[number]['id']);
     return c.json<VoteResponse>({ ballot });
+  } catch (error) {
+    return fail(c, error);
+  }
+});
+
+/**
+ * Streak reminders on or off. Only ever on the player's own choice. `asked`
+ * alone records that the player closed the question without an answer.
+ */
+const ReminderBody = z.union([z.object({ on: z.boolean() }), z.object({ asked: z.literal(true) })]);
+api.post('/reminder', async (c) => {
+  try {
+    const body = ReminderBody.parse(await c.req.json());
+    if (!context.userId) throw new RunError(403, 'Log in for reminders');
+    if ('on' in body) return c.json<ReminderResponse>({ reminder: await setReminder(context.userId, body.on) });
+    await markAsked(context.userId);
+    return c.json<ReminderResponse>({ reminder: await getReminderState(context.userId) });
   } catch (error) {
     return fail(c, error);
   }

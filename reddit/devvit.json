@@ -43,6 +43,10 @@
       "next-road": {
         "endpoint": "/internal/scheduler/next-road",
         "cron": "30 23 * * *"
+      },
+      "streak-reminder": {
+        "endpoint": "/internal/scheduler/streak-reminder",
+        "cron": "0 20 * * *"
       }
     }
   },

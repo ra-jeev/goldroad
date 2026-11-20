@@ -6,6 +6,7 @@ import type {
   RoadResponse,
   StartResponse,
   CommunityOptionId,
+  ReminderResponse,
   VoteResponse,
 } from '../shared/api';
 
@@ -49,3 +50,6 @@ export const postComment = (mode: RoadMode) => request<CommentResponse>('/api/co
 export const postSubscribe = () => request<{ subscribed: boolean }>('/api/subscribe', {});
 
 export const postVote = (option: CommunityOptionId) => request<VoteResponse>('/api/vote', { option });
+
+export const postReminder = (body: { on: boolean } | { asked: true }) =>
+  request<ReminderResponse>('/api/reminder', body);

@@ -61,7 +61,14 @@ export type RoadResponse = {
   community: CommunityPick | null;
   /** The other mode's result today, so its tab shows a tick before it opens. */
   other: { solved: boolean; medal: Medal | null } | null;
+  /** Streak reminders. Null for a logged-out player. */
+  reminder: ReminderState | null;
 };
+
+/** Whether the player gets streak reminders, and whether the app asked yet. */
+export type ReminderState = { on: boolean; asked: boolean };
+export type ReminderRequest = { on: boolean };
+export type ReminderResponse = { reminder: ReminderState };
 
 export type ModeRequest = { mode: RoadMode };
 /** `guide` is read only for logged-out players, who have no saved record. */

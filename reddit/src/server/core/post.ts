@@ -69,6 +69,11 @@ export async function ensureDailyPost(
   return { postId: post.id, created: true };
 }
 
+/** The daily post of a day, if it was made. */
+export async function dayPostId(day: string): Promise<string | null> {
+  return (await redis.get(dayPostKey(day))) ?? null;
+}
+
 /** The day a post belongs to. Null for posts this app did not make. */
 export async function dayForPost(postId: string): Promise<string | null> {
   return (await redis.get(postDayKey(postId))) ?? null;
