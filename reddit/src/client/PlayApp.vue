@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import GameBoard from '#game/app/components/GameBoard.vue';
+import { muted, playSound, preloadSounds } from './sounds';
 import { buildInitialTileStates } from '#game/app/utils/boardUtils';
 import { UI_COPY } from '#game/app/content/uiCopy';
 import { HINTS_PER_ROAD_MODE } from '#game/lib/gameConstants';
@@ -51,6 +52,7 @@ const focusSignal = ref(0);
 
 onMounted(async () => {
   window.addEventListener('keydown', onKeydown);
+  preloadSounds();
   try {
     const response = await fetchRoad('classic');
     road.value = response.road;
@@ -264,14 +266,17 @@ function select(tile: number) {
   if (result.kind === 'denied') {
     deniedTile.value = tile;
     deniedSignal.value += 1;
+    playSound('deny');
     return;
   }
   run.value = result.state;
   focusSignal.value += 1;
   hintKind.value = null;
   if (result.kind === 'moved' && !tryStarted.value) void countTry();
-  if (result.state.outcome) {
-    if (result.state.outcome !== 'solved') failSignal.value += 1;
+  const outcome = result.state.outcome;
+  playSound(result.kind === 'undo' ? 'undo' : outcome === 'solved' ? 'solve' : outcome ? 'dead-end' : 'move');
+  if (outcome) {
+    if (outcome !== 'solved') failSignal.value += 1;
     void finish();
   } else {
     persist();
@@ -284,6 +289,7 @@ function takeBack() {
   if (back) {
     run.value = back;
     focusSignal.value += 1;
+    playSound('undo');
     persist();
   }
 }
@@ -357,6 +363,35 @@ function onKeydown(event: KeyboardEvent) {
     <p v-if="error" class="notice" role="alert">Could not load the road. {{ error }}</p>
     <p v-else-if="!road || !run" class="notice">{{ UI_COPY.runtime.loadingGame }}</p>
     <template v-else>
+      <button
+        type="button"
+        class="mute"
+        :aria-label="muted ? 'Unmute sounds' : 'Mute sounds'"
+        :aria-pressed="muted"
+        @click="muted = !muted"
+      >
+        <!-- The website's speaker icons (app/layouts/default.vue). -->
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M4 9.5v5h3.8L13 19V5L7.8 9.5H4Z"
+            fill="none"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2.4"
+          />
+          <path
+            v-if="!muted"
+            d="M16 9a4.5 4.5 0 0 1 0 6M18.4 6.6a8 8 0 0 1 0 10.8"
+            fill="none"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-width="2.4"
+          />
+          <path v-else d="m17 9 4 4m0-4-4 4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2.4" />
+        </svg>
+      </button>
+
       <header ref="headerEl" class="header">
         <div class="heading">
           <h1 class="title">GoldRoad <span class="road-no">#{{ road.roadNo }}</span></h1>
@@ -458,6 +493,7 @@ function onKeydown(event: KeyboardEvent) {
 }
 
 .play {
+  position: relative;
   /* Fixed board furniture, as on the website. Tiles take what is left. */
   --tile-gap: 14px;
   --road-thickness: 12px;
@@ -480,6 +516,34 @@ function onKeydown(event: KeyboardEvent) {
 .notice {
   margin: auto;
   color: var(--color-gold-muted);
+}
+
+.mute {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 9px;
+  border: 0;
+  border-radius: var(--radius-full, 999px);
+  background: transparent;
+  color: var(--color-gold-muted);
+  cursor: pointer;
+}
+
+.mute:hover,
+.mute:focus-visible {
+  background: rgb(var(--color-gold-rgb) / 0.12);
+  color: var(--color-gold-bright);
+}
+
+.mute svg {
+  width: 100%;
+  height: 100%;
 }
 
 .header {

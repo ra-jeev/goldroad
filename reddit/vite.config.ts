@@ -31,6 +31,11 @@ export default defineConfig({
       '#shared': `${repoRoot}shared`,
     },
   },
+  build: {
+    // Sounds are fetched at run time. Keep each one a real file, because a
+    // data: URL may not pass Reddit's content rules for fetch.
+    assetsInlineLimit: (file) => (file.endsWith('.mp3') ? false : undefined),
+  },
   // The Devvit plugin must stay last.
   plugins: [vue(), devvit()],
 });
