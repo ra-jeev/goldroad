@@ -47,6 +47,10 @@
       "streak-reminder": {
         "endpoint": "/internal/scheduler/streak-reminder",
         "cron": "5,35 * * * *"
+      },
+      "delete-idle": {
+        "endpoint": "/internal/scheduler/delete-idle",
+        "cron": "15 3 * * *"
       }
     }
   },
@@ -58,6 +62,13 @@
         "location": "subreddit",
         "forUserType": "moderator",
         "endpoint": "/internal/menu/post-today"
+      },
+      {
+        "label": "GoldRoad: delete a player's data",
+        "description": "Delete all GoldRoad data of one player, for a removal request.",
+        "location": "subreddit",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/delete-player"
       },
       {
         "label": "GoldRoad: post a test Sunday road",
@@ -76,7 +87,8 @@
     ]
   },
   "forms": {
-    "testRoad": "/internal/form/test-road"
+    "testRoad": "/internal/form/test-road",
+    "deletePlayer": "/internal/form/delete-player"
   },
   "triggers": {
     "onAppInstall": "/internal/triggers/on-app-install"

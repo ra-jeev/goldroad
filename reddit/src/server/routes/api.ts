@@ -18,6 +18,7 @@ import { castVote, COMMUNITY_OPTIONS, communityPick, getBallot } from '../core/c
 import { utcDay } from '../core/day';
 import { dayForPost } from '../core/post';
 import { getGoldRoutes, getOrCreateRoad } from '../core/road';
+import { markSeen } from '../core/userIndex';
 import { ensureResultsThread, resultText, ThreadBusyError } from '../core/comments';
 import {
   claimComment,
@@ -82,6 +83,7 @@ api.get('/road', async (c) => {
     const day = await postDay();
     const road = await getOrCreateRoad(day, mode);
     const { userId } = context;
+    if (userId) await markSeen(userId);
     const run = userId ? await getRun(userId, day, mode) : null;
     return c.json<RoadResponse>({
       road,
