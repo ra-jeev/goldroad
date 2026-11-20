@@ -204,10 +204,16 @@ const headerEl = ref<HTMLElement | null>(null);
 const footerEl = ref<HTMLElement | null>(null);
 // Expedition also puts its toll and bonus line inside the board area.
 const infoEl = () => playEl.value?.querySelector<HTMLElement>('.board-info-slot') ?? null;
+/** Height the board stage adds around its tiles: the info line and its gaps. */
+function infoHeight(): number {
+  const stage = playEl.value?.querySelector<HTMLElement>('.board-stage');
+  const wrapper = playEl.value?.querySelector<HTMLElement>('.board-wrapper');
+  return stage && wrapper ? stage.offsetHeight - wrapper.offsetHeight : 0;
+}
 const chrome = new ResizeObserver(() => {
   playEl.value?.style.setProperty('--header-h', `${headerEl.value?.offsetHeight ?? 90}px`);
   playEl.value?.style.setProperty('--footer-h', `${footerEl.value?.offsetHeight ?? 140}px`);
-  playEl.value?.style.setProperty('--info-h', `${infoEl()?.offsetHeight ?? 0}px`);
+  playEl.value?.style.setProperty('--info-h', `${infoHeight()}px`);
 });
 watch(
   [headerEl, footerEl, () => road.value?.mode],
@@ -218,7 +224,7 @@ watch(
     if (footer) chrome.observe(footer);
     const info = infoEl();
     if (info) chrome.observe(info);
-    else playEl.value?.style.setProperty('--info-h', '0px');
+    playEl.value?.style.setProperty('--info-h', `${infoHeight()}px`);
   },
 );
 
@@ -503,7 +509,9 @@ function onKeydown(event: KeyboardEvent) {
     <p v-if="error" class="notice" role="alert">Could not load the road. {{ error }}</p>
     <p v-else-if="!road || !run" class="notice">{{ UI_COPY.runtime.loadingGame }}</p>
     <template v-else>
+      <div class="topbar">
       <button type="button" class="corner corner--left" aria-label="How to play" @click="showGuide = true">?</button>
+      <h1 class="title">GoldRoad <span class="road-no">#{{ road.roadNo }}</span></h1>
       <button
         type="button"
         class="corner mute"
@@ -532,12 +540,10 @@ function onKeydown(event: KeyboardEvent) {
           <path v-else d="m17 9 4 4m0-4-4 4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2.4" />
         </svg>
       </button>
+      </div>
 
       <header ref="headerEl" class="header">
-        <div class="heading">
-          <h1 class="title">GoldRoad <span class="road-no">#{{ road.roadNo }}</span></h1>
-          <p v-if="community" class="community">Community road · {{ community.label }}</p>
-        </div>
+        <p v-if="community" class="community">Community road · {{ community.label }}</p>
         <GameBoardHeader
           :selected-mode="mode"
           has-expedition
@@ -664,7 +670,9 @@ function onKeydown(event: KeyboardEvent) {
      not pinned to the top and the bottom of the screen. */
   justify-content: space-evenly;
   container-type: size;
-  padding: 10px var(--board-margin) max(10px, env(safe-area-inset-bottom));
+  /* The top bar is fixed, so the even spacing is for header, board, footer. */
+  padding: var(--topbar-h) var(--board-margin) max(6px, env(safe-area-inset-bottom));
+  --topbar-h: 44px;
   background: var(--gradient-bg-main);
   color: var(--color-gold);
 }
@@ -674,11 +682,20 @@ function onKeydown(event: KeyboardEvent) {
   color: var(--color-gold-muted);
 }
 
-.corner {
+.topbar {
   position: absolute;
-  top: 6px;
-  right: 6px;
+  top: 0;
+  left: 0;
+  right: 0;
   z-index: 2;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) 40px;
+  align-items: center;
+  height: var(--topbar-h);
+  padding: 0 6px;
+}
+
+.corner {
   display: grid;
   place-items: center;
   width: 40px;
@@ -692,8 +709,6 @@ function onKeydown(event: KeyboardEvent) {
 }
 
 .corner--left {
-  left: 6px;
-  right: auto;
   padding: 0;
   font: inherit;
   font-size: 1.15rem;
@@ -713,14 +728,43 @@ function onKeydown(event: KeyboardEvent) {
 
 .header {
   display: grid;
-  gap: 8px;
+  gap: 4px;
   justify-items: center;
 }
 
-.heading {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
+/* Reddit's frame is short, so the website's header parts sit tighter. */
+.header :deep(.board-header-card) {
+  gap: 6px;
+  padding: 0;
+}
+
+.header :deep(.mode-option) {
+  min-height: 28px;
+  padding: 0.15rem 0.85rem;
+  font-size: 0.9rem;
+}
+
+.header :deep(.metric-line) {
+  font-size: 1rem;
+}
+
+/* The toll and bonus line, inside the website's board. */
+.board-area :deep(.board-stage) {
+  gap: 6px;
+  padding: 0;
+}
+
+.board-area :deep(.board-info) {
+  margin-top: 0;
+  padding: 1px 0.9rem;
+}
+
+.board-area :deep(.info-item) {
+  font-size: 0.85rem;
+}
+
+.board-area :deep(.info-value) {
+  font-size: 1.05rem;
 }
 
 .community {
@@ -734,6 +778,7 @@ function onKeydown(event: KeyboardEvent) {
 
 .title {
   margin: 0;
+  text-align: center;
   font-size: 1.375rem;
   line-height: 1.1;
   color: var(--color-gold-bright);
@@ -754,7 +799,7 @@ function onKeydown(event: KeyboardEvent) {
     26px,
     min(
       (100cqw - (var(--cols) - 1) * var(--tile-gap) - 16px) / var(--cols),
-      (100cqh - var(--header-h, 90px) - var(--footer-h, 140px) - var(--info-h, 0px) - 48px -
+      (100cqh - var(--header-h, 70px) - var(--footer-h, 120px) - var(--info-h, 0px) - 24px -
         (var(--rows) - 1) * var(--tile-gap)) /
         var(--rows)
     ),
@@ -770,7 +815,7 @@ function onKeydown(event: KeyboardEvent) {
 
 .footer {
   display: grid;
-  gap: 8px;
+  gap: 6px;
 }
 
 .status {
@@ -779,7 +824,7 @@ function onKeydown(event: KeyboardEvent) {
   display: grid;
   place-items: center;
   text-align: center;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   line-height: 1.3;
   color: var(--color-gold-bright);
 }
@@ -821,7 +866,7 @@ function onKeydown(event: KeyboardEvent) {
 }
 
 .control {
-  min-height: 44px;
+  min-height: 38px;
   border: 1px solid rgb(var(--color-gold-rgb) / 0.5);
   border-radius: var(--radius-full);
   background: rgb(var(--color-gold-rgb) / 0.08);
