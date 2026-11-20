@@ -10,6 +10,14 @@ import { getOrCreateRoad } from './road';
 const dayPostKey = (day: string) => `post:day:${day}`;
 /** Post id → day, so a post always shows its own road, for ever. */
 const postDayKey = (postId: string) => `post:${postId}`;
+/** Held while one caller creates a day's post, so two callers never both post. */
+const postLockKey = (day: string) => `post:lock:${day}`;
+
+export class PostBusyError extends Error {
+  constructor() {
+    super("Today's post is being created. Try again in a moment.");
+  }
+}
 
 export type DailyPostResult = { postId: string; created: boolean };
 
@@ -21,6 +29,26 @@ export async function ensureDailyPost(
   day: string = utcDay(),
   { test = false }: { test?: boolean } = {},
 ): Promise<DailyPostResult> {
+  const existing = await redis.get(dayPostKey(day));
+  if (existing) return { postId: existing, created: false };
+
+  // The scheduler and a moderator can both get here at once. Only the caller
+  // that takes the lock posts. The lock ends by itself if that caller fails.
+  const locked = await redis.set(postLockKey(day), '1', { nx: true, expiration: new Date(Date.now() + 120_000) });
+  if (!locked) {
+    const made = await redis.get(dayPostKey(day));
+    if (made) return { postId: made, created: false };
+    throw new PostBusyError();
+  }
+  try {
+    return await createDailyPost(day, test);
+  } finally {
+    await redis.del(postLockKey(day));
+  }
+}
+
+async function createDailyPost(day: string, test: boolean): Promise<DailyPostResult> {
+  // A caller that held the lock before this one may have posted.
   const existing = await redis.get(dayPostKey(day));
   if (existing) return { postId: existing, created: false };
 

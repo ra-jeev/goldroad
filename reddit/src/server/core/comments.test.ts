@@ -25,6 +25,21 @@ test('the results comment is posted and pinned once per post', async () => {
   expect(distinguish).toHaveBeenCalledWith(true);
 });
 
+test('a results comment that could not be pinned is pinned on the next call', async () => {
+  const { comment, distinguish } = fakeComment('t1_thread');
+  distinguish.mockRejectedValueOnce(new Error('no pin'));
+  vi.spyOn(reddit, 'submitComment').mockResolvedValue(comment);
+  const getComment = vi.spyOn(reddit, 'getCommentById').mockResolvedValue(comment as never);
+
+  expect(await ensureResultsThread('t3_post')).toBe('t1_thread');
+  expect(await ensureResultsThread('t3_post')).toBe('t1_thread');
+  expect(await ensureResultsThread('t3_post')).toBe('t1_thread');
+
+  // One failed pin, one retry that works, then no more tries.
+  expect(distinguish).toHaveBeenCalledTimes(2);
+  expect(getComment).toHaveBeenCalledTimes(1);
+});
+
 test('a failed post leaves no claim behind', async () => {
   vi.spyOn(reddit, 'submitComment').mockRejectedValueOnce(new Error('down'));
   await expect(ensureResultsThread('t3_post')).rejects.toThrow('down');

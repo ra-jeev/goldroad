@@ -47,15 +47,23 @@ async function ensureRoad(day: string, mode: RoadMode): Promise<StoredRoad> {
     generatePuzzle(mode);
   if (!puzzle) throw new RoadGenerationError(`No ${mode} road for ${day}`);
 
+  // One transaction writes the board and its gold routes together, so a
+  // board never goes live without the routes its hints need. The first
+  // caller wins; a later one reads the winner's road back.
   const road: StoredRoad = { board: puzzle.board, target: puzzle.maxScore };
-  const won = await redis.set(roadKey(day, mode), JSON.stringify(road), { nx: true });
-  if (!won) {
-    const winner = await redis.get(roadKey(day, mode));
-    if (!winner) throw new RoadGenerationError(`Lost road write for ${day}`);
-    return JSON.parse(winner) as StoredRoad;
+  const tx = await redis.watch(roadKey(day, mode));
+  if (!(await redis.get(roadKey(day, mode)))) {
+    await tx.multi();
+    await tx.set(goldKey(day, mode), JSON.stringify(puzzle.optimalPaths));
+    await tx.set(roadKey(day, mode), JSON.stringify(road));
+    const done = await tx.exec();
+    if (done !== null && done.length > 0) return road;
+  } else {
+    await tx.unwatch();
   }
-  await redis.set(goldKey(day, mode), JSON.stringify(puzzle.optimalPaths));
-  return road;
+  const winner = await redis.get(roadKey(day, mode));
+  if (!winner) throw new RoadGenerationError(`Lost road write for ${day}`);
+  return JSON.parse(winner) as StoredRoad;
 }
 
 export async function getGoldRoutes(day: string, mode: RoadMode): Promise<number[][] | null> {

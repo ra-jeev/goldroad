@@ -77,6 +77,25 @@ test('daily post is created once and carries the board in postData', async () =>
   expect(await redis.get('post:day:2026-11-24')).toBe(first.postId);
 }, SLOW);
 
+test('two callers at once make one daily post', async () => {
+  const spy = vi.spyOn(reddit, 'submitCustomPost');
+  await getOrCreateRoad('2026-11-25', 'classic');
+
+  const results = await Promise.allSettled([ensureDailyPost('2026-11-25'), ensureDailyPost('2026-11-25')]);
+
+  expect(spy).toHaveBeenCalledTimes(1);
+  expect(results.filter((r) => r.status === 'fulfilled' && r.value.created)).toHaveLength(1);
+}, SLOW);
+
+test('two first calls for a road agree on one board with its gold routes', async () => {
+  const [a, b] = await Promise.all([
+    getOrCreateRoad('2026-11-26', 'expedition'),
+    getOrCreateRoad('2026-11-26', 'expedition'),
+  ]);
+  expect(b.board).toEqual(a.board);
+  expect((await getGoldRoutes('2026-11-26', 'expedition'))?.length).toBeGreaterThan(0);
+}, SLOW);
+
 test('a test Sunday road takes no road number and uses its own old Sunday', async () => {
   const spy = vi.spyOn(reddit, 'submitCustomPost');
   const flair = vi.spyOn(reddit, 'setPostFlair');

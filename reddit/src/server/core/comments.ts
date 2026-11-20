@@ -4,6 +4,9 @@ import type { Medal, PlayerRun, RoadMode } from '../../shared/api';
 /** Post id → the pinned comment that collects results. */
 const threadKey = (postId: string) => `thread:${postId}`;
 
+/** Set while the results comment is not pinned, so a later call pins it. */
+const unpinnedKey = (postId: string) => `thread:${postId}:unpinned`;
+
 const PENDING = 'pending';
 
 export class ThreadBusyError extends Error {
@@ -23,24 +26,38 @@ export const THREAD_TEXT =
 export async function ensureResultsThread(postId: string): Promise<string> {
   const key = threadKey(postId);
   const existing = await redis.get(key);
-  if (existing && existing !== PENDING) return existing;
+  if (existing && existing !== PENDING) {
+    if (await redis.get(unpinnedKey(postId))) await retryPin(postId, existing);
+    return existing;
+  }
   // Only one caller creates the comment. The claim ends by itself if that
   // caller fails, so a crash never blocks the thread for ever.
   const claimed = await redis.set(key, PENDING, { nx: true, expiration: new Date(Date.now() + 30_000) });
   if (!claimed) throw new ThreadBusyError();
   try {
     const comment = await reddit.submitComment({ id: postId as `t3_${string}`, text: THREAD_TEXT, runAs: 'APP' });
+    await redis.set(key, comment.id);
     try {
       await comment.distinguish(true);
     } catch (error) {
-      // The comment still works as the thread; it is only not pinned.
+      // The comment still works as the thread. The next result shared pins it.
       console.error(`could not pin the results comment: ${error}`);
+      await redis.set(unpinnedKey(postId), '1');
     }
-    await redis.set(key, comment.id);
     return comment.id;
   } catch (error) {
     await redis.del(key);
     throw error;
+  }
+}
+
+async function retryPin(postId: string, commentId: string): Promise<void> {
+  try {
+    const comment = await reddit.getCommentById(commentId as `t1_${string}`);
+    await comment.distinguish(true);
+    await redis.del(unpinnedKey(postId));
+  } catch (error) {
+    console.error(`could not pin the results comment: ${error}`);
   }
 }
 
