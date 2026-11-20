@@ -34,6 +34,7 @@ import {
 import { getTrap } from '../core/trap';
 import { getStanding } from '../core/standing';
 import { getReminderState, markAsked, setReminder, updateOffset } from '../core/reminders';
+import { isDevSubreddit } from '../core/devSubreddit';
 
 export const api = new Hono();
 
@@ -90,7 +91,9 @@ api.get('/road', async (c) => {
       ballot: await getBallot(userId ?? null),
       community: await communityPick(day),
       other: userId ? await otherResult(userId, day, mode) : null,
-      reminder: userId ? await getReminderState(userId) : null,
+      // Push notifications are a gated beta on Reddit. Until this app is in it,
+      // reminders show only in the dev subreddit, where pushes reach the developer.
+      reminder: userId && isDevSubreddit() ? await getReminderState(userId) : null,
     });
   } catch (error) {
     return fail(c, error);

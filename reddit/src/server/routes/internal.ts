@@ -13,8 +13,7 @@ import { createTestRoadPost } from '../core/testRoad';
 import type { CommunityOptionId } from '../../shared/api';
 import { context } from '@devvit/web/server';
 
-/** Test posts are for the private dev subreddit only, never a public one. */
-const TEST_SUBREDDIT = 'goldroad_daily_dev';
+import { DEV_SUBREDDIT as TEST_SUBREDDIT } from '../core/devSubreddit';
 
 export const internal = new Hono();
 
