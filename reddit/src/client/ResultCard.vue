@@ -232,7 +232,7 @@ const nextRoad = computed(() => {
       </button>
 
       <button v-if="expeditionOpen" type="button" class="action" @click="emit('expedition')">
-        Play Expedition: toll and bonus lanes
+        Continue to Expedition
       </button>
 
       <div v-if="tabs.length" class="tabbed">

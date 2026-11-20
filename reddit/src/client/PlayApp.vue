@@ -194,15 +194,25 @@ function onScoringMove(payload: { type: 'toll' | 'bonus' }) {
 const playEl = ref<HTMLElement | null>(null);
 const headerEl = ref<HTMLElement | null>(null);
 const footerEl = ref<HTMLElement | null>(null);
+// Expedition also puts its toll and bonus line inside the board area.
+const infoEl = () => playEl.value?.querySelector<HTMLElement>('.board-info-slot') ?? null;
 const chrome = new ResizeObserver(() => {
   playEl.value?.style.setProperty('--header-h', `${headerEl.value?.offsetHeight ?? 90}px`);
   playEl.value?.style.setProperty('--footer-h', `${footerEl.value?.offsetHeight ?? 140}px`);
+  playEl.value?.style.setProperty('--info-h', `${infoEl()?.offsetHeight ?? 0}px`);
 });
-watch([headerEl, footerEl], ([header, footer]) => {
-  chrome.disconnect();
-  if (header) chrome.observe(header);
-  if (footer) chrome.observe(footer);
-});
+watch(
+  [headerEl, footerEl, () => road.value?.mode],
+  async ([header, footer]) => {
+    await nextTick();
+    chrome.disconnect();
+    if (header) chrome.observe(header);
+    if (footer) chrome.observe(footer);
+    const info = infoEl();
+    if (info) chrome.observe(info);
+    else playEl.value?.style.setProperty('--info-h', '0px');
+  },
+);
 
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeydown);
@@ -736,7 +746,8 @@ function onKeydown(event: KeyboardEvent) {
     26px,
     min(
       (100cqw - (var(--cols) - 1) * var(--tile-gap) - 16px) / var(--cols),
-      (100cqh - var(--header-h, 90px) - var(--footer-h, 140px) - 48px - (var(--rows) - 1) * var(--tile-gap)) /
+      (100cqh - var(--header-h, 90px) - var(--footer-h, 140px) - var(--info-h, 0px) - 48px -
+        (var(--rows) - 1) * var(--tile-gap)) /
         var(--rows)
     ),
     68px

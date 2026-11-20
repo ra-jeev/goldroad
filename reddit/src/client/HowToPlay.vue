@@ -81,7 +81,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
 
 .sheet {
   /* Smaller tiles than the board, so a lesson fits beside its text. */
-  --tile-size: 32px;
+  --tile-size: 30px;
   --tile-gap: 12px;
   --road-thickness: 8px;
   --control-size: 36px;
@@ -163,6 +163,30 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
 
 .lesson-visual {
   justify-self: center;
+}
+
+/* The digits and the start and flag badges scale with these smaller tiles. */
+.lesson-visual :deep(.tile) {
+  font-size: calc(var(--tile-size) * 0.5);
+  font-weight: 800;
+}
+
+.lesson-visual :deep(.marker) {
+  top: -7px;
+  right: -7px;
+  width: 18px;
+  height: 18px;
+  padding: 2px;
+}
+
+/* On a phone, the example sits above its text, so the text keeps the width. */
+@media (max-width: 520px) {
+  .lesson {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+    padding: 12px 10px 10px;
+    text-align: center;
+  }
 }
 
 .copy {

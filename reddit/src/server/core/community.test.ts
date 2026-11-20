@@ -1,7 +1,9 @@
 import { redis } from '@devvit/web/server';
 import { createDevvitTest } from '@devvit/test/server/vitest';
 import { expect } from 'vitest';
-import { ballotSunday, castVote, communityPick, getBallot, isSunday, shapeFor } from './community';
+import { buildEdgeMap, canMove } from '#game/shared/utils/puzzleEngine';
+import { ballotSunday, castVote, COMMUNITY_OPTIONS, communityPick, getBallot, isSunday, shapeFor } from './community';
+import { getGoldRoutes, getOrCreateRoad } from './road';
 import { deleteUserData } from './userIndex';
 
 const test = createDevvitTest();
@@ -69,3 +71,32 @@ test('a deleted account loses its vote', async () => {
   await deleteUserData('t2_a');
   expect(await redis.hGet(`ballot:${SUN}`, 't2_a')).toBeUndefined();
 });
+
+// Each ballot option must make a real, solvable road in both modes.
+for (const option of COMMUNITY_OPTIONS) {
+  test(`a ${option.label} Sunday makes a solvable road`, async () => {
+    await castVote('t2_a', option.id, TUE);
+    for (const mode of ['classic', 'expedition'] as const) {
+      const road = await getOrCreateRoad(SUN, mode);
+      const { board } = road;
+      expect(board.rows).toBe(option.shape.rows ?? 6);
+      expect(board.cols).toBe(option.shape.cols ?? 6);
+      expect(board.tiles).toHaveLength(board.rows * board.cols);
+      if (option.shape.tileRange) {
+        const [low, high] = option.shape.tileRange;
+        expect(board.tiles.every((value) => value >= low && value <= high)).toBe(true);
+      }
+      if (option.shape.blockedEdges) {
+        // The generator may drop a few walls to keep the road solvable.
+        expect(board.missingEdges.length).toBeGreaterThanOrEqual(option.shape.blockedEdges - 4);
+      }
+
+      const route = (await getGoldRoutes(SUN, mode))![0]!;
+      const edges = buildEdgeMap(board);
+      expect(route[0]).toBe(board.start);
+      expect(route.at(-1)).toBe(board.end);
+      for (let i = 1; i < route.length; i++) expect(canMove(route[i - 1]!, route[i]!, edges)).toBe(true);
+      console.log(`${option.id} ${mode}: ${board.rows}x${board.cols}, ${board.missingEdges.length} walls, target ${road.target}`);
+    }
+  }, 120_000);
+}
