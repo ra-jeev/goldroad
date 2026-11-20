@@ -5,6 +5,7 @@ import { buildEdgeMap, canMove } from '#game/shared/utils/puzzleEngine';
 import type { RoadPostData } from '../../shared/api';
 import { dayForPost, ensureDailyPost } from './post';
 import { getGoldRoutes, getOrCreateRoad, prepareRoad } from './road';
+import { createTestRoadPost } from './testRoad';
 
 const test = createDevvitTest();
 
@@ -74,4 +75,21 @@ test('daily post is created once and carries the board in postData', async () =>
 
   expect(await dayForPost(first.postId)).toBe('2026-11-24');
   expect(await redis.get('post:day:2026-11-24')).toBe(first.postId);
+}, SLOW);
+
+test('a test Sunday road takes no road number and uses its own old Sunday', async () => {
+  const spy = vi.spyOn(reddit, 'submitCustomPost');
+  const flair = vi.spyOn(reddit, 'setPostFlair');
+
+  const first = await createTestRoadPost('wide');
+  const second = await createTestRoadPost('maze');
+  const daily = await getOrCreateRoad('2026-11-24', 'classic');
+
+  expect(await dayForPost(first)).toBe('2000-01-02');
+  expect(await dayForPost(second)).toBe('2000-01-09');
+  expect(daily.roadNo).toBe(1);
+  const wide = await getOrCreateRoad('2000-01-02', 'expedition');
+  expect(wide.board.cols).toBe(7);
+  expect(spy.mock.calls[0]![0].title).toMatch(/^GoldRoad test road · Community road: Wide road/);
+  expect(flair).not.toHaveBeenCalled();
 }, SLOW);

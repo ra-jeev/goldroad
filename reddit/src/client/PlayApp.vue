@@ -95,6 +95,9 @@ async function load(next: RoadMode) {
     standing.value = response.standing;
     ballot.value = response.ballot;
     community.value = response.community;
+    otherResult.value = response.other
+      ? { mode: next === 'classic' ? 'expedition' : 'classic', ...response.other }
+      : null;
     guestAttempts.value = 0;
     guestHints.value = 0;
     guestSolved.value = false;
@@ -120,6 +123,8 @@ type ModeState = {
   guestSolved: boolean;
 };
 const kept: Partial<Record<RoadMode, ModeState>> = {};
+/** The server's word on the mode not on the board, for its tab tick. */
+const otherResult = ref<{ mode: RoadMode; solved: boolean; medal: Medal | null } | null>(null);
 
 function keep(): ModeState | null {
   if (!road.value || !run.value) return null;
@@ -141,7 +146,10 @@ function keep(): ModeState | null {
 function modeResult(forMode: RoadMode): { solved: boolean; medal: Medal | null } {
   if (forMode === mode.value) return { solved: hasResult.value, medal: medal.value };
   const state = kept[forMode];
-  if (!state) return { solved: false, medal: null };
+  if (!state) {
+    const other = otherResult.value;
+    return other?.mode === forMode ? { solved: other.solved, medal: other.medal } : { solved: false, medal: null };
+  }
   if (state.record) return { solved: state.record.solved, medal: state.record.medal ?? null };
   return { solved: state.guestSolved, medal: state.guestSolved ? calcMedalForAttempt(state.guestAttempts, true) : null };
 }

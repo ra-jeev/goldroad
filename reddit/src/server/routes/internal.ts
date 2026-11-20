@@ -5,6 +5,13 @@ import { ensurePostFlairs } from '../core/flair';
 import { nextDay, utcDay } from '../core/day';
 import { ensureDailyPost } from '../core/post';
 import { prepareRoad } from '../core/road';
+import { COMMUNITY_OPTIONS } from '../core/community';
+import { createTestRoadPost } from '../core/testRoad';
+import type { CommunityOptionId } from '../../shared/api';
+import { context } from '@devvit/web/server';
+
+/** Test posts are for the private dev subreddit only, never a public one. */
+const TEST_SUBREDDIT = 'goldroad_daily_dev';
 
 export const internal = new Hono();
 
@@ -43,6 +50,46 @@ internal.post('/menu/post-today', async (c) => {
   } catch (error) {
     console.error(`post-today failed: ${error}`);
     return c.json<UiResponse>({ showToast: "Could not post today's road." }, 400);
+  }
+});
+
+/** Moderator menu: pick a Sunday vote option, then post a test road for it. */
+internal.post('/menu/test-road', async (c) => {
+  if (context.subredditName !== TEST_SUBREDDIT) {
+    return c.json<UiResponse>({ showToast: `Test roads work only in r/${TEST_SUBREDDIT}.` });
+  }
+  return c.json<UiResponse>({
+    showForm: {
+      name: 'testRoad',
+      form: {
+        title: 'Post a test Sunday road',
+        acceptLabel: 'Post',
+        fields: [
+          {
+            type: 'select',
+            name: 'option',
+            label: 'Vote option',
+            required: true,
+            options: COMMUNITY_OPTIONS.map((option) => ({ label: `${option.label}: ${option.blurb}`, value: option.id })),
+          },
+        ],
+      },
+    },
+  });
+});
+
+internal.post('/form/test-road', async (c) => {
+  if (context.subredditName !== TEST_SUBREDDIT) {
+    return c.json<UiResponse>({ showToast: `Test roads work only in r/${TEST_SUBREDDIT}.` });
+  }
+  try {
+    const { option } = (await c.req.json()) as { option?: string[] | string };
+    const id = (Array.isArray(option) ? option[0] : option) as CommunityOptionId;
+    const postId = await createTestRoadPost(id);
+    return c.json<UiResponse>({ showToast: 'Test road posted.', navigateTo: `https://reddit.com/comments/${postId}` });
+  } catch (error) {
+    console.error(`test-road failed: ${error}`);
+    return c.json<UiResponse>({ showToast: 'Could not post the test road.' }, 400);
   }
 });
 

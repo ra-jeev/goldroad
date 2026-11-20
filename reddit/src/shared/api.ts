@@ -59,6 +59,8 @@ export type RoadResponse = {
   ballot: Ballot;
   /** Set on a Sunday road that the community shaped. */
   community: CommunityPick | null;
+  /** The other mode's result today, so its tab shows a tick before it opens. */
+  other: { solved: boolean; medal: Medal | null } | null;
 };
 
 export type ModeRequest = { mode: RoadMode };

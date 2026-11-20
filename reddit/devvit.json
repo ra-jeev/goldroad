@@ -54,8 +54,18 @@
         "location": "subreddit",
         "forUserType": "moderator",
         "endpoint": "/internal/menu/post-today"
+      },
+      {
+        "label": "GoldRoad: post a test Sunday road",
+        "description": "Dev subreddit only. Post a road made with one Sunday vote option.",
+        "location": "subreddit",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/test-road"
       }
     ]
+  },
+  "forms": {
+    "testRoad": "/internal/form/test-road"
   },
   "triggers": {
     "onAppInstall": "/internal/triggers/on-app-install"

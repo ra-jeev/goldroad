@@ -17,7 +17,10 @@ export type DailyPostResult = { postId: string; created: boolean };
  * Create the post for a day, unless it exists. Safe to call twice: the
  * scheduler, the install trigger and the mod menu all call it.
  */
-export async function ensureDailyPost(day: string = utcDay()): Promise<DailyPostResult> {
+export async function ensureDailyPost(
+  day: string = utcDay(),
+  { test = false }: { test?: boolean } = {},
+): Promise<DailyPostResult> {
   const existing = await redis.get(dayPostKey(day));
   if (existing) return { postId: existing, created: false };
 
@@ -39,7 +42,9 @@ export async function ensureDailyPost(day: string = utcDay()): Promise<DailyPost
 
   const post = await reddit.submitCustomPost({
     subredditName: context.subredditName,
-    title: `GoldRoad #${road.roadNo}${shape} · Target ${road.target} · ${shortDayLabel(day)}`,
+    title: test
+      ? `GoldRoad test road${shape} · Target ${road.target}`
+      : `GoldRoad #${road.roadNo}${shape} · Target ${road.target} · ${shortDayLabel(day)}`,
     entry: 'default',
     postData,
     textFallback: {
@@ -49,6 +54,7 @@ export async function ensureDailyPost(day: string = utcDay()): Promise<DailyPost
 
   await redis.set(dayPostKey(day), post.id);
   await redis.set(postDayKey(post.id), day);
+  if (test) return { postId: post.id, created: true };
   try {
     await flairDailyPost(post.id);
   } catch (error) {

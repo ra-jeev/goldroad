@@ -61,6 +61,11 @@ async function standingFor(day: string, mode: RoadMode, run: PlayerRun | null): 
   return getStanding(userId, day, mode, await isCounted(userId, day, mode), utcDay(), trap);
 }
 
+async function otherResult(userId: string, day: string, mode: RoadMode) {
+  const other = await getRun(userId, day, mode === 'classic' ? 'expedition' : 'classic');
+  return { solved: other.solved, medal: other.medal };
+}
+
 function fail(c: Context, error: unknown) {
   if (error instanceof RunError) return c.json<ErrorResponse>({ error: error.message }, error.status);
   if (error instanceof ThreadBusyError) return c.json<ErrorResponse>({ error: error.message }, 409);
@@ -82,6 +87,7 @@ api.get('/road', async (c) => {
       standing: await standingFor(day, mode, run),
       ballot: await getBallot(userId ?? null),
       community: await communityPick(day),
+      other: userId ? await otherResult(userId, day, mode) : null,
     });
   } catch (error) {
     return fail(c, error);

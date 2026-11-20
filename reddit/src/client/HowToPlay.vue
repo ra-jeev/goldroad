@@ -151,7 +151,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
 
 .lesson {
   display: grid;
-  grid-template-columns: 8.5rem minmax(0, 1fr);
+  grid-template-columns: 9.75rem minmax(0, 1fr);
   align-items: center;
   gap: 12px;
   padding: 10px;
@@ -169,6 +169,11 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
 .lesson-visual :deep(.tile) {
   font-size: calc(var(--tile-size) * 0.5);
   font-weight: 800;
+}
+
+.lesson :deep(.mini-actions) {
+  min-width: 0;
+  justify-content: center;
 }
 
 .lesson-visual :deep(.marker) {
