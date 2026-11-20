@@ -2,7 +2,7 @@ import { reddit } from '@devvit/web/server';
 import { createDevvitTest } from '@devvit/test/server/vitest';
 import { afterEach, expect, vi } from 'vitest';
 import type { PlayerRun } from '../../shared/api';
-import { ensureResultsThread, resultText, THREAD_TEXT } from './comments';
+import { ensureResultsThread, pinnedResultsThread, resultText, THREAD_TEXT } from './comments';
 import { claimComment, saveComment } from './runs';
 
 const test = createDevvitTest();
@@ -38,6 +38,18 @@ test('a results comment that could not be pinned is pinned on the next call', as
   // One failed pin, one retry that works, then no more tries.
   expect(distinguish).toHaveBeenCalledTimes(2);
   expect(getComment).toHaveBeenCalledTimes(1);
+});
+
+test('no result goes under a results comment that is not pinned', async () => {
+  const { comment, distinguish } = fakeComment('t1_thread');
+  distinguish.mockRejectedValue(new Error('no pin'));
+  vi.spyOn(reddit, 'submitComment').mockResolvedValue(comment);
+  vi.spyOn(reddit, 'getCommentById').mockResolvedValue(comment as never);
+
+  await expect(pinnedResultsThread('t3_post')).rejects.toThrow('Try again in a moment');
+
+  distinguish.mockResolvedValue(undefined);
+  expect(await pinnedResultsThread('t3_post')).toBe('t1_thread');
 });
 
 test('a failed post leaves no claim behind', async () => {

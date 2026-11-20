@@ -19,7 +19,7 @@ import { utcDay } from '../core/day';
 import { dayForPost } from '../core/post';
 import { getGoldRoutes, getOrCreateRoad } from '../core/road';
 import { markSeen } from '../core/userIndex';
-import { ensureResultsThread, resultText, ThreadBusyError } from '../core/comments';
+import { pinnedResultsThread, resultText, ThreadBusyError } from '../core/comments';
 import {
   claimComment,
   finishTry,
@@ -160,7 +160,7 @@ api.post('/comment', async (c) => {
 
     try {
       const road = await getOrCreateRoad(day, mode);
-      const threadId = await ensureResultsThread(postId);
+      const threadId = await pinnedResultsThread(postId);
       const comment = await reddit.submitComment({
         id: threadId as `t1_${string}`,
         text: resultText(road.roadNo, mode, run),

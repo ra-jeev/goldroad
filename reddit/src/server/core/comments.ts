@@ -15,6 +15,24 @@ export class ThreadBusyError extends Error {
   }
 }
 
+export class ThreadNotPinnedError extends ThreadBusyError {
+  constructor() {
+    super();
+    this.message = 'Could not post your result now. Try again in a moment.';
+  }
+}
+
+/**
+ * The results comment, only when it is pinned. Reddit asks that score
+ * comments are replies to a pinned comment, so no result goes under an
+ * unpinned one.
+ */
+export async function pinnedResultsThread(postId: string): Promise<string> {
+  const id = await ensureResultsThread(postId);
+  if (await redis.get(unpinnedKey(postId))) throw new ThreadNotPinnedError();
+  return id;
+}
+
 export const THREAD_TEXT =
   'Post your result as a reply here. Talk about the road below. No routes, please: let others find the gold.';
 
