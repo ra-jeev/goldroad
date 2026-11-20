@@ -39,6 +39,10 @@
       "daily-road": {
         "endpoint": "/internal/scheduler/daily-road",
         "cron": "0 0 * * *"
+      },
+      "next-road": {
+        "endpoint": "/internal/scheduler/next-road",
+        "cron": "30 23 * * *"
       }
     }
   },

@@ -1,6 +1,6 @@
 import { redis } from '@devvit/web/server';
 import type { Ballot, CommunityPick, CommunityOptionId } from '../../shared/api';
-import { utcDay } from './day';
+import { nextDay, utcDay } from './day';
 import { remember } from './userIndex';
 
 /**
@@ -38,6 +38,16 @@ export function ballotSunday(day: string = utcDay()): string {
   return utcDay(new Date(date.getTime() + ahead * DAY_MS));
 }
 
+/**
+ * The Sunday a vote today counts for. The ballot closes once that Sunday's
+ * road is made (23:30 UTC on Saturday), so a later vote goes to the week after.
+ */
+async function openSunday(today: string): Promise<string> {
+  const sunday = ballotSunday(today);
+  const closed = (await redis.get(pickKey(sunday))) !== undefined;
+  return closed ? ballotSunday(nextDay(sunday)) : sunday;
+}
+
 async function totals(sunday: string): Promise<Record<CommunityOptionId, number>> {
   const stored = await redis.hGetAll(totalsKey(sunday));
   return Object.fromEntries(
@@ -47,7 +57,7 @@ async function totals(sunday: string): Promise<Record<CommunityOptionId, number>
 
 /** This week's ballot as one player sees it. */
 export async function getBallot(userId: string | null, today: string = utcDay()): Promise<Ballot> {
-  const sunday = ballotSunday(today);
+  const sunday = await openSunday(today);
   const [counts, mine] = await Promise.all([
     totals(sunday),
     userId ? redis.hGet(votesKey(sunday), userId) : Promise.resolve(undefined),
@@ -62,7 +72,7 @@ export async function getBallot(userId: string | null, today: string = utcDay())
 
 /** Cast or change a vote for the coming Sunday. */
 export async function castVote(userId: string, option: CommunityOptionId, today: string = utcDay()): Promise<Ballot> {
-  const sunday = ballotSunday(today);
+  const sunday = await openSunday(today);
   const previous = await redis.hGet(votesKey(sunday), userId);
   if (previous !== option) {
     await redis.hSet(votesKey(sunday), { [userId]: option });

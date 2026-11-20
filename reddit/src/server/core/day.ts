@@ -22,6 +22,11 @@ export function previousDay(day: string): string {
   return utcDay(new Date(Date.parse(`${day}T00:00:00Z`) - DAY_MS));
 }
 
+/** The day after a "YYYY-MM-DD" day key. */
+export function nextDay(day: string): string {
+  return utcDay(new Date(Date.parse(`${day}T00:00:00Z`) + DAY_MS));
+}
+
 /** End of a road's own day (the next 00:00 UTC), in ms. */
 export function dayEndMs(day: string): number {
   return Date.parse(`${day}T00:00:00Z`) + DAY_MS;

@@ -4,7 +4,7 @@ import { expect, vi } from 'vitest';
 import { buildEdgeMap, canMove } from '#game/shared/utils/puzzleEngine';
 import type { RoadPostData } from '../../shared/api';
 import { dayForPost, ensureDailyPost } from './post';
-import { getGoldRoutes, getOrCreateRoad } from './road';
+import { getGoldRoutes, getOrCreateRoad, prepareRoad } from './road';
 
 const test = createDevvitTest();
 
@@ -30,6 +30,17 @@ test('stores one road per day and keeps gold routes apart', async () => {
   for (let i = 1; i < route.length; i++) {
     expect(canMove(route[i - 1]!, route[i]!, edges)).toBe(true);
   }
+}, SLOW);
+
+test('a road made early keeps its board and takes its number when shown', async () => {
+  await prepareRoad('2026-11-21', 'classic');
+  const today = await getOrCreateRoad('2026-11-20', 'classic');
+  const stored = JSON.parse((await redis.get('road:2026-11-21:classic'))!);
+  const tomorrow = await getOrCreateRoad('2026-11-21', 'classic');
+
+  expect(today.roadNo).toBe(1);
+  expect(tomorrow.roadNo).toBe(2);
+  expect(tomorrow.board).toEqual(stored.board);
 }, SLOW);
 
 test('numbers road days in order', async () => {

@@ -24,8 +24,21 @@ export class RoadGenerationError extends Error {}
  */
 export async function getOrCreateRoad(day: string, mode: RoadMode): Promise<PublicRoad> {
   const roadNo = await getOrCreateRoadNo(day);
+  return toPublic(day, roadNo, mode, await ensureRoad(day, mode));
+}
+
+/**
+ * Make and store a day's road before its day starts, so the 00:00 post only
+ * reads it. A board can take seconds to make. The road number is not taken
+ * here: it is given when the road is first shown, so numbers stay in order.
+ */
+export async function prepareRoad(day: string, mode: RoadMode): Promise<void> {
+  await ensureRoad(day, mode);
+}
+
+async function ensureRoad(day: string, mode: RoadMode): Promise<StoredRoad> {
   const stored = await redis.get(roadKey(day, mode));
-  if (stored) return toPublic(day, roadNo, mode, JSON.parse(stored) as StoredRoad);
+  if (stored) return JSON.parse(stored) as StoredRoad;
 
   // A Sunday road takes the shape the community voted for.
   const shape = shapeFor(await communityPick(day));
@@ -39,10 +52,10 @@ export async function getOrCreateRoad(day: string, mode: RoadMode): Promise<Publ
   if (!won) {
     const winner = await redis.get(roadKey(day, mode));
     if (!winner) throw new RoadGenerationError(`Lost road write for ${day}`);
-    return toPublic(day, roadNo, mode, JSON.parse(winner) as StoredRoad);
+    return JSON.parse(winner) as StoredRoad;
   }
   await redis.set(goldKey(day, mode), JSON.stringify(puzzle.optimalPaths));
-  return toPublic(day, roadNo, mode, road);
+  return road;
 }
 
 export async function getGoldRoutes(day: string, mode: RoadMode): Promise<number[][] | null> {

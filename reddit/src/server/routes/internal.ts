@@ -2,7 +2,9 @@ import type { TaskResponse } from '@devvit/web/server';
 import type { TriggerResponse, UiResponse } from '@devvit/web/shared';
 import { Hono } from 'hono';
 import { ensurePostFlairs } from '../core/flair';
+import { nextDay, utcDay } from '../core/day';
 import { ensureDailyPost } from '../core/post';
+import { prepareRoad } from '../core/road';
 
 export const internal = new Hono();
 
@@ -10,6 +12,21 @@ export const internal = new Hono();
 internal.post('/scheduler/daily-road', async (c) => {
   const result = await ensureDailyPost();
   console.log(`daily-road: ${result.created ? 'created' : 'kept'} ${result.postId}`);
+  return c.json<TaskResponse>({}, 200);
+});
+
+/**
+ * 23:30 UTC every day (devvit.json). Makes tomorrow's road now, so the 00:00
+ * post only reads it. If this fails, the 00:00 post makes the road itself.
+ */
+internal.post('/scheduler/next-road', async (c) => {
+  const day = nextDay(utcDay());
+  try {
+    await prepareRoad(day, 'classic');
+    console.log(`next-road: ready for ${day}`);
+  } catch (error) {
+    console.error(`next-road: could not make ${day}: ${error}`);
+  }
   return c.json<TaskResponse>({}, 200);
 });
 

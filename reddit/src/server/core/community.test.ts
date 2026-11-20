@@ -48,6 +48,16 @@ test('the winner shapes the Sunday road and stays fixed', async () => {
   expect(await communityPick(SUN)).toEqual(pick);
 });
 
+test("once Sunday's road is made, new votes go to the week after", async () => {
+  await castVote('t2_a', 'wide', SAT);
+  // The 23:30 job made Sunday's road and fixed its pick.
+  expect(await communityPick(SUN)).toMatchObject({ id: 'wide', votes: 1 });
+
+  const ballot = await castVote('t2_b', 'maze', SAT);
+  expect(ballot.sunday).toBe('2026-12-06');
+  expect(await communityPick(SUN)).toMatchObject({ id: 'wide', votes: 1 });
+});
+
 test('no votes or a weekday means a normal road', async () => {
   expect(await communityPick(SUN)).toBeNull();
   expect(await communityPick(TUE)).toBeNull();
