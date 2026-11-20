@@ -1,6 +1,6 @@
 import { redis } from '@devvit/web/server';
 import { createDevvitTest } from '@devvit/test/server/vitest';
-import { expect } from 'vitest';
+import { expect, vi } from 'vitest';
 import type { PublicRoad } from '../../shared/api';
 import { finishTry, getRun, startTry, useHint } from './runs';
 import { deleteUserData } from './userIndex';
@@ -105,6 +105,21 @@ test('expedition stays locked until classic is solved', async () => {
   await expect(finishTry(ME, DAY, 'expedition', expedition, WRONG_EXIT)).resolves.toMatchObject({
     outcome: 'wrong-exit',
   });
+});
+
+test('a retry of a solve whose rank write failed restores rank and streak once', async () => {
+  await startTry(USER, DAY, 'classic');
+  const zAdd = vi.spyOn(redis, 'zAdd').mockRejectedValueOnce(new Error('down'));
+  await expect(finishTry(ME, DAY, 'classic', road, WINNING)).rejects.toThrow('down');
+  zAdd.mockRestore();
+  expect(await redis.zScore(`lb:${DAY}:classic`, USER)).toBeUndefined();
+
+  await finishTry(ME, DAY, 'classic', road, WINNING);
+  await finishTry(ME, DAY, 'classic', road, WINNING);
+
+  expect(await redis.zScore(`lb:${DAY}:classic`, USER)).toBeDefined();
+  expect(await redis.hGetAll(`stats:${USER}`)).toMatchObject({ lastDay: DAY, streak: '1', best: '1' });
+  expect(await getRun(USER, DAY, 'classic')).toMatchObject({ attempts: 1, solvedAttempt: 1 });
 });
 
 test('logged-out players get a checked result and nothing is stored', async () => {

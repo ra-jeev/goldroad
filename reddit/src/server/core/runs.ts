@@ -170,7 +170,18 @@ export async function finishTry(
     await remember(userId, runKey(userId, day, mode));
     await recordFirstTry(day, mode, path);
   }
-  if (outcome !== 'solved' || stored.solvedAttempt !== undefined) {
+  if (outcome !== 'solved') return { outcome, score, run: toPublic(stored) };
+  if (stored.solvedAttempt !== undefined) {
+    // A retry of a saved solve. A failed request may have saved the solve but
+    // not its rank and streak. recordSolve is safe to run again: it writes the
+    // same rank, and a day already on the streak is not counted twice.
+    if (stored.counted === '1') {
+      await recordSolve(userId, player.name, day, mode, {
+        attempts: Number(stored.solvedAttempt),
+        hints: Number(stored.hints ?? 0),
+        seconds: Number(stored.solveSeconds ?? 0),
+      });
+    }
     return { outcome, score, run: toPublic(stored) };
   }
   // A solve with no recorded start (for example a lost request) still counts
