@@ -598,21 +598,9 @@ function onKeydown(event: KeyboardEvent) {
         >
           {{ status }}
         </p>
-        <!-- Icon buttons, the same icons as the guide (the website's). Only the
-             walk-again button gets words, when it is the next thing to do. -->
+        <!-- The website board's order: hint, walk again, undo. The guide's icons.
+             Only the walk-again button gets words, when it is the next step. -->
         <div class="controls">
-          <button
-            type="button"
-            class="control"
-            :disabled="!canUndo"
-            aria-label="Undo last step"
-            title="Undo last step"
-            @click="takeBack"
-          >
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M4.5 5.5v13M20 12H9m0 0 4.5-4.5M9 12l4.5 4.5" />
-            </svg>
-          </button>
           <button
             type="button"
             class="control control--hint"
@@ -640,6 +628,18 @@ function onKeydown(event: KeyboardEvent) {
             <span v-if="walkAgainFirst">{{ walkAgainLabel }}</span>
             <svg v-else viewBox="0 0 24 24" aria-hidden="true">
               <path d="M4.5 11.2a7.5 7.5 0 1 1 2.2 5.3M4.5 11.2V6.5m0 4.7h4.7" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            class="control"
+            :disabled="!canUndo"
+            aria-label="Undo last step"
+            title="Undo last step"
+            @click="takeBack"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4.5 5.5v13M20 12H9m0 0 4.5-4.5M9 12l4.5 4.5" />
             </svg>
           </button>
         </div>
