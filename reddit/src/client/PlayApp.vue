@@ -756,15 +756,19 @@ function onKeydown(event: KeyboardEvent) {
 
 .board-area :deep(.board-info) {
   margin-top: 0;
-  padding: 1px 0.9rem;
+  padding: 4px 1rem;
+  column-gap: 1.1rem;
 }
 
+/* The lane icons set the box height, so the words can be as tall. */
 .board-area :deep(.info-item) {
-  font-size: 0.85rem;
+  font-size: 1rem;
+  line-height: 1;
 }
 
 .board-area :deep(.info-value) {
-  font-size: 1.05rem;
+  font-size: 1.15rem;
+  line-height: 1;
 }
 
 .community {
