@@ -60,6 +60,16 @@ test('a solve after the post day is practice: no board, no streak', async () => 
   expect(standing).toMatchObject({ counted: false, rank: null, players: 0, streak: 0 });
 });
 
+test('a late repair of an older solve keeps the newer streak', async () => {
+  const solve = { attempts: 1, hints: 0, seconds: 20 };
+  await recordSolve('t2_me', 'me', '2026-11-22', 'classic', solve);
+  await recordSolve('t2_me', 'me', '2026-11-23', 'classic', solve);
+  await recordSolve('t2_me', 'me', '2026-11-24', 'classic', solve);
+  await recordSolve('t2_me', 'me', '2026-11-23', 'classic', solve);
+
+  expect(await redis.hGetAll('stats:t2_me')).toMatchObject({ lastDay: '2026-11-24', streak: '3', best: '3' });
+});
+
 test('the streak grows on days in a row and breaks after a missed day', async () => {
   const solve = { attempts: 1, hints: 0, seconds: 5 };
   await recordSolve('t2_me', 'me', '2026-11-22', 'classic', solve);

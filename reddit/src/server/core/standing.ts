@@ -49,7 +49,9 @@ export async function recordSolve(
 /** Returns the new streak, or null when the day was already on it. */
 async function extendStreak(userId: string, day: string): Promise<{ streak: number; best: number } | null> {
   const stats = await redis.hGetAll(statsKey(userId));
-  if (stats.lastDay === day) return null;
+  // A day already counted, or a late repair of an older day: keep the newer
+  // streak as it is. Days are YYYY-MM-DD, so string order is date order.
+  if (stats.lastDay && stats.lastDay >= day) return null;
   const streak = stats.lastDay === previousDay(day) ? Number(stats.streak ?? 0) + 1 : 1;
   const best = Math.max(streak, Number(stats.best ?? 0));
   await redis.hSet(statsKey(userId), { lastDay: day, streak: String(streak), best: String(best) });
