@@ -356,6 +356,10 @@ const result = computed(() =>
     : { attempts: guestAttempts.value, hints: guestHints.value, seconds: null },
 );
 
+/** Walking again is the next thing to do: the walk ended or cannot land. */
+const walkAgainFirst = computed(() => ended.value || overTarget.value);
+const walkAgainLabel = computed(() => (hasResult.value ? 'Replay' : 'Try again'));
+
 const canUndo = computed(() => !!run.value?.undoAvailable && !run.value.outcome);
 const ended = computed(() => !!run.value?.outcome);
 const canHint = computed(() => !ended.value && !hinting.value && hintsLeft.value > 0 && !solvedBefore.value);
@@ -594,25 +598,49 @@ function onKeydown(event: KeyboardEvent) {
         >
           {{ status }}
         </p>
+        <!-- Icon buttons, the same icons as the guide (the website's). Only the
+             walk-again button gets words, when it is the next thing to do. -->
         <div class="controls">
-          <button type="button" class="control" :disabled="!canUndo" @click="takeBack">Undo</button>
+          <button
+            type="button"
+            class="control"
+            :disabled="!canUndo"
+            aria-label="Undo last step"
+            title="Undo last step"
+            @click="takeBack"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4.5 5.5v13M20 12H9m0 0 4.5-4.5M9 12l4.5 4.5" />
+            </svg>
+          </button>
           <button
             type="button"
             class="control control--hint"
             :disabled="!canHint"
             :aria-label="`Hint, ${hintsLeft} left`"
+            :title="`Hint, ${hintsLeft} left`"
             @click="askHint"
           >
-            Hint <span class="count">{{ hintsLeft }}</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M9 18h6m-5-3.5h4m-7.5-4.7a5.5 5.5 0 1 1 9.2 4.05c-.77.68-1.2 1.28-1.34 2.15H9.64c-.14-.87-.57-1.47-1.34-2.15A5.48 5.48 0 0 1 6.5 9.8Z"
+              />
+            </svg>
+            <span v-if="!solvedBefore" class="count" aria-hidden="true">{{ hintsLeft }}</span>
           </button>
           <button
             type="button"
             class="control"
-            :class="{ 'control--primary': ended || overTarget }"
+            :class="{ 'control--primary': walkAgainFirst }"
             :disabled="(run.path.length === 1 && !ended) || finishing"
+            :aria-label="walkAgainLabel"
+            :title="walkAgainLabel"
             @click="tryAgain"
           >
-            {{ hasResult ? 'Replay' : 'Try again' }}
+            <span v-if="walkAgainFirst">{{ walkAgainLabel }}</span>
+            <svg v-else viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4.5 11.2a7.5 7.5 0 1 1 2.2 5.3M4.5 11.2V6.5m0 4.7h4.7" />
+            </svg>
           </button>
         </div>
         <p class="try">
@@ -843,12 +871,10 @@ function onKeydown(event: KeyboardEvent) {
 }
 
 .controls {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  display: flex;
+  justify-content: center;
   align-items: center;
-  gap: 10px;
-  width: min(100%, 420px);
-  margin: 0 auto;
+  gap: 14px;
 }
 
 .try {
@@ -870,7 +896,12 @@ function onKeydown(event: KeyboardEvent) {
 }
 
 .control {
-  min-height: 38px;
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  min-width: 44px;
+  height: 44px;
+  padding: 0 10px;
   border: 1px solid rgb(var(--color-gold-rgb) / 0.5);
   border-radius: var(--radius-full);
   background: rgb(var(--color-gold-rgb) / 0.08);
@@ -880,16 +911,37 @@ function onKeydown(event: KeyboardEvent) {
   cursor: pointer;
 }
 
+.control svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.control--primary {
+  padding: 0 22px;
+}
+
+/* The hints left, as a badge on the corner, as on the website. */
 .count {
-  display: inline-grid;
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  display: grid;
   place-items: center;
-  min-width: 1.4em;
-  margin-left: 4px;
+  min-width: 20px;
+  height: 20px;
   padding: 0 4px;
+  box-sizing: border-box;
   border-radius: var(--radius-full);
-  background: rgb(var(--color-hint-rgb) / 0.85);
-  color: #fff;
-  font-size: 0.8em;
+  background: var(--color-gold);
+  color: var(--color-text-on-gold);
+  font-size: 0.75rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
 }
 
 .control:disabled {

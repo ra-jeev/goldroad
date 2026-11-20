@@ -2,9 +2,8 @@ import type { TaskResponse } from '@devvit/web/server';
 import type { TriggerResponse, UiResponse } from '@devvit/web/shared';
 import { Hono } from 'hono';
 import { ensurePostFlairs } from '../core/flair';
-import { nextDay, utcDay } from '../core/day';
 import { ensureDailyPost } from '../core/post';
-import { prepareRoad } from '../core/road';
+import { fillRoadBuffer } from '../core/roadBuffer';
 import { COMMUNITY_OPTIONS } from '../core/community';
 import { createTestRoadPost } from '../core/testRoad';
 import type { CommunityOptionId } from '../../shared/api';
@@ -19,23 +18,28 @@ export const internal = new Hono();
 internal.post('/scheduler/daily-road', async (c) => {
   const result = await ensureDailyPost();
   console.log(`daily-road: ${result.created ? 'created' : 'kept'} ${result.postId}`);
+  await logBuffer('daily-road');
   return c.json<TaskResponse>({}, 200);
 });
 
+/** Top up the road buffer and log what it did. Never fails the job. */
+async function logBuffer(job: string) {
+  try {
+    const { made, waiting, ready } = await fillRoadBuffer();
+    console.log(`${job}: made ${made.join(', ') || 'nothing'}; ${ready} roads ready; waiting for votes: ${waiting.join(', ') || 'none'}`);
+  } catch (error) {
+    console.error(`${job}: could not fill the road buffer: ${error}`);
+  }
+}
+
 /**
- * 23:30 UTC every day (devvit.json). Makes tomorrow's road now, so the 00:00
- * post only reads it. If this fails, the 00:00 post makes the road itself.
+ * 23:30 UTC every day (devvit.json). Keeps ROAD_BUFFER_DAYS of roads ready,
+ * so the 00:00 post only reads one. 23:30 on Saturday is also when Sunday's
+ * vote closes and its road is made. If a road is missing, the 00:00 post
+ * makes it itself.
  */
 internal.post('/scheduler/next-road', async (c) => {
-  const day = nextDay(utcDay());
-  for (const mode of ['classic', 'expedition'] as const) {
-    try {
-      await prepareRoad(day, mode);
-      console.log(`next-road: ${mode} ready for ${day}`);
-    } catch (error) {
-      console.error(`next-road: could not make ${mode} for ${day}: ${error}`);
-    }
-  }
+  await logBuffer('next-road');
   return c.json<TaskResponse>({}, 200);
 });
 
@@ -101,6 +105,7 @@ internal.post('/triggers/on-app-install', async (c) => {
   }
   try {
     const result = await ensureDailyPost();
+    await logBuffer('on-app-install');
     return c.json<TriggerResponse>({ status: 'success', message: `Road post ${result.postId}` });
   } catch (error) {
     console.error(`on-app-install failed: ${error}`);
