@@ -467,12 +467,12 @@ watch(
       >
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path
-            d="M9 5H20V19H9L3 12L9 5ZM12 9L17 15M17 9L12 15"
+            d="M4.5 5.5v13M20 12H9m0 0 4.5-4.5M9 12l4.5 4.5"
             fill="none"
             stroke="currentColor"
             stroke-linecap="round"
             stroke-linejoin="round"
-            stroke-width="1.8"
+            stroke-width="3"
           />
         </svg>
       </button>
