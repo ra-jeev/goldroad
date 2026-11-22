@@ -24,6 +24,25 @@ enum RoadWidgetPublisher {
         refresh(defaults: defaults)
     }
 
+    /// The newest daily road this device has seen, for Home and Stats when they are offline.
+    static func currentGameNo(defaults: UserDefaults = .standard) -> Int? {
+        schedule(in: defaults)?.gameNo
+    }
+
+    /// The day that should be live now. Once the saved cutoff has passed, that is the next day,
+    /// even before the app has fetched it, so an old solve never shows as today's.
+    static func expectedGameNo(defaults: UserDefaults = .standard, now: Date = Date()) -> Int? {
+        guard let saved = schedule(in: defaults) else { return nil }
+        if let cutoff = saved.nextRoadAt, cutoff <= now { return saved.gameNo + 1 }
+        return saved.gameNo
+    }
+
+    /// When the next road opens, if that time is still ahead.
+    static func nextRoadAt(defaults: UserDefaults = .standard, now: Date = Date()) -> Date? {
+        guard let date = schedule(in: defaults)?.nextRoadAt, date > now else { return nil }
+        return date
+    }
+
     static func refresh(defaults: UserDefaults = .standard) {
         guard let shared = WidgetRoadSnapshot.sharedDefaults else { return }
         let schedule = schedule(in: defaults)
@@ -58,6 +77,12 @@ enum RoadWidgetPublisher {
             RoadStats.summary(entries, mode: .classic, currentGameNo: gameNo + 1,
                               todayKey: today).currentStreak
         } ?? streak
-        return WidgetRoadSnapshot(streak: streak, streakAfterCutoff: afterRollover, nextRoadAt: nextRoadAt)
+        func solved(_ mode: RoadMode) -> Bool {
+            guard let currentGameNo else { return false }
+            return history.contains { $0.gameNo == currentGameNo && $0.mode == mode && $0.solved }
+        }
+        return WidgetRoadSnapshot(streak: streak, streakAfterCutoff: afterRollover, nextRoadAt: nextRoadAt,
+                                  gameNo: currentGameNo, classicSolved: solved(.classic),
+                                  expeditionSolved: solved(.expedition))
     }
 }
