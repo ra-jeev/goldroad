@@ -298,8 +298,6 @@ private func archiveDate(_ value: String) -> String {
 private struct ArchivedRoadView: View {
     let day: ArchiveDay
     let onCompletion: () -> Void
-    @AppStorage("muted") private var muted = false
-    @AppStorage(GameConstants.hapticsKey) private var hapticsEnabled = true
     @State private var board: ArchiveBoard?
     @State private var classic: RoadRun?
     @State private var expedition: RoadRun?
@@ -321,111 +319,84 @@ private struct ArchivedRoadView: View {
         board?.classic == nil || ArchiveCompletion.contains(day.gameNo, .classic)
     }
 
+    @Environment(\.dismiss) private var dismiss
+    @State private var showSettings = false
+
     var body: some View {
-        ScrollView {
-            VStack(spacing: 14) {
-                if loading {
-                    ProgressView("Loading the road…")
-                } else if let error {
-                    Text(error)
-                    Button("Try again") { reload += 1 }.buttonStyle(.bordered)
-                } else if let run {
-                    game(run)
-                }
+        VStack(spacing: 0) {
+            RoadTopBar(title: "Past Road", subtitle: "Day #\(day.gameNo)" + (run.map { " · \(archiveDate($0.road.playableAt))" } ?? ""),
+                       onBack: { dismiss() }) {
+                BarIconButton(icon: "ellipsis", label: "Settings") { showSettings = true }
             }
-            .frame(maxWidth: 370)
-            .padding()
-            .frame(maxWidth: .infinity)
+            if loading {
+                ProgressView("Loading the road…").frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if let error {
+                VStack(spacing: 14) {
+                    Text(error).multilineTextAlignment(.center)
+                    Button("Try again") { reload += 1 }.buttonStyle(.goldSecondary)
+                }
+                .padding(24)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if let run {
+                game(run)
+            }
         }
-        .background(RoadTheme.color(0x110900).ignoresSafeArea())
+        .background(RoadTheme.screenBackground)
         .foregroundStyle(RoadTheme.gold)
         .tint(RoadTheme.gold)
-        .navigationTitle("Day #\(day.gameNo)")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar(.visible, for: .navigationBar)
-        .toolbar {
-            Button {
-                muted.toggle()
-                if muted { sound.stop() }
-            } label: {
-                Image(systemName: muted ? "speaker.slash.fill" : "speaker.wave.2.fill")
-            }
-            .accessibilityLabel(muted ? "Unmute sounds" : "Mute sounds")
-            Button {
-                hapticsEnabled.toggle()
-            } label: {
-                Image(systemName: hapticsEnabled ? "waveform" : "waveform.slash")
-            }
-            .accessibilityLabel(hapticsEnabled ? "Turn haptics off" : "Turn haptics on")
-        }
+        .toolbar(.hidden, for: .navigationBar)
         .task(id: reload) { await load() }
+        .sheet(isPresented: $showSettings) { SettingsView(onDone: { showSettings = false }) }
         .alert("Start over?", isPresented: $confirmRestart) {
             Button("Keep playing", role: .cancel) {}
             Button("Try again", role: .destructive) { restart() }
-        } message: { Text("This ends your current try and starts a new one.") }
+        } message: { Text("Your current route will be cleared and this will spend a try.") }
     }
 
     private func game(_ run: RoadRun) -> some View {
-        VStack(spacing: 14) {
-            Text(archiveDate(run.road.playableAt)).font(.subheadline)
-            HStack {
-                ForEach(RoadMode.allCases, id: \.self) { option in
-                    let available = option == .classic ? board?.classic != nil : board?.expedition != nil
-                    let locked = option == .expedition && !expeditionUnlocked
-                    Button {
-                        switchMode(option)
-                    } label: {
-                        Label(option.title, systemImage: ArchiveCompletion.contains(day.gameNo, option)
-                              ? "checkmark.circle.fill" : locked ? "lock.circle" : "circle")
-                            .padding(8)
-                            .background(RoadTheme.gold.opacity(mode == option ? 0.2 : 0), in: Capsule())
-                    }
-                    .disabled(!available || locked)
-                    .accessibilityHint(locked ? "Solve Classic to unlock Expedition." : "")
-                    .accessibilityAddTraits(mode == option ? .isSelected : [])
-                }
+        RoadScreenLayout {
+            VStack(spacing: 12) {
+                RoadModeToggle(selected: mode, options: RoadMode.allCases.map { option in
+                    .init(mode: option, solved: ArchiveCompletion.contains(day.gameNo, option),
+                          locked: option == .expedition && !expeditionUnlocked,
+                          enabled: option == .classic ? board?.classic != nil : board?.expedition != nil)
+                }, onSelect: switchMode)
+                .id(completionVersion)
+                RoadMetricsLine(run: run, mode: mode)
+                RoadLegend(board: run.road.board, visible: mode == .expedition)
             }
-            .id(completionVersion)
-            Text("Score \(run.score) / \(run.road.maxScore) · Board \(run.road.board.tiles.reduce(0, +))")
-                .font(.custom("Chivo-Bold", size: 17, relativeTo: .body)).monospacedDigit()
-            if mode == .expedition {
-                HStack {
-                    Text("Toll −\(run.road.board.tollValue)").foregroundStyle(RoadTheme.toll)
-                    Text("Bonus +\(run.road.board.bonusValue)").foregroundStyle(RoadTheme.bonus)
-                }.font(.subheadline.bold())
-            }
+        } board: {
             RoadBoardView(run: run, feedback: feedback, onSelect: select)
                 .id(mode)
-                .padding(.top, 12)
-            Text(hintMessage ?? status(run))
-                .font(.custom("Chivo-Bold", size: 16, relativeTo: .body))
-                .foregroundStyle(RoadTheme.bright)
-                .multilineTextAlignment(.center)
-                .frame(minHeight: 46)
-            HStack(spacing: 15) {
-                if run.outcome == .inProgress {
-                    if run.canUndo { Button("Undo", systemImage: "arrow.uturn.backward") { undo() } }
-                    if run.path.count > 1 { Button("Try again", systemImage: "arrow.counterclockwise") { confirmRestart = true } }
-                    Button("Hint · \(GameConstants.hintsPerMode - run.hintsUsed)", systemImage: "lightbulb.fill") { hint() }
-                        .disabled(run.hintsUsed >= GameConstants.hintsPerMode || archiveRoad?.optimalPaths.isEmpty != false)
-                } else if run.outcome == .solved {
-                    if mode == .classic && board?.expedition != nil {
-                        Button("Play Expedition") { switchMode(.expedition) }
+        } footer: {
+            VStack(spacing: 6) {
+                if run.outcome == .solved {
+                    Text("Solved. Saved to Past Roads.")
+                        .font(RoadFont.body(15))
+                        .foregroundStyle(RoadTheme.gold)
+                        .frame(height: 44)
+                    HStack(spacing: 10) {
+                        let result = RoadResult(gameNo: day.gameNo, mode: mode, attempts: run.attempt,
+                                                elapsed: nil, hintsUsed: run.hintsUsed)
+                        ShareLink(item: result.archiveShareText) { Text("Share") }
+                            .buttonStyle(.goldSecondary)
+                        Button("Play again") { restart() }
+                            .buttonStyle(.goldPrimary)
                     }
-                    Button("Play again") { restart() }
                 } else {
-                    Button("Try again") { restart() }
+                    RoadStatusLine(text: hintMessage ?? RoadStatusCopy.text(for: run))
+                    RoadPlayControls(
+                        hintsLeft: GameConstants.hintsPerMode - run.hintsUsed,
+                        hintEnabled: run.outcome == .inProgress && run.hintsUsed < GameConstants.hintsPerMode
+                            && archiveRoad?.optimalPaths.isEmpty == false,
+                        hintLoading: false,
+                        retry: RoadStatusCopy.retry(for: run),
+                        canUndo: run.canUndo,
+                        onHint: hint,
+                        onRetry: { run.outcome == .inProgress ? (confirmRestart = true) : restart() },
+                        onUndo: undo
+                    )
                 }
-            }
-            .buttonStyle(.bordered)
-            .font(.subheadline.bold())
-            if run.outcome == .solved {
-                let result = RoadResult(gameNo: day.gameNo, mode: mode, attempts: run.attempt,
-                                        elapsed: nil, hintsUsed: run.hintsUsed)
-                ShareLink(item: result.archiveShareText) {
-                    Label("Share result", systemImage: "square.and.arrow.up")
-                }
-                .buttonStyle(.bordered)
             }
         }
     }
@@ -471,7 +442,7 @@ private struct ArchivedRoadView: View {
     }
 
     private func clearInteraction() { feedback = nil; hintMessage = nil }
-    private func play(_ effect: RoadSound.Effect) { if !muted { sound.play(effect) } }
+    private func play(_ effect: RoadSound.Effect) { sound.play(effect) }
 
     private func select(_ tile: Int) {
         guard var run, run.outcome == .inProgress, tile != run.current else { return }

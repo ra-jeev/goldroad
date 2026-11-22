@@ -59,6 +59,11 @@ final class DailyRoadAnalytics {
     private var inFlight = false
     private var timer: Task<Void, Never>?
 
+    /// The Settings switch. When it is off, nothing is sent and pending solves are dropped.
+    private var enabled: Bool {
+        defaults.object(forKey: GameConstants.analyticsKey) as? Bool ?? true
+    }
+
     init(defaults: UserDefaults = .standard, session: URLSession = .shared) {
         self.defaults = defaults
         self.session = session
@@ -74,7 +79,7 @@ final class DailyRoadAnalytics {
 
     /// Call after a valid move off the start tile. Start failures are not queued.
     func startIfNeeded(for run: RoadRun, mode: RoadMode) {
-        guard run.path.count > 1, isCurrent(run) else { return }
+        guard enabled, run.path.count > 1, isCurrent(run) else { return }
         guard started.insert(run.sessionID).inserted else { return }
         let payload = Start(playerUUID: playerUUID(), gameNo: run.road.gameNo,
                             puzzleType: mode.rawValue, sessionId: run.sessionID.uuidString)
@@ -83,7 +88,7 @@ final class DailyRoadAnalytics {
 
     /// Call after finalizing the active time on an exact daily solve.
     func recordSolve(for run: RoadRun, mode: RoadMode) {
-        guard run.outcome == .solved, run.score == run.road.maxScore,
+        guard enabled, run.outcome == .solved, run.score == run.road.maxScore,
               let cutoff = run.road.cutoff, cutoff > Date() else { return }
         let elapsed = run.activeTime.map { Int((min(max($0, 0), 86_400) * 1000).rounded()) }
         let payload = Solve(playerUUID: playerUUID(), gameNo: run.road.gameNo,
@@ -132,6 +137,7 @@ final class DailyRoadAnalytics {
     private func post<Payload: Encodable, Response: SessionResponse>(
         _ path: String, _ payload: Payload, response type: Response.Type
     ) async -> DeliveryResult {
+        guard enabled else { return .discard }
         guard let url = try? GoldRoadAPI.url(path) else { return .discard }
         var request = URLRequest(url: url, timeoutInterval: 15)
         request.httpMethod = "POST"
@@ -157,6 +163,10 @@ final class DailyRoadAnalytics {
         inFlight = true
         defer { inFlight = false; schedule() }
         discardExpired()
+        if !enabled, !pending.isEmpty {
+            pending.removeAll()
+            persist()
+        }
         while let index = pending.firstIndex(where: { force || ($0.nextAttempt.map { $0 <= Date() } ?? false) }) {
             let item = pending[index]
             guard item.cutoff > Date() else { discardExpired(); continue }
