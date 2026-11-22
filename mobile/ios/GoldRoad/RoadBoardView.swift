@@ -35,9 +35,15 @@ struct BoardFeedback: Equatable {
     let kind: Kind
 }
 
+struct BoardPreview {
+    var markers = false
+}
+
 struct RoadBoardView: View {
     let run: RoadRun
     var feedback: BoardFeedback?
+    /// A still picture for the guide: no current tile, no glow, markers only when asked.
+    var preview: BoardPreview? = nil
     let onSelect: (Int) -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -51,8 +57,8 @@ struct RoadBoardView: View {
         let gap = self.gap
         let hapticsEnabled = self.hapticsEnabled
         let board = run.road.board
-        let legal = Set(run.legalMoves)
-        let visited = Set(run.path)
+        let legal = preview == nil ? Set(run.legalMoves) : []
+        let visited = preview == nil ? Set(run.path) : []
         let guided = Set(run.visibleGuide.dropFirst())
         GeometryReader { geometry in
             let size = CGSize(
@@ -144,16 +150,17 @@ struct RoadBoardView: View {
                     let progress = CGFloat(max(0, min(1, walkProgress)))
                     let start = direction ? 0 : length * (1 - progress)
                     let clip = horizontal
-                        ? CGRect(x: center.x + radius + start, y: center.y - 12,
-                                 width: length * progress, height: 24)
-                        : CGRect(x: center.x - 12, y: center.y + radius + start,
-                                 width: 24, height: length * progress)
+                        ? CGRect(x: center.x + radius + start, y: center.y - 14,
+                                 width: length * progress, height: 28)
+                        : CGRect(x: center.x - 14, y: center.y + radius + start,
+                                 width: 28, height: length * progress)
                     roadContext.clip(to: Path(clip))
                 }
                 if active || guide[key] != nil {
                     roadContext.addFilter(.shadow(color: color.opacity(0.65), radius: 4))
                 }
-                for offset in adjustment == 0 ? [CGFloat(0)] : [-4, 4] {
+                let railGap = RoadRails.halfGap * min(1, radius * 2 / 50)
+                for offset in adjustment == 0 ? [CGFloat(0)] : [-railGap, railGap] {
                     let line = Path { path in
                         path.move(to: point(0, offset))
                         path.addLine(to: point(length, offset))
@@ -202,7 +209,8 @@ struct RoadBoardView: View {
         let current = index == run.current
         let undo = run.canUndo && index == run.previous
         let diameter = min(size.width, size.height)
-        let marker = index == board.start ? "Footprints" : index == board.end ? "FinishFlag" : nil
+        let showMarkers = preview?.markers ?? true
+        let marker = !showMarkers ? nil : index == board.start ? "Footprints" : index == board.end ? "FinishFlag" : nil
         let adjustment = active ? board.adjustment(from: run.current, to: index) : 0
         let border = guided ? RoadTheme.hint : visited ? RoadTheme.darkGold : RoadTheme.gold.opacity(active ? 1 : 0.72)
         let glow = guided ? RoadTheme.hint : RoadTheme.gold
@@ -282,7 +290,20 @@ struct RoadBoardView: View {
         .disabled(run.outcome != .inProgress || current)
         .accessibilityIdentifier("tile-\(index)")
         .accessibilityLabel(tileLabel(index, adjustment: adjustment))
-        .accessibilityValue(current ? "Current tile" : undo ? "Undo last step" : visited ? "Visited" : active ? "Available move" : "Unavailable")
+        .accessibilityValue(tileValue(index, current: current, undo: undo, visited: visited,
+                                      active: active, guided: guided))
+        // Only tiles you can act on are buttons. The rest stay readable as plain text.
+        .accessibilityRemoveTraits(active || undo ? [] : .isButton)
+        .accessibilityAddTraits(active || undo ? [] : .isStaticText)
+    }
+
+    private func tileValue(_ index: Int, current: Bool, undo: Bool, visited: Bool,
+                           active: Bool, guided: Bool) -> String {
+        let state = current ? "Current tile" : undo ? "Undo last step" : visited ? "Visited"
+            : active ? "Available move" : "Unavailable"
+        guard guided, preview == nil else { return state }
+        let next = run.visibleGuide.dropFirst().first == index
+        return "\(next ? "Hint: next move" : "Hint: on the route"), \(state)"
     }
 
     private func tileLabel(_ index: Int, adjustment: Int) -> String {

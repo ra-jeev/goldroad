@@ -215,6 +215,20 @@ final class ContractTests: XCTestCase {
         XCTAssertEqual(archive, ["1": ["classic": true, "expedition": true]])
     }
 
+    func testICloudMergeKeepsNewerUnsolvedProgress() {
+        func record(tries: Int, hints: Int) -> DailyRoadRecord {
+            DailyRoadRecord(gameNo: 4, playableAt: "2026-11-04T00:00:00Z", mode: .classic,
+                            attempts: tries, solved: false, activeSeconds: nil, hintsUsed: hints)
+        }
+        let older = record(tries: 1, hints: 0)
+        let moreTries = record(tries: 3, hints: 0)
+        let moreHints = record(tries: 3, hints: 2)
+        XCTAssertEqual(RoadHistorySync.mergeHistory([moreTries], [older]), [moreTries])
+        XCTAssertEqual(RoadHistorySync.mergeHistory([older], [moreTries]), [moreTries])
+        XCTAssertEqual(RoadHistorySync.mergeHistory([moreTries], [moreHints]), [moreHints])
+        XCTAssertEqual(RoadHistorySync.mergeHistory([moreHints], [moreTries]), [moreHints])
+    }
+
     func testWidgetSnapshotTracksClassicSolveAtRollover() throws {
         func solve(_ day: Int, _ mode: RoadMode) -> DailyRoadRecord {
             DailyRoadRecord(gameNo: day, playableAt: "2026-11-19T00:00:00Z", mode: mode,

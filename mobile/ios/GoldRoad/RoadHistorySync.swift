@@ -18,6 +18,12 @@ enum RoadHistorySync {
 
     private static func prefer(_ candidate: DailyRoadRecord, over saved: DailyRoadRecord) -> Bool {
         if candidate.solved != saved.solved { return candidate.solved }
+        // Unsolved: keep the newer progress. Never roll back attempts or hints already spent.
+        if !candidate.solved {
+            if candidate.attempts != saved.attempts { return candidate.attempts > saved.attempts }
+            return candidate.hintsUsed > saved.hintsUsed
+        }
+        // Solved: keep the better result.
         if candidate.attempts != saved.attempts { return candidate.attempts < saved.attempts }
         if candidate.hintsUsed != saved.hintsUsed { return candidate.hintsUsed < saved.hintsUsed }
         let candidateTime = candidate.activeSeconds ?? .max
