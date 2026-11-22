@@ -20,7 +20,6 @@ final class DailyRoadModel {
     private var hintNudgeLevels: [RoadMode: Int] = [:]
     private var resultPending = false
     private(set) var replay: RoadRun?
-    private(set) var muted: Bool
     private(set) var mode: RoadMode {
         didSet { defaults.set(mode.rawValue, forKey: "roadMode") }
     }
@@ -30,26 +29,37 @@ final class DailyRoadModel {
     var confirmRestart = false {
         didSet { if confirmRestart { pauseClock() } else { resumeClock() } }
     }
+    var showSettings = false {
+        didSet { if showSettings { pauseClock() } else { resumeClock() } }
+    }
     var resultPresented = false
 
     private var now = Date()
+    /// True until the first check after the view opens. A fresh open goes straight to today's road.
+    @ObservationIgnored private var freshOpen = true
     @ObservationIgnored private var isActive = true
     @ObservationIgnored private var activeSince: TimeInterval?
+    /// The mode Home asked for. Expedition is applied once the road check confirms it is unlocked.
+    @ObservationIgnored private var requestedMode: RoadMode?
     private let defaults: UserDefaults
     private let sound = RoadSound()
     private let client: ClassicRoadClient
 
-    init(defaults: UserDefaults = .standard, client: ClassicRoadClient = ClassicRoadClient()) {
+    init(startMode: RoadMode? = nil, defaults: UserDefaults = .standard,
+         client: ClassicRoadClient = ClassicRoadClient()) {
         self.defaults = defaults
         self.client = client
-        muted = defaults.bool(forKey: "muted")
-        mode = defaults.string(forKey: "roadMode").flatMap(RoadMode.init(rawValue:)) ?? .classic
+        requestedMode = startMode
+        mode = startMode ?? defaults.string(forKey: "roadMode").flatMap(RoadMode.init(rawValue:)) ?? .classic
     }
 
     var run: RoadRun? { replay ?? (mode == .classic ? classic : expedition) }
     var roadExpired: Bool { nextDay != nil || classic?.road.isExpired(at: now) == true }
+    /// Uses the same solved record as Home, so a Classic solve synced through iCloud also unlocks Expedition.
     var expeditionUnlocked: Bool {
-        classic?.outcome == .solved && classic?.road.gameNo == expedition?.road.gameNo
+        guard let gameNo = classic?.road.gameNo, expedition?.road.gameNo == gameNo else { return false }
+        return classic?.outcome == .solved
+            || DailyRoadRecord.isSolved(gameNo: gameNo, mode: .classic, defaults: defaults)
     }
     var shouldOfferTutorial: Bool {
         guard !isLoading, !updateRequired, !roadExpired, let classic,
@@ -78,12 +88,6 @@ final class DailyRoadModel {
     func onRoadExpired() {
         confirmRestart = false
         pauseClock()
-    }
-
-    func toggleMute() {
-        muted.toggle()
-        defaults.set(muted, forKey: "muted")
-        if muted { sound.stop() }
     }
 
     func beginReplay() {
@@ -198,7 +202,7 @@ final class DailyRoadModel {
     }
 
     private func play(_ effect: RoadSound.Effect) {
-        if !muted { sound.play(effect) }
+        sound.play(effect)
     }
 
     func result(for run: RoadRun, mode: RoadMode) -> RoadResult {
@@ -220,7 +224,7 @@ final class DailyRoadModel {
 
     func resumeClock() {
         guard activeSince == nil, isActive, replay == nil, !roadExpired, !showHelp,
-              !confirmRestart, !resultPresented, let run,
+              !confirmRestart, !showSettings, !resultPresented, let run,
               run.outcome != .solved, run.path.count > 1 else { return }
         activeSince = ProcessInfo.processInfo.systemUptime
     }
@@ -284,7 +288,14 @@ final class DailyRoadModel {
         sound.prepare()
         resumeClock()
         await checkForRoad()
-        guard !Task.isCancelled, !updateRequired else { return }
+        guard !Task.isCancelled else { return }
+        if let requested = requestedMode {
+            requestedMode = nil
+            if requested == .expedition && expeditionUnlocked && !roadExpired && !updateRequired {
+                switchMode(.expedition)
+            }
+        }
+        guard !updateRequired else { return }
 
         if let cutoff = classic?.road.cutoff, !roadExpired {
             do {
@@ -345,6 +356,8 @@ final class DailyRoadModel {
             switch day.availability(after: classic?.road, at: now) {
             case .open:
                 openRoadDay(day)
+            case .ready where freshOpen:
+                openRoadDay(day)
             case .ready:
                 nextDay = day
                 waitingForRoad = false
@@ -375,6 +388,7 @@ final class DailyRoadModel {
                     notice = "Today’s road is unavailable. You can still play the saved puzzle."
                 }
             }
+            freshOpen = false
             if waitingForRoad {
                 notice = "The new road is still being prepared."
             }
