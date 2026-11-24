@@ -38,7 +38,7 @@ struct DailyRoadRecord: Codable, Identifiable, Equatable {
         let attempts = run.outcome == .inProgress ? run.attempt - 1 : run.attempt
         let record = Self(gameNo: run.road.gameNo, playableAt: run.road.playableAt, mode: mode,
                           attempts: attempts, solved: solved,
-                          activeSeconds: solved ? run.activeTime.map { Int($0.rounded()) } : nil,
+                          activeSeconds: solved ? ScreenshotMode.shownTime(run.activeTime).map { Int($0.rounded()) } : nil,
                           hintsUsed: run.hintsUsed)
         if let index = history.firstIndex(where: { $0.id == record.id }) {
             guard !history[index].solved, history[index] != record else { return }

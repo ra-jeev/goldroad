@@ -40,3 +40,5 @@ test-results
 
 # Local planning notes
 LOCAL_STORAGE_EVOLUTION.md
+
+goldie/out/

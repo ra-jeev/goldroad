@@ -26,6 +26,8 @@
 		B0000000000000000000001 /* GameConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000001 /* GameConstants.swift */; };
 		B0000000000000000000002 /* RoadHints.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000002 /* RoadHints.swift */; };
 		B0000000000000000000003 /* RoadShare.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000003 /* RoadShare.swift */; };
+		B0000000000000000000092 /* ScreenshotMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000092 /* ScreenshotMode.swift */; };
+		B0000000000000000000091 /* RoadReview.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000091 /* RoadReview.swift */; };
 		B0000000000000000000004 /* RoadStats.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000004 /* RoadStats.swift */; };
 		A10000000000000000000001 /* ContractTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000002 /* ContractTests.swift */; };
 		A10000000000000000000003 /* contract in Resources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000004 /* contract */; };
@@ -66,6 +68,8 @@
 		F0000000000000000000001 /* GameConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameConstants.swift; sourceTree = "<group>"; };
 		F0000000000000000000002 /* RoadHints.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoadHints.swift; sourceTree = "<group>"; };
 		F0000000000000000000003 /* RoadShare.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoadShare.swift; sourceTree = "<group>"; };
+		F0000000000000000000092 /* ScreenshotMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotMode.swift; sourceTree = "<group>"; };
+		F0000000000000000000091 /* RoadReview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoadReview.swift; sourceTree = "<group>"; };
 		F0000000000000000000004 /* RoadStats.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoadStats.swift; sourceTree = "<group>"; };
 		A10000000000000000000002 /* ContractTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContractTests.swift; sourceTree = "<group>"; };
 		A10000000000000000000004 /* contract */ = {isa = PBXFileReference; lastKnownFileType = folder; name = contract; path = ../../contract; sourceTree = SOURCE_ROOT; };
@@ -119,6 +123,8 @@
 				F0000000000000000000001 /* GameConstants.swift */,
 				F0000000000000000000002 /* RoadHints.swift */,
 				F0000000000000000000003 /* RoadShare.swift */,
+				F0000000000000000000092 /* ScreenshotMode.swift */,
+				F0000000000000000000091 /* RoadReview.swift */,
 				F0000000000000000000004 /* RoadStats.swift */,
 				F1C0FFEE0000000000000001 /* SettingsView.swift */,
 				F1C0FFEE0000000000000000 /* RoadUI.swift */,
@@ -272,6 +278,8 @@
 				B0000000000000000000001 /* GameConstants.swift in Sources */,
 				B0000000000000000000002 /* RoadHints.swift in Sources */,
 				B0000000000000000000003 /* RoadShare.swift in Sources */,
+				B0000000000000000000092 /* ScreenshotMode.swift in Sources */,
+				B0000000000000000000091 /* RoadReview.swift in Sources */,
 				B0000000000000000000004 /* RoadStats.swift in Sources */,
 				B1C0FFEE0000000000000001 /* SettingsView.swift in Sources */,
 				B1C0FFEE0000000000000000 /* RoadUI.swift in Sources */,
@@ -381,6 +389,7 @@
 				);
 				MARKETING_VERSION = 1.0.0;
 				GOLDROAD_API_BASE_URL = "https://playgoldroad.com";
+				GOLDROAD_APP_STORE_URL = "https://apps.apple.com/app/id6838678223";
 				GOLDROAD_APP_GROUP = group.com.playgoldroad.ios;
 				PRODUCT_BUNDLE_IDENTIFIER = com.playgoldroad.ios;
 				SDKROOT = iphoneos;
@@ -408,6 +417,7 @@
 				);
 				MARKETING_VERSION = 1.0.0;
 				GOLDROAD_API_BASE_URL = "https://v2.playgoldroad.com";
+				GOLDROAD_APP_STORE_URL = "https://apps.apple.com/app/id6838678223";
 				GOLDROAD_APP_GROUP = group.com.playgoldroad.ios.staging;
 				PRODUCT_BUNDLE_IDENTIFIER = com.playgoldroad.ios.staging;
 				SDKROOT = iphoneos;

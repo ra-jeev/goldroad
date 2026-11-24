@@ -207,7 +207,8 @@ final class DailyRoadModel {
 
     func result(for run: RoadRun, mode: RoadMode) -> RoadResult {
         RoadResult(gameNo: run.road.gameNo, mode: mode, attempts: run.attempt,
-                   elapsed: run.activeTime, hintsUsed: run.hintsUsed)
+                   elapsed: ScreenshotMode.shownTime(run.activeTime),
+                   hintsUsed: run.hintsUsed)
     }
 
     private func bankTime(into run: inout RoadRun) {

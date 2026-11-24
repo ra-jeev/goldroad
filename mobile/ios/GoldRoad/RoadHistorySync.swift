@@ -53,6 +53,8 @@ enum RoadHistorySync {
     @MainActor
     static func sync() {
         let defaults = UserDefaults.standard
+        // Screenshot mode keeps its sample history out of iCloud, and iCloud out of it.
+        guard !ScreenshotMode.isOn else { return RoadWidgetPublisher.refresh(defaults: defaults) }
         let cloud = NSUbiquitousKeyValueStore.default
         syncHistory(defaults: defaults, cloud: cloud)
         syncCompletion(defaults: defaults, cloud: cloud)

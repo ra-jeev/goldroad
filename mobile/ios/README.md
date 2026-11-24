@@ -22,8 +22,8 @@ Run the shared **GoldRoad** scheme’s test action in Xcode for the full
 contract suite. The `GoldRoadTests` target reads the repository’s `contract/`
 folder as test resources.
 
-When the listing is available, set `GOLDROAD_APP_STORE_URL` to its exact
-URL for the update screen. The default link opens App Store search.
+`GOLDROAD_APP_STORE_URL` points the update screen and the review link at
+the App Store listing (Apple ID 6838678223).
 
 From the repository root, use the Swift compiler to run the gameplay and save tests without a simulator.
 

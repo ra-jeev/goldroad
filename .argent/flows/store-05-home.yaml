@@ -1,0 +1,181 @@
+# App Store capture flow. Needs the screenshot-mode simulator build: the
+# device's data folder holds a GoldRoadScreenshotMode file (see
+# mobile/ios/GoldRoad/ScreenshotMode.swift), so the app serves a local demo
+# road (the Day #100 boards) and a sample history. argent native devtools
+# cannot attach to this app, so every step is a coordinate on the
+# iPhone 17 Pro Max, read from describe.
+steps:
+  - launch: com.playgoldroad.ios
+  - wait: 2500
+  - echo: "Home: Play Classic"
+  - tap:
+      x: 0.79
+      y: 0.311
+  - wait: 2000
+  - echo: "tile-28"
+  - tap:
+      x: 0.73
+      y: 0.628
+  - wait: 120
+  - echo: "tile-22"
+  - tap:
+      x: 0.73
+      y: 0.558
+  - wait: 120
+  - echo: "tile-16"
+  - tap:
+      x: 0.73
+      y: 0.487
+  - wait: 120
+  - echo: "tile-15"
+  - tap:
+      x: 0.577
+      y: 0.487
+  - wait: 120
+  - echo: "tile-21"
+  - tap:
+      x: 0.577
+      y: 0.558
+  - wait: 120
+  - echo: "tile-20"
+  - tap:
+      x: 0.423
+      y: 0.558
+  - wait: 120
+  - echo: "tile-26"
+  - tap:
+      x: 0.423
+      y: 0.628
+  - wait: 120
+  - echo: "tile-25"
+  - tap:
+      x: 0.27
+      y: 0.628
+  - wait: 120
+  - echo: "tile-31"
+  - tap:
+      x: 0.27
+      y: 0.699
+  - wait: 120
+  - echo: "tile-32"
+  - tap:
+      x: 0.423
+      y: 0.699
+  - wait: 120
+  - echo: "tile-33"
+  - tap:
+      x: 0.577
+      y: 0.699
+  - wait: 120
+  - echo: "tile-34"
+  - tap:
+      x: 0.73
+      y: 0.699
+  - wait: 120
+  - echo: "tile-35"
+  - tap:
+      x: 0.883
+      y: 0.699
+  - wait: 120
+  - echo: "tile-29"
+  - tap:
+      x: 0.883
+      y: 0.628
+  - wait: 120
+  - echo: "tile-23"
+  - tap:
+      x: 0.883
+      y: 0.558
+  - wait: 120
+  - echo: "tile-17"
+  - tap:
+      x: 0.883
+      y: 0.487
+  - wait: 120
+  - echo: "tile-11"
+  - tap:
+      x: 0.883
+      y: 0.417
+  - wait: 120
+  - echo: "tile-10"
+  - tap:
+      x: 0.73
+      y: 0.417
+  - wait: 120
+  - echo: "tile-9"
+  - tap:
+      x: 0.577
+      y: 0.417
+  - wait: 120
+  - echo: "tile-3"
+  - tap:
+      x: 0.577
+      y: 0.346
+  - wait: 120
+  - echo: "tile-2"
+  - tap:
+      x: 0.423
+      y: 0.346
+  - wait: 120
+  - echo: "tile-8"
+  - tap:
+      x: 0.423
+      y: 0.417
+  - wait: 120
+  - echo: "tile-14"
+  - tap:
+      x: 0.423
+      y: 0.487
+  - wait: 120
+  - echo: "tile-13"
+  - tap:
+      x: 0.27
+      y: 0.487
+  - wait: 120
+  - echo: "tile-19"
+  - tap:
+      x: 0.27
+      y: 0.558
+  - wait: 120
+  - echo: "tile-18"
+  - tap:
+      x: 0.117
+      y: 0.558
+  - wait: 120
+  - echo: "tile-12"
+  - tap:
+      x: 0.117
+      y: 0.487
+  - wait: 120
+  - echo: "tile-6"
+  - tap:
+      x: 0.117
+      y: 0.417
+  - wait: 120
+  - echo: "tile-7"
+  - tap:
+      x: 0.27
+      y: 0.417
+  - wait: 120
+  - echo: "tile-1"
+  - tap:
+      x: 0.27
+      y: 0.346
+  - wait: 120
+  - echo: "tile-0"
+  - tap:
+      x: 0.117
+      y: 0.346
+  - wait: 120
+  - wait: 3000
+  - echo: "Result sheet: Close"
+  - tap:
+      x: 0.888
+      y: 0.555
+  - wait: 1200
+  - echo: "Board: Back to Home"
+  - tap:
+      x: 0.073
+      y: 0.092
+  - wait: 1500
+  - wait: 800

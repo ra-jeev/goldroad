@@ -6,6 +6,7 @@ struct GoldRoadApp: App {
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
+        ScreenshotMode.install()
         for name in ["Chivo-Bold", "Marcellus-Regular"] {
             if let url = Bundle.main.url(forResource: name, withExtension: "ttf", subdirectory: "Fonts") {
                 CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)

@@ -567,4 +567,27 @@ extension ContractTests {
         }
         XCTAssertTrue(analytics.didSendSolve(gameNo: 1, mode: .classic))
     }
+
+    func testReviewIsAskedAfterThreeSolvedRoadsOncePerVersion() throws {
+        let suite = "review-\(UUID())"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        func save(_ records: [DailyRoadRecord]) throws {
+            defaults.set(try JSONEncoder().encode(records), forKey: DailyRoadRecord.storageKey)
+        }
+        func record(_ gameNo: Int, _ mode: RoadMode = .classic, solved: Bool = true) -> DailyRoadRecord {
+            DailyRoadRecord(gameNo: gameNo, playableAt: "2026-11-20T00:00:00.000Z", mode: mode,
+                            attempts: 1, solved: solved, activeSeconds: 60, hintsUsed: 0)
+        }
+
+        XCTAssertFalse(RoadReview.shouldAsk(defaults: defaults, version: "1.0.0"))
+        // Two roads, one with both modes solved, and one unsolved road: not enough.
+        try save([record(1), record(1, .expedition), record(2), record(3, solved: false)])
+        XCTAssertFalse(RoadReview.shouldAsk(defaults: defaults, version: "1.0.0"))
+        try save([record(1), record(2), record(3)])
+        XCTAssertTrue(RoadReview.shouldAsk(defaults: defaults, version: "1.0.0"))
+        RoadReview.markAsked(defaults: defaults, version: "1.0.0")
+        XCTAssertFalse(RoadReview.shouldAsk(defaults: defaults, version: "1.0.0"))
+        XCTAssertTrue(RoadReview.shouldAsk(defaults: defaults, version: "1.1.0"))
+    }
 }

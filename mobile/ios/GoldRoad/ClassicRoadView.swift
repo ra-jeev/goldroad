@@ -1,3 +1,4 @@
+import StoreKit
 import SwiftUI
 
 struct ClassicRoadView: View {
@@ -5,6 +6,7 @@ struct ClassicRoadView: View {
 
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.requestReview) private var requestReview
     @AppStorage(RoadTutorialView.seenKey) private var hasSeenTutorial = false
     @State private var model: DailyRoadModel
     @State private var showStats = false
@@ -99,6 +101,7 @@ struct ClassicRoadView: View {
 
     /// After the first solve, ask about community stats. Ask about the reminder once, at a later
     /// solve, so the player never gets two questions in a row. After that both live in Settings.
+    /// A rating request comes last, at a later solve, once per app version.
     private func resultClosed() {
         model.resumeClock()
         if DailyRoadAnalytics.shared.consent == nil {
@@ -108,11 +111,19 @@ struct ClassicRoadView: View {
             }
             return
         }
-        guard !reminderAsked, !RoadReminder.shared.enabled else { return }
-        reminderAsked = true
+        if !reminderAsked, !RoadReminder.shared.enabled {
+            reminderAsked = true
+            Task {
+                try? await Task.sleep(for: .milliseconds(400))
+                askReminder = true
+            }
+            return
+        }
+        guard model.run?.outcome == .solved, RoadReview.shouldAsk() else { return }
+        RoadReview.markAsked()
         Task {
-            try? await Task.sleep(for: .milliseconds(400))
-            askReminder = true
+            try? await Task.sleep(for: .milliseconds(600))
+            requestReview()
         }
     }
 
