@@ -59,6 +59,7 @@ final class DailyRoadAnalytics {
     private let queueKey = "dailyAnalytics.pendingSolves.v1"
     private let heldStartsKey = "dailyAnalytics.heldStarts.v1"
     private let sentSolvesKey = "dailyAnalytics.sentSolves.v1"
+    private let sentStartsKey = "dailyAnalytics.sentStarts.v1"
     private let defaults: UserDefaults
     private let session: URLSession
     private let delays: [TimeInterval] = [2, 5, 15, 30, 60, 120]
@@ -86,7 +87,9 @@ final class DailyRoadAnalytics {
             persistHeldStarts()
             Task {
                 for start in starts {
-                    _ = await post("api/session/start", start, response: StartResponse.self)
+                    if case .success = await post("api/session/start", start, response: StartResponse.self) {
+                        markStartSent(start)
+                    }
                 }
                 await deliver(force: true)
             }
@@ -131,7 +134,11 @@ final class DailyRoadAnalytics {
             persistHeldStarts()
             return
         }
-        Task { _ = await post("api/session/start", payload, response: StartResponse.self) }
+        Task {
+            if case .success = await post("api/session/start", payload, response: StartResponse.self) {
+                markStartSent(payload)
+            }
+        }
     }
 
     /// Call after finalizing the active time on an exact daily solve.
@@ -176,12 +183,25 @@ final class DailyRoadAnalytics {
         (defaults.stringArray(forKey: sentSolvesKey) ?? []).contains("\(gameNo):\(mode.rawValue)")
     }
 
+    /// True when this device delivered a start for that road and mode. The server then holds
+    /// a play row for this player, unsolved unless the solve was also sent.
+    func didSendStart(gameNo: Int, mode: RoadMode) -> Bool {
+        (defaults.stringArray(forKey: sentStartsKey) ?? []).contains("\(gameNo):\(mode.rawValue)")
+    }
+
     private func markSent(_ payload: Solve) {
-        var sent = defaults.stringArray(forKey: sentSolvesKey) ?? []
-        let key = "\(payload.gameNo):\(payload.puzzleType)"
+        remember("\(payload.gameNo):\(payload.puzzleType)", in: sentSolvesKey)
+    }
+
+    private func markStartSent(_ payload: Start) {
+        remember("\(payload.gameNo):\(payload.puzzleType)", in: sentStartsKey)
+    }
+
+    private func remember(_ key: String, in listKey: String) {
+        var sent = defaults.stringArray(forKey: listKey) ?? []
         guard !sent.contains(key) else { return }
         sent.append(key)
-        defaults.set(Array(sent.suffix(60)), forKey: sentSolvesKey)
+        defaults.set(Array(sent.suffix(60)), forKey: listKey)
     }
 
     private func persistHeldStarts() {

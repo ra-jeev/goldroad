@@ -473,6 +473,11 @@ extension ContractTests {
             try await Task.sleep(for: .milliseconds(50))
         }
         XCTAssertTrue(analytics.didSendSolve(gameNo: 1, mode: .classic))
+        XCTAssertTrue(analytics.didSendStart(gameNo: 1, mode: .classic))
+        // Start sent, solve not: the player's own unsolved row is left out, so the one
+        // faster player is the whole field.
+        XCTAssertEqual(RoadStats.fieldStanding(plays: 2 - 1, solvedAttemptsExact: ["1": 1], attempts: 2,
+                                               alreadyCounted: false), "The field needed fewer.")
 
         for path in ["/api/session/start", "/api/session/hint", "/api/session/end"] {
             let body = try XCTUnwrap(recorder.body(for: path), path)

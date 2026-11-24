@@ -34,7 +34,7 @@ const updated = 'November 2026';
             your iCloud account. We cannot read it.
           </li>
           <li>
-            On iPhone, the app asks before it sends any play stats. If you say
+            On iPhone, the app asks before it sends any community play stats. If you say
             yes, your daily results go to our servers with a random player ID.
             You can change this in Settings at any time.
           </li>
@@ -107,10 +107,11 @@ const updated = 'November 2026';
           replays are never sent.
         </p>
         <p>
-          <strong>On iPhone</strong>, the app sends nothing until you answer.
-          It asks once, after you first solve a daily road. If you say yes, it
-          sends the results of that road and of later roads. If you say no, it
-          deletes the results it kept on your device and sends nothing. To
+          <strong>On iPhone</strong>, the app sends no community play stats
+          until you opt in. It asks once, after you first solve a daily road.
+          If you say yes, it sends the results of that road and of later roads.
+          If you say no, it discards any play stats waiting to be sent and sends
+          none. Your own history stays on your device. To
           change your answer, open Settings in GoldRoad and use
           <em>Contribute to community stats</em>. When you turn it off, the
           app stops sending at once. Records it sent before stay until they

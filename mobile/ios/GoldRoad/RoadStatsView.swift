@@ -298,7 +298,7 @@ struct RoadStatsView: View {
         } else if let day = overview?.yesterday, let number = day.gameNo {
             let field = fieldMode == .classic ? day.classic : day.expedition
             let result = record(number, fieldMode)
-            let isCounted = counted(number, result)
+            let member = membership(number, result)
             RoadCard {
                 VStack(spacing: 4) {
                     Eyebrow("Yesterday’s roads · Day #\(number)")
@@ -310,7 +310,7 @@ struct RoadStatsView: View {
                 .frame(maxWidth: .infinity)
                 if let field {
                     if field.plays > 0 {
-                        TriesHistogram(distribution: distribution(field, result, counted: isCounted),
+                        TriesHistogram(distribution: field.solvedAttempts,
                                        playerAttempts: result?.solved == true ? result?.attempts : nil)
                     }
                     VStack(spacing: 8) {
@@ -319,7 +319,7 @@ struct RoadStatsView: View {
                              : "No community results were recorded for this road.")
                             .font(RoadFont.body(15))
                             .foregroundStyle(RoadTheme.cream)
-                        if let line = playerLine(field, result, counted: isCounted) {
+                        if let line = playerLine(field, result, membership: member) {
                             Text(line).font(.subheadline).foregroundStyle(RoadTheme.sand)
                         }
                     }
@@ -369,38 +369,37 @@ struct RoadStatsView: View {
     /// Shown only while sharing is off. Your own result above comes from this phone either way.
     private var contributePrompt: some View {
         VStack(spacing: 8) {
-            Text("Your results are not in these numbers. Count them from your next road.")
+            Text("You are not sharing play stats. Turn it on to add your results to these numbers.")
                 .font(.subheadline)
                 .foregroundStyle(RoadTheme.sand)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
-            Button("Count my results") { DailyRoadAnalytics.shared.setConsent(true) }
+            Button("Share my play stats") { DailyRoadAnalytics.shared.setConsent(true) }
                 .buttonStyle(.goldSecondary)
         }
         .frame(maxWidth: .infinity)
     }
 
-    /// The server counts a solve only when this phone sent it. If it did not, the player is added
-    /// to the chart and the comparison here, so their own marker and standing include them.
-    private func counted(_ gameNo: Int, _ result: DailyRoadRecord?) -> Bool {
-        guard result?.solved == true else { return true }
-        return DailyRoadAnalytics.shared.didSendSolve(gameNo: gameNo, mode: fieldMode)
-    }
+    /// What the server holds for this player on that road, so the comparison neither counts
+    /// them twice nor counts them as someone they beat.
+    private enum Membership { case solved, unsolvedRow, absent }
 
-    private func distribution(_ field: StatsOverview.Day.Community, _ result: DailyRoadRecord?,
-                              counted: Bool) -> [String: Int] {
-        guard !counted, let result, result.solved else { return field.solvedAttempts }
-        var copy = field.solvedAttempts
-        copy[result.attempts >= 25 ? "25+" : String(result.attempts), default: 0] += 1
-        return copy
+    private func membership(_ gameNo: Int, _ result: DailyRoadRecord?) -> Membership {
+        let analytics = DailyRoadAnalytics.shared
+        guard result?.solved == true else { return .absent }
+        if analytics.didSendSolve(gameNo: gameNo, mode: fieldMode) { return .solved }
+        if analytics.didSendStart(gameNo: gameNo, mode: fieldMode) { return .unsolvedRow }
+        return .absent
     }
 
     private func playerLine(_ field: StatsOverview.Day.Community, _ result: DailyRoadRecord?,
-                            counted: Bool) -> String? {
+                            membership: Membership) -> String? {
         if let result, result.solved {
+            // An unsolved row of this player's own is not someone they beat, so it is left out.
             guard let standing = RoadStats.fieldStanding(
-                plays: field.plays, solvedAttemptsExact: field.solvedAttemptsExact,
-                attempts: result.attempts, alreadyCounted: counted) else {
+                plays: membership == .unsolvedRow ? field.plays - 1 : field.plays,
+                solvedAttemptsExact: field.solvedAttemptsExact,
+                attempts: result.attempts, alreadyCounted: membership == .solved) else {
                 return "You got to the finish in \(tries(result.attempts)). No community comparison was recorded for this road."
             }
             return "You got to the finish in \(tries(result.attempts)). \(standing)"
