@@ -1,5 +1,4 @@
 <script setup lang="ts">
-// DRAFT for review. Not linked from the site yet. Remove the noindex line when it is approved.
 const description =
   'What GoldRoad stores on your device, what it syncs through iCloud, what it sends to our server, and how to turn it off.';
 
@@ -8,7 +7,6 @@ useSeoMeta({
   description,
   ogTitle: 'GoldRoad privacy',
   ogDescription: description,
-  robots: 'noindex',
 });
 
 const updated = 'November 2026';
@@ -113,17 +111,16 @@ const updated = 'November 2026';
         <h2>Live hint requests</h2>
         <p>
           A hint on the daily road is worked out by our server. When you tap
-          Hint, the app sends the road number, the mode, your try number, your route so far, your
-          random player ID and a session ID. The server sends back the next
+          Hint, the app sends the road number, the mode, your try number, your route so far,
+          your random player ID and a session ID. The server sends back the next
           steps. Hints work even when play stats are off, because the hint
           cannot be made without this request. We do not save hint requests as
           play stats.
         </p>
         <p>
-          To stop abuse, the server limits how many hints one player ID and one
-          network address can ask for in a short time. Our hosting provider
-          (Cloudflare) handles the network address for this limit. Error logs
-          can hold a short part of the player ID.
+          To stop abuse, our servers limit how many hints one player ID and
+          one network address can ask for in a short time. Error logs can hold
+          a short part of the player ID.
         </p>
       </section>
 
@@ -140,15 +137,8 @@ const updated = 'November 2026';
             for GoldRoad at any time.
           </li>
           <li>
-            Play stats on our server are kept to build community numbers.
-            <!-- REVIEW: state the real retention period here, for example
-                 "for up to 2 years", once it is decided. There is no automatic
-                 deletion job today. -->
-          </li>
-          <li>
-            Because play stats are not linked to you, we cannot find them from
-            your name or email. If you want your play stats deleted, email us
-            and we will help you find your player ID.
+            Play stats on our servers are not linked to you. We delete them 2
+            years after they were last updated.
           </li>
         </ul>
       </section>

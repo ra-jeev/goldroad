@@ -49,7 +49,7 @@ export default defineNuxtConfig({
     },
 
     scheduledTasks: {
-      '0 0 * * *': 'rotate-road',
+      '0 0 * * *': ['rotate-road', 'prune-analytics'],
     },
 
     cloudflare: {
