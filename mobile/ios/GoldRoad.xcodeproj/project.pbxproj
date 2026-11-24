@@ -390,6 +390,7 @@
 				MARKETING_VERSION = 1.0.0;
 				GOLDROAD_API_BASE_URL = "https://playgoldroad.com";
 				GOLDROAD_APP_STORE_URL = "https://apps.apple.com/app/id6838678223";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				GOLDROAD_APP_GROUP = group.com.playgoldroad.ios;
 				PRODUCT_BUNDLE_IDENTIFIER = com.playgoldroad.ios;
 				SDKROOT = iphoneos;
@@ -418,6 +419,7 @@
 				MARKETING_VERSION = 1.0.0;
 				GOLDROAD_API_BASE_URL = "https://v2.playgoldroad.com";
 				GOLDROAD_APP_STORE_URL = "https://apps.apple.com/app/id6838678223";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				GOLDROAD_APP_GROUP = group.com.playgoldroad.ios.staging;
 				PRODUCT_BUNDLE_IDENTIFIER = com.playgoldroad.ios.staging;
 				SDKROOT = iphoneos;
