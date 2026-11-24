@@ -369,7 +369,7 @@ struct RoadStatsView: View {
     /// Shown only while sharing is off. Your own result above comes from this phone either way.
     private var contributePrompt: some View {
         VStack(spacing: 8) {
-            Text("You are not sharing play stats. Turn it on to add your results to these numbers.")
+            Text("Help build community stats. If you opt in, this may include play already saved for today’s road.")
                 .font(.subheadline)
                 .foregroundStyle(RoadTheme.sand)
                 .multilineTextAlignment(.center)

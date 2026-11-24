@@ -389,6 +389,8 @@ private final class SessionRequestRecorder: @unchecked Sendable {
 
 private final class SessionURLProtocol: URLProtocol {
     static var recorder: SessionRequestRecorder?
+    /// Delays each response, to test changes made while a request is in flight.
+    static var responseDelay: TimeInterval = 0
 
     override class func canInit(with request: URLRequest) -> Bool { true }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
@@ -405,9 +407,16 @@ private final class SessionURLProtocol: URLProtocol {
             return
         }
         let http = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
-        client?.urlProtocol(self, didReceive: http, cacheStoragePolicy: .notAllowed)
-        client?.urlProtocol(self, didLoad: Data(response.utf8))
-        client?.urlProtocolDidFinishLoading(self)
+        let finish = { [self] in
+            client?.urlProtocol(self, didReceive: http, cacheStoragePolicy: .notAllowed)
+            client?.urlProtocol(self, didLoad: Data(response.utf8))
+            client?.urlProtocolDidFinishLoading(self)
+        }
+        if Self.responseDelay > 0 {
+            DispatchQueue.global().asyncAfter(deadline: .now() + Self.responseDelay, execute: finish)
+        } else {
+            finish()
+        }
     }
 
     override func stopLoading() {}
@@ -521,5 +530,41 @@ extension ContractTests {
         // After a no, new play is not kept.
         analytics.recordSolve(for: run, mode: .classic)
         XCTAssertEqual(try held("dailyAnalytics.pendingSolves.v1"), 0)
+    }
+
+    @MainActor
+    func testSolveConfirmedAfterOptOutIsStillRecordedAsSent() async throws {
+        let received = expectation(description: "Solve request")
+        let recorder = SessionRequestRecorder(received: received)
+        SessionURLProtocol.recorder = recorder
+        SessionURLProtocol.responseDelay = 0.4
+        defer { SessionURLProtocol.recorder = nil; SessionURLProtocol.responseDelay = 0 }
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [SessionURLProtocol.self]
+        let session = URLSession(configuration: configuration)
+        defer { session.invalidateAndCancel() }
+        let suite = "GoldRoadTests.inflight.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        defaults.set(true, forKey: GameConstants.analyticsKey)
+        let analytics = DailyRoadAnalytics(defaults: defaults, session: session)
+        let board = Board(rows: 3, cols: 3, tiles: [2, 3, 1, 1, 4, 2, 1, 1, 5],
+                          missingEdges: [.init(from: 0, to: 3), .init(from: 2, to: 5)],
+                          tollEdges: [.init(from: 0, to: 1)], bonusEdges: [.init(from: 1, to: 4)],
+                          tollValue: 2, bonusValue: 3, start: 0, end: 8)
+        let cutoff = ISO8601DateFormatter().string(from: Date().addingTimeInterval(3600))
+        var run = RoadRun(road: ClassicRoad(gameNo: 1, maxScore: 17, playableAt: "2026-01-01T00:00:00Z",
+                                            board: board, nextGameAt: cutoff))
+        for tile in [1, 4, 5, 8] { run.select(tile) }
+        XCTAssertEqual(run.outcome, .solved)
+        analytics.recordSolve(for: run, mode: .classic)
+        await fulfillment(of: [received], timeout: 5)
+
+        // The player opts out while the solve is in flight. The server still confirms it.
+        analytics.setConsent(false)
+        for _ in 0..<30 where !analytics.didSendSolve(gameNo: 1, mode: .classic) {
+            try await Task.sleep(for: .milliseconds(50))
+        }
+        XCTAssertTrue(analytics.didSendSolve(gameNo: 1, mode: .classic))
     }
 }

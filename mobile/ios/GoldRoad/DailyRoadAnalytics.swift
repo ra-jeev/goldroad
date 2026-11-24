@@ -255,10 +255,11 @@ final class DailyRoadAnalytics {
             let item = pending[index]
             guard item.cutoff > Date() else { discardExpired(); continue }
             let result = await post("api/session/end", item.payload, response: EndResponse.self)
+            // Record a confirmed solve first: the queue may have been cleared while it was in flight.
+            if case .success = result { markSent(item.payload) }
             guard let current = pending.firstIndex(where: { $0.key == item.key }) else { continue }
             switch result {
             case .success:
-                markSent(item.payload)
                 pending.remove(at: current)
             case .discard:
                 pending.remove(at: current)
