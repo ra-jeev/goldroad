@@ -42,3 +42,4 @@ test-results
 LOCAL_STORAGE_EVOLUTION.md
 
 goldie/out/
+.argent/recordings/
