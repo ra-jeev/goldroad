@@ -11,35 +11,65 @@ export function toPercent(value: number, total: number): number {
 }
 
 /**
- * v1's "top X%": the share of the whole field that did as well as or better
- * than the player, the player included. Smaller is better. Computed from the
- * *unpooled* solved-attempts distribution (`solvedAttemptsExact`) against
- * everyone who played, independent of the display histogram's pooled 25+
- * bucket, so it stays exact for players above that bucket too (RP0-4).
+ * Where the player stands against the rest of the field. It says only what is
+ * true: ties are never counted as beaten, so the number never overstates.
+ * Built from the unpooled `solvedAttemptsExact` distribution, so players past
+ * the histogram's 25+ bucket stay exact. Players who never finished count as
+ * players the solver beat.
+ *
+ * `alreadyCounted` is true when the field already includes this player's
+ * solve, as it does on the web. Then the player is taken out of the field
+ * before the comparison. On iPhone, a player who does not share stats is not
+ * in the field, so nothing is taken out.
+ * Returns null when no one else walked the road.
  */
-export function topPercent(
-  stat: CommunityRoadStats,
-  playerAttempts: number,
-): number {
-  if (playerAttempts < 1 || stat.plays <= 0) return 0;
+export type FieldStanding =
+  | { kind: 'led' }
+  | { kind: 'matchedBest' }
+  | { kind: 'beat'; percent: number }
+  | { kind: 'noneWorse'; tied: boolean };
 
-  let atOrBetter = 0;
+export function fieldStanding(
+  stat: Pick<CommunityRoadStats, 'plays' | 'solvedAttemptsExact'>,
+  playerAttempts: number,
+  alreadyCounted: boolean,
+): FieldStanding | null {
+  if (playerAttempts < 1) return null;
+  const self = alreadyCounted ? 1 : 0;
+  const others = stat.plays - self;
+  if (others <= 0) return null;
+
+  let better = 0;
+  let tied = 0;
   for (const [key, count] of Object.entries(stat.solvedAttemptsExact)) {
     const attempts = Number.parseInt(key, 10);
-    if (attempts <= playerAttempts) {
-      atOrBetter += count;
-    }
+    if (attempts < playerAttempts) better += count;
+    else if (attempts === playerAttempts) tied += count;
   }
+  tied = Math.max(0, tied - self);
+  better = Math.min(better, others);
+  tied = Math.min(tied, others - better);
+  const worse = others - better - tied;
 
-  return Math.max(1, toPercent(atOrBetter, stat.plays));
+  if (better === 0) return tied === 0 ? { kind: 'led' } : { kind: 'matchedBest' };
+  if (worse === 0) return { kind: 'noneWorse', tied: tied > 0 };
+  const percent = Math.min(99, Math.max(1, Math.round((worse / others) * 100)));
+  return { kind: 'beat', percent };
 }
 
-/**
- * A percentile can be shown as soon as the field contains one recorded
- * solve. With no recorded solves there is no comparison to calculate.
- */
-export function hasPercentileSample(stat: CommunityRoadStats): boolean {
-  return stat.exactSolves > 0;
+export function fieldStandingSentence(standing: FieldStanding): string {
+  switch (standing.kind) {
+    case 'led':
+      return 'You led the field.';
+    case 'matchedBest':
+      return 'You matched the best in the field.';
+    case 'beat':
+      return `You beat ${standing.percent}% of the field.`;
+    case 'noneWorse':
+      return standing.tied
+        ? 'Nobody in the field needed more.'
+        : 'The field needed fewer.';
+  }
 }
 
 /** A single completed field entry is enough to show the histogram. */

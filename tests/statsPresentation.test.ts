@@ -9,10 +9,10 @@ import {
 } from '../server/utils/statsAggregation';
 import {
   hasCommunitySample,
-  hasPercentileSample,
+  fieldStanding,
+  fieldStandingSentence,
   formatFieldBehaviorRows,
   toPercent,
-  topPercent,
 } from '../app/utils/statsPresentation';
 
 function makeAggregatedRow(
@@ -82,32 +82,54 @@ describe('pooled 25+ bucket vs exact percentile (RP0-4 / RP1-9)', () => {
     );
   }
 
-  it('a player inside the pooled bucket (attempts 25) still gets the correct exact percentile', () => {
+  it('ranks a player inside the pooled bucket (attempts 25) from the exact map', () => {
     const stat = communityStatsFor(totalSolvers);
-    // At-or-better than 25 attempts: everyone from 1..25 = 25 solvers of 30.
-    expect(topPercent(stat, 25)).toBe(toPercent(25, totalSolvers));
+    // The player is in the field: 24 others did better, 5 did worse, of 29 others.
+    expect(fieldStanding(stat, 25, true)).toEqual({ kind: 'beat', percent: 17 });
   });
 
-  it('a player past the pooled bucket (attempts 40) gets an exact percentile, not "25+"-pooled 100%', () => {
+  it('ranks a player past the pooled bucket (attempts 40) exactly', () => {
     const stat = communityStatsFor(totalSolvers);
-    // Everyone (all 30) did at least as well as the 40-attempt solver.
-    expect(topPercent(stat, 40)).toBe(100);
+    expect(fieldStanding(stat, 40, true)).toEqual({ kind: 'noneWorse', tied: false });
   });
 
-  it('a player at the very edge of the pooled bucket (attempts 30, between 29 and 40) is still exact', () => {
+  it('ranks a player between 29 and 40 attempts exactly, without joining the 40 bucket', () => {
     const stat = communityStatsFor(totalSolvers);
-    // At-or-better than 30 attempts: everyone from 1..29 = 29 of 30.
-    expect(topPercent(stat, 30)).toBe(toPercent(29, totalSolvers));
+    // Not in the field: 29 did better, the 40-try solver did worse, of 30 others.
+    expect(fieldStanding(stat, 30, false)).toEqual({ kind: 'beat', percent: 3 });
+  });
+});
+
+describe('field standing rule', () => {
+  const field = (plays: number, solvedAttemptsExact: Record<string, number>) => ({
+    plays,
+    solvedAttemptsExact,
   });
 
-  it('matches a same-shaped manual computation off the exact map directly (proves independence from the pooled map)', () => {
-    const stat = communityStatsFor(totalSolvers);
-    const manualAtOrBetter = Object.entries(exact).reduce(
-      (sum, [key, count]) =>
-        Number.parseInt(key, 10) <= 29 ? sum + count : sum,
-      0,
-    );
-    expect(topPercent(stat, 29)).toBe(toPercent(manualAtOrBetter, totalSolvers));
+  it('says the player matched the best when everyone tied at the top', () => {
+    expect(fieldStanding(field(10, { '1': 10 }), 1, false)).toEqual({ kind: 'matchedBest' });
+    expect(fieldStanding(field(11, { '1': 11 }), 1, true)).toEqual({ kind: 'matchedBest' });
+  });
+
+  it('says the field needed fewer when everyone else did better', () => {
+    expect(fieldStanding(field(10, { '1': 10 }), 2, false)).toEqual({ kind: 'noneWorse', tied: false });
+    expect(fieldStandingSentence({ kind: 'noneWorse', tied: false })).toBe('The field needed fewer.');
+  });
+
+  it('never counts ties as beaten', () => {
+    // 2 better, 5 tied, 3 worse (1 slower, 2 never finished) of 10 others.
+    const stat = field(11, { '1': 2, '3': 6, '5': 1 });
+    expect(fieldStanding(stat, 3, true)).toEqual({ kind: 'beat', percent: 30 });
+    expect(fieldStandingSentence({ kind: 'beat', percent: 30 })).toBe('You beat 30% of the field.');
+  });
+
+  it('says the player led when no one else did as well', () => {
+    expect(fieldStanding(field(4, { '1': 1, '4': 1 }), 1, true)).toEqual({ kind: 'led' });
+  });
+
+  it('has nothing to compare when no one else walked the road', () => {
+    expect(fieldStanding(field(1, { '2': 1 }), 2, true)).toBeNull();
+    expect(fieldStanding(field(0, {}), 2, false)).toBeNull();
   });
 });
 
@@ -122,15 +144,15 @@ describe('sparse-sample gates', () => {
     expect(hasCommunitySample(firstPlay)).toBe(true);
   });
 
-  it('shows the top-N% line from the first recorded solve', () => {
-    const noSolves = buildEmptyCommunityRoadStats(1, 'classic');
-    noSolves.plays = 1;
-    expect(hasPercentileSample(noSolves)).toBe(false);
+  it('shows the standing line from the first other player', () => {
+    const onlyYou = buildEmptyCommunityRoadStats(1, 'classic');
+    onlyYou.plays = 1;
+    onlyYou.solvedAttemptsExact = { '1': 1 };
+    expect(fieldStanding(onlyYou, 1, true)).toBeNull();
 
-    const firstSolve = buildEmptyCommunityRoadStats(1, 'classic');
-    firstSolve.plays = 1;
-    firstSolve.exactSolves = 1;
-    expect(hasPercentileSample(firstSolve)).toBe(true);
+    const oneOther = buildEmptyCommunityRoadStats(1, 'classic');
+    oneOther.plays = 1;
+    expect(fieldStanding(oneOther, 1, false)).toEqual({ kind: 'led' });
   });
 });
 

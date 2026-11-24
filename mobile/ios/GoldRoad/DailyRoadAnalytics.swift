@@ -58,6 +58,7 @@ final class DailyRoadAnalytics {
 
     private let queueKey = "dailyAnalytics.pendingSolves.v1"
     private let heldStartsKey = "dailyAnalytics.heldStarts.v1"
+    private let sentSolvesKey = "dailyAnalytics.sentSolves.v1"
     private let defaults: UserDefaults
     private let session: URLSession
     private let delays: [TimeInterval] = [2, 5, 15, 30, 60, 120]
@@ -169,6 +170,20 @@ final class DailyRoadAnalytics {
         return id
     }
 
+    /// True when this device delivered the solve for that road and mode, so the server's
+    /// community numbers already include it.
+    func didSendSolve(gameNo: Int, mode: RoadMode) -> Bool {
+        (defaults.stringArray(forKey: sentSolvesKey) ?? []).contains("\(gameNo):\(mode.rawValue)")
+    }
+
+    private func markSent(_ payload: Solve) {
+        var sent = defaults.stringArray(forKey: sentSolvesKey) ?? []
+        let key = "\(payload.gameNo):\(payload.puzzleType)"
+        guard !sent.contains(key) else { return }
+        sent.append(key)
+        defaults.set(Array(sent.suffix(60)), forKey: sentSolvesKey)
+    }
+
     private func persistHeldStarts() {
         if let data = try? JSONEncoder().encode(heldStarts) { defaults.set(data, forKey: heldStartsKey) }
     }
@@ -222,7 +237,10 @@ final class DailyRoadAnalytics {
             let result = await post("api/session/end", item.payload, response: EndResponse.self)
             guard let current = pending.firstIndex(where: { $0.key == item.key }) else { continue }
             switch result {
-            case .success, .discard:
+            case .success:
+                markSent(item.payload)
+                pending.remove(at: current)
+            case .discard:
                 pending.remove(at: current)
             case .retry:
                 let index = pending[current].backoffIndex

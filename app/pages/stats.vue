@@ -5,9 +5,9 @@ import { UI_COPY } from '../content/uiCopy';
 import { useRoadResultShare } from '../composables/useRoadResultShare';
 import {
   hasCommunitySample,
-  hasPercentileSample,
+  fieldStanding,
+  fieldStandingSentence,
   formatFieldBehaviorRows,
-  topPercent,
 } from '../utils/statsPresentation';
 
 const description =
@@ -349,11 +349,11 @@ const yesterdayPlayerLine = computed(() => {
   if (!field) return null;
 
   if (result?.solved) {
-    if (!hasPercentileSample(field)) {
+    const standing = fieldStanding(field, result.attempts, true);
+    if (!standing) {
       return `You got to the finish in ${formatRunCount(result.attempts)}. No community comparison was recorded for this road.`;
     }
-    const top = topPercent(field, result.attempts);
-    return `You got to the finish in ${formatRunCount(result.attempts)}, in the top ${top}% of the field.`;
+    return `You got to the finish in ${formatRunCount(result.attempts)}. ${fieldStandingSentence(standing)}`;
   }
 
   if (result && result.attempts > 0) {

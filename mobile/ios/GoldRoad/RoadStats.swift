@@ -66,12 +66,30 @@ enum RoadStats {
         }
     }
 
-    static func topPercent(plays: Int, solvedAttemptsExact: [String: Int], attempts: Int) -> Int {
-        guard attempts > 0, plays > 0 else { return 0 }
-        let atOrBetter = solvedAttemptsExact.reduce(0) { total, item in
-            total + ((Int(item.key) ?? Int.max) <= attempts ? item.value : 0)
+    /// Where the player stands against the rest of the field, as one sentence. Ties are never
+    /// counted as beaten. Players who never finished count as beaten. `alreadyCounted` is true
+    /// when the field already holds this player's solve; then they are taken out first.
+    /// Returns nil when no one else walked the road. Same rule as the web `fieldStanding`.
+    static func fieldStanding(plays: Int, solvedAttemptsExact: [String: Int], attempts: Int,
+                              alreadyCounted: Bool) -> String? {
+        guard attempts > 0 else { return nil }
+        let me = alreadyCounted ? 1 : 0
+        let others = plays - me
+        guard others > 0 else { return nil }
+        var better = 0
+        var tied = 0
+        for (key, count) in solvedAttemptsExact {
+            guard let value = Int(key) else { continue }
+            if value < attempts { better += count } else if value == attempts { tied += count }
         }
-        return max(1, percentage(atOrBetter, of: plays))
+        tied = max(0, tied - me)
+        better = min(better, others)
+        tied = min(tied, others - better)
+        let worse = others - better - tied
+        if better == 0 { return tied == 0 ? "You led the field." : "You matched the best in the field." }
+        if worse == 0 { return tied > 0 ? "Nobody in the field needed more." : "The field needed fewer." }
+        let percent = min(99, max(1, Int((Double(worse) / Double(others) * 100).rounded())))
+        return "You beat \(percent)% of the field."
     }
 
     private static func percentage(_ value: Int, of total: Int) -> Int {

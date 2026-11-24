@@ -12,7 +12,7 @@ import { applyUndoLastStep, canUndoLastStep, isUndoTapTarget, nextUndoAvailable 
 import { getHintMessage } from '../app/utils/hintMessage';
 import { buildRoadResultShareText, buildDayResultShareText } from '../app/utils/pure/roadResultShare';
 import { buildModeSummary, type StatsModeEntry } from '../app/utils/pure/playerStats';
-import { topPercent } from '../app/utils/statsPresentation';
+import { fieldStanding, fieldStandingSentence } from '../app/utils/statsPresentation';
 import { roadAvailability } from '../app/utils/pure/roadAvailability';
 import { buildAPIContract } from './contract-api';
 import type { Board, CommunityRoadStats, HintResult, PublicGame } from '../shared/types/game';
@@ -562,6 +562,15 @@ const history: StatsModeEntry[] = [
   { day: '2026-01-04', gameNo: 4, puzzleType: 'expedition', attempts: 4, solved: true, hintsUsed: 1, solveTimeMs: 120000, updatedAt: '2026-01-04T12:00:00Z' },
 ];
 const field = { plays: 30, solvedAttemptsExact: Object.fromEntries(Array.from({length: 29}, (_, i) => [String(i + 1), 1]).concat([['40', 1]])) } as CommunityRoadStats;
+const standingCases = [
+  ...[1, 25, 30, 40].flatMap(attempts => [true, false].map(alreadyCounted => ({ field, attempts, alreadyCounted }))),
+  { field: { plays: 10, solvedAttemptsExact: { '1': 10 } }, attempts: 1, alreadyCounted: false },
+  { field: { plays: 10, solvedAttemptsExact: { '1': 10 } }, attempts: 2, alreadyCounted: false },
+  { field: { plays: 11, solvedAttemptsExact: { '1': 2, '3': 6, '5': 1 } }, attempts: 3, alreadyCounted: true },
+  { field: { plays: 4, solvedAttemptsExact: { '1': 1, '4': 1 } }, attempts: 1, alreadyCounted: true },
+  { field: { plays: 1, solvedAttemptsExact: { '2': 1 } }, attempts: 2, alreadyCounted: true },
+  { field: { plays: 6, solvedAttemptsExact: { '1': 3, '2': 3 } }, attempts: 2, alreadyCounted: true },
+];
 const now = '2026-01-02T00:00:00.000Z';
 const rolloverCases = [
   { current: null, fetched: null },
@@ -584,7 +593,7 @@ const files = new Map<string, unknown>([
   ['fixtures/hint-messages.json', { cases: hintKinds.flatMap(kind => [0, 1, 2].map(highlightedCount => ({ kind, highlightedCount, message: getHintMessage(kind, highlightedCount) }))) }],
   ['fixtures/medals.json', { cases: [1, 2, 3, 4, 10].flatMap(attempts => [true, false].map(solved => ({ attempts, solved, medal: calcMedalForAttempt(attempts, solved) }))) }],
   ['fixtures/share.json', { single: shares.map(input => ({ input, expected: buildRoadResultShareText(input) })), day: dayShares.map(input => ({ input, expected: buildDayResultShareText(input) })) }],
-  ['fixtures/stats.json', { history, currentGameNo: 5, todayKey: '2026-01-05', classic: buildModeSummary(history, 'classic', 5, '2026-01-05'), expedition: buildModeSummary(history, 'expedition', 5, '2026-01-05'), percentile: [1, 25, 30, 40].map(attempts => ({ field, attempts, expected: topPercent(field, attempts) })) }],
+  ['fixtures/stats.json', { history, currentGameNo: 5, todayKey: '2026-01-05', classic: buildModeSummary(history, 'classic', 5, '2026-01-05'), expedition: buildModeSummary(history, 'expedition', 5, '2026-01-05'), standing: standingCases.map(item => { const standing = fieldStanding(item.field, item.attempts, item.alreadyCounted); return { ...item, expected: standing ? fieldStandingSentence(standing) : null }; }) }],
   ['fixtures/rollover.json', { cases: rolloverCases.map(input => ({ ...input, now, expected: roadAvailability(input.current, input.fetched, Date.parse(now)) })) }],
 ]);
 

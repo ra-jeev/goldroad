@@ -167,18 +167,19 @@ final class ContractTests: XCTestCase {
     }
 
     private struct Stats: Decodable {
-        struct Percentile: Decodable {
+        struct Standing: Decodable {
             struct Field: Decodable { let plays: Int; let solvedAttemptsExact: [String: Int] }
             let field: Field
             let attempts: Int
-            let expected: Int
+            let alreadyCounted: Bool
+            let expected: String?
         }
         let history: [RoadStats.Entry]
         let currentGameNo: Int
         let todayKey: String
         let classic: RoadStats.Summary
         let expedition: RoadStats.Summary
-        let percentile: [Percentile]
+        let standing: [Standing]
     }
 
     func testStats() throws {
@@ -187,9 +188,12 @@ final class ContractTests: XCTestCase {
                                          todayKey: stats.todayKey), stats.classic)
         XCTAssertEqual(RoadStats.summary(stats.history, mode: .expedition, currentGameNo: stats.currentGameNo,
                                          todayKey: stats.todayKey), stats.expedition)
-        for item in stats.percentile {
-            XCTAssertEqual(RoadStats.topPercent(plays: item.field.plays, solvedAttemptsExact: item.field.solvedAttemptsExact,
-                                                attempts: item.attempts), item.expected)
+        XCTAssertFalse(stats.standing.isEmpty)
+        for item in stats.standing {
+            XCTAssertEqual(RoadStats.fieldStanding(plays: item.field.plays,
+                                                   solvedAttemptsExact: item.field.solvedAttemptsExact,
+                                                   attempts: item.attempts, alreadyCounted: item.alreadyCounted),
+                           item.expected, "\(item.field.plays) plays, \(item.attempts) tries")
         }
     }
 
@@ -462,8 +466,13 @@ extension ContractTests {
         try await Task.sleep(for: .milliseconds(300))
         XCTAssertNil(recorder.body(for: "/api/session/start"))
         XCTAssertNil(recorder.body(for: "/api/session/end"))
+        XCTAssertFalse(analytics.didSendSolve(gameNo: 1, mode: .classic))
         analytics.setConsent(true)
         await fulfillment(of: [received], timeout: 5)
+        for _ in 0..<20 where !analytics.didSendSolve(gameNo: 1, mode: .classic) {
+            try await Task.sleep(for: .milliseconds(50))
+        }
+        XCTAssertTrue(analytics.didSendSolve(gameNo: 1, mode: .classic))
 
         for path in ["/api/session/start", "/api/session/hint", "/api/session/end"] {
             let body = try XCTUnwrap(recorder.body(for: path), path)

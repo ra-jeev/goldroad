@@ -298,6 +298,7 @@ struct RoadStatsView: View {
         } else if let day = overview?.yesterday, let number = day.gameNo {
             let field = fieldMode == .classic ? day.classic : day.expedition
             let result = record(number, fieldMode)
+            let isCounted = counted(number, result)
             RoadCard {
                 VStack(spacing: 4) {
                     Eyebrow("Yesterday’s roads · Day #\(number)")
@@ -309,7 +310,7 @@ struct RoadStatsView: View {
                 .frame(maxWidth: .infinity)
                 if let field {
                     if field.plays > 0 {
-                        TriesHistogram(distribution: field.solvedAttempts,
+                        TriesHistogram(distribution: distribution(field, result, counted: isCounted),
                                        playerAttempts: result?.solved == true ? result?.attempts : nil)
                     }
                     VStack(spacing: 8) {
@@ -318,7 +319,7 @@ struct RoadStatsView: View {
                              : "No community results were recorded for this road.")
                             .font(RoadFont.body(15))
                             .foregroundStyle(RoadTheme.cream)
-                        if let line = playerLine(field, result) {
+                        if let line = playerLine(field, result, counted: isCounted) {
                             Text(line).font(.subheadline).foregroundStyle(RoadTheme.sand)
                         }
                     }
@@ -379,14 +380,30 @@ struct RoadStatsView: View {
         .frame(maxWidth: .infinity)
     }
 
-    private func playerLine(_ field: StatsOverview.Day.Community, _ result: DailyRoadRecord?) -> String? {
+    /// The server counts a solve only when this phone sent it. If it did not, the player is added
+    /// to the chart and the comparison here, so their own marker and standing include them.
+    private func counted(_ gameNo: Int, _ result: DailyRoadRecord?) -> Bool {
+        guard result?.solved == true else { return true }
+        return DailyRoadAnalytics.shared.didSendSolve(gameNo: gameNo, mode: fieldMode)
+    }
+
+    private func distribution(_ field: StatsOverview.Day.Community, _ result: DailyRoadRecord?,
+                              counted: Bool) -> [String: Int] {
+        guard !counted, let result, result.solved else { return field.solvedAttempts }
+        var copy = field.solvedAttempts
+        copy[result.attempts >= 25 ? "25+" : String(result.attempts), default: 0] += 1
+        return copy
+    }
+
+    private func playerLine(_ field: StatsOverview.Day.Community, _ result: DailyRoadRecord?,
+                            counted: Bool) -> String? {
         if let result, result.solved {
-            guard field.exactSolves > 0 else {
+            guard let standing = RoadStats.fieldStanding(
+                plays: field.plays, solvedAttemptsExact: field.solvedAttemptsExact,
+                attempts: result.attempts, alreadyCounted: counted) else {
                 return "You got to the finish in \(tries(result.attempts)). No community comparison was recorded for this road."
             }
-            let top = RoadStats.topPercent(plays: field.plays, solvedAttemptsExact: field.solvedAttemptsExact,
-                                           attempts: result.attempts)
-            return "You got to the finish in \(tries(result.attempts)), in the top \(top)% of the field."
+            return "You got to the finish in \(tries(result.attempts)). \(standing)"
         }
         if let result, result.attempts > 0 {
             return "You walked it too, but the finish stayed out of reach that day."
