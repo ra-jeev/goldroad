@@ -3,12 +3,12 @@
  * step back, the player must move again before undo is available.
  */
 
-import type { Board } from '../../shared/types/game';
+import type { Board } from '#shared/types/game';
 import {
   buildEdgeMap,
   getActiveNeighbors,
   getMoveScore,
-} from '../../shared/utils/puzzleEngine';
+} from '#shared/utils/puzzleEngine';
 
 export type UndoEvent = 'move' | 'undo' | 'reset' | 'end';
 
