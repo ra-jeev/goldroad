@@ -21,6 +21,16 @@ enum RoadReview {
         defaults.set(version, forKey: askedVersionKey)
     }
 
+    /// The listing's write-review page, for the Settings row. A button may not call the
+    /// system prompt (iOS can ignore it), so it opens the App Store instead.
+    static var writeReviewURL: URL? {
+        guard let listing = Bundle.main.object(forInfoDictionaryKey: "GoldRoadAppStoreURL") as? String,
+              var parts = URLComponents(string: listing), parts.scheme == "https", parts.host != nil
+        else { return nil }
+        parts.queryItems = [URLQueryItem(name: "action", value: "write-review")]
+        return parts.url
+    }
+
     static var installedVersion: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0.0"
     }

@@ -13,6 +13,7 @@ struct ClassicRoadView: View {
     @State private var askReminder = false
     @State private var askStatsConsent = false
     @AppStorage("dailyReminder.asked") private var reminderAsked = false
+    @State private var reviewTask: Task<Void, Never>?
 
     init(startMode: RoadMode = .classic, onBack: (() -> Void)? = nil) {
         self.onBack = onBack
@@ -52,8 +53,15 @@ struct ClassicRoadView: View {
             }
             model.presentPendingResult()
         }
-        .onChange(of: scenePhase) { _, phase in model.setActive(phase == .active) }
-        .onDisappear { model.onDisappear() }
+        .onChange(of: scenePhase) { _, phase in
+            reviewTask?.cancel()
+            model.setActive(phase == .active)
+        }
+        .onChange(of: showStats) { _, shown in if shown { reviewTask?.cancel() } }
+        .onDisappear {
+            reviewTask?.cancel()
+            model.onDisappear()
+        }
         .sheet(isPresented: $model.showHelp) { RoadTutorialView(onFinish: { model.showHelp = false }) }
         .sheet(isPresented: $model.showSettings) { SettingsView(onDone: { model.showSettings = false }) }
         .onChange(of: shouldOpenTutorial, initial: true) { _, shouldOpen in
@@ -120,9 +128,15 @@ struct ClassicRoadView: View {
             return
         }
         guard model.run?.outcome == .solved, RoadReview.shouldAsk() else { return }
-        RoadReview.markAsked()
-        Task {
-            try? await Task.sleep(for: .milliseconds(600))
+        // Wait for the sheet to settle. Leaving the app, opening Stats or leaving the board
+        // cancels the wait; starting a replay or opening another sheet skips the request.
+        reviewTask?.cancel()
+        reviewTask = Task {
+            do { try await Task.sleep(for: .milliseconds(600)) } catch { return }
+            guard !Task.isCancelled, model.replay == nil, model.run?.outcome == .solved,
+                  !model.resultPresented, !model.showHelp, !model.showSettings, !model.confirmRestart,
+                  !showStats else { return }
+            RoadReview.markAsked()
             requestReview()
         }
     }

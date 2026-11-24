@@ -76,6 +76,10 @@ struct SettingsView: View {
                     divider
                     externalRow("Privacy", icon: "hand.raised",
                                 url: URL(string: "https://playgoldroad.com/privacy")!)
+                    if let review = RoadReview.writeReviewURL {
+                        divider
+                        externalRow("Rate GoldRoad", icon: "star", url: review)
+                    }
                     if let feedback = GameConstants.feedbackURL {
                         divider
                         externalRow("Send feedback", icon: "envelope", url: feedback)
