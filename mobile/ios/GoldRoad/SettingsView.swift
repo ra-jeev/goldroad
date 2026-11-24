@@ -6,7 +6,7 @@ struct SettingsView: View {
 
     @AppStorage(RoadSound.mutedKey) private var muted = false
     @AppStorage(GameConstants.hapticsKey) private var hapticsEnabled = true
-    @AppStorage(GameConstants.analyticsKey) private var shareStats = true
+    @AppStorage(GameConstants.analyticsKey) private var shareStats = false
     @State private var reminder = RoadReminder.shared
     @State private var guide: GuideStart?
     @State private var showWidgetHelp = false
@@ -59,8 +59,10 @@ struct SettingsView: View {
                 }
 
                 section("Privacy") {
-                    toggleRow("Share anonymous play stats", icon: "chart.bar", isOn: $shareStats)
-                    Text("Sends when you start and solve the daily road, with a random player ID. Hints still ask the server for the next move.")
+                    toggleRow("Contribute to community stats", icon: "chart.bar", isOn: Binding(
+                        get: { shareStats },
+                        set: { DailyRoadAnalytics.shared.setConsent($0) }))
+                    Text("When on, the app sends when you start and solve the daily road, with a random player ID. No name or account. Hints work either way: tapping Hint sends your current route to our server to find the next move.")
                         .font(.footnote)
                         .foregroundStyle(RoadTheme.sand)
                         .fixedSize(horizontal: false, vertical: true)

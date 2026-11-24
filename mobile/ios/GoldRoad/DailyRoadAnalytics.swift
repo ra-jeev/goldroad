@@ -28,6 +28,12 @@ final class DailyRoadAnalytics {
         let solveTimeMs: Int?
     }
 
+    /// A start made before the player answered the consent question. Sent only after a yes.
+    private struct HeldStart: Codable {
+        let payload: Start
+        let cutoff: Date
+    }
+
     private struct Pending: Codable {
         let payload: Solve
         let cutoff: Date
@@ -51,17 +57,47 @@ final class DailyRoadAnalytics {
     }
 
     private let queueKey = "dailyAnalytics.pendingSolves.v1"
+    private let heldStartsKey = "dailyAnalytics.heldStarts.v1"
     private let defaults: UserDefaults
     private let session: URLSession
     private let delays: [TimeInterval] = [2, 5, 15, 30, 60, 120]
     private var started: Set<UUID> = []
     private var pending: [Pending]
+    private var heldStarts: [HeldStart]
     private var inFlight = false
     private var timer: Task<Void, Never>?
 
-    /// The Settings switch. When it is off, nothing is sent and pending solves are dropped.
-    private var enabled: Bool {
-        defaults.object(forKey: GameConstants.analyticsKey) as? Bool ?? true
+    /// nil = not asked yet: play data is kept on the device and nothing is sent.
+    /// false = no: nothing is kept or sent. true = yes: data is sent.
+    var consent: Bool? {
+        defaults.object(forKey: GameConstants.analyticsKey) as? Bool
+    }
+
+    private var enabled: Bool { consent == true }
+    private var mayRecord: Bool { consent != false }
+
+    /// Call with the player's answer, from the first-solve question or the Settings switch.
+    func setConsent(_ allowed: Bool) {
+        defaults.set(allowed, forKey: GameConstants.analyticsKey)
+        if allowed {
+            let starts = heldStarts.filter { $0.cutoff > Date() }.map(\.payload)
+            heldStarts = []
+            persistHeldStarts()
+            Task {
+                for start in starts {
+                    _ = await post("api/session/start", start, response: StartResponse.self)
+                }
+                await deliver(force: true)
+            }
+        } else {
+            // Drop everything at once, so nothing queued can be sent later.
+            timer?.cancel()
+            timer = nil
+            heldStarts = []
+            persistHeldStarts()
+            pending = []
+            persist()
+        }
     }
 
     init(defaults: UserDefaults = .standard, session: URLSession = .shared) {
@@ -73,22 +109,33 @@ final class DailyRoadAnalytics {
         } else {
             pending = []
         }
+        if let data = defaults.data(forKey: heldStartsKey),
+           let saved = try? JSONDecoder().decode([HeldStart].self, from: data) {
+            heldStarts = saved.filter { $0.cutoff > Date() }
+        } else {
+            heldStarts = []
+        }
         discardExpired()
         schedule()
     }
 
     /// Call after a valid move off the start tile. Start failures are not queued.
     func startIfNeeded(for run: RoadRun, mode: RoadMode) {
-        guard enabled, run.path.count > 1, isCurrent(run) else { return }
+        guard mayRecord, run.path.count > 1, isCurrent(run), let cutoff = run.road.cutoff else { return }
         guard started.insert(run.sessionID).inserted else { return }
         let payload = Start(playerUUID: playerUUID(), gameNo: run.road.gameNo,
                             puzzleType: mode.rawValue, sessionId: run.sessionID.uuidString)
+        guard enabled else {
+            heldStarts.append(HeldStart(payload: payload, cutoff: cutoff))
+            persistHeldStarts()
+            return
+        }
         Task { _ = await post("api/session/start", payload, response: StartResponse.self) }
     }
 
     /// Call after finalizing the active time on an exact daily solve.
     func recordSolve(for run: RoadRun, mode: RoadMode) {
-        guard enabled, run.outcome == .solved, run.score == run.road.maxScore,
+        guard mayRecord, run.outcome == .solved, run.score == run.road.maxScore,
               let cutoff = run.road.cutoff, cutoff > Date() else { return }
         let elapsed = run.activeTime.map { Int((min(max($0, 0), 86_400) * 1000).rounded()) }
         let payload = Solve(playerUUID: playerUUID(), gameNo: run.road.gameNo,
@@ -120,6 +167,10 @@ final class DailyRoadAnalytics {
         let id = UUID().uuidString
         defaults.set(id, forKey: "playerUUID")
         return id
+    }
+
+    private func persistHeldStarts() {
+        if let data = try? JSONEncoder().encode(heldStarts) { defaults.set(data, forKey: heldStartsKey) }
     }
 
     private func persist() {
@@ -163,10 +214,8 @@ final class DailyRoadAnalytics {
         inFlight = true
         defer { inFlight = false; schedule() }
         discardExpired()
-        if !enabled, !pending.isEmpty {
-            pending.removeAll()
-            persist()
-        }
+        // Not asked yet: keep the queue on the device until the player answers.
+        guard enabled else { return }
         while let index = pending.firstIndex(where: { force || ($0.nextAttempt.map { $0 <= Date() } ?? false) }) {
             let item = pending[index]
             guard item.cutoff > Date() else { discardExpired(); continue }
@@ -194,7 +243,7 @@ final class DailyRoadAnalytics {
         timer?.cancel()
         timer = nil
         discardExpired()
-        guard !inFlight, let wake = pending.flatMap({ item in
+        guard enabled, !inFlight, let wake = pending.flatMap({ item in
             [item.cutoff, item.nextAttempt].compactMap { $0 }
         }).min() else { return }
         timer = Task { [weak self] in

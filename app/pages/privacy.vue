@@ -34,8 +34,13 @@ const updated = 'November 2026';
             your iCloud account. We cannot read it.
           </li>
           <li>
-            The daily road sends anonymous play stats with a random player ID.
-            You can turn this off.
+            On iPhone, the app asks before it sends any play stats. If you say
+            yes, your daily results go to our servers with a random player ID.
+            You can change this in Settings at any time.
+          </li>
+          <li>
+            On the website, the daily road always sends the same play stats
+            with a random player ID.
           </li>
           <li>We do not sell data or share it with advertisers.</li>
         </ul>
@@ -54,7 +59,8 @@ const updated = 'November 2026';
           </li>
           <li>Which Past Roads you have solved.</li>
           <li>
-            Your settings: sound, haptics, reminder, and the play stats switch.
+            Your settings: sound, haptics, reminder, and your community stats
+            answer.
           </li>
           <li>
             A random player ID. It is made on your device and is not linked to
@@ -88,7 +94,8 @@ const updated = 'November 2026';
         <p class="eyebrow">Our server</p>
         <h2>Anonymous play stats</h2>
         <p>
-          When you play the live daily road, the app tells our server when you
+          Play stats are records keyed to a random player ID. When you play the
+          live daily road, the app or the website tells our servers when you
           start and when you solve it exactly. Each message holds your random
           player ID, the road number, the mode (Classic or Expedition) and a
           session ID. A solve also holds your try number, the number of moves,
@@ -100,9 +107,22 @@ const updated = 'November 2026';
           replays are never sent.
         </p>
         <p>
-          <strong>To turn it off</strong> on iPhone, open Settings in GoldRoad
-          and turn off <em>Share anonymous play stats</em>. When it is off, the
-          app sends no play stats.
+          <strong>On iPhone</strong>, the app sends nothing until you answer.
+          It asks once, after you first solve a daily road. If you say yes, it
+          sends the results of that road and of later roads. If you say no, it
+          deletes the results it kept on your device and sends nothing. To
+          change your answer, open Settings in GoldRoad and use
+          <em>Contribute to community stats</em>. When you turn it off, the
+          app stops sending at once. Records it sent before stay until they
+          are deleted, as described below.
+        </p>
+        <p>
+          <strong>On the website</strong>, the daily road sends play stats when
+          you play. There is no switch on the website today.
+        </p>
+        <p>
+          Community numbers in the app and on the website count only players
+          who share play stats.
         </p>
       </section>
 
@@ -137,8 +157,9 @@ const updated = 'November 2026';
             for GoldRoad at any time.
           </li>
           <li>
-            Play stats on our servers are not linked to you. We delete them 2
-            years after they were last updated.
+            Play stats on our servers are keyed to a random player ID, not to
+            you. A daily cleanup removes each record from our active database 2
+            years after it was last updated.
           </li>
         </ul>
       </section>

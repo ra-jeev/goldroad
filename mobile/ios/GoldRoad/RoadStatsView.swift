@@ -301,6 +301,9 @@ struct RoadStatsView: View {
                 VStack(spacing: 4) {
                     Eyebrow("Yesterday’s roads · Day #\(number)")
                     Text("Global stats").font(RoadFont.title(22)).foregroundStyle(RoadTheme.cream)
+                    Text("Among players who share stats")
+                        .font(.footnote)
+                        .foregroundStyle(RoadTheme.sand)
                 }
                 .frame(maxWidth: .infinity)
                 if let field {

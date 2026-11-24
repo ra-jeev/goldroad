@@ -456,6 +456,13 @@ extension ContractTests {
         for tile in [1, 4, 5, 8] { run.select(tile) }
         XCTAssertEqual(run.outcome, .solved)
         analytics.recordSolve(for: run, mode: .classic)
+
+        // Not asked yet: the start and the solve stay on the device. Only the hint is sent.
+        XCTAssertNil(analytics.consent)
+        try await Task.sleep(for: .milliseconds(300))
+        XCTAssertNil(recorder.body(for: "/api/session/start"))
+        XCTAssertNil(recorder.body(for: "/api/session/end"))
+        analytics.setConsent(true)
         await fulfillment(of: [received], timeout: 5)
 
         for path in ["/api/session/start", "/api/session/hint", "/api/session/end"] {
@@ -464,5 +471,41 @@ extension ContractTests {
             let sent = try XCTUnwrap(payload["sessionId"] as? String, path)
             XCTAssertEqual(UUID(uuidString: sent), sessionID, path)
         }
+    }
+
+    @MainActor
+    func testDecliningCommunityStatsDropsHeldPlay() throws {
+        let suite = "GoldRoadTests.consent.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let analytics = DailyRoadAnalytics(defaults: defaults)
+        let board = Board(rows: 3, cols: 3, tiles: [2, 3, 1, 1, 4, 2, 1, 1, 5],
+                          missingEdges: [.init(from: 0, to: 3), .init(from: 2, to: 5)],
+                          tollEdges: [.init(from: 0, to: 1)], bonusEdges: [.init(from: 1, to: 4)],
+                          tollValue: 2, bonusValue: 3, start: 0, end: 8)
+        let cutoff = ISO8601DateFormatter().string(from: Date().addingTimeInterval(3600))
+        var run = RoadRun(road: ClassicRoad(gameNo: 1, maxScore: 17, playableAt: "2026-01-01T00:00:00Z",
+                                            board: board, nextGameAt: cutoff))
+        run.select(1)
+        analytics.startIfNeeded(for: run, mode: .classic)
+        for tile in [4, 5, 8] { run.select(tile) }
+        XCTAssertEqual(run.outcome, .solved)
+        analytics.recordSolve(for: run, mode: .classic)
+
+        func held(_ key: String) throws -> Int {
+            let data = try XCTUnwrap(defaults.data(forKey: key), key)
+            return try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [Any], key).count
+        }
+        XCTAssertEqual(try held("dailyAnalytics.heldStarts.v1"), 1)
+        XCTAssertEqual(try held("dailyAnalytics.pendingSolves.v1"), 1)
+
+        analytics.setConsent(false)
+        XCTAssertEqual(analytics.consent, false)
+        XCTAssertEqual(try held("dailyAnalytics.heldStarts.v1"), 0)
+        XCTAssertEqual(try held("dailyAnalytics.pendingSolves.v1"), 0)
+
+        // After a no, new play is not kept.
+        analytics.recordSolve(for: run, mode: .classic)
+        XCTAssertEqual(try held("dailyAnalytics.pendingSolves.v1"), 0)
     }
 }

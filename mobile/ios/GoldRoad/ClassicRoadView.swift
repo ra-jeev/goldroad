@@ -9,6 +9,7 @@ struct ClassicRoadView: View {
     @State private var model: DailyRoadModel
     @State private var showStats = false
     @State private var askReminder = false
+    @State private var askStatsConsent = false
     @AppStorage("dailyReminder.asked") private var reminderAsked = false
 
     init(startMode: RoadMode = .classic, onBack: (() -> Void)? = nil) {
@@ -73,6 +74,12 @@ struct ClassicRoadView: View {
             RoadStatsView(onBack: { showStats = false })
                 .toolbar(.hidden, for: .navigationBar)
         }
+        .alert("Help build community stats?", isPresented: $askStatsConsent) {
+            Button("Not now", role: .cancel) { DailyRoadAnalytics.shared.setConsent(false) }
+            Button("Share") { DailyRoadAnalytics.shared.setConsent(true) }
+        } message: {
+            Text("Send your daily results with a random player ID, so everyone can see how the field played. No name or account. You can change this in Settings.")
+        }
         .alert("Get a reminder?", isPresented: $askReminder) {
             Button("Not now", role: .cancel) {}
             Button("Remind me") { Task { await RoadReminder.shared.setEnabled(true) } }
@@ -90,9 +97,17 @@ struct ClassicRoadView: View {
         }
     }
 
-    /// Ask about the reminder once, after the first solve. After that it lives in Settings only.
+    /// After the first solve, ask about community stats. Ask about the reminder once, at a later
+    /// solve, so the player never gets two questions in a row. After that both live in Settings.
     private func resultClosed() {
         model.resumeClock()
+        if DailyRoadAnalytics.shared.consent == nil {
+            Task {
+                try? await Task.sleep(for: .milliseconds(400))
+                askStatsConsent = true
+            }
+            return
+        }
         guard !reminderAsked, !RoadReminder.shared.enabled else { return }
         reminderAsked = true
         Task {
