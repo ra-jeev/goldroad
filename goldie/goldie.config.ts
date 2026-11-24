@@ -91,10 +91,15 @@ const config: GoldieConfig = {
     {
       kind: "preview",
       id: "preview",
+      // Story: Home, the first moves, the last moves and the solve, then Stats.
+      // "fast" walks the middle of the road and is cut from the video: render
+      // with GOLDIE_CONFIG=goldie/goldie.preview.config.ts, which leaves it out.
       segments: [
         { id: "open", flow: "store-preview-01-home" },
         { id: "walk", flow: "store-preview-02-walk" },
-        { id: "solve", flow: "store-preview-03-solve", holdSeconds: 1.5 },
+        { id: "fast", flow: "store-preview-03-fast" },
+        { id: "finish", flow: "store-preview-04-finish" },
+        { id: "stats", flow: "store-preview-05-stats", holdSeconds: 1 },
       ],
     },
   ],

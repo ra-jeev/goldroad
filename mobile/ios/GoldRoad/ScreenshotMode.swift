@@ -58,8 +58,9 @@ enum ScreenshotMode {
     // MARK: Seed
 
     private static func seedHistory() {
+        // Every launch starts the same demo day: today's roads unplayed, the sample history behind them.
         let defaults = UserDefaults.standard
-        guard defaults.data(forKey: DailyRoadRecord.storageKey) == nil else { return }
+        if let domain = Bundle.main.bundleIdentifier { defaults.removePersistentDomain(forName: domain) }
         // Classic tries for the 12 days before today, oldest first; 0 means Expedition was skipped.
         let classicTries = [1, 2, 1, 1, 3, 1, 2, 1, 1, 1, 2, 2]
         let expeditionTries = [2, 1, 0, 1, 2, 1, 1, 0, 3, 1, 1, 2]

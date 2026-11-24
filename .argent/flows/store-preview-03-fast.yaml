@@ -1,0 +1,119 @@
+executionPrerequisite: >-
+  Classic board, 6 tiles walked. This clip is left out of the video (goldie/goldie.preview.config.ts): it only walks the middle of the road fast.
+# App Store preview segment. Needs the screenshot-mode simulator build: the
+# device's data folder holds a GoldRoadScreenshotMode file (see
+# mobile/ios/GoldRoad/ScreenshotMode.swift), so every launch starts the same
+# unplayed demo day (the Day #100 boards). argent native devtools cannot attach
+# to this app, so every step is a coordinate on the iPhone 17 Pro Max.
+steps:
+  - echo: "tile-26"
+  - tap:
+      x: 0.423
+      y: 0.628
+  - wait: 110
+  - echo: "tile-25"
+  - tap:
+      x: 0.27
+      y: 0.628
+  - wait: 110
+  - echo: "tile-31"
+  - tap:
+      x: 0.27
+      y: 0.699
+  - wait: 110
+  - echo: "tile-32"
+  - tap:
+      x: 0.423
+      y: 0.699
+  - wait: 110
+  - echo: "tile-33"
+  - tap:
+      x: 0.577
+      y: 0.699
+  - wait: 110
+  - echo: "tile-34"
+  - tap:
+      x: 0.73
+      y: 0.699
+  - wait: 110
+  - echo: "tile-35"
+  - tap:
+      x: 0.883
+      y: 0.699
+  - wait: 110
+  - echo: "tile-29"
+  - tap:
+      x: 0.883
+      y: 0.628
+  - wait: 110
+  - echo: "tile-23"
+  - tap:
+      x: 0.883
+      y: 0.558
+  - wait: 110
+  - echo: "tile-17"
+  - tap:
+      x: 0.883
+      y: 0.487
+  - wait: 110
+  - echo: "tile-11"
+  - tap:
+      x: 0.883
+      y: 0.417
+  - wait: 110
+  - echo: "tile-10"
+  - tap:
+      x: 0.73
+      y: 0.417
+  - wait: 110
+  - echo: "tile-9"
+  - tap:
+      x: 0.577
+      y: 0.417
+  - wait: 110
+  - echo: "tile-3"
+  - tap:
+      x: 0.577
+      y: 0.346
+  - wait: 110
+  - echo: "tile-2"
+  - tap:
+      x: 0.423
+      y: 0.346
+  - wait: 110
+  - echo: "tile-8"
+  - tap:
+      x: 0.423
+      y: 0.417
+  - wait: 110
+  - echo: "tile-14"
+  - tap:
+      x: 0.423
+      y: 0.487
+  - wait: 110
+  - echo: "tile-13"
+  - tap:
+      x: 0.27
+      y: 0.487
+  - wait: 110
+  - echo: "tile-19"
+  - tap:
+      x: 0.27
+      y: 0.558
+  - wait: 110
+  - echo: "tile-18"
+  - tap:
+      x: 0.117
+      y: 0.558
+  - wait: 110
+  - echo: "tile-12"
+  - tap:
+      x: 0.117
+      y: 0.487
+  - wait: 110
+  - echo: "tile-6"
+  - tap:
+      x: 0.117
+      y: 0.417
+  - wait: 110
+  - wait: 300

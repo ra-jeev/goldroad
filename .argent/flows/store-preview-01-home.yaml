@@ -1,15 +1,14 @@
 executionPrerequisite: >-
   App freshly restarted by goldie in screenshot mode, settled on Home.
-# App Store capture flow. Needs the screenshot-mode simulator build: the
+# App Store preview segment. Needs the screenshot-mode simulator build: the
 # device's data folder holds a GoldRoadScreenshotMode file (see
-# mobile/ios/GoldRoad/ScreenshotMode.swift), so the app serves a local demo
-# road (the Day #100 boards) and a sample history. argent native devtools
-# cannot attach to this app, so every step is a coordinate on the
-# iPhone 17 Pro Max, read from describe.
+# mobile/ios/GoldRoad/ScreenshotMode.swift), so every launch starts the same
+# unplayed demo day (the Day #100 boards). argent native devtools cannot attach
+# to this app, so every step is a coordinate on the iPhone 17 Pro Max.
 steps:
-  - wait: 2000
+  - wait: 2200
   - echo: "Home: Play Classic"
   - tap:
       x: 0.79
       y: 0.311
-  - wait: 2200
+  - wait: 1800

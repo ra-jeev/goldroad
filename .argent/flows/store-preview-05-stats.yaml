@@ -1,0 +1,23 @@
+executionPrerequisite: >-
+  Result sheet open after the solve.
+# App Store preview segment. Needs the screenshot-mode simulator build: the
+# device's data folder holds a GoldRoadScreenshotMode file (see
+# mobile/ios/GoldRoad/ScreenshotMode.swift), so every launch starts the same
+# unplayed demo day (the Day #100 boards). argent native devtools cannot attach
+# to this app, so every step is a coordinate on the iPhone 17 Pro Max.
+steps:
+  - echo: "Result sheet: Close"
+  - tap:
+      x: 0.888
+      y: 0.555
+  - wait: 900
+  - echo: "Board: Back to Home"
+  - tap:
+      x: 0.073
+      y: 0.092
+  - wait: 1300
+  - echo: "Home: View all stats"
+  - tap:
+      x: 0.5
+      y: 0.665
+  - wait: 4500
