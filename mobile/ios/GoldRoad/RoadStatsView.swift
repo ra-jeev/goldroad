@@ -85,6 +85,7 @@ struct RoadStatsView: View {
     @State private var recordMode = RoadMode.classic
     @State private var fieldMode = RoadMode.classic
     @State private var showFieldDetail = false
+    @AppStorage(GameConstants.analyticsKey) private var statsConsent: Bool?
     @State private var overview: StatsOverview?
     @State private var loading = true
     @State private var failed = false
@@ -345,6 +346,7 @@ struct RoadStatsView: View {
                     Text("No \(fieldMode.title) comparison is available for this road.")
                         .font(.subheadline).frame(maxWidth: .infinity)
                 }
+                if statsConsent != true { contributePrompt }
                 Rectangle().fill(RoadTheme.gold.opacity(0.14)).frame(height: 1)
                 Button {
                     withAnimation(.easeOut(duration: 0.15)) { fieldMode = fieldMode == .classic ? .expedition : .classic }
@@ -361,6 +363,20 @@ struct RoadStatsView: View {
                 .frame(maxWidth: .infinity)
             }
         }
+    }
+
+    /// Shown only while sharing is off. Your own result above comes from this phone either way.
+    private var contributePrompt: some View {
+        VStack(spacing: 8) {
+            Text("Your results are not in these numbers. Count them from your next road.")
+                .font(.subheadline)
+                .foregroundStyle(RoadTheme.sand)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+            Button("Count my results") { DailyRoadAnalytics.shared.setConsent(true) }
+                .buttonStyle(.goldSecondary)
+        }
+        .frame(maxWidth: .infinity)
     }
 
     private func playerLine(_ field: StatsOverview.Day.Community, _ result: DailyRoadRecord?) -> String? {
