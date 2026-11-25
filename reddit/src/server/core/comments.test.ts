@@ -2,7 +2,7 @@ import { reddit, redis } from '@devvit/web/server';
 import { createDevvitTest } from '@devvit/test/server/vitest';
 import { afterEach, expect, vi } from 'vitest';
 import type { PlayerRun } from '../../shared/api';
-import { ensureResultsThread, pinnedResultsThread, resultText, THREAD_TEXT } from './comments';
+import { ensureResultsThread, pinnedResultsThread, resultParent, resultText, THREAD_TEXT } from './comments';
 import { claimComment, saveComment } from './runs';
 
 const test = createDevvitTest();
@@ -61,6 +61,21 @@ test('a share before the pin is confirmed does not go under the comment', async 
 
   await expect(pinnedResultsThread('t3_post')).rejects.toThrow('Try again in a moment');
   expect(await pinnedResultsThread('t3_post')).toBe('t1_thread');
+});
+
+test("an Expedition result replies to the player's own Classic result", async () => {
+  const own = { id: 't1_mine', authorId: 't2_me', removed: false, spam: false, body: 'GoldRoad #1 · Classic' };
+  vi.spyOn(reddit, 'getCommentById').mockResolvedValue(own as never);
+  expect(await resultParent('t3_post', 't1_mine', 't2_me')).toBe('t1_mine');
+});
+
+test('with no usable Classic result, an Expedition result goes under the pinned comment', async () => {
+  await redis.set('thread:t3_post', 't1_thread');
+  await redis.set('thread:t3_post:pinned', '1');
+  const removed = { id: 't1_mine', authorId: 't2_me', removed: true, spam: false, body: 'x' };
+  vi.spyOn(reddit, 'getCommentById').mockResolvedValue(removed as never);
+  expect(await resultParent('t3_post', 't1_mine', 't2_me')).toBe('t1_thread');
+  expect(await resultParent('t3_post', null, 't2_me')).toBe('t1_thread');
 });
 
 test('a failed post leaves no claim behind', async () => {

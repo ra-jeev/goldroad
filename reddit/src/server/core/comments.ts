@@ -96,3 +96,20 @@ export function resultText(roadNo: number, mode: RoadMode, run: PlayerRun): stri
   if (run.solveSeconds !== null) parts.push(duration(run.solveSeconds));
   return `GoldRoad #${roadNo} · ${mode === 'classic' ? 'Classic' : 'Expedition'}\n\n${parts.join(' · ')}`;
 }
+
+/**
+ * Where a player's result comment goes. Expedition goes as a reply to the
+ * player's own Classic result, so each player has one thread a day. If that
+ * comment is gone or removed, it goes under the pinned results comment.
+ */
+export async function resultParent(postId: string, ownClassicId: string | null, userId: string): Promise<string> {
+  if (ownClassicId) {
+    try {
+      const own = await reddit.getCommentById(ownClassicId as `t1_${string}`);
+      if (own.authorId === userId && !own.removed && !own.spam && own.body !== '[deleted]') return own.id;
+    } catch (error) {
+      console.error(`could not read the classic result comment ${ownClassicId}: ${error}`);
+    }
+  }
+  return pinnedResultsThread(postId);
+}

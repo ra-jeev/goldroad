@@ -76,6 +76,12 @@ export async function claimComment(userId: string, day: string, mode: RoadMode):
   return (await redis.hSetNX(key, 'commentId', 'pending')) === 1;
 }
 
+/** The id of the player's posted result comment for a road, if there is one. */
+export async function postedCommentId(userId: string, day: string, mode: RoadMode): Promise<string | null> {
+  const id = (await read(userId, day, mode)).commentId;
+  return id && id !== 'pending' ? id : null;
+}
+
 export async function saveComment(userId: string, day: string, mode: RoadMode, commentId: string | null) {
   const key = runKey(userId, day, mode);
   if (commentId) await redis.hSet(key, { commentId });
