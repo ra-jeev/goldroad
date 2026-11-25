@@ -20,6 +20,7 @@ const props = defineProps<{
   ballot: Ballot | null;
   community: CommunityPick | null;
   loggedIn: boolean;
+  username: string | null;
   /** Classic is solved and Expedition is not: offer it. */
   expeditionOpen?: boolean;
 }>();
@@ -236,6 +237,11 @@ const nextRoad = computed(() => {
       >
         {{ COMMENT_LABEL[commentState] }}
       </button>
+      <p v-if="loggedIn && commentState !== 'done'" class="fine">
+        Posts a comment from your account{{ username ? `, u/${username}` : '' }}, as a reply in the
+        pinned results thread. Everyone can see it. It shows your medal, tries, hints and time, never
+        your route.
+      </p>
 
       <button v-if="expeditionOpen" type="button" class="action" @click="emit('expedition')">
         Continue to Expedition

@@ -26,6 +26,7 @@ const run = ref<RunState | null>(null);
 /** The server's record. Null for a logged-out player. */
 const record = ref<PlayerRun | null>(null);
 const loggedIn = ref(false);
+const username = ref<string | null>(null);
 /** Logged-out players: counted here only, never saved. */
 const guestAttempts = ref(0);
 const guestHints = ref(0);
@@ -163,6 +164,7 @@ async function load(next: RoadMode) {
     road.value = response.road;
     record.value = response.run;
     loggedIn.value = response.run !== null;
+    username.value = response.username;
     solvedBefore.value = !!response.run?.solved;
     guide.value = response.run?.guidePath ?? [];
     standing.value = response.standing;
@@ -805,6 +807,7 @@ function onKeydown(event: KeyboardEvent) {
         :ballot="ballot"
         :community="community"
         :logged-in="loggedIn"
+        :username="username"
         @close="closeResult"
         :expedition-open="mode === 'classic' && !expeditionResult.solved"
         @expedition="playExpedition"
