@@ -442,6 +442,7 @@ struct RoadStatsView: View {
                     row("Average solve time", stats.averageSolveTimeMs.map(RoadShare.duration) ?? "–")
                     row("Best solve time", stats.bestSolveTimeMs.map(RoadShare.duration) ?? "–")
                     row("Total hints used", "\(stats.totalHints)")
+                    row("\(RoadResult.noHintsLabel) solves", "\(RoadStats.noHintSolves(entries, mode: recordMode))")
                 }
             } else {
                 Text("Play a \(recordMode.title) road and your stats will appear here.")

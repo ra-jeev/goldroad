@@ -13,6 +13,9 @@ final class DailyRoadModel {
     private(set) var nextDay: ClassicRoadClient.RoadDay?
     private(set) var waitingForRoad = false
     private(set) var updateRequired = false
+    /// True while a saved road from an earlier day waits for the first check, so the board
+    /// does not flash yesterday's road before today's road loads.
+    private(set) var holdsStaleRoad = false
     private var allowedSavedRoad: Int?
     private(set) var hintMessage: String?
     private(set) var hintRequest: UUID?
@@ -44,11 +47,15 @@ final class DailyRoadModel {
     private let defaults: UserDefaults
     private let sound = RoadSound()
     private let client: ClassicRoadClient
+    /// Today's road as Home last fetched it. Used once, on the first load, so the board
+    /// opens without a second fetch of the same road.
+    @ObservationIgnored private var prefetched: ClassicRoadClient.RoadDay?
 
-    init(startMode: RoadMode? = nil, defaults: UserDefaults = .standard,
-         client: ClassicRoadClient = ClassicRoadClient()) {
+    init(startMode: RoadMode? = nil, prefetched: ClassicRoadClient.RoadDay? = nil,
+         defaults: UserDefaults = .standard, client: ClassicRoadClient = ClassicRoadClient()) {
         self.defaults = defaults
         self.client = client
+        self.prefetched = prefetched
         requestedMode = startMode
         mode = startMode ?? defaults.string(forKey: "roadMode").flatMap(RoadMode.init(rawValue:)) ?? .classic
     }
@@ -286,9 +293,16 @@ final class DailyRoadModel {
         if classic == nil { classic = restore(mode: .classic) }
         if expedition == nil { expedition = restore(mode: .expedition) }
         if !expeditionUnlocked { switchMode(.classic) }
+        if freshOpen, classic?.road.isExpired(at: Date()) == true { holdsStaleRoad = true }
         sound.prepare()
         resumeClock()
-        await checkForRoad()
+        if let day = prefetched.take(), day.classic.map({ !$0.isExpired(at: Date()) }) == true {
+            apply(day)
+            isLoading = false
+        } else {
+            await checkForRoad()
+        }
+        holdsStaleRoad = false
         guard !Task.isCancelled else { return }
         if let requested = requestedMode {
             requestedMode = nil
@@ -336,70 +350,75 @@ final class DailyRoadModel {
         do {
             let day = try await client.fetch()
             try Task.checkCancellation()
-            updateRequired = day.requiresUpdate(installed: client.installedVersion)
-            if updateRequired {
-                if let run, replay == nil, run.outcome != .solved,
-                   run.path.count > 1 || run.attempt > 1 || run.hintsUsed > 0 {
-                    allowedSavedRoad = run.road.gameNo
-                }
-                clearInteraction()
-                nextDay = nil
-                waitingForRoad = false
-                notice = nil
-                return
-            }
-            allowedSavedRoad = nil
-            RoadWidgetPublisher.remember(day.classic ?? day.expedition)
-            RoadReminder.shared.rememberCutoff(day.classic?.cutoff ?? day.expedition?.cutoff)
-            now = Date()
-            if nextDay?.classic?.isExpired(at: now) == true { nextDay = nil }
-            notice = nil
-            switch day.availability(after: classic?.road, at: now) {
-            case .open:
-                openRoadDay(day)
-            case .ready where freshOpen:
-                openRoadDay(day)
-            case .ready:
-                nextDay = day
-                waitingForRoad = false
-                clearInteraction()
-            case .sameDay:
-                if let published = day.classic, var run = classic {
-                    run.updateSchedule(from: published)
-                    if run != classic { save(run, for: .classic) }
-                }
-                if !roadExpired, let published = day.playableExpedition {
-                    if var run = expedition, run.road.gameNo == published.gameNo {
-                        run.updateSchedule(from: published)
-                        if run != expedition { save(run, for: .expedition) }
-                    } else {
-                        save(RoadRun(road: published), for: .expedition)
-                    }
-                }
-                waitingForRoad = roadExpired && nextDay == nil
-                if !roadExpired {
-                    if let classic { DailyRoadRecord.record(classic, mode: .classic) }
-                    if let expedition, expedition.road.gameNo == classic?.road.gameNo {
-                        DailyRoadRecord.record(expedition, mode: .expedition)
-                    }
-                }
-            case .waiting:
-                waitingForRoad = nextDay == nil && (classic == nil || roadExpired)
-                if !waitingForRoad && nextDay == nil {
-                    notice = "Today’s road is unavailable. You can still play the saved puzzle."
-                }
-            }
-            freshOpen = false
-            if waitingForRoad {
-                notice = "The new road is still being prepared."
-            }
-            if roadExpired {
-                hintMessage = nil
-                hintRequest = nil
-            }
+            apply(day)
         } catch {
             guard !Task.isCancelled else { return }
             notice = "Couldn’t check for today’s road. Try again when you’re online."
+        }
+    }
+
+    /// Applies a fetched day: the road, its schedule and the minimum app version.
+    private func apply(_ day: ClassicRoadClient.RoadDay) {
+        updateRequired = day.requiresUpdate(installed: client.installedVersion)
+        if updateRequired {
+            if let run, replay == nil, run.outcome != .solved,
+               run.path.count > 1 || run.attempt > 1 || run.hintsUsed > 0 {
+                allowedSavedRoad = run.road.gameNo
+            }
+            clearInteraction()
+            nextDay = nil
+            waitingForRoad = false
+            notice = nil
+            return
+        }
+        allowedSavedRoad = nil
+        RoadWidgetPublisher.remember(day.classic ?? day.expedition)
+        RoadReminder.shared.rememberCutoff(day.classic?.cutoff ?? day.expedition?.cutoff)
+        now = Date()
+        if nextDay?.classic?.isExpired(at: now) == true { nextDay = nil }
+        notice = nil
+        switch day.availability(after: classic?.road, at: now) {
+        case .open:
+            openRoadDay(day)
+        case .ready where freshOpen:
+            openRoadDay(day)
+        case .ready:
+            nextDay = day
+            waitingForRoad = false
+            clearInteraction()
+        case .sameDay:
+            if let published = day.classic, var run = classic {
+                run.updateSchedule(from: published)
+                if run != classic { save(run, for: .classic) }
+            }
+            if !roadExpired, let published = day.playableExpedition {
+                if var run = expedition, run.road.gameNo == published.gameNo {
+                    run.updateSchedule(from: published)
+                    if run != expedition { save(run, for: .expedition) }
+                } else {
+                    save(RoadRun(road: published), for: .expedition)
+                }
+            }
+            waitingForRoad = roadExpired && nextDay == nil
+            if !roadExpired {
+                if let classic { DailyRoadRecord.record(classic, mode: .classic) }
+                if let expedition, expedition.road.gameNo == classic?.road.gameNo {
+                    DailyRoadRecord.record(expedition, mode: .expedition)
+                }
+            }
+        case .waiting:
+            waitingForRoad = nextDay == nil && (classic == nil || roadExpired)
+            if !waitingForRoad && nextDay == nil {
+                notice = "Today’s road is unavailable. You can still play the saved puzzle."
+            }
+        }
+        freshOpen = false
+        if waitingForRoad {
+            notice = "The new road is still being prepared."
+        }
+        if roadExpired {
+            hintMessage = nil
+            hintRequest = nil
         }
     }
 

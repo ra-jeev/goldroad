@@ -15,13 +15,14 @@ struct ClassicRoadView: View {
     @AppStorage("dailyReminder.asked") private var reminderAsked = false
     @State private var reviewTask: Task<Void, Never>?
 
-    init(startMode: RoadMode = .classic, onBack: (() -> Void)? = nil) {
+    init(startMode: RoadMode = .classic, prefetched: ClassicRoadClient.RoadDay? = nil,
+         onBack: (() -> Void)? = nil) {
         self.onBack = onBack
-        _model = State(initialValue: DailyRoadModel(startMode: startMode))
+        _model = State(initialValue: DailyRoadModel(startMode: startMode, prefetched: prefetched))
     }
 
     private var title: String {
-        guard let run = model.run else { return model.mode.title }
+        guard let run = model.run, !model.holdsStaleRoad else { return model.mode.title }
         return "\(model.mode.title) · Day #\(run.road.gameNo)"
     }
 
@@ -36,7 +37,7 @@ struct ClassicRoadView: View {
             }
             if model.showsUpdateScreen {
                 centered { updateScreen }
-            } else if let run = model.run {
+            } else if let run = model.run, !model.holdsStaleRoad {
                 game(run)
             } else {
                 centered { loadingOrNotice }

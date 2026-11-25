@@ -127,7 +127,7 @@ struct RoadResultView: View {
         let items = [medal.map { "\($0.name) medal" } ?? "Solved",
                      "\(result.attempts) \(result.attempts == 1 ? "try" : "tries")"]
             + (result.timeLabel.map { ["Solve time \($0)"] } ?? [])
-            + (result.hintsUsed > 0 ? ["\(result.hintsUsed) \(result.hintsUsed == 1 ? "hint" : "hints")"] : [])
+            + [result.hintsUsed > 0 ? "\(result.hintsUsed) \(result.hintsUsed == 1 ? "hint" : "hints")" : RoadResult.noHintsLabel]
         return FlowChips(items: items)
     }
 
@@ -135,7 +135,7 @@ struct RoadResultView: View {
         let rowMedal = RoadResult.Medal.forAttempt(row.attempts, solved: true)
         let details = ["\(row.attempts) \(row.attempts == 1 ? "try" : "tries")"]
             + (row.timeLabel.map { [$0] } ?? [])
-            + (row.hintsUsed > 0 ? ["\(row.hintsUsed) \(row.hintsUsed == 1 ? "hint" : "hints")"] : [])
+            + [row.hintsUsed > 0 ? "\(row.hintsUsed) \(row.hintsUsed == 1 ? "hint" : "hints")" : RoadResult.noHintsLabel]
         return HStack(spacing: 12) {
             Text(rowMedal?.emoji ?? "✓").font(.system(size: 26)).frame(width: 34)
             VStack(alignment: .leading, spacing: 2) {

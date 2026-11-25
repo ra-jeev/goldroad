@@ -1,6 +1,9 @@
 import Foundation
 
 struct RoadResult {
+    /// Marks a solve made with no hints. Hints never cost a medal; this only rewards a clean walk.
+    static let noHintsLabel = "★ No hints"
+
     enum Medal: Int, CaseIterable {
         case gold = 1, silver, bronze
 

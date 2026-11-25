@@ -591,3 +591,81 @@ extension ContractTests {
         XCTAssertTrue(RoadReview.shouldAsk(defaults: defaults, version: "1.1.0"))
     }
 }
+
+/// Counts requests for today's road and fails each one, so a test can see whether the board fetched.
+private final class CurrentRoadURLProtocol: URLProtocol {
+    private static let lock = NSLock()
+    private static var count = 0
+    static var requests: Int {
+        lock.lock(); defer { lock.unlock() }
+        return count
+    }
+    static func reset() { lock.lock(); count = 0; lock.unlock() }
+
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+    override func startLoading() {
+        if request.url?.path == "/api/games/current" {
+            Self.lock.lock(); Self.count += 1; Self.lock.unlock()
+        }
+        client?.urlProtocol(self, didFailWithError: URLError(.notConnectedToInternet))
+    }
+    override func stopLoading() {}
+}
+
+extension ContractTests {
+    @MainActor
+    private func loadBoard(prefetchedCutoff: Date) async throws -> (DailyRoadModel, Int) {
+        CurrentRoadURLProtocol.reset()
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [CurrentRoadURLProtocol.self]
+        let session = URLSession(configuration: configuration)
+        defer { session.invalidateAndCancel() }
+        let suite = "GoldRoadTests.prefetch.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let board = Board(rows: 3, cols: 3, tiles: [2, 3, 1, 1, 4, 2, 1, 1, 5],
+                          missingEdges: [], tollEdges: [], bonusEdges: [],
+                          tollValue: 2, bonusValue: 3, start: 0, end: 8)
+        let formatter = ISO8601DateFormatter()
+        let road = ClassicRoad(gameNo: 105, maxScore: 9, playableAt: formatter.string(from: Date()),
+                               board: board, nextGameAt: formatter.string(from: prefetchedCutoff))
+        let day = ClassicRoadClient.RoadDay(classic: road, expedition: nil)
+        let model = DailyRoadModel(prefetched: day, defaults: defaults, client: ClassicRoadClient(session: session))
+        let load = Task { await model.loadRoad(isActive: true) }
+        for _ in 0..<40 where model.isLoading {
+            try await Task.sleep(for: .milliseconds(25))
+        }
+        load.cancel()
+        return (model, CurrentRoadURLProtocol.requests)
+    }
+
+    /// Home's road opens the board at once, with no second fetch.
+    @MainActor
+    func testBoardUsesHomesRoadWithoutFetching() async throws {
+        let (model, requests) = try await loadBoard(prefetchedCutoff: Date().addingTimeInterval(3600))
+        XCTAssertEqual(model.run?.road.gameNo, 105)
+        XCTAssertFalse(model.isLoading)
+        XCTAssertEqual(requests, 0)
+    }
+
+    /// A road from Home that has expired is not trusted: the board fetches.
+    @MainActor
+    func testBoardFetchesWhenHomesRoadHasExpired() async throws {
+        let (_, requests) = try await loadBoard(prefetchedCutoff: Date().addingTimeInterval(-60))
+        XCTAssertEqual(requests, 1)
+    }
+}
+
+extension ContractTests {
+    func testNoHintSolvesCountsOnlyCleanSolvesInTheMode() {
+        func entry(_ gameNo: Int, _ mode: RoadMode, solved: Bool, hints: Int) -> RoadStats.Entry {
+            RoadStats.Entry(day: "2026-11-\(10 + gameNo)", gameNo: gameNo, puzzleType: mode, attempts: 1,
+                            solved: solved, hintsUsed: hints, solveTimeMs: nil)
+        }
+        let entries = [entry(1, .classic, solved: true, hints: 0), entry(2, .classic, solved: true, hints: 2),
+                       entry(3, .classic, solved: false, hints: 0), entry(4, .expedition, solved: true, hints: 0)]
+        XCTAssertEqual(RoadStats.noHintSolves(entries, mode: .classic), 1)
+        XCTAssertEqual(RoadStats.noHintSolves(entries, mode: .expedition), 1)
+    }
+}

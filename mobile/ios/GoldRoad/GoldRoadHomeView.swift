@@ -75,7 +75,7 @@ struct GoldRoadHomeView: View {
             .background(RoadTheme.screenBackground)
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(isPresented: $showingRoad) {
-                ClassicRoadView(startMode: roadMode, onBack: { showingRoad = false })
+                ClassicRoadView(startMode: roadMode, prefetched: today, onBack: { showingRoad = false })
                     .toolbar(.hidden, for: .navigationBar)
             }
             .navigationDestination(isPresented: $showingStats) {
@@ -160,11 +160,11 @@ struct GoldRoadHomeView: View {
 
             VStack(spacing: 0) {
                 modeRow(.classic,
-                        note: today?.classic.map { "Target \($0.maxScore) · \($0.board.cols)×\($0.board.rows)" },
+                        note: today?.classic.map { .target($0.maxScore) },
                         state: classic ? .solved : started != nil ? .continue : .play)
                 Rectangle().fill(RoadTheme.gold.opacity(0.14)).frame(height: 1)
                 modeRow(.expedition,
-                        note: classic ? "Tolls and bonuses change the sum" : "Solve Classic to unlock",
+                        note: !classic ? .locked : today?.playableExpedition.map { .target($0.maxScore) },
                         state: expedition ? .solved : classic ? .play : .locked)
             }
             .background(RoadTheme.color(0x120A03).opacity(0.55), in: RoundedRectangle(cornerRadius: 16))
@@ -179,6 +179,7 @@ struct GoldRoadHomeView: View {
                         Text(timerInterval: context.date...cutoff, countsDown: true)
                             .monospacedDigit()
                             .fixedSize()
+                        LocalRoadTime(cutoff: cutoff)
                     }
                     .font(RoadFont.body(14, relativeTo: .footnote))
                     .foregroundStyle(RoadTheme.gold)
@@ -200,43 +201,73 @@ struct GoldRoadHomeView: View {
 
     private enum RowState { case play, `continue`, solved, locked }
 
-    private func modeRow(_ mode: RoadMode, note: String?, state: RowState) -> some View {
+    /// The dim text after a road's name. Each note has a short form for when
+    /// the full one does not fit on the row's one line.
+    private enum RowNote {
+        case target(Int), locked
+        var full: String {
+            switch self {
+            case .target(let score): "Target \(score)"
+            case .locked: "Solve Classic to unlock"
+            }
+        }
+        var short: String {
+            switch self {
+            case .target(let score): "→ \(score)"
+            case .locked: "Locked"
+            }
+        }
+    }
+
+    private func modeRow(_ mode: RoadMode, note: RowNote?, state: RowState) -> some View {
         HStack(spacing: 12) {
             Image(systemName: state == .locked ? "lock.fill" : mode == .classic ? "figure.walk" : "mountain.2.fill")
                 .font(.system(size: 17, weight: .semibold))
                 .frame(width: 26)
                 .foregroundStyle(RoadTheme.gold.opacity(state == .locked ? 0.55 : 1))
                 .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 2) {
+            // One line only: the note switches to its short form
+            // when the full one does not fit, so the row never grows to two lines.
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Text(mode.title)
                     .font(RoadFont.body(17))
                     .foregroundStyle(RoadTheme.cream.opacity(state == .locked ? 0.6 : 1))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                    .layoutPriority(1)
                 if let note {
-                    Text(note)
-                        .font(.footnote)
-                        .foregroundStyle(RoadTheme.sand.opacity(state == .locked ? 0.7 : 0.9))
-                        .fixedSize(horizontal: false, vertical: true)
+                    ViewThatFits(in: .horizontal) {
+                        Text(note.full)
+                        Text(note.short).accessibilityLabel(note.full)
+                    }
+                    .font(.footnote)
+                    .monospacedDigit()
+                    .foregroundStyle(RoadTheme.sand.opacity(state == .locked ? 0.7 : 0.9))
+                    .lineLimit(1)
                 }
             }
-            Spacer(minLength: 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityElement(children: .combine)
             switch state {
             case .play, .continue:
                 Button(state == .play ? "Play" : "Continue") { open(mode) }
-                    .buttonStyle(GoldButtonStyle(kind: .primary))
+                    .buttonStyle(GoldButtonStyle(kind: .primary, compact: true))
+                    .fixedSize()
                     .accessibilityLabel("\(state == .play ? "Play" : "Continue") \(mode.title)")
             case .solved:
                 Button { open(mode) } label: {
                     Label("Solved", systemImage: "checkmark")
                 }
-                .buttonStyle(GoldButtonStyle(kind: .secondary))
+                .buttonStyle(GoldButtonStyle(kind: .secondary, compact: true))
+                .fixedSize()
                 .accessibilityLabel("\(mode.title) solved. Open the board")
             case .locked:
                 EmptyView()
             }
         }
         .padding(.horizontal, 14)
-        .padding(.vertical, 12)
-        .frame(minHeight: 72)
+        .padding(.vertical, 10)
+        .frame(minHeight: 58)
         .accessibilityElement(children: state == .locked ? .combine : .contain)
     }
 
@@ -268,7 +299,14 @@ struct GoldRoadHomeView: View {
                     Text("🥇").font(.system(size: 20))
                 }
                 tile(value: "\(solved)", label: "Roads solved", note: nil) {
-                    EmptyView()
+                    // The board's finish flag: a solved road is one that reached the flag.
+                    Image("FinishFlag")
+                        .renderingMode(.template)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 20, height: 20)
+                        .foregroundStyle(RoadTheme.gold)
+                        .accessibilityHidden(true)
                 }
             }
             .padding(10)

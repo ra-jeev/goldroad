@@ -35,14 +35,17 @@ struct GoldButtonStyle: ButtonStyle {
     enum Kind { case primary, secondary, ghost }
     var kind: Kind = .primary
     var fullWidth = false
+    /// A shorter pill for list rows. The pill is 38 pt tall, and its tap area
+    /// grows to 44 pt.
+    var compact = false
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(RoadFont.body(16))
+            .font(RoadFont.body(compact ? 15 : 16))
             .lineLimit(1)
             .minimumScaleFactor(0.8)
-            .padding(.horizontal, 20)
-            .frame(maxWidth: fullWidth ? .infinity : nil, minHeight: 48)
+            .padding(.horizontal, compact ? 16 : 20)
+            .frame(maxWidth: fullWidth ? .infinity : nil, minHeight: compact ? 38 : 48)
             .foregroundStyle(kind == .primary ? RoadTheme.ink : RoadTheme.cream)
             .background {
                 switch kind {
@@ -61,6 +64,8 @@ struct GoldButtonStyle: ButtonStyle {
                 }
             }
             .contentShape(Capsule())
+            .padding(.vertical, compact ? 3 : 0)
+            .contentShape(compact ? AnyShape(Rectangle()) : AnyShape(Capsule()))
             .opacity(configuration.isPressed ? 0.75 : 1)
     }
 }
@@ -492,11 +497,27 @@ struct NextRoadCountdown: View {
                     Text(timerInterval: context.date...cutoff, countsDown: true)
                         .monospacedDigit()
                         .fixedSize()
+                    LocalRoadTime(cutoff: cutoff)
                 }
+                .accessibilityElement(children: .combine)
             } else {
                 Text("A new road is ready.")
             }
         }
+    }
+}
+
+/// The next road's start in the player's own time, such as "(5:30 AM)". The road changes at
+/// 00:00 UTC, so a countdown alone leaves players outside UTC guessing the hour.
+struct LocalRoadTime: View {
+    let cutoff: Date
+
+    var body: some View {
+        Text("(\(cutoff.formatted(date: .omitted, time: .shortened)))")
+            .monospacedDigit()
+            .fixedSize()
+            .opacity(0.75)
+            .accessibilityLabel("at \(cutoff.formatted(date: .omitted, time: .shortened))")
     }
 }
 

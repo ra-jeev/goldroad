@@ -55,6 +55,12 @@ enum RoadStats {
         )
     }
 
+    /// Solved roads in one mode where the player used no hints. iOS only for now, so it is not
+    /// part of the shared `Summary` contract.
+    static func noHintSolves(_ entries: [Entry], mode: RoadMode) -> Int {
+        entries.filter { $0.puzzleType == mode && $0.solved && $0.hintsUsed == 0 }.count
+    }
+
     static func medalCounts(_ entries: [Entry]) -> MedalCounts {
         entries.reduce(into: MedalCounts()) { counts, entry in
             switch RoadResult.Medal.forAttempt(entry.attempts, solved: entry.solved) {
