@@ -40,6 +40,9 @@
         "endpoint": "/internal/scheduler/daily-road",
         "cron": "0 0 * * *"
       },
+      "first-road": {
+        "endpoint": "/internal/scheduler/first-road"
+      },
       "next-road": {
         "endpoint": "/internal/scheduler/next-road",
         "cron": "30 23 * * *"

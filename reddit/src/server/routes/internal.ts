@@ -15,7 +15,7 @@ import { context } from '@devvit/web/server';
 
 import { DEV_SUBREDDIT as TEST_SUBREDDIT } from '../core/devSubreddit';
 import { deleteIdleUsers, deleteUserData, IDLE_DAYS } from '../core/userIndex';
-import { reddit } from '@devvit/web/server';
+import { reddit, scheduler } from '@devvit/web/server';
 
 export const internal = new Hono();
 
@@ -198,14 +198,24 @@ internal.post('/triggers/on-app-install', async (c) => {
   } catch (error) {
     console.error(`could not create post flairs: ${error}`);
   }
+  // The first post comes from a job a minute later, not from this trigger.
+  // If Reddit rolls the install back (for example after a timeout), the job
+  // goes with it, so no post is left behind from an install that failed.
   try {
-    // Only today's roads here. Making the next days' roads too took longer
-    // than Reddit waits for an install, so the install failed. The 23:30 and
-    // 00:00 jobs fill the buffer instead.
-    const result = await ensureDailyPost();
-    return c.json<TriggerResponse>({ status: 'success', message: `Road post ${result.postId}` });
+    await scheduler.runJob({ name: 'first-road', runAt: new Date(Date.now() + FIRST_ROAD_DELAY_MS) });
+    return c.json<TriggerResponse>({ status: 'success', message: 'First road scheduled' });
   } catch (error) {
     console.error(`on-app-install failed: ${error}`);
-    return c.json<TriggerResponse>({ status: 'error', message: 'Could not create road post' }, 400);
+    return c.json<TriggerResponse>({ status: 'error', message: 'Could not schedule the first road' }, 400);
   }
+});
+
+const FIRST_ROAD_DELAY_MS = 60_000;
+
+/** Once, a minute after install: today's post, then the roads ahead. */
+internal.post('/scheduler/first-road', async (c) => {
+  const result = await ensureDailyPost();
+  console.log(`first-road: ${result.created ? 'created' : 'kept'} ${result.postId}`);
+  await logBuffer('first-road');
+  return c.json<TaskResponse>({}, 200);
 });
