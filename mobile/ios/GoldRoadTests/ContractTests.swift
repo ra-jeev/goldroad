@@ -669,3 +669,96 @@ extension ContractTests {
         XCTAssertEqual(RoadStats.noHintSolves(entries, mode: .expedition), 1)
     }
 }
+
+extension ContractTests {
+    private func savedDay(cutoff: Date) -> ClassicRoadClient.RoadDay {
+        let board = Board(rows: 3, cols: 3, tiles: [2, 3, 1, 1, 4, 2, 1, 1, 5],
+                          missingEdges: [], tollEdges: [], bonusEdges: [],
+                          tollValue: 2, bonusValue: 3, start: 0, end: 8)
+        let formatter = ISO8601DateFormatter()
+        let road = ClassicRoad(gameNo: 106, maxScore: 9, playableAt: formatter.string(from: Date()),
+                               board: board, nextGameAt: formatter.string(from: cutoff))
+        return ClassicRoadClient.RoadDay(classic: road, expedition: road)
+    }
+
+    /// Home keeps today's road on the device and uses it until the road closes.
+    func testRoadDayStoreKeepsOnlyAnOpenRoad() throws {
+        let suite = "GoldRoadTests.roadDay.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let now = Date()
+        RoadDayStore.save(savedDay(cutoff: now.addingTimeInterval(3600)), defaults: defaults, now: now)
+        XCTAssertEqual(RoadDayStore.load(defaults: defaults, now: now)?.classic?.gameNo, 106)
+        XCTAssertEqual(RoadDayStore.load(defaults: defaults, now: now)?.playableExpedition?.gameNo, 106)
+        XCTAssertNil(RoadDayStore.load(defaults: defaults, now: now.addingTimeInterval(3601)))
+
+        // A day with no road (or an update-required answer) is not saved.
+        defaults.removeObject(forKey: RoadDayStore.key)
+        RoadDayStore.save(ClassicRoadClient.RoadDay(classic: nil, expedition: nil), defaults: defaults, now: now)
+        XCTAssertNil(defaults.data(forKey: RoadDayStore.key))
+    }
+
+    /// One fetch per launch, then none while the road is open.
+    func testHomeFetchesOncePerLaunchThenOnlyWhenTheRoadCloses() {
+        let now = Date()
+        let open = savedDay(cutoff: now.addingTimeInterval(3600))
+        XCTAssertTrue(RoadDayStore.needsFetch(open, checked: false, now: now))
+        XCTAssertFalse(RoadDayStore.needsFetch(open, checked: true, now: now))
+        XCTAssertTrue(RoadDayStore.needsFetch(nil, checked: true, now: now))
+        XCTAssertTrue(RoadDayStore.needsFetch(open, checked: true, now: now.addingTimeInterval(3601)))
+    }
+
+    /// Community stats are reused for the same day and fetched again on the next day.
+    func testStatsOverviewStoreMatchesTheDay() throws {
+        let suite = "GoldRoadTests.overview.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let json = #"{"currentGameNo":124,"yesterday":{"gameNo":123,"classic":null,"expedition":null}}"#
+        let data = Data(json.utf8)
+        let overview = try JSONDecoder().decode(StatsOverview.self, from: data)
+        StatsOverviewStore.save(data, for: overview, defaults: defaults)
+        XCTAssertEqual(StatsOverviewStore.load(currentGameNo: 124, defaults: defaults)?.yesterday.gameNo, 123)
+        XCTAssertNil(StatsOverviewStore.load(currentGameNo: 125, defaults: defaults))
+        XCTAssertNil(StatsOverviewStore.load(currentGameNo: nil, defaults: defaults))
+    }
+}
+
+extension ContractTests {
+    private func archiveJSON(gameNo: Int) -> Data {
+        let road = """
+        {"gameNo":\(gameNo),"maxScore":9,"playableAt":"2026-11-20T00:00:00Z","nextGameAt":null,"optimalPaths":[[0,4,8]],
+         "board":{"rows":3,"cols":3,"tiles":[2,3,1,1,4,2,1,1,5],"missingEdges":[],"tollEdges":[],"bonusEdges":[],
+                  "tollValue":2,"bonusValue":3,"start":0,"end":8}}
+        """
+        return Data(#"{"classic":\#(road),"expedition":null}"#.utf8)
+    }
+
+    /// A past day's board is kept and read back with no fetch. Today's is not.
+    func testArchiveCacheKeepsOnlyPastBoards() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let cache = ArchiveCache(folder: folder)
+
+        let past = archiveJSON(gameNo: 123)
+        cache.saveBoard(past, try JSONDecoder().decode(ArchiveBoard.self, from: past), gameNo: 123, currentGameNo: 124)
+        XCTAssertEqual(cache.board(123)?.classic?.gameNo, 123)
+
+        let today = archiveJSON(gameNo: 124)
+        cache.saveBoard(today, try JSONDecoder().decode(ArchiveBoard.self, from: today), gameNo: 124, currentGameNo: 124)
+        XCTAssertNil(cache.board(124))
+        cache.saveBoard(today, try JSONDecoder().decode(ArchiveBoard.self, from: today), gameNo: 124, currentGameNo: nil)
+        XCTAssertNil(cache.board(124))
+    }
+
+    /// The calendar list is reused on the same day and fetched again on the next.
+    func testArchiveCacheListMatchesTheDay() {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let cache = ArchiveCache(folder: folder)
+        let data = Data(#"{"games":[{"gameNo":123,"playableAt":"2026-11-24T00:00:00Z"}]}"#.utf8)
+        cache.saveList(data, currentGameNo: 124)
+        XCTAssertEqual(cache.list(currentGameNo: 124)?.games.first?.gameNo, 123)
+        XCTAssertNil(cache.list(currentGameNo: 125))
+        XCTAssertNil(cache.list(currentGameNo: nil))
+    }
+}

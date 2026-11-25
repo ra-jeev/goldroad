@@ -9,7 +9,8 @@ struct GoldRoadHomeView: View {
     @AppStorage(DailyRoadRecord.storageKey) private var historyData = Data()
     @Environment(\.scenePhase) private var scenePhase
     @State private var refresh = 0
-    @State private var today: ClassicRoadClient.RoadDay?
+    @State private var wasInBackground = false
+    @State private var today = RoadDayStore.load()
 
     private var history: [DailyRoadRecord] {
         (try? JSONDecoder().decode([DailyRoadRecord].self, from: historyData)) ?? []
@@ -96,7 +97,12 @@ struct GoldRoadHomeView: View {
                 do { try await Task.sleep(for: .seconds(max(1, wake.timeIntervalSinceNow + 1))) } catch { return }
                 refresh += 1
             }
-            .onChange(of: scenePhase) { _, phase in if phase == .active { refresh += 1 } }
+            // Look again only after a real trip to the background. The first
+            // "active" at launch would cancel the launch fetch and send it twice.
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .background { wasInBackground = true }
+                if phase == .active, wasInBackground { wasInBackground = false; refresh += 1 }
+            }
             .onChange(of: showingRoad) { _, open in if !open { refresh += 1 } }
         }
         .tint(RoadTheme.gold)
@@ -105,7 +111,11 @@ struct GoldRoadHomeView: View {
     // MARK: Daily card
 
     private func loadToday() async {
-        guard let day = try? await ClassicRoadClient().fetch(), !Task.isCancelled else { return }
+        if today == nil { today = RoadDayStore.load() }
+        guard RoadDayStore.needsFetch(today, checked: RoadDayStore.checkedThisLaunch),
+              let day = try? await ClassicRoadClient().fetch(), !Task.isCancelled else { return }
+        RoadDayStore.checkedThisLaunch = true
+        RoadDayStore.save(day)
         today = day
         RoadWidgetPublisher.remember(day.classic ?? day.expedition)
         RoadReminder.shared.rememberCutoff(day.classic?.cutoff ?? day.expedition?.cutoff)

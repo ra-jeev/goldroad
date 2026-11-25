@@ -35,13 +35,68 @@ struct ArchiveBoard: Decodable {
 
 private struct ArchiveClient {
     func fetch<Response: Decodable>(_ path: String) async throws -> Response {
+        try JSONDecoder().decode(Response.self, from: try await fetchData(path))
+    }
+
+    func fetchData(_ path: String) async throws -> Data {
         let request = URLRequest(url: try GoldRoadAPI.url(path),
                                  cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 15)
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let response = response as? HTTPURLResponse, (200..<300).contains(response.statusCode) else {
             throw URLError(.badServerResponse)
         }
-        return try JSONDecoder().decode(Response.self, from: data)
+        return data
+    }
+}
+
+/// Keeps Past Roads answers on the device, in the Caches folder (iOS may
+/// clear it; then we fetch again).
+/// - A past road's board never changes, so it is kept for good.
+/// - The calendar list grows by one day each day, so it is kept for the day
+///   it was fetched on.
+struct ArchiveCache {
+    var folder: URL = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+        .appendingPathComponent("PastRoads", isDirectory: true)
+
+    private struct SavedList: Codable {
+        let currentGameNo: Int
+        let data: Data
+    }
+
+    func board(_ gameNo: Int) -> ArchiveBoard? {
+        read(ArchiveBoard.self, "board-\(gameNo).json")
+    }
+
+    /// Saves a board only for a day before today, so a board can never be
+    /// kept while it might still change. (The server sends no close time for
+    /// past roads, so the day number decides.)
+    func saveBoard(_ data: Data, _ board: ArchiveBoard, gameNo: Int, currentGameNo: Int?) {
+        let roads = [board.classic, board.expedition].compactMap { $0 }
+        guard let currentGameNo, gameNo < currentGameNo, !roads.isEmpty,
+              roads.allSatisfy({ $0.gameNo == gameNo }) else { return }
+        write(data, "board-\(gameNo).json")
+    }
+
+    func list(currentGameNo: Int?) -> ArchiveResponse? {
+        guard let currentGameNo, let saved = read(SavedList.self, "list.json"),
+              saved.currentGameNo == currentGameNo else { return nil }
+        return try? JSONDecoder().decode(ArchiveResponse.self, from: saved.data)
+    }
+
+    func saveList(_ data: Data, currentGameNo: Int?) {
+        guard let currentGameNo,
+              let saved = try? JSONEncoder().encode(SavedList(currentGameNo: currentGameNo, data: data)) else { return }
+        write(saved, "list.json")
+    }
+
+    private func read<T: Decodable>(_ type: T.Type, _ name: String) -> T? {
+        guard let data = try? Data(contentsOf: folder.appendingPathComponent(name)) else { return nil }
+        return try? JSONDecoder().decode(type, from: data)
+    }
+
+    private func write(_ data: Data, _ name: String) {
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try? data.write(to: folder.appendingPathComponent(name), options: .atomic)
     }
 }
 
@@ -164,9 +219,17 @@ struct PastRoadsView: View {
         .task(id: reload) {
             loading = true
             error = nil
+            let today = RoadWidgetPublisher.expectedGameNo()
+            if let saved = ArchiveCache().list(currentGameNo: today) {
+                days = saved.games
+                loading = false
+                return
+            }
             do {
-                let response: ArchiveResponse = try await client.fetch("api/games/past")
+                let data = try await client.fetchData("api/games/past")
+                let response = try JSONDecoder().decode(ArchiveResponse.self, from: data)
                 guard !Task.isCancelled else { return }
+                ArchiveCache().saveList(data, currentGameNo: today)
                 days = response.games
             } catch {
                 guard !Task.isCancelled else { return }
@@ -405,7 +468,16 @@ private struct ArchivedRoadView: View {
         loading = true
         error = nil
         do {
-            let result: ArchiveBoard = try await client.fetch("api/games/\(day.gameNo)/board")
+            let cache = ArchiveCache()
+            let result: ArchiveBoard
+            if let saved = cache.board(day.gameNo) {
+                result = saved
+            } else {
+                let data = try await client.fetchData("api/games/\(day.gameNo)/board")
+                result = try JSONDecoder().decode(ArchiveBoard.self, from: data)
+                cache.saveBoard(data, result, gameNo: day.gameNo,
+                                currentGameNo: RoadWidgetPublisher.expectedGameNo())
+            }
             guard !Task.isCancelled else { return }
             func restore(_ archived: ArchiveRoad?, mode: RoadMode) -> RoadRun? {
                 guard let archived, archived.gameNo == day.gameNo, archived.board.isPlayable else { return nil }

@@ -2,7 +2,7 @@ import Foundation
 
 struct ClassicRoadClient {
     struct VersionEnvelope: Decodable {
-        struct Versions: Decodable {
+        struct Versions: Codable {
             let ios: String
             let android: String
         }
@@ -18,7 +18,7 @@ struct ClassicRoadClient {
         }
     }
 
-    struct RoadDay: Decodable {
+    struct RoadDay: Codable {
         let classic: ClassicRoad?
         let expedition: ClassicRoad?
         var minClientVersion: VersionEnvelope.Versions?
@@ -136,5 +136,42 @@ struct ClassicRoadClient {
 
     private struct HTTPError: Error {
         let status: Int
+    }
+}
+
+/// Keeps the last fetched road day on the device, so Home can show it at once
+/// and skip the server while that road is still open.
+enum RoadDayStore {
+    static let key = "roadDay.v1"
+
+    /// Set after the first successful fetch in this launch. One fetch per
+    /// launch keeps the "update required" check working.
+    @MainActor static var checkedThisLaunch = false
+
+    /// The saved day, only if its Classic road is still open at `now`.
+    static func load(defaults: UserDefaults = .standard, now: Date = Date()) -> ClassicRoadClient.RoadDay? {
+        guard let data = defaults.data(forKey: key),
+              let day = try? JSONDecoder().decode(ClassicRoadClient.RoadDay.self, from: data),
+              isOpen(day, at: now) else { return nil }
+        return day
+    }
+
+    /// Saves a day that has an open Classic road. Other days (no road yet,
+    /// update required) are not saved, so the next look asks the server again.
+    static func save(_ day: ClassicRoadClient.RoadDay, defaults: UserDefaults = .standard, now: Date = Date()) {
+        guard isOpen(day, at: now), let data = try? JSONEncoder().encode(day) else { return }
+        defaults.set(data, forKey: key)
+    }
+
+    /// Home asks the server only on the first look in a launch, or when it has
+    /// no open road.
+    static func needsFetch(_ day: ClassicRoadClient.RoadDay?, checked: Bool, now: Date = Date()) -> Bool {
+        guard checked, let day else { return true }
+        return !isOpen(day, at: now)
+    }
+
+    private static func isOpen(_ day: ClassicRoadClient.RoadDay, at now: Date) -> Bool {
+        guard let classic = day.classic, classic.cutoff != nil else { return false }
+        return !classic.isExpired(at: now)
     }
 }

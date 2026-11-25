@@ -77,6 +77,24 @@ struct StatsOverview: Decodable {
     let yesterday: Day
 }
 
+/// Keeps the last community stats answer for the day it was fetched on.
+enum StatsOverviewStore {
+    static let key = "statsOverview.v1"
+
+    /// The saved answer, only if it was fetched for `currentGameNo`.
+    static func load(currentGameNo: Int?, defaults: UserDefaults = .standard) -> StatsOverview? {
+        guard let currentGameNo, let data = defaults.data(forKey: key),
+              let overview = try? JSONDecoder().decode(StatsOverview.self, from: data),
+              overview.currentGameNo == currentGameNo else { return nil }
+        return overview
+    }
+
+    static func save(_ data: Data, for overview: StatsOverview, defaults: UserDefaults = .standard) {
+        guard overview.currentGameNo != nil else { return }
+        defaults.set(data, forKey: key)
+    }
+}
+
 struct RoadStatsView: View {
     var onBack: (() -> Void)? = nil
 
@@ -464,6 +482,13 @@ struct RoadStatsView: View {
     }
 
     @MainActor private func loadOverview() async {
+        // The community card shows yesterday's closed road, so one answer is good for the whole day.
+        if let saved = StatsOverviewStore.load(currentGameNo: RoadWidgetPublisher.expectedGameNo()) {
+            overview = saved
+            loading = false
+            failed = false
+            return
+        }
         loading = true
         failed = false
         do {
@@ -475,6 +500,7 @@ struct RoadStatsView: View {
             }
             let result = try JSONDecoder().decode(StatsOverview.self, from: data)
             guard !Task.isCancelled else { return }
+            StatsOverviewStore.save(data, for: result)
             overview = result
         } catch {
             guard !Task.isCancelled else { return }
