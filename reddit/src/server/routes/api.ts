@@ -19,7 +19,7 @@ import { utcDay } from '../core/day';
 import { dayForPost } from '../core/post';
 import { getGoldRoutes, getOrCreateRoad } from '../core/road';
 import { markSeen } from '../core/userIndex';
-import { resultParent, resultText, ThreadBusyError } from '../core/comments';
+import { pinnedResultsThread, resultText, ThreadBusyError } from '../core/comments';
 import {
   claimComment,
   finishTry,
@@ -29,7 +29,6 @@ import {
   type Player,
   RunError,
   saveComment,
-  postedCommentId,
   startTry,
   useHint,
 } from '../core/runs';
@@ -146,7 +145,7 @@ api.post('/finish', async (c) => {
 
 /**
  * Post the player's result from their own account, as a reply to the pinned
- * results comment. Expedition replies to the player's own Classic result. The server writes the text from its own record, so a
+ * results comment. The server writes the text from its own record, so a
  * comment can never claim a better result. One per road and mode.
  */
 api.post('/comment', async (c) => {
@@ -161,8 +160,7 @@ api.post('/comment', async (c) => {
 
     try {
       const road = await getOrCreateRoad(day, mode);
-      const ownClassic = mode === 'expedition' ? await postedCommentId(userId, day, 'classic') : null;
-      const threadId = await resultParent(postId, ownClassic, userId);
+      const threadId = await pinnedResultsThread(postId);
       const comment = await reddit.submitComment({
         id: threadId as `t1_${string}`,
         text: resultText(road.roadNo, mode, run),
