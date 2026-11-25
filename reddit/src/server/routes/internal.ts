@@ -199,8 +199,10 @@ internal.post('/triggers/on-app-install', async (c) => {
     console.error(`could not create post flairs: ${error}`);
   }
   try {
+    // Only today's roads here. Making the next days' roads too took longer
+    // than Reddit waits for an install, so the install failed. The 23:30 and
+    // 00:00 jobs fill the buffer instead.
     const result = await ensureDailyPost();
-    await logBuffer('on-app-install');
     return c.json<TriggerResponse>({ status: 'success', message: `Road post ${result.postId}` });
   } catch (error) {
     console.error(`on-app-install failed: ${error}`);

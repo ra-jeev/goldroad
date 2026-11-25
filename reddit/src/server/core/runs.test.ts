@@ -2,12 +2,14 @@ import { redis } from '@devvit/web/server';
 import { createDevvitTest } from '@devvit/test/server/vitest';
 import { expect, vi } from 'vitest';
 import type { PublicRoad } from '../../shared/api';
+import { utcDay } from './day';
 import { finishTry, getRun, startTry, useHint } from './runs';
 import { deleteUserData } from './userIndex';
 
 const test = createDevvitTest();
 
-const DAY = '2026-11-24';
+// Today, so a solve still counts: a solve after its day ends does not.
+const DAY = utcDay();
 const USER = 't2_walker';
 const ME = { id: USER, name: 'walker' };
 
