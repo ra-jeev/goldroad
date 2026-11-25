@@ -474,14 +474,24 @@ async function countTry() {
     return;
   }
   const forMode = road.value.mode;
-  try {
-    const started = (await postStart(forMode)).run;
-    if (mode.value === forMode) record.value = started;
-  } catch (cause) {
-    console.error('start failed', cause);
-    saveProblem.value = true;
-  }
+  pendingStart = (async () => {
+    try {
+      const started = (await postStart(forMode)).run;
+      if (mode.value === forMode) record.value = started;
+    } catch (cause) {
+      console.error('start failed', cause);
+      saveProblem.value = true;
+    }
+  })();
+  await pendingStart;
 }
+
+/**
+ * The start request of the try in progress. A finish waits for it, so the
+ * server always counts a try before it sees the end of that try, also when
+ * the first request is slow.
+ */
+let pendingStart: Promise<void> | null = null;
 
 async function finish() {
   if (!road.value || !run.value || finishing.value) return;
@@ -492,8 +502,10 @@ async function finish() {
   if (solved) persist();
   else clearRoute(day, forMode);
   finishing.value = true;
+  const path = [...run.value.path];
   try {
-    const result = await postFinish(forMode, run.value.path);
+    if (pendingStart) await pendingStart;
+    const result = await postFinish(forMode, path);
     clearRoute(day, forMode);
     unsavedSolve.value = false;
     if (result.run) record.value = result.run;

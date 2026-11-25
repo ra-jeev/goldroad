@@ -50,6 +50,13 @@ test('a try is counted on its first step and the solve keeps that number', async
   expect(result.run).toMatchObject({ attempts: 2, solved: true, solvedAttempt: 2, medal: 'silver' });
 });
 
+test('two starts that arrive together both count', async () => {
+  await Promise.all([startTry(USER, DAY, 'classic'), startTry(USER, DAY, 'classic')]);
+  const result = await finishTry(ME, DAY, 'classic', road, WINNING);
+
+  expect(result.run).toMatchObject({ attempts: 2, solvedAttempt: 2, medal: 'silver' });
+});
+
 test('the server scores the route itself and rejects illegal ones', async () => {
   await startTry(USER, DAY, 'classic');
   const wrong = await finishTry(ME, DAY, 'classic', road, WRONG_EXIT);

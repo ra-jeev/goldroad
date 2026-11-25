@@ -103,11 +103,13 @@ export async function startTry(userId: string, day: string, mode: RoadMode): Pro
   const stored = await read(userId, day, mode);
   if (stored.solvedAttempt !== undefined) return toPublic(stored);
 
-  const attempts = Number(stored.attempts ?? 0) + 1;
-  const fields: Record<string, string> = { attempts: String(attempts) };
-  if (!stored.firstStartMs) fields.firstStartMs = String(Date.now());
-  await write(userId, day, mode, fields);
-  return toPublic({ ...stored, ...fields });
+  // Count with one atomic step. Two starts can arrive together (a slow first
+  // request, then the next try), and a read-then-write would count only one.
+  const key = runKey(userId, day, mode);
+  await redis.hIncrBy(key, 'attempts', 1);
+  await redis.hSetNX(key, 'firstStartMs', String(Date.now()));
+  await remember(userId, key);
+  return toPublic(await read(userId, day, mode));
 }
 
 /**
