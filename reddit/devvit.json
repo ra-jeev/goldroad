@@ -1,0 +1,118 @@
+{
+  "$schema": "https://developers.reddit.com/schema/config-file.v1.json",
+  "name": "goldroad-daily",
+  "marketingAssets": {
+    "icon": "assets/icon.png"
+  },
+  "post": {
+    "dir": "dist/client",
+    "entrypoints": {
+      "default": {
+        "inline": true,
+        "entry": "splash.html",
+        "height": "tall"
+      },
+      "play": {
+        "entry": "play.html"
+      },
+      "_direct_launch": {
+        "entry": "play.html"
+      }
+    }
+  },
+  "server": {
+    "dir": "dist/server",
+    "entry": "index.cjs"
+  },
+  "permissions": {
+    "redis": true,
+    "http": {
+      "enable": false
+    },
+    "reddit": {
+      "enable": true,
+      "asUser": [
+        "SUBMIT_COMMENT",
+        "SUBSCRIBE_TO_SUBREDDIT"
+      ]
+    }
+  },
+  "scheduler": {
+    "tasks": {
+      "daily-road": {
+        "endpoint": "/internal/scheduler/daily-road",
+        "cron": "0 0 * * *"
+      },
+      "first-road": {
+        "endpoint": "/internal/scheduler/first-road"
+      },
+      "next-road": {
+        "endpoint": "/internal/scheduler/next-road",
+        "cron": "30 23 * * *"
+      },
+      "streak-reminder": {
+        "endpoint": "/internal/scheduler/streak-reminder",
+        "cron": "5,35 * * * *"
+      },
+      "delete-idle": {
+        "endpoint": "/internal/scheduler/delete-idle",
+        "cron": "15 3 * * *"
+      }
+    }
+  },
+  "menu": {
+    "items": [
+      {
+        "label": "GoldRoad: post today's road",
+        "description": "Create today's GoldRoad post if it does not exist yet.",
+        "location": "subreddit",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/post-today"
+      },
+      {
+        "label": "GoldRoad: delete a player's data",
+        "description": "Delete all GoldRoad data of one player, for a removal request.",
+        "location": "subreddit",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/delete-player"
+      },
+      {
+        "label": "GoldRoad: post a test Sunday road",
+        "description": "Dev subreddit only. Post a road made with one Sunday vote option.",
+        "location": "subreddit",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/test-road"
+      },
+      {
+        "label": "GoldRoad: show the game badge (test)",
+        "description": "Dev subreddit only. Ask Reddit to show the game badge for today's post.",
+        "location": "subreddit",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/test-badge"
+      }
+    ]
+  },
+  "forms": {
+    "testRoad": "/internal/form/test-road",
+    "deletePlayer": "/internal/form/delete-player"
+  },
+  "triggers": {
+    "onAppInstall": "/internal/triggers/on-app-install"
+  },
+  "additionalSourceRoots": [
+    "../shared",
+    "../lib",
+    "../server/utils",
+    "../app"
+  ],
+  "sourceIgnores": [
+    "coverage/"
+  ],
+  "scripts": {
+    "dev": "vite build --watch",
+    "build": "vite build"
+  },
+  "dev": {
+    "subreddit": "goldroad_daily_dev"
+  }
+}

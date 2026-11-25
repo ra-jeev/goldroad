@@ -135,6 +135,7 @@ export interface GeneratedPuzzle {
  * @param cols         Board column count (default 6).
  * @param blockedEdges Edges to block; omit to draw from the standard band.
  * @param maxAttempts  Maximum generation retries before giving up.
+ * @param tileRange    Smallest and largest coin value on a tile.
  */
 export function generatePuzzle(
   type: 'classic' | 'expedition' = 'classic',
@@ -142,6 +143,7 @@ export function generatePuzzle(
   cols = DEFAULT_COLS,
   blockedEdges?: number,
   maxAttempts = 20,
+  tileRange: readonly [number, number] = [TILE_VALUE_MIN, TILE_VALUE_MAX],
 ): GeneratedPuzzle | null {
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     // Rolled per attempt, not per call, so a rejected board also re-rolls how
@@ -155,7 +157,7 @@ export function generatePuzzle(
 
     // 1. Build tile grid with random coin values
     const tiles: number[] = Array.from({ length: rows * cols }, () =>
-      randomInt(TILE_VALUE_MIN, TILE_VALUE_MAX),
+      randomInt(tileRange[0], tileRange[1]),
     );
 
     // 2. Place start (inner quadrant) and end (corner)

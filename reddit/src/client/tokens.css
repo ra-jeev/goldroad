@@ -1,0 +1,32 @@
+/* Brand tokens, copied from the website (app/assets/css/main.css). */
+:root {
+  --color-gold: goldenrod;
+  --color-gold-rgb: 218 165 32;
+  --color-gold-bright: #d4af37;
+  --color-gold-muted: #d4a044;
+  --color-bg-deepest: #0d0702;
+  --color-bg-dark: #110900;
+  --color-bg-base: #1a0e03;
+  --color-text-on-gold: #1a0e00;
+  --color-focus: #4b9eff;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--color-bg-deepest);
+  color: var(--color-gold-bright);
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+button:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}

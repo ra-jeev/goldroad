@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2144 256" width="2144" height="256">
+<defs>
+    <radialGradient id="bgGrad" cx="45%" cy="50%" r="60%">
+      <stop offset="0%" stop-color="#1a0e03"/>
+      <stop offset="55%" stop-color="#110900"/>
+      <stop offset="100%" stop-color="#0d0702"/>
+    </radialGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e8c84a"/>
+      <stop offset="55%" stop-color="#d4af37"/>
+      <stop offset="100%" stop-color="#b8860b"/>
+    </linearGradient>
+    <linearGradient id="roadGrad" gradientUnits="userSpaceOnUse" x1="-120" y1="0" x2="120" y2="0">
+      <stop offset="0%" stop-color="#e8c84a"/>
+      <stop offset="55%" stop-color="#d4af37"/>
+      <stop offset="100%" stop-color="#b8860b"/>
+    </linearGradient>
+  </defs><rect width="2144" height="256" fill="url(#bgGrad)"/><g transform="translate(800 128.0) scale(0.4)">
+    <path d="M-120 -120 V120 H120 V-120" fill="none" stroke="url(#roadGrad)"
+          stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="-120" cy="120" r="50" fill="#0d0702"/>
+    <path d="M-120 62 V86 M-84 120 H-62" fill="none" stroke="url(#roadGrad)"
+          stroke-width="22" stroke-linecap="butt"/>
+    <circle cx="-120" cy="120" r="42" fill="url(#goldGrad)"/>
+    <circle cx="-120" cy="-120" r="46" fill="#110900" stroke="url(#goldGrad)" stroke-width="12"/>
+    <circle cx="120" cy="120" r="46" fill="#110900" stroke="url(#goldGrad)" stroke-width="12"/>
+    <circle cx="120" cy="-120" r="46" fill="#110900" stroke="url(#goldGrad)" stroke-width="12"/>
+    <g fill="#e8c84a">
+      <rect x="105" y="-143" width="8" height="48" rx="3.5"/>
+      <path d="M113 -140 L146 -130 L113 -118 Z"/>
+    </g>
+  </g>
+
+  
+<text x="930" y="128" font-family="-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="80" font-weight="700" fill="#d4af37">GoldRoad</text>
+<text x="932" y="171.5" font-family="-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="30" fill="#e8c84a" opacity="0.85">New number-path puzzles every day.</text></svg>

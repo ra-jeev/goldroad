@@ -1,0 +1,4 @@
+/* The bundled Chivo is the variable build, registered under its own name. */
+:root {
+  --font-ui: 'Chivo Variable', var(--font-system);
+}

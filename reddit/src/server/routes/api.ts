@@ -1,0 +1,230 @@
+import { context, reddit } from '@devvit/web/server';
+import { Hono, type Context } from 'hono';
+import { z } from 'zod';
+import type {
+  CommentResponse,
+  ErrorResponse,
+  FinishResponse,
+  HintResponse,
+  RoadMode,
+  RoadResponse,
+  PlayerRun,
+  ReminderResponse,
+  StartResponse,
+  Standing,
+  VoteResponse,
+} from '../../shared/api';
+import { castVote, COMMUNITY_OPTIONS, communityPick, getBallot } from '../core/community';
+import { utcDay } from '../core/day';
+import { dayForPost } from '../core/post';
+import { getGoldRoutes, getOrCreateRoad } from '../core/road';
+import { markSeen } from '../core/userIndex';
+import { pinnedResultsThread, resultText, ThreadBusyError } from '../core/comments';
+import {
+  claimComment,
+  finishTry,
+  getRun,
+  guestHint,
+  isCounted,
+  type Player,
+  RunError,
+  saveComment,
+  startTry,
+  useHint,
+} from '../core/runs';
+import { getTrap } from '../core/trap';
+import { getStanding } from '../core/standing';
+import { getReminderState, markAsked, setReminder, updateOffset } from '../core/reminders';
+import { isDevSubreddit } from '../core/devSubreddit';
+
+export const api = new Hono();
+
+const ModeSchema = z.enum(['classic', 'expedition']);
+const ModeBody = z.object({ mode: ModeSchema });
+const Route = z.array(z.number().int().min(0).max(99)).min(1).max(100);
+const RouteBody = z.object({ mode: ModeSchema, path: Route, guide: Route.optional() });
+
+/** The road day for this post. Daily posts keep their own day for ever. */
+async function postDay(): Promise<string> {
+  const { postId } = context;
+  if (!postId) throw new RunError(400, 'No post in context');
+  // A post that this app did not create (for example a playtest post) shows
+  // today's road.
+  return (await dayForPost(postId)) ?? utcDay();
+}
+
+function player(): Player | null {
+  const { userId, username } = context;
+  return userId ? { id: userId, name: username ?? 'walker' } : null;
+}
+
+async function standingFor(day: string, mode: RoadMode, run: PlayerRun | null): Promise<Standing | null> {
+  const { userId } = context;
+  if (!userId || !run?.solved) return null;
+  const trap = await getTrap(day, mode);
+  return getStanding(userId, day, mode, await isCounted(userId, day, mode), utcDay(), trap);
+}
+
+async function otherResult(userId: string, day: string, mode: RoadMode) {
+  const other = await getRun(userId, day, mode === 'classic' ? 'expedition' : 'classic');
+  return { solved: other.solved, medal: other.medal };
+}
+
+function fail(c: Context, error: unknown) {
+  if (error instanceof RunError) return c.json<ErrorResponse>({ error: error.message }, error.status);
+  if (error instanceof ThreadBusyError) return c.json<ErrorResponse>({ error: error.message }, 409);
+  if (error instanceof z.ZodError) return c.json<ErrorResponse>({ error: 'Bad request' }, 400);
+  throw error;
+}
+
+api.get('/road', async (c) => {
+  try {
+    const mode: RoadMode = ModeSchema.catch('classic').parse(c.req.query('mode'));
+    const day = await postDay();
+    const road = await getOrCreateRoad(day, mode);
+    const { userId } = context;
+    if (userId) await markSeen(userId);
+    const run = userId ? await getRun(userId, day, mode) : null;
+    return c.json<RoadResponse>({
+      road,
+      username: context.username ?? null,
+      run,
+      standing: await standingFor(day, mode, run),
+      ballot: await getBallot(userId ?? null),
+      community: await communityPick(day),
+      other: userId ? await otherResult(userId, day, mode) : null,
+      // Push notifications are a gated beta on Reddit. Until this app is in it,
+      // reminders show only in the dev subreddit, where pushes reach the developer.
+      reminder: userId && isDevSubreddit() ? await getReminderState(userId) : null,
+    });
+  } catch (error) {
+    return fail(c, error);
+  }
+});
+
+api.post('/start', async (c) => {
+  try {
+    const { mode } = ModeBody.parse(await c.req.json());
+    const { userId } = context;
+    const day = await postDay();
+    return c.json<StartResponse>({ run: userId ? await startTry(userId, day, mode) : null });
+  } catch (error) {
+    return fail(c, error);
+  }
+});
+
+api.post('/hint', async (c) => {
+  try {
+    const { mode, path, guide } = RouteBody.parse(await c.req.json());
+    const day = await postDay();
+    const road = await getOrCreateRoad(day, mode);
+    const gold = await getGoldRoutes(day, mode);
+    if (!gold?.length) throw new Error(`No gold routes for ${day} ${mode}`);
+    const { userId } = context;
+    if (!userId) {
+      return c.json<HintResponse>({ hint: guestHint(road, gold, path, guide ?? []), run: null });
+    }
+    return c.json<HintResponse>(await useHint(userId, day, mode, road, gold, path));
+  } catch (error) {
+    return fail(c, error);
+  }
+});
+
+api.post('/finish', async (c) => {
+  try {
+    const { mode, path } = RouteBody.parse(await c.req.json());
+    const day = await postDay();
+    const road = await getOrCreateRoad(day, mode);
+    const result = await finishTry(player(), day, mode, road, path);
+    const standing = result.outcome === 'solved' ? await standingFor(day, mode, result.run) : null;
+    return c.json<FinishResponse>({ ...result, standing });
+  } catch (error) {
+    return fail(c, error);
+  }
+});
+
+/**
+ * Post the player's result from their own account, as a reply to the pinned
+ * results comment. The server writes the text from its own record, so a
+ * comment can never claim a better result. One per road and mode.
+ */
+api.post('/comment', async (c) => {
+  try {
+    const { mode } = ModeBody.parse(await c.req.json());
+    const { userId, postId } = context;
+    if (!userId || !postId) throw new RunError(403, 'Log in to comment');
+    const day = await postDay();
+    const run = await getRun(userId, day, mode);
+    if (!run.solved) throw new RunError(403, 'Solve the road first');
+    if (!(await claimComment(userId, day, mode))) throw new RunError(429, 'Result already posted');
+
+    try {
+      const road = await getOrCreateRoad(day, mode);
+      const threadId = await pinnedResultsThread(postId);
+      const comment = await reddit.submitComment({
+        id: threadId as `t1_${string}`,
+        text: resultText(road.roadNo, mode, run),
+        runAs: 'USER',
+      });
+      await saveComment(userId, day, mode, comment.id);
+      return c.json<CommentResponse>({ commentId: comment.id, run: { ...run, commented: true } });
+    } catch (error) {
+      await saveComment(userId, day, mode, null);
+      throw error;
+    }
+  } catch (error) {
+    return fail(c, error);
+  }
+});
+
+const VoteBody = z.object({
+  option: z.enum(COMMUNITY_OPTIONS.map((option) => option.id) as [string, ...string[]]),
+});
+
+/** Vote on the shape of the coming Sunday's road. One vote per account. */
+api.post('/vote', async (c) => {
+  try {
+    const { option } = VoteBody.parse(await c.req.json());
+    if (!context.userId) throw new RunError(403, 'Log in to vote');
+    const ballot = await castVote(context.userId, option as (typeof COMMUNITY_OPTIONS)[number]['id']);
+    return c.json<VoteResponse>({ ballot });
+  } catch (error) {
+    return fail(c, error);
+  }
+});
+
+/**
+ * Streak reminders on or off. Only ever on the player's own choice. `asked`
+ * alone records that the player closed the question without an answer.
+ */
+const Offset = z.number().int().min(-12 * 60).max(14 * 60);
+const ReminderBody = z.union([
+  z.object({ on: z.boolean(), offset: Offset.optional() }),
+  z.object({ asked: z.literal(true) }),
+  z.object({ offset: Offset }),
+]);
+api.post('/reminder', async (c) => {
+  try {
+    const body = ReminderBody.parse(await c.req.json());
+    if (!context.userId) throw new RunError(403, 'Log in for reminders');
+    if ('on' in body) {
+      return c.json<ReminderResponse>({ reminder: await setReminder(context.userId, body.on, body.offset ?? 0) });
+    }
+    if ('offset' in body) return c.json<ReminderResponse>({ reminder: await updateOffset(context.userId, body.offset) });
+    await markAsked(context.userId);
+    return c.json<ReminderResponse>({ reminder: await getReminderState(context.userId) });
+  } catch (error) {
+    return fail(c, error);
+  }
+});
+
+/** Join the subreddit. Only ever on the player's own tap. */
+api.post('/subscribe', async (c) => {
+  try {
+    if (!context.userId) throw new RunError(403, 'Log in to join');
+    await reddit.subscribeToCurrentSubreddit();
+    return c.json({ subscribed: true });
+  } catch (error) {
+    return fail(c, error);
+  }
+});

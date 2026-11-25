@@ -1,0 +1,6 @@
+{
+  // Editor and Vite default. The checks run per side:
+  // tools/tsconfig.server.json and tools/tsconfig.client.json.
+  "extends": "./tools/tsconfig.client.json",
+  "include": ["src/**/*", "src/**/*.vue"]
+}
