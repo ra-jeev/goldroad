@@ -14,6 +14,7 @@ const runKey = (userId: string, day: string, mode: RoadMode) => `run:${userId}:$
 
 type StoredRun = {
   attempts?: string;
+  fails?: string;
   hints?: string;
   guide?: string;
   firstStartMs?: string;
@@ -172,7 +173,15 @@ export async function finishTry(
     await remember(userId, runKey(userId, day, mode));
     await recordFirstTry(day, mode, path);
   }
-  if (outcome !== 'solved') return { outcome, score, run: toPublic(stored) };
+  if (outcome !== 'solved') {
+    // Count the failed walk too. If its start request was lost, the solve
+    // that follows still cannot claim fewer tries than the walks that failed.
+    if (stored.solvedAttempt === undefined) {
+      await redis.hIncrBy(runKey(userId, day, mode), 'fails', 1);
+      await remember(userId, runKey(userId, day, mode));
+    }
+    return { outcome, score, run: toPublic(stored) };
+  }
   if (stored.solvedAttempt !== undefined) {
     // A retry of a saved solve. A failed request may have saved the solve but
     // not its rank and streak. recordSolve is safe to run again: it writes the
@@ -187,8 +196,8 @@ export async function finishTry(
     return { outcome, score, run: toPublic(stored) };
   }
   // A solve with no recorded start (for example a lost request) still counts
-  // as one try, never as zero.
-  const attempt = Math.max(1, Number(stored.attempts ?? 0));
+  // as one try, never as zero, and never fewer than the failed walks plus one.
+  const attempt = Math.max(1, Number(stored.attempts ?? 0), Number(stored.fails ?? 0) + 1);
   const now = Date.now();
   const started = Number(stored.firstStartMs ?? now);
   const seconds = Math.max(0, Math.round((now - started) / 1000));
