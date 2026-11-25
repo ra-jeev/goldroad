@@ -29,7 +29,7 @@ with no daily work.
   rank higher, then fewer hints, then less time.
 - **Streaks.** Solving Classic on days in a row builds a streak. The app shows
   the streak as the player's user flair in the subreddit (for example
-  "🔥 4-day road"). It never replaces a flair the player set themselves.
+  "🔥 4-day streak"). It never replaces a flair the player set themselves.
 - **Sunday community roads.** During the week, players vote on the shape of
   the coming Sunday's roads (Maze, Big coins, or Wide road). Voting closes on
   Saturday at 23:30 UTC, and both Sunday roads use the winning shape.
@@ -47,6 +47,8 @@ The app runs by itself. There are no settings to configure.
   **Feedback** and **Bug**, and posts today's roads.
 - Every day at 00:00 UTC, it posts the day's roads. Each daily post gets the
   **Daily road** flair and a pinned comment where players share results.
+- Post flair must be turned on for the flairs to show. Go to **Mod tools →
+  Look and feel → Post flair** and turn on **Enable post flair**.
 
 ### Moderator menu
 
