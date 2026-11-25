@@ -5,10 +5,11 @@ import { remember } from './userIndex';
 const userFlairKey = (userId: string) => `flair:${userId}`;
 const dailyTemplateKey = 'flair:post:daily';
 
-const STREAK_FLAIR = /^🔥 \d+-day road( · best \d+)?$/u;
+// "road" is the old word, kept so the app still updates those flairs.
+const STREAK_FLAIR = /^🔥 \d+-day (streak|road)( · best \d+)?$/u;
 
 export function streakFlairText(streak: number, best: number): string {
-  const text = `🔥 ${streak}-day road`;
+  const text = `🔥 ${streak}-day streak`;
   return best > streak ? `${text} · best ${best}` : text;
 }
 

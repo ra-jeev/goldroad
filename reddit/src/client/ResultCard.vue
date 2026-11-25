@@ -132,7 +132,7 @@ const rankLine = computed(() => {
 // The same words as the streak flair on Reddit.
 const streakLine = computed(() => {
   const streak = props.standing?.streak ?? 0;
-  return streak < 1 ? null : `${streak}-day road`;
+  return streak < 1 ? null : `${streak}-day streak`;
 });
 
 const summary = computed(() =>

@@ -15,8 +15,8 @@ function userWithFlair(flairText: string | undefined) {
 }
 
 test('the flair text shows the streak, and the best when it is higher', () => {
-  expect(streakFlairText(5, 5)).toBe('🔥 5-day road');
-  expect(streakFlairText(2, 9)).toBe('🔥 2-day road · best 9');
+  expect(streakFlairText(5, 5)).toBe('🔥 5-day streak');
+  expect(streakFlairText(2, 9)).toBe('🔥 2-day streak · best 9');
 });
 
 test('an empty flair or one the app wrote is updated', async () => {
@@ -27,7 +27,7 @@ test('an empty flair or one the app wrote is updated', async () => {
   await updateStreakFlair('t2_a', 'ann', 2, 2);
 
   expect(set).toHaveBeenCalledTimes(2);
-  expect(set).toHaveBeenLastCalledWith(expect.objectContaining({ username: 'ann', text: '🔥 2-day road' }));
+  expect(set).toHaveBeenLastCalledWith(expect.objectContaining({ username: 'ann', text: '🔥 2-day streak' }));
 });
 
 test("a flair the player chose is never replaced", async () => {
@@ -44,7 +44,7 @@ test('a flair failure does not throw, and the flair key is removed with the user
 
   vi.spyOn(reddit, 'setUserFlair').mockResolvedValue(undefined);
   await updateStreakFlair('t2_a', 'ann', 1, 1);
-  expect(await redis.get('flair:t2_a')).toBe('🔥 1-day road');
+  expect(await redis.get('flair:t2_a')).toBe('🔥 1-day streak');
   await deleteUserData('t2_a');
   expect(await redis.get('flair:t2_a')).toBeUndefined();
 });

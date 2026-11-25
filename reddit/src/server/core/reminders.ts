@@ -114,7 +114,7 @@ export async function sendStreakReminders(now: number = Date.now()): Promise<Rem
   for (let i = 0; i < recipients.length; i += BATCH) {
     const response = await notifications.enqueue({
       title: '🔥 Keep your road going',
-      body: 'Your {{streak}}-day road ends in {{hours}} hours. Walk today’s GoldRoad to keep it.',
+      body: 'Your {{streak}}-day streak ends in {{hours}} hours. Walk today’s GoldRoad to keep it.',
       recipients: recipients.slice(i, i + BATCH),
     });
     run.sent += response.successCount;
