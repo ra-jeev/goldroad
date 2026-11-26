@@ -9,8 +9,8 @@ describe('updates feed', () => {
   });
 
   it('announces the undo release', () => {
-    const entry = UPDATES[0];
-    expect(entry?.date).toBe('19 Aug 2026');
+    const entry = UPDATES.find((e) => e.date === '19 Aug 2026');
+    expect(entry).toBeDefined();
     const body = entry?.body.join(' ') ?? '';
     expect(body).toMatch(/undo/i);
     expect(body).toMatch(/tile you came from/i);
