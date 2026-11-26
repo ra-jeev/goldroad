@@ -13,6 +13,17 @@ export type UpdateEntry = {
  */
 export const UPDATES: UpdateEntry[] = [
   {
+    // Set this to the launch day before the production deploy: the date is also
+    // the id that lights the "new update" dot for every player.
+    date: '26 Nov 2026',
+    title: 'GoldRoad is on iPhone and Android',
+    body: [
+      'Get the same GoldRoad experience on iPhone and Android.',
+      'New in the apps: a home screen widget with your streak and the time to the next road.',
+      'For now, your history in the apps is separate from your history here.',
+    ],
+  },
+  {
     date: '19 Aug 2026',
     title: 'Take back a wrong step',
     body: [

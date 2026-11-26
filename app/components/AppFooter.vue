@@ -8,6 +8,7 @@ import { UI_COPY } from '../content/uiCopy';
 
 <template>
   <footer class="contact-footer">
+    <StoreBadges class="footer-badges" label="Play GoldRoad on your phone" />
     <nav class="footer-nav" aria-label="Site">
       <NuxtLink to="/how-to-play">How to Play</NuxtLink>
       <NuxtLink to="/games">Past Roads</NuxtLink>
@@ -57,6 +58,10 @@ import { UI_COPY } from '../content/uiCopy';
   padding: 1.4rem clamp(0.9rem, 3vw, 1.45rem) 1.8rem;
   text-align: center;
   color: rgb(var(--color-gold-rgb) / 0.76);
+}
+
+.footer-badges {
+  margin-bottom: 0.9rem;
 }
 
 .footer-nav {

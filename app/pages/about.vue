@@ -107,6 +107,16 @@ onMounted(() => {
       </section>
 
       <section class="card">
+        <p class="eyebrow">Apps</p>
+        <h2>GoldRoad for iPhone and Android</h2>
+        <p>
+          The same daily roads, with a home screen widget that shows your
+          streak and a daily reminder if you want one.
+        </p>
+        <StoreBadges class="about-badges" />
+      </section>
+
+      <section class="card">
         <p class="eyebrow">Privacy</p>
         <h2>Plain language, no fine print</h2>
         <ul class="privacy-list">
@@ -187,6 +197,14 @@ onMounted(() => {
   background: var(--gradient-card-status);
   border: 1px solid rgb(var(--color-gold-rgb) / 0.2);
   box-shadow: var(--shadow-lg);
+}
+
+.about-badges {
+  justify-items: start;
+}
+
+.about-badges :deep(.store-badges-row) {
+  justify-content: flex-start;
 }
 
 .card h2 {
