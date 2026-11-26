@@ -1,0 +1,100 @@
+# Google Play capture flow (Pixel 9 Pro AVD "Pixel_9_Pro_goldie", 1280x2856).
+# Needs the screenshot build: ./gradlew :app:assembleProductionScreenshot
+# (mobile/android/app/src/screenshot/.../Demo.kt), which plays the local demo road
+# (the Day #100 boards) with a sample history on every launch. Coordinates come
+# from describe on that emulator: tile centre x = 0.1055 + 0.1577*col, y = 0.341 + 0.0708*row.
+steps:
+  - launch: com.playgoldroad.android.shots
+  - wait: 3000
+  - echo: "Home: Play Classic"
+  - tap:
+      x: 0.787
+      y: 0.314
+  - wait: 2500
+  - echo: "tile-28"
+  - tap:
+      x: 0.736
+      y: 0.624
+  - wait: 250
+  - echo: "tile-22"
+  - tap:
+      x: 0.736
+      y: 0.553
+  - wait: 250
+  - echo: "tile-16"
+  - tap:
+      x: 0.736
+      y: 0.483
+  - wait: 250
+  - echo: "tile-15"
+  - tap:
+      x: 0.579
+      y: 0.483
+  - wait: 250
+  - echo: "tile-21"
+  - tap:
+      x: 0.579
+      y: 0.553
+  - wait: 250
+  - echo: "tile-20"
+  - tap:
+      x: 0.421
+      y: 0.553
+  - wait: 250
+  - echo: "tile-26"
+  - tap:
+      x: 0.421
+      y: 0.624
+  - wait: 250
+  - echo: "tile-25"
+  - tap:
+      x: 0.263
+      y: 0.624
+  - wait: 250
+  - echo: "tile-31"
+  - tap:
+      x: 0.263
+      y: 0.695
+  - wait: 250
+  - echo: "tile-32"
+  - tap:
+      x: 0.421
+      y: 0.695
+  - wait: 250
+  - echo: "tile-33"
+  - tap:
+      x: 0.579
+      y: 0.695
+  - wait: 250
+  - echo: "tile-34"
+  - tap:
+      x: 0.736
+      y: 0.695
+  - wait: 250
+  - echo: "tile-35"
+  - tap:
+      x: 0.894
+      y: 0.695
+  - wait: 250
+  - echo: "tile-29"
+  - tap:
+      x: 0.894
+      y: 0.624
+  - wait: 250
+  - echo: "tile-23"
+  - tap:
+      x: 0.894
+      y: 0.553
+  - wait: 250
+  - echo: "tile-17"
+  - tap:
+      x: 0.894
+      y: 0.483
+  - wait: 250
+  - echo: "tile-11"
+  - tap:
+      x: 0.894
+      y: 0.412
+  - wait: 250
+  - wait: 1200
+  - await: { idle: true }

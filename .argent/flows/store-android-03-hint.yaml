@@ -1,0 +1,265 @@
+# Google Play capture flow (Pixel 9 Pro AVD "Pixel_9_Pro_goldie", 1280x2856).
+# Needs the screenshot build: ./gradlew :app:assembleProductionScreenshot
+# (mobile/android/app/src/screenshot/.../Demo.kt), which plays the local demo road
+# (the Day #100 boards) with a sample history on every launch. Coordinates come
+# from describe on that emulator: tile centre x = 0.1055 + 0.1577*col, y = 0.341 + 0.0708*row.
+steps:
+  - launch: com.playgoldroad.android.shots
+  - wait: 3000
+  - echo: "Home: Play Classic"
+  - tap:
+      x: 0.787
+      y: 0.314
+  - wait: 2500
+  - echo: "tile-28"
+  - tap:
+      x: 0.736
+      y: 0.624
+  - wait: 150
+  - echo: "tile-22"
+  - tap:
+      x: 0.736
+      y: 0.553
+  - wait: 150
+  - echo: "tile-16"
+  - tap:
+      x: 0.736
+      y: 0.483
+  - wait: 150
+  - echo: "tile-15"
+  - tap:
+      x: 0.579
+      y: 0.483
+  - wait: 150
+  - echo: "tile-21"
+  - tap:
+      x: 0.579
+      y: 0.553
+  - wait: 150
+  - echo: "tile-20"
+  - tap:
+      x: 0.421
+      y: 0.553
+  - wait: 150
+  - echo: "tile-26"
+  - tap:
+      x: 0.421
+      y: 0.624
+  - wait: 150
+  - echo: "tile-25"
+  - tap:
+      x: 0.263
+      y: 0.624
+  - wait: 150
+  - echo: "tile-31"
+  - tap:
+      x: 0.263
+      y: 0.695
+  - wait: 150
+  - echo: "tile-32"
+  - tap:
+      x: 0.421
+      y: 0.695
+  - wait: 150
+  - echo: "tile-33"
+  - tap:
+      x: 0.579
+      y: 0.695
+  - wait: 150
+  - echo: "tile-34"
+  - tap:
+      x: 0.736
+      y: 0.695
+  - wait: 150
+  - echo: "tile-35"
+  - tap:
+      x: 0.894
+      y: 0.695
+  - wait: 150
+  - echo: "tile-29"
+  - tap:
+      x: 0.894
+      y: 0.624
+  - wait: 150
+  - echo: "tile-23"
+  - tap:
+      x: 0.894
+      y: 0.553
+  - wait: 150
+  - echo: "tile-17"
+  - tap:
+      x: 0.894
+      y: 0.483
+  - wait: 150
+  - echo: "tile-11"
+  - tap:
+      x: 0.894
+      y: 0.412
+  - wait: 150
+  - echo: "tile-10"
+  - tap:
+      x: 0.736
+      y: 0.412
+  - wait: 150
+  - echo: "tile-9"
+  - tap:
+      x: 0.579
+      y: 0.412
+  - wait: 150
+  - echo: "tile-3"
+  - tap:
+      x: 0.579
+      y: 0.341
+  - wait: 150
+  - echo: "tile-2"
+  - tap:
+      x: 0.421
+      y: 0.341
+  - wait: 150
+  - echo: "tile-8"
+  - tap:
+      x: 0.421
+      y: 0.412
+  - wait: 150
+  - echo: "tile-14"
+  - tap:
+      x: 0.421
+      y: 0.483
+  - wait: 150
+  - echo: "tile-13"
+  - tap:
+      x: 0.263
+      y: 0.483
+  - wait: 150
+  - echo: "tile-19"
+  - tap:
+      x: 0.263
+      y: 0.553
+  - wait: 150
+  - echo: "tile-18"
+  - tap:
+      x: 0.105
+      y: 0.553
+  - wait: 150
+  - echo: "tile-12"
+  - tap:
+      x: 0.105
+      y: 0.483
+  - wait: 150
+  - echo: "tile-6"
+  - tap:
+      x: 0.105
+      y: 0.412
+  - wait: 150
+  - echo: "tile-7"
+  - tap:
+      x: 0.263
+      y: 0.412
+  - wait: 150
+  - echo: "tile-1"
+  - tap:
+      x: 0.263
+      y: 0.341
+  - wait: 150
+  - echo: "tile-0"
+  - tap:
+      x: 0.105
+      y: 0.341
+  - wait: 150
+  - wait: 3000
+  - echo: "Result sheet: Close"
+  - tap:
+      x: 0.925
+      y: 0.579
+  - wait: 1200
+  - echo: "Board: Back to Home"
+  - tap:
+      x: 0.079
+      y: 0.083
+  - wait: 1500
+  - echo: "Home: Play Expedition"
+  - tap:
+      x: 0.787
+      y: 0.418
+  - wait: 2500
+  - echo: "tile-28"
+  - tap:
+      x: 0.736
+      y: 0.624
+  - wait: 250
+  - echo: "tile-29"
+  - tap:
+      x: 0.894
+      y: 0.624
+  - wait: 250
+  - echo: "tile-35"
+  - tap:
+      x: 0.894
+      y: 0.695
+  - wait: 250
+  - echo: "tile-34"
+  - tap:
+      x: 0.736
+      y: 0.695
+  - wait: 250
+  - echo: "tile-33"
+  - tap:
+      x: 0.579
+      y: 0.695
+  - wait: 250
+  - echo: "tile-27"
+  - tap:
+      x: 0.579
+      y: 0.624
+  - wait: 250
+  - echo: "tile-26"
+  - tap:
+      x: 0.421
+      y: 0.624
+  - wait: 250
+  - echo: "tile-32"
+  - tap:
+      x: 0.421
+      y: 0.695
+  - wait: 250
+  - echo: "tile-31"
+  - tap:
+      x: 0.263
+      y: 0.695
+  - wait: 250
+  - echo: "tile-25"
+  - tap:
+      x: 0.263
+      y: 0.624
+  - wait: 250
+  - echo: "tile-24"
+  - tap:
+      x: 0.105
+      y: 0.624
+  - wait: 250
+  - echo: "tile-18"
+  - tap:
+      x: 0.105
+      y: 0.553
+  - wait: 250
+  - echo: "tile-19"
+  - tap:
+      x: 0.263
+      y: 0.553
+  - wait: 250
+  - echo: "tile-20"
+  - tap:
+      x: 0.421
+      y: 0.553
+  - wait: 250
+  - echo: "tile-14"
+  - tap:
+      x: 0.421
+      y: 0.483
+  - wait: 250
+  - echo: "Hint button"
+  - tap:
+      x: 0.101
+      y: 0.935
+  - wait: 1800
+  - await: { idle: true }
