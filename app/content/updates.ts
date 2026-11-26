@@ -24,6 +24,15 @@ export const UPDATES: UpdateEntry[] = [
     ],
   },
   {
+    date: '25 Nov 2026',
+    title: 'GoldRoad on Reddit',
+    body: [
+      'You can now play GoldRoad inside Reddit, at r/GoldRoad.',
+      'Reddit has its own daily roads, which are not the roads here. Play both if you want two roads a day.',
+      'Your history and streaks on Reddit are separate from your history here and in the apps.',
+    ],
+  },
+  {
     date: '19 Aug 2026',
     title: 'Take back a wrong step',
     body: [
