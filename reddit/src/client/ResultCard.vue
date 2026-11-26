@@ -238,9 +238,7 @@ const nextRoad = computed(() => {
         {{ COMMENT_LABEL[commentState] }}
       </button>
       <p v-if="loggedIn && commentState !== 'done'" class="fine">
-        Posts a comment from your account{{ username ? `, u/${username}` : '' }}, as a reply in the
-        pinned results thread. Everyone can see it. It shows your medal, tries, hints and time, never
-        your route.
+        Comments as {{ username ? `u/${username}` : 'you' }} in the results thread. No route shown.
       </p>
 
       <button v-if="expeditionOpen" type="button" class="action" @click="emit('expedition')">

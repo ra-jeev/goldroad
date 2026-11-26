@@ -26,6 +26,17 @@ export async function remember(userId: string, key: string, kind: IndexKind = 'k
   await markSeen(userId);
 }
 
+/**
+ * True when the player has started this mode on any road before. The client
+ * then skips the how-to-play guide, also on a new device or a new app
+ * version, where the browser's own note of it is gone.
+ */
+export async function hasPlayed(userId: string, mode: 'classic' | 'expedition'): Promise<boolean> {
+  const prefix = `run:${userId}:`;
+  const suffix = `:${mode}`;
+  return (await redis.hKeys(indexKey(userId))).some((key) => key.startsWith(prefix) && key.endsWith(suffix));
+}
+
 /** The player is here: their data is kept for another IDLE_DAYS. */
 export async function markSeen(userId: string, now: number = Date.now()): Promise<void> {
   await redis.zAdd(SEEN_KEY, { member: userId, score: now });
