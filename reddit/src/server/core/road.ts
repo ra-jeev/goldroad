@@ -71,13 +71,36 @@ export async function getGoldRoutes(day: string, mode: RoadMode): Promise<number
   return stored ? (JSON.parse(stored) as number[][]) : null;
 }
 
-async function getOrCreateRoadNo(day: string): Promise<number> {
-  const existing = await redis.get(roadNoKey(day));
-  if (existing) return Number(existing);
-  const next = await redis.incrBy(ROAD_COUNT_KEY, 1);
-  const won = await redis.set(roadNoKey(day), String(next), { nx: true });
-  if (won) return next;
-  return Number(await redis.get(roadNoKey(day)));
+/** Marks a day whose road number is being taken. Ends by itself. */
+const NUMBER_CLAIM = 'claim';
+const NUMBER_CLAIM_MS = 10_000;
+
+/**
+ * The day's public road number. The first request claims the day, and only
+ * then takes the next number, so two first requests at the same time never
+ * use up two numbers. Others wait for the number the claimer writes. If the
+ * claimer fails, the claim ends by itself and the next request takes over.
+ */
+export async function getOrCreateRoadNo(day: string): Promise<number> {
+  const key = roadNoKey(day);
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    const existing = await redis.get(key);
+    if (existing && existing !== NUMBER_CLAIM) return Number(existing);
+    if (!existing) {
+      const claimed = await redis.set(key, NUMBER_CLAIM, {
+        nx: true,
+        expiration: new Date(Date.now() + NUMBER_CLAIM_MS),
+      });
+      if (claimed) {
+        const next = await redis.incrBy(ROAD_COUNT_KEY, 1);
+        // A plain set also removes the claim's expiry: the number is for ever.
+        await redis.set(key, String(next));
+        return next;
+      }
+    }
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  throw new RoadGenerationError(`Could not give ${day} a road number`);
 }
 
 function toPublic(day: string, roadNo: number, mode: RoadMode, road: StoredRoad): PublicRoad {
