@@ -234,6 +234,8 @@ const ArchiveModeSummarySchema = PublicGameSchema.pick({ maxScore: true, totalCo
 
 export const PastGamesResponseSchema = z.object({
   count: z.number().int().nonnegative(),
+  /** The road the server counts as current. Clients key their saved list by it, not by their own guess. */
+  currentGameNo: z.number().int().positive().nullable(),
   games: z.array(PublicGameSchema.pick({ gameNo: true, playableAt: true }).extend({
     classic: ArchiveModeSummarySchema.nullable(),
     expedition: ArchiveModeSummarySchema.nullable(),

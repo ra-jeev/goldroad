@@ -95,6 +95,7 @@ export default defineEventHandler(async (event) => {
 
   return {
     count: gamesList.length,
+    currentGameNo: currentGameNo ?? null,
     games: gamesList,
   } satisfies z.output<typeof PastGamesResponseSchema>;
 });

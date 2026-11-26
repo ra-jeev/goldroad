@@ -296,7 +296,10 @@ final class DailyRoadModel {
         if freshOpen, classic?.road.isExpired(at: Date()) == true { holdsStaleRoad = true }
         sound.prepare()
         resumeClock()
-        if let day = prefetched.take(), day.classic.map({ !$0.isExpired(at: Date()) }) == true {
+        // Home's answer, or Home's request still on its way: either way, no second request.
+        var day = prefetched.take()
+        if day == nil, let pending = RoadDayStore.pending { day = try? await pending.value }
+        if let day, day.classic.map({ !$0.isExpired(at: Date()) }) == true {
             apply(day)
             isLoading = false
         } else {

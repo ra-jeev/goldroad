@@ -45,7 +45,7 @@ export function buildAPIContract(classic: ArchivedRoad, expedition: ArchivedRoad
     },
     'past-games': {
       schema: PastGamesResponseSchema,
-      sample: { count: 1, games: [{ gameNo, playableAt: classic.playableAt,
+      sample: { count: 1, currentGameNo: gameNo + 1, games: [{ gameNo, playableAt: classic.playableAt,
         classic: summarize(classic), expedition: summarize(expedition) }] },
     },
     'random-archive': { schema: RandomArchiveResponseSchema, sample: { gameNo } },

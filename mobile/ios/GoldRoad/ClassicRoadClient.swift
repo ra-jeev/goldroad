@@ -148,6 +148,19 @@ enum RoadDayStore {
     /// launch keeps the "update required" check working.
     @MainActor static var checkedThisLaunch = false
 
+    /// The road request now running, if any. A board opened while Home waits
+    /// for its answer uses this one instead of sending a second request.
+    @MainActor private(set) static var pending: Task<ClassicRoadClient.RoadDay, Error>?
+
+    /// Sends the road request, or joins the one already running.
+    @MainActor static func fetchShared() async throws -> ClassicRoadClient.RoadDay {
+        if let pending { return try await pending.value }
+        let task = Task { try await ClassicRoadClient().fetch() }
+        pending = task
+        defer { if pending == task { pending = nil } }
+        return try await task.value
+    }
+
     /// The saved day, only if its Classic road is still open at `now`.
     static func load(defaults: UserDefaults = .standard, now: Date = Date()) -> ClassicRoadClient.RoadDay? {
         guard let data = defaults.data(forKey: key),

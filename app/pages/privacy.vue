@@ -34,7 +34,11 @@ const updated = 'November 2026';
             your iCloud account. We cannot read it.
           </li>
           <li>
-            On iPhone, the app asks before it sends any community play stats. If you say
+            On Android, your history and settings can come back from your own
+            Android backup when you move to a new phone. We cannot read it.
+          </li>
+          <li>
+            On iPhone and Android, the app asks before it sends any community play stats. If you say
             yes, your daily results go to our servers with a random player ID.
             You can change this in Settings at any time.
           </li>
@@ -64,7 +68,7 @@ const updated = 'November 2026';
           </li>
           <li>
             A random player ID. It is made on your device and is not linked to
-            your Apple ID, your name or your device ID.
+            your Apple ID, your Google account, your name or your device ID.
           </li>
           <li>
             The Home Screen widget reads your streak and the next road time from
@@ -91,6 +95,21 @@ const updated = 'November 2026';
       </section>
 
       <section class="card">
+        <p class="eyebrow">Android backup</p>
+        <h2>Backup and new phones</h2>
+        <p>
+          The Android app lets Android back up your daily history, your Past
+          Roads marks and your settings (sound, haptics, reminder, and whether
+          you have seen How to play). Android keeps this backup in your own
+          Google account and moves it when you set up a new phone. We do not
+          receive it and cannot see it. Your random player ID and your
+          community stats answer are not backed up, so a new phone gets a new
+          ID and asks again. To stop backup, turn it off in the Android
+          Settings app.
+        </p>
+      </section>
+
+      <section class="card">
         <p class="eyebrow">Our server</p>
         <h2>Anonymous play stats</h2>
         <p>
@@ -107,7 +126,7 @@ const updated = 'November 2026';
           replays are never sent.
         </p>
         <p>
-          <strong>On iPhone</strong>, the app sends no community play stats
+          <strong>On iPhone and Android</strong>, the app sends no community play stats
           until you opt in. It asks once, after you first solve a daily road.
           If you say yes, it sends the results of that road and of later roads.
           If you say no, it discards any play stats waiting to be sent and sends
@@ -156,6 +175,10 @@ const updated = 'November 2026';
           <li>
             iCloud data stays in your iCloud account. You can turn off iCloud
             for GoldRoad at any time.
+          </li>
+          <li>
+            Android backup data stays in your Google account. You can turn off
+            backup in the Android Settings app.
           </li>
           <li>
             Play stats on our servers are keyed to a random player ID, not to

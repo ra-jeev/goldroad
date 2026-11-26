@@ -44,11 +44,12 @@ Build: `/Users/rajeev/.codex/worktrees/android/goldroad/mobile/android/app/build
 | Category | Type | Collected | Shared | Ephemeral | Required or optional | Purpose |
 |---|---|---|---|---|---|---|
 | App activity | App interactions | Yes | No | No | Optional (users can choose) | Analytics |
-| Device or other IDs | Device or other IDs | Yes | No | No | Optional (users can choose) | Analytics |
+| Device or other IDs | Device or other IDs | Yes | No | No | Optional (users can choose) | Analytics, App functionality, Fraud prevention, security, and compliance |
 
 - App interactions = anonymous community play stats (moves, solve, medal), sent only after the player says yes.
-- Device or other IDs = the random player UUID that the app makes. It is not linked to a person or an account.
-- Hints: the route goes to the server only to find the next move and is not saved. If Play asks, add it under App activity → "Other actions", Ephemeral: **Yes**, Required, purpose App functionality.
+- Device or other IDs = the random player UUID that the app makes. It is not linked to a person or an account. It is sent with community play stats (only after the player says yes) **and with every daily hint, even when community stats are off**. The server uses it to make the hint and to rate-limit hints, and error logs can keep its first 8 characters. That is why the purposes include App functionality and Fraud prevention. It stays Optional: hints are optional.
+- Hints: the route goes to the server only to find the next move and is not saved. Add it under App activity → "Other actions", Ephemeral: **Yes**, Optional, purpose App functionality.
+- Android backup: history, Past Roads marks and settings go to the player's own Google account backup. This is not collection by us (Google's backup, no access for us), so it needs no Data safety entry. The privacy policy explains it.
 
 Do not tick location, personal info, contacts, photos, audio, files, calendar, health, financial or messages.
 

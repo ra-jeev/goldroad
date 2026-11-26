@@ -12,6 +12,8 @@ struct RandomArchiveResponse: Decodable {
 
 struct ArchiveResponse: Decodable {
     let games: [ArchiveDay]
+    /// The road the server counts as current. Older servers leave it out.
+    let currentGameNo: Int?
 }
 
 struct ArchiveRoad: Decodable {
@@ -229,7 +231,9 @@ struct PastRoadsView: View {
                 let data = try await client.fetchData("api/games/past")
                 let response = try JSONDecoder().decode(ArchiveResponse.self, from: data)
                 guard !Task.isCancelled else { return }
-                ArchiveCache().saveList(data, currentGameNo: today)
+                // Key the list by the server's day, not ours: just after the road closes the
+                // server may still count yesterday as current and leave it out of this list.
+                ArchiveCache().saveList(data, currentGameNo: response.currentGameNo)
                 days = response.games
             } catch {
                 guard !Task.isCancelled else { return }

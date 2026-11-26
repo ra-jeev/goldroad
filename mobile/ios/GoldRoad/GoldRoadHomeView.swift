@@ -113,7 +113,7 @@ struct GoldRoadHomeView: View {
     private func loadToday() async {
         if today == nil { today = RoadDayStore.load() }
         guard RoadDayStore.needsFetch(today, checked: RoadDayStore.checkedThisLaunch),
-              let day = try? await ClassicRoadClient().fetch(), !Task.isCancelled else { return }
+              let day = try? await RoadDayStore.fetchShared(), !Task.isCancelled else { return }
         RoadDayStore.checkedThisLaunch = true
         RoadDayStore.save(day)
         today = day
