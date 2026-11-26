@@ -432,7 +432,7 @@ struct RoadStatsView: View {
     private func behaviorRows(_ field: StatsOverview.Day.Community, _ result: DailyRoadRecord?) -> [String] {
         let behavior = field.behavior
         var rows = [behavior.totalHints == 0 ? "No hints were used on this road."
-                    : "Solvers used \(behavior.totalHints) hints in total."]
+                    : "Solvers used \(behavior.totalHints) \(behavior.totalHints == 1 ? "hint" : "hints") in total."]
         if let average = behavior.averageSolveTimeMs {
             let fieldTime = RoadShare.duration(Int(average))
             rows.append(result?.activeSeconds.map {

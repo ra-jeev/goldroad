@@ -85,7 +85,7 @@ export function formatFieldBehaviorRows(
   const rows = [
     stat.behavior.totalHints === 0
       ? 'No hints were used on this road.'
-      : `Solvers used ${stat.behavior.totalHints} hints in total.`,
+      : `Solvers used ${stat.behavior.totalHints} ${stat.behavior.totalHints === 1 ? 'hint' : 'hints'} in total.`,
   ];
 
   if (stat.behavior.averageSolveTimeMs !== null) {
