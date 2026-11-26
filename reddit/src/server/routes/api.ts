@@ -18,7 +18,7 @@ import { castVote, COMMUNITY_OPTIONS, communityPick, getBallot } from '../core/c
 import { utcDay } from '../core/day';
 import { dayForPost } from '../core/post';
 import { getGoldRoutes, getOrCreateRoad } from '../core/road';
-import { markSeen } from '../core/userIndex';
+import { hasPlayed, markSeen } from '../core/userIndex';
 import { pinnedResultsThread, resultText, ThreadBusyError } from '../core/comments';
 import {
   claimComment,
@@ -89,6 +89,7 @@ api.get('/road', async (c) => {
       road,
       username: context.username ?? null,
       run,
+      playedBefore: userId ? await hasPlayed(userId, mode) : false,
       standing: await standingFor(day, mode, run),
       ballot: await getBallot(userId ?? null),
       community: await communityPick(day),

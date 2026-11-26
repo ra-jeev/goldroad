@@ -133,7 +133,10 @@ const scorePulse = ref<{ type: 'toll' | 'bonus'; key: number } | null>(null);
 // Expedition has its own short guide for toll and bonus lanes.
 const guideKey = (forMode: RoadMode) => (forMode === 'classic' ? 'goldroad:guide-seen' : `goldroad:guide-seen:${forMode}`);
 const showGuide = ref(false);
+/** Modes the server says this player has played before, on any road. */
+const playedBefore = new Set<RoadMode>();
 function guideSeen(): boolean {
+  if (playedBefore.has(mode.value)) return true;
   try {
     return localStorage.getItem(guideKey(mode.value)) === '1';
   } catch {
@@ -165,6 +168,7 @@ async function load(next: RoadMode) {
     record.value = response.run;
     loggedIn.value = response.run !== null;
     username.value = response.username;
+    if (response.playedBefore) playedBefore.add(next);
     solvedBefore.value = !!response.run?.solved;
     guide.value = response.run?.guidePath ?? [];
     standing.value = response.standing;
@@ -476,7 +480,11 @@ async function countTry() {
     return;
   }
   const forMode = road.value.mode;
+  const before = pendingFinish;
   pendingStart = (async () => {
+    // The end of the last walk goes to the server first, so the requests of
+    // one road always arrive in the order they happened.
+    if (before) await before;
     try {
       const started = (await postStart(forMode)).run;
       if (mode.value === forMode) record.value = started;
@@ -495,16 +503,38 @@ async function countTry() {
  */
 let pendingStart: Promise<void> | null = null;
 
+/**
+ * The end of a walk that did not solve the road. It goes to the server in the
+ * background, so Try again works at once. The next start waits for it.
+ */
+let pendingFinish: Promise<void> | null = null;
+
 async function finish() {
   if (!road.value || !run.value || finishing.value) return;
   const { mode: forMode, day } = road.value;
   const solved = run.value.outcome === 'solved' && !solvedBefore.value;
-  // Keep a solve until the server confirms it, so a lost request can be sent
-  // again, also after a reload. Other ends of a walk count nothing new.
-  if (solved) persist();
-  else clearRoute(day, forMode);
-  finishing.value = true;
   const path = [...run.value.path];
+  if (!solved) {
+    // The device already knows this walk failed (or is a replay). The server
+    // only counts it, so the player does not wait for it.
+    clearRoute(day, forMode);
+    const start = pendingStart;
+    pendingFinish = (async () => {
+      try {
+        if (start) await start;
+        const result = await postFinish(forMode, path);
+        if (result.run && mode.value === forMode) record.value = result.run;
+      } catch (cause) {
+        console.error('finish failed', cause);
+        saveProblem.value = true;
+      }
+    })();
+    return;
+  }
+  // Keep a solve until the server confirms it, so a lost request can be sent
+  // again, also after a reload.
+  persist();
+  finishing.value = true;
   try {
     if (pendingStart) await pendingStart;
     const result = await postFinish(forMode, path);
@@ -518,8 +548,7 @@ async function finish() {
     }
   } catch (cause) {
     console.error('finish failed', cause);
-    if (solved) unsavedSolve.value = true;
-    else saveProblem.value = true;
+    unsavedSolve.value = true;
   } finally {
     finishing.value = false;
   }

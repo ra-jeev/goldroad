@@ -1,7 +1,7 @@
 import { redis } from '@devvit/web/server';
 import { createDevvitTest } from '@devvit/test/server/vitest';
 import { expect } from 'vitest';
-import { deleteIdleUsers, markSeen, remember } from './userIndex';
+import { deleteIdleUsers, hasPlayed, markSeen, remember } from './userIndex';
 
 const test = createDevvitTest();
 
@@ -23,4 +23,12 @@ test('deletes the data of players not seen for 30 days, and keeps the rest', asy
   expect(await redis.zScore('users:seen', 't2_gone')).toBeUndefined();
   expect(await redis.get('run:t2_here')).toBe('x');
   expect(await deleteIdleUsers(NOW)).toBe(0);
+});
+
+test('knows which modes a player has played before', async () => {
+  expect(await hasPlayed('t2_new', 'classic')).toBe(false);
+  await remember('t2_new', 'run:t2_new:2026-11-25:classic');
+  await remember('t2_new', 'vote:t2_new:classic');
+  expect(await hasPlayed('t2_new', 'classic')).toBe(true);
+  expect(await hasPlayed('t2_new', 'expedition')).toBe(false);
 });

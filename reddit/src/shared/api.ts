@@ -54,6 +54,8 @@ export type RoadResponse = {
   username: string | null;
   /** Null when the player is logged out: nothing is saved for them. */
   run: PlayerRun | null;
+  /** The player started this mode on some road before: skip the guide. */
+  playedBefore: boolean;
   standing: Standing | null;
   /** The week's vote for Sunday's road. Every player can see it. */
   ballot: Ballot;
